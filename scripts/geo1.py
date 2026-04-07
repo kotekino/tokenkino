@@ -1,6 +1,6 @@
 import pymongo
 
-MONGO_URI = "mongodb://localhost:64820/?directConnection=true"
+MONGO_URI = "mongodb://localhost:49326/?directConnection=true"
 DB_NAME = "semantic_engine"
 COLLECTION_PLACES = "places"
 
