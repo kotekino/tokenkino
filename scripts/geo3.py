@@ -6,7 +6,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 # ==========================================
 # 1. CONFIGURATION
 # ==========================================
-MONGO_URI = "mongodb://localhost:64820/?directConnection=true"
+MONGO_URI = "mongodb://localhost:49326/?directConnection=true"
 DB_NAME = "semantic_engine"
 COLLECTION_REGISTRY = "polygon_registry"
 

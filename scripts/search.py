@@ -2,14 +2,16 @@ import pymongo
 import numpy as np
 
 # 1. Configurazione: Connessione a MongoDB
-URI_MONGO = "mongodb://localhost:64820/?directConnection=true"
-NOME_DB = "semantic_engine"  # Assicurati che sia quello corretto!
+# MONGO_URI = "mongodb+srv://kotekino:Lenrek973to!@tokenkino.45wzpkm.mongodb.net/"
+# DB_NAME = "tokenkino"
+MONGO_URI = "mongodb://localhost:49326/?directConnection=true"
+DB_NAME = "semantic_engine"
 NOME_COLLECTION = "dictionary"
 NOME_VECTOR_INDEX = "vector_index" # <--- Inserisci il nome del tuo indice su Atlas
 
 # Connessione veloce con timeout
 print("Tentativo di connessione a MongoDB...")
-client = pymongo.MongoClient(URI_MONGO, serverSelectionTimeoutMS=5000)
+client = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
 try:
     client.admin.command('ping')
@@ -18,7 +20,7 @@ except Exception as e:
     print(f"Errore: {e}")
     exit()
 
-db = client[NOME_DB]
+db = client[DB_NAME]
 collection = db[NOME_COLLECTION]
 
 def ricerca_semantica(frase_input, limit=10):
@@ -60,6 +62,7 @@ def ricerca_semantica(frase_input, limit=10):
             "$project": {
                 "_id": 0,
                 "word": 1,
+                "sense": 1,
                 "score": { "$meta": "vectorSearchScore" }
             }
         }
@@ -71,7 +74,8 @@ def ricerca_semantica(frase_input, limit=10):
     for i, res in enumerate(risultati, 1):
         parola = res.get("word", "Sconosciuta")
         score = res.get("score", 0.0)
-        print(f"  {i}. {parola} (Similarity: {score:.4f})")
+        sense = res.get("sense", "Sconosciuto")
+        print(f"  {i}. {parola} ({sense}) (Similarity: {score:.4f})")
 
 # ==========================================
 # LOOP INTERATTIVO DA TERMINALE
@@ -97,5 +101,5 @@ if __name__ == "__main__":
             continue
 
         # Esegue la ricerca
-        ricerca_semantica(test_input, limit=5)
+        ricerca_semantica(test_input, limit=25)
         print("-" * 50)

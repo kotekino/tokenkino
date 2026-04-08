@@ -18,7 +18,7 @@ stop_words = set(stopwords.words('english'))
 GLOSSARY_DICT = {}
 
 # 1. MongoDB Configuration
-MONGO_URI = "mongodb://localhost:64820/?directConnection=true"
+MONGO_URI = "mongodb://localhost:49326/?directConnection=true"
 DB_NAME = "semantic_engine"
 COLLECTION_NAME = "base"
 

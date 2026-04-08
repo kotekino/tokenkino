@@ -3,7 +3,7 @@ import numpy as np
 
 # 1. Configurazione: Connessione a MongoDB
 URI_MONGO = "mongodb://localhost:64820/?directConnection=true"
-NOME_DB = "semantic_engine"  # Assicurati che sia quello corretto!
+NOME_DB = "tokenkino"  # Assicurati che sia quello corretto!
 NOME_COLLECTION = "dictionaryV1"
 NOME_VECTOR_INDEX = "vector_index" # <--- Inserisci il nome del tuo indice su Atlas
 

@@ -6,7 +6,7 @@ from pymongo import MongoClient
 
 # 1. Configurazione MongoDB
 URI_MONGO = "mongodb://localhost:64820/?directConnection=true"
-NOME_DB = "semantic_engine"
+NOME_DB = "tokenkino"
 NOME_COLLECTION = "baseV2"  # Nuova collection per gli embedding nativi
 
 # 2. Estrazione delle parole dal PDF
