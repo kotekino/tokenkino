@@ -1,0 +1,15 @@
+README.md
+pyproject.toml
+api/__init__.py
+api/database.py
+api/main.py
+lib/__init__.py
+lib/llc/__init__.py
+lib/llc/functions.py
+lib/tagger/__init__.py
+lib/tagger/functions.py
+tokenkino.egg-info/PKG-INFO
+tokenkino.egg-info/SOURCES.txt
+tokenkino.egg-info/dependency_links.txt
+tokenkino.egg-info/requires.txt
+tokenkino.egg-info/top_level.txt

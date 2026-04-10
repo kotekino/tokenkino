@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: tokenkino
+Version: 0.1.0
+Summary: tokenKino
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: pymongo
+Requires-Dist: python-dotenv
+Requires-Dist: numpy
+Requires-Dist: spacy
+Requires-Dist: tqdm
+Requires-Dist: nltk
+Requires-Dist: tqdm

@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tokenkino"
+version = "0.1.0"
+description = "tokenKino"
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pymongo",
+    "python-dotenv",
+    "numpy",
+    "spacy",
+    "tqdm",
+    "nltk",
+    "tqdm"
+]
+
+[tool.taskipy.tasks]
+dev = "uvicorn api.main:app --reload"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["lib*", "api*"] # Include la cartella lib e tutte le sue sottocartelle

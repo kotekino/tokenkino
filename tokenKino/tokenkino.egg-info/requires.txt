@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pymongo
+python-dotenv
+numpy
+spacy
+tqdm
+nltk
+tqdm
