@@ -1,3 +1,4 @@
+from operator import pos
 import os
 import re
 import numpy as np
@@ -7,12 +8,13 @@ from nltk.corpus import wordnet as wn
 from nltk.corpus import stopwords
 import concurrent.futures
 from tqdm import tqdm
+from nltk.stem import WordNetLemmatizer
 
 # Download NLTK data quietly
 nltk.download('wordnet', quiet=True)
 nltk.download('omw-1.4', quiet=True)
 nltk.download('stopwords', quiet=True)
-
+lemmatizer = WordNetLemmatizer()
 stop_words = set(stopwords.words('english'))
 
 # ==========================================
@@ -58,15 +60,33 @@ def calculate_base_glossary(word):
                 tokens.add(p)
     return tokens
 
-def get_primary_meanings(word):
-    """Estrae SOLO il significato primario per ogni Part of Speech (Noun, Verb, Adj, Adv)."""
+def get_primary_meanings(word, max_per_pos=3):
+    """
+    Estrae fino a 'max_per_pos' significati per ogni Part of Speech.
+    Include fallback di lemmatizzazione a cascata per le forme flesse.
+    """
     all_synsets = wn.synsets(word)
+    
+    if not all_synsets:
+        for pos_tag in ['v', 'n', 'a', 'r']:
+            lemma = lemmatizer.lemmatize(word, pos=pos_tag)
+            if lemma != word:
+                all_synsets = wn.synsets(lemma)
+                if all_synsets:
+                    break
+
     filtered_synsets = []
-    seen_pos = set()
+    
+    # Inizializziamo i contatori per Nomi, Verbi, Aggettivi (a/s) e Avverbi
+    pos_counts = {'n': 0, 'v': 0, 'a': 0, 's': 0, 'r': 0}
+    
     for s in all_synsets:
-        if s.pos() not in seen_pos:
+        pos = s.pos()
+        # Se non abbiamo ancora raggiunto il limite (es. 3) per questo POS, lo aggiungiamo
+        if pos_counts.get(pos, 0) < max_per_pos:
             filtered_synsets.append(s)
-            seen_pos.add(s.pos())
+            pos_counts[pos] = pos_counts.get(pos, 0) + 1
+            
     return filtered_synsets
 
 def get_semantic_value(target_word, target_synset, base_word, target_gloss, base_gloss):
@@ -151,14 +171,6 @@ def worker_process_word(target_word):
     
     # CASO 1: Parola non presente in WordNet (es. slang, nomi propri)
     if not primary_synsets:
-        vector = [0.0] * len(BASE_WORDS_ORDERED)
-        results.append({
-            "word": target_word,
-            "pos": "unknown",
-            "sense": "unknown",
-            "definition": "Not found in WordNet",
-            "vector": vector
-        })
         return results
 
     # CASO 2: Calcoliamo il vettore per ogni significato primario (pos)
