@@ -1,5 +1,4 @@
 dotenv
-pymongo
 numpy
 spacy
 tqdm
@@ -7,3 +6,5 @@ nltk
 tqdm
 uvicorn
 fastapi
+pydantic
+bunnet

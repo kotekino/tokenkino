@@ -9,12 +9,10 @@ description = "tokenKino"
 dependencies = [
     "fastapi",
     "uvicorn",
-    "pymongo",
+    "bunnet",
     "python-dotenv",
-    "numpy",
     "spacy",
-    "tqdm",
-    "nltk",
+    "numpy",
     "tqdm"
 ]
 

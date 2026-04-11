@@ -184,7 +184,7 @@ def worker_process_word(target_word):
             
         results.append({
             "word": target_word,
-            "pos": syn.pos(),                     # 'n', 'v', 'a', 'r'
+            "pos": syn.pos(),                     # 'n', 'v', 'a', 'r','s'
             "sense": syn.name(),                  # es. 'bank.n.01'
             "definition": syn.definition(),       # Salviamo la definizione per debug
             "vector": vector
