@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional, Union, Literal
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, PrivateAttr
 
 # geo point
 class GeoPoint(BaseModel):
@@ -56,7 +56,7 @@ class TKOperator(str, Enum):
 
 # entities involved in statements
 class TKEntity(BaseModel):
-    id: int # unique identifier for the entity IN THE CONTEXT OF THE STATEMENT
+    id: int = 0
     type: str
     name: Optional[TKName] = None
     dictionary: Optional[TKDictionary] = None
@@ -66,13 +66,39 @@ class TKEntity(BaseModel):
 # LL statement
 class TKStatement(BaseModel):
     op: Optional[TKOperator] = None
-    subject: TKEntity
-    predicate: TKEntity 
+    subject: Optional[TKEntity] = None
+    predicate: Optional[TKEntity] = None
     object: Optional[TKEntity] = None
     when: Optional[TKEntity] = None
     where: Optional[TKEntity] = None
     spec: Optional[TKEntity] = None
     entities: List[TKEntity] = Field(default_factory=list)
+
+    # private attr for general counter
+    _id_counter: int = PrivateAttr(default=1)
+
+    # factory for TKEntity
+    def create_entity(self, **kwargs) -> TKEntity:
+        entity = TKEntity(id=self._id_counter, **kwargs)
+        self.entities.append(entity)
+        self._id_counter += 1
+        return entity
+
+    # register entity in the statement
+    def register_entity(self, entity: TKEntity) -> TKEntity:
+        if entity.id == 0:
+            entity.id = self._id_counter
+            self._id_counter += 1
+        
+        if entity not in self.entities:
+            self.entities.append(entity)
+        return entity 
+    
+    # rebuild ids
+    def model_post_init(self, __context):
+        if self.entities:
+            max_id = max(e.id for e in self.entities)
+            self._id_counter = max_id + 1    
 
 class TKLLStatement(List[TKStatement]):
     pass
