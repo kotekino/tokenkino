@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from bunnet import init_bunnet
 from lib.core.models import BaseDoc, DictionaryDoc, NameDoc, PlaceDoc
 
-def init_io(connection_string: str = None, db_name: str = None) -> MongoClient:
+def init_io(connection_string: str = None, db_name: str = None):
     # init mongo client
     uri = connection_string or os.getenv("MONGO_URI")
     client = MongoClient(uri)
@@ -19,4 +19,4 @@ def init_io(connection_string: str = None, db_name: str = None) -> MongoClient:
         ]
     )
 
-    return client
+    return client, db

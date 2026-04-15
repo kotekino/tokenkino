@@ -1,11 +1,11 @@
-from typing import Annotated # <--- Importante
+from typing import Annotated, Literal # <--- Importante
 from bunnet import Document, Indexed
 from lib.core.entities import TKBase, TKDictionary, TKName, TKPlace
 
 # Documento per le parole base
 class BaseDoc(TKBase, Document):
     # Diciamo: "Il tipo è str, ed è indicizzato come unico"
-    word: Annotated[str, Indexed(unique=True)] 
+    word: Annotated[str, Indexed(unique=True)]
 
     class Settings:
         name = "tk_bases"
@@ -27,7 +27,7 @@ class NameDoc(TKName, Document):
 # Documento per i luoghi
 class PlaceDoc(TKPlace, Document):
     name: Annotated[str, Indexed()]
-    
+
     class Settings:
         name = "tk_places"
         indexes = [

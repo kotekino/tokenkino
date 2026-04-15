@@ -10,12 +10,14 @@ class GeoPoint(BaseModel):
 
 # base word (2925 base words, having semantic vector with 2925 dimensions)
 class TKBase(BaseModel):
+    entity_type: Literal["base"] = Field(default="base")
     word: str
     vector: List[float] = Field(default_factory=list, min_length=2925, max_length=2925)
     index: int
 
 # dictionary (referring to the 2925 base words, having semantic vector with 2925 dimensions)
 class TKDictionary(BaseModel):
+    entity_type: Literal["dictionary"] = Field(default="dictionary")
     word: str
     pos: str = Field(pattern="^[avrns]$") 
     sense: str
@@ -24,10 +26,12 @@ class TKDictionary(BaseModel):
 
 # list of proper names
 class TKName(BaseModel):
+    entity_type: Literal["name"] = Field(default="name")
     name: str
 
 # list of places
 class TKPlace(BaseModel):
+    entity_type: Literal["place"] = Field(default="place")
     name: str
     type: str
     category: str
@@ -37,6 +41,13 @@ class TKPlace(BaseModel):
     path_geo: List[str] = Field(default_factory=list)
     physical_features: Optional[List[str]] = None
     location: Optional[GeoPoint] = None
+
+# generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
+class TKGeneric(BaseModel):
+    entity_type: Literal["generic"] = Field(default="generic")
+    token: str
+    pos: str
+    definition: str
 
 # --------------------------------------------------
 # statements
@@ -54,17 +65,9 @@ class TKOperator(str, Enum):
     CONV = "CONV"
     EQ = "EQ"
 
-# entities involved in statements
-class TKEntity(BaseModel):
-    id: int = 0
-    type: str
-    name: Optional[TKName] = None
-    dictionary: Optional[TKDictionary] = None
-    place: Optional[TKPlace] = None
-    statement: Optional[TKStatement] = None
-
 # LL statement
 class TKStatement(BaseModel):
+    entity_type: Literal["statement"] = Field(default="statement")
     op: Optional[TKOperator] = None
     subject: Optional[TKEntity] = None
     predicate: Optional[TKEntity] = None
@@ -100,12 +103,21 @@ class TKStatement(BaseModel):
             max_id = max(e.id for e in self.entities)
             self._id_counter = max_id + 1    
 
-class TKLLStatement(List[TKStatement]):
+# payload for entity
+EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKStatement]
+
+# entities involved in statements
+class TKEntity(BaseModel):
+    id: int = 0
+    payload: EntityPayload = Field(discriminator='entity_type')
+
+class TKStatements(List[TKStatement]):
     pass
 
 # rebuild models to ensure all fields are properly processed
 TKEntity.model_rebuild()
 TKStatement.model_rebuild()
+
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica
