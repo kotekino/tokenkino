@@ -118,6 +118,16 @@ class TKStatements(List[TKStatement]):
 TKEntity.model_rebuild()
 TKStatement.model_rebuild()
 
+# --------------------------------------------------
+# context
+# --------------------------------------------------
+class TKMessage(BaseModel):
+    source: str
+    target: str
+    message: str
+
+class TKContext(List[TKStatement]):
+    pass
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica

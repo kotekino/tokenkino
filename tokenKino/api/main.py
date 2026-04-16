@@ -2,10 +2,11 @@ from contextlib import asynccontextmanager
 import os
 from fastapi import FastAPI, Query
 from pymongo import MongoClient
-from lib.llc.functions import llc
+from lib.llc.functions import llc, llc_preparser
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import init_io
+from lib.core.models import TKDictionaryDoc
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -16,8 +17,13 @@ async def lifespan(app: FastAPI):
     # IO init
     uri = os.getenv("MONGO_URI")
     db_name = os.getenv("MONGO_DB_NAME")    
-    db_client = init_io(connection_string=uri, db_name=db_name)
+    ollama_host = os.getenv("OLLAMA_HOST")
+
+    db_client, ai_client = init_io(uri, db_name, ollama_host)
+    
+    # Salviamo nello stato
     app.state.db_client = db_client
+    app.state.ai_client = ai_client
     
     yield  #where fastapi runs
     
@@ -28,8 +34,17 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # endpoints
-@app.get("/process")
-def read_root(q: str = Query(..., min_length=3, description="Sentence to submit")):
-    res = llc(q, app.state.db_client)
+@app.get("/api/v1/llc")
+def process(q: str = Query(..., min_length=3, description="Sentence to submit")):
+    res = llc(q, app.state.ai_client)
     return {"status": "success", "data": res}
 
+@app.get("/api/v1/dict")
+def search(word: str):
+    doc = TKDictionaryDoc.find_one(TKDictionaryDoc.word == word).run()
+    return doc
+
+@app.get("/api/v1/llc_preparser")
+def preparse(tokens: str):
+    res = llc_preparser(tokens, None, app.state.ai_client)
+    return res

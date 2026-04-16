@@ -1,17 +1,18 @@
+from ollama import Client as ollamaClient
 from pymongo import MongoClient
 import spacy
 from spacy.tokens import Token
-from lib.core.entities import TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
+from lib.core.entities import TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
 from lib.core.io import init_io
 import numpy as np
+
+from lib.core.models import TKDictionaryDoc
 
 # load core web
 nlp = spacy.load("en_core_web_md")
 
-def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements: 
-
-    db = mongoClient.get_database()
-    dictionary = db["dictionary"]
+# core internal recursive function to parse a list of token into a TKStatements
+def llc_core(tokens: list[Token]) -> TKStatements: 
 
     # init statement
     statements = TKStatements()
@@ -26,7 +27,7 @@ def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements:
 
         # recursive iteration for each predicate 
         for p in predicates:
-            statements += llc_core(list(p.subtree), mongoClient)
+            statements += llc_core(list(p.subtree))
 
     elif len(predicates) == 1:
         # recurse condition with 1 sentence (1 root)
@@ -36,7 +37,7 @@ def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements:
 
         # search predicate (as verb)
         if (predicate.pos_ == "VERB" or predicate.pos_ == "AUX"):
-            doc_result = dictionary.find_one({"word": predicate.lemma_, "pos": "v"})
+            doc_result = TKDictionaryDoc.find_one({"word": predicate.lemma_, "pos": "v"}).run()
             
             # semantic fallback
             if not doc_result:
@@ -45,12 +46,12 @@ def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements:
                 similar_keys = most_similar[0][0]
                 for key in similar_keys:
                     fallback_lemma = nlp.vocab.strings[key]     
-                    doc_result = dictionary.find_one({"word": fallback_lemma, "pos": "v"})
+                    doc_result = TKDictionaryDoc.find_one({"word": fallback_lemma, "pos": "v"}).run()
                     if doc_result:
                         break
 
             # fallback result
-            if doc_result: tkPredicate = TKDictionary(**doc_result)
+            if doc_result: tkPredicate = TKDictionary(**doc_result.model_dump(exclude={"id"}))
             
             # if still no result, generic (it is used to manage unknown semantics)
             else: tkPredicate = TKGeneric(token=predicate.lemma_, pos=predicates[0].pos_)
@@ -91,23 +92,63 @@ def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements:
 
     return statements
 
-def llc(tokens: str, mongoClient: MongoClient=None) -> TKStatements:
+# main entry point to parse an input text
+def llc(tokens: str, ollamaClient: ollamaClient, context: TKContext = None) -> TKStatements:
 
     # spacy parse
     doc = nlp(tokens)
 
+    if context:
+       tokens = llc_preparser(tokens, context)
+
     # get all tokens
-    tkStatements: TKStatements = llc_core(list(doc), mongoClient)
+    tkStatements: TKStatements = llc_core(list(doc))
 
     # return statement
     return tkStatements
 
+# pre parser based on Phi-3 via Ollama: fix the sentences not understandable by llc
+def llc_preparser(tokens: str, context: TKContext, ollamaClient: ollamaClient) -> str:
 
-# simulation of external call, remove this
-uri = "mongodb://localhost:49326/?directConnection=true"
-db_name = "semantic_engine"
-client = init_io(connection_string=uri, db_name=db_name)
+    # Prompt strutturato a blocchi logici (senza negazioni complesse)
+    systemPrompt = """You are a strict syntax normalizer.
+    Your ONLY job is to rewrite elliptical phrases, exclamations, greetings, or short answers into explicit Subject-Verb-Object (SVO) sentences.
 
-str1 = "I and Mari lift the couch in the living room, because we are a team and we help each other"
-str1 = "The dog is clever"
-llc(str1, client)
+    Rules:
+    - Keep the exact original meaning.
+    - Maintain the original grammatical person. Assume 1st person singular ('I') for general exclamations or greetings unless stated otherwise.
+    - Output ONLY the final sentence. Absolutely no explanations, no notes, and do not write "You are expressing...".
+
+    Examples:
+    Input: 'Silence!'
+    Output: 'You must stay silent.'
+
+    Input: 'Exactly.'
+    Output: 'That is exactly right.'
+
+    Input: 'mornin guys'
+    Output: 'I wish you a good morning.'
+
+    Input: 'oh god'
+    Output: 'I am shocked.'
+
+    Input: 'What a cold day!'
+    Output: 'This day is cold.'
+    """
+
+    user_prompt = f"Input: '{tokens}'\nOutput:"
+
+    response = ollamaClient.generate(
+        model='phi3', 
+        prompt=user_prompt, 
+        system=systemPrompt,
+        options={
+            'temperature': 0.0,
+            'top_k': 10,
+            'top_p': 0.5
+        }
+    )
+
+    normalized_text = response['response'].strip().strip("'").strip('"')
+
+    return normalized_text

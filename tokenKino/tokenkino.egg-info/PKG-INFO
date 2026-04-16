@@ -9,3 +9,4 @@ Requires-Dist: python-dotenv
 Requires-Dist: spacy
 Requires-Dist: numpy
 Requires-Dist: tqdm
+Requires-Dist: ollama

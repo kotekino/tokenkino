@@ -13,7 +13,8 @@ dependencies = [
     "python-dotenv",
     "spacy",
     "numpy",
-    "tqdm"
+    "tqdm",
+    "ollama"
 ]
 
 [tool.taskipy.tasks]

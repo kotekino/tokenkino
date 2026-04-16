@@ -1,0 +1,46 @@
+services:
+  # --- MONGO ATLAS LOCAL ---
+  mongodb:
+    image: mongodb/mongodb-atlas-local:8
+    ports:
+      - "27018:27017"  # Mappa la 27017 del container sulla 27018 del tuo Mac
+    volumes:
+      - mongo_data:/data/db
+    # Atlas Local richiede spesso che venga specificato il nome del replica set
+    command: ["mongod", "--bind_ip_all", "--replSet", "rs0"]
+
+  # --- OLLAMA (AI Engine) ---
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  # --- AUTOMAZIONE DOWNLOAD PHI-3 ---
+  ollama-pull-phi3:
+    image: curlimages/curl:latest
+    depends_on:
+      - ollama
+    entrypoint: [ "sh", "-c", "sleep 5 && curl http://ollama:11434/api/pull -d '{\"name\": \"phi3\"}'" ]
+
+  # --- TUA API (TokenKino) ---
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # NOTA: Qui usiamo 'mongodb:27017' perché i container parlano tra loro sulla rete interna.
+      # La porta 27018 serve solo a TE per accedere dall'esterno (es. con Compass).
+      - MONGO_URI=mongodb://mongodb:27017/?directConnection=true
+      - MONGO_DB_NAME=semantic_engine
+      - OLLAMA_HOST=http://ollama:11434
+    depends_on:
+      - mongodb
+      - ollama
+    volumes:
+      - .:/app
+
+volumes:
+  mongo_data:
+  ollama_data:

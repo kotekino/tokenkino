@@ -3,33 +3,30 @@ from bunnet import Document, Indexed
 from lib.core.entities import TKBase, TKDictionary, TKName, TKPlace
 
 # Documento per le parole base
-class BaseDoc(TKBase, Document):
+class TKBaseDoc(TKBase, Document):
     # Diciamo: "Il tipo è str, ed è indicizzato come unico"
     word: Annotated[str, Indexed(unique=True)]
 
     class Settings:
-        name = "tk_bases"
+        name = "base"
 
 # Documento per il dizionario
-class DictionaryDoc(TKDictionary, Document):
+class TKDictionaryDoc(TKDictionary, Document):
     word: Annotated[str, Indexed()]
     
     class Settings:
-        name = "tk_dictionary"
+        name = "dictionary"
 
 # Documento per i nomi propri
-class NameDoc(TKName, Document):
+class TKNameDoc(TKName, Document):
     name: Annotated[str, Indexed(unique=True)]
 
     class Settings:
-        name = "tk_names"
+        name = "names"
 
 # Documento per i luoghi
-class PlaceDoc(TKPlace, Document):
+class TKPlaceDoc(TKPlace, Document):
     name: Annotated[str, Indexed()]
 
     class Settings:
-        name = "tk_places"
-        indexes = [
-            [("location", "2dsphere")] 
-        ]
+        name = "places"
