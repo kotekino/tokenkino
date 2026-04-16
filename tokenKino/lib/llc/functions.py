@@ -10,7 +10,7 @@ nlp = spacy.load("en_core_web_md")
 
 def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements: 
 
-    db = mongoClient[1]
+    db = mongoClient.get_database()
     dictionary = db["dictionary"]
 
     # init statement
@@ -49,9 +49,11 @@ def llc_core(tokens: list[Token], mongoClient: MongoClient) -> TKStatements:
                     if doc_result:
                         break
 
-            # if still no result, generic, otherwise build dictionary
-            if doc_result: tkPredicate = TKDictionary(**doc_result)      
-            else: tkPredicate = TKGeneric(token=predicate.lemma_, pos=predicates[0].pos_, definition="")
+            # fallback result
+            if doc_result: tkPredicate = TKDictionary(**doc_result)
+            
+            # if still no result, generic (it is used to manage unknown semantics)
+            else: tkPredicate = TKGeneric(token=predicate.lemma_, pos=predicates[0].pos_)
         else:
             # not a verb: predicato nominale, frase elittica, esclamazione
             tkPredicate = TKGeneric(token=predicate.lemma_, pos=predicates[0].pos_, definition="")
@@ -107,5 +109,5 @@ db_name = "semantic_engine"
 client = init_io(connection_string=uri, db_name=db_name)
 
 str1 = "I and Mari lift the couch in the living room, because we are a team and we help each other"
-str1 = "Renzo is intelligent. Io am Renzo."
+str1 = "The dog is clever"
 llc(str1, client)
