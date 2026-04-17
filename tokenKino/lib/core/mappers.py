@@ -9,8 +9,6 @@ class TKPosMapper:
     # Molti-a-Uno: Da spaCy a WordNet
     _SPACY_TO_WN = {
         "NOUN": "n",
-        "PROPN": "n",
-        "PRON": "n",   # Opzionale: decommenta se vuoi cercare i pronomi in DB
         "VERB": "v",
         "AUX": "v",
         "ADJ": "a",    # spaCy non fa distinzione tra 'a' e 's'

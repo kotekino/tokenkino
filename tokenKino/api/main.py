@@ -36,7 +36,7 @@ app = FastAPI(lifespan=lifespan)
 # endpoints
 @app.get("/api/v1/llc")
 def process(q: str = Query(..., min_length=3, description="Sentence to submit")):
-    res = llc(q, app.state.ai_client)
+    res = llc(q, None, app.state.ai_client)
     return {"status": "success", "data": res}
 
 @app.get("/api/v1/dict")
