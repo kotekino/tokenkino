@@ -6,6 +6,7 @@ lib/__init__.py
 lib/core/__init__.py
 lib/core/entities.py
 lib/core/io.py
+lib/core/mappers.py
 lib/core/models.py
 lib/llc/__init__.py
 lib/llc/functions.py

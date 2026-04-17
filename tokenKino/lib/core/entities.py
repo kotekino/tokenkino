@@ -1,7 +1,22 @@
 from __future__ import annotations
 from typing import List, Optional, Union, Literal
 from enum import Enum
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, RootModel
+
+# --------------------------------------------------
+# context
+# --------------------------------------------------
+class TKMessage(BaseModel):
+    source: str
+    target: str
+    message: str
+
+# alias for list of messages
+TKContext = list[TKMessage]
+
+# --------------------------------------------------
+# mongo knowledgebase
+# --------------------------------------------------
 
 # geo point
 class GeoPoint(BaseModel):
@@ -46,11 +61,13 @@ class TKPlace(BaseModel):
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
     token: str
-    pos: str
-    definition: str
+    upos: str
+    pos: Optional[str] = None
+    definition: Optional[str] = None
+    context: Optional[TKContext] = None
 
 # --------------------------------------------------
-# statements
+# statements related
 # --------------------------------------------------
 
 # es testvar: TKOperator = TKOperator.AND
@@ -111,23 +128,14 @@ class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
 
-class TKStatements(List[TKStatement]):
-    pass
+# alias for statements
+TKStatements = list[TKStatement]
 
+# --------------------------------------------------
 # rebuild models to ensure all fields are properly processed
-TKEntity.model_rebuild()
+# --------------------------------------------------
 TKStatement.model_rebuild()
-
-# --------------------------------------------------
-# context
-# --------------------------------------------------
-class TKMessage(BaseModel):
-    source: str
-    target: str
-    message: str
-
-class TKContext(List[TKStatement]):
-    pass
+TKEntity.model_rebuild()
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica
