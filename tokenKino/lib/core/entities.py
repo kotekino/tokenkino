@@ -70,8 +70,6 @@ class TKGeneric(BaseModel):
 # statements related
 # --------------------------------------------------
 
-# es testvar: TKOperator = TKOperator.AND
-
 # operator enum
 class TKOperator(str, Enum):
     NOT = "NOT"
@@ -83,40 +81,27 @@ class TKOperator(str, Enum):
     CONV = "CONV"
     EQ = "EQ"
 
-# space operator
-class TKSpaceOperator(str, Enum):
-    FROM = "FROM"
-    TO = "TO"
-    AT = "AT"
-    IN = "IN"
-    INTO = "INTO"
-    OUT = "OUT"
-    OUTOF = "OUTOF"
-
-# abstract places side
-class TKPlaceSide(str, Enum):
-    LEFT = "LEFT"
-    RIGHT = "RIGHT"
-    UP = "UP"
-    DOWN = "DOWN"
-
 # abstract places
 class TKAbstractPlace(BaseModel):
     entity_type: Literal["abstract_place"] = Field(default="abstract_place")
-    proximity: Optional[int]= Field(default=0) # default here 0, there 10, far 100 very far 1000, very close 0.1
-    side: Optional[TKPlaceSide] = None # optional
 
-# space map
-SpacePayload = Union[TKPlace, TKAbstractPlace]
-class TKSpaceMap(BaseModel):
-    entity_type: Literal["space_map"] = Field(default="space_map")
-    op: TKSpaceOperator = Field(default=TKSpaceOperator.IN)
-    observer: SpacePayload = Field(discriminator='entity_type')
-    observed: SpacePayload = Field(discriminator='entity_type')
+# space map: should manage where and when
+class TKSpaceTimeMap(BaseModel):
+    entity_type: Literal["spacetime_map"] = Field(default="spacetime_map")
+    
+    # from position in spacetime is relative to the observer (as position and as magnitude)
+    st_from: List[float] = Field(default_factory=list, min_length=4, max_length=4) # [t, x, y, z]
+    st_from_place: Optional[TKPlace] = None
+    st_from_dictionary: Optional[TKDictionary] = None
+    
+    # to position in spacetime is relative to the observer (as position and as magnitude)
+    st_to: List[float] = Field(default_factory=list, min_length=4, max_length=4)
+    st_to_place: Optional[TKPlace] = None
+    st_to_dictionary: Optional[TKDictionary] = None
 
 # entities involved in statements
 # payload for entity
-EntityPayload = Union[TKName, TKDictionary, TKSpaceMap, TKGeneric]
+EntityPayload = Union[TKName, TKDictionary, TKSpaceTimeMap, TKGeneric]
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
@@ -124,6 +109,7 @@ class TKEntity(BaseModel):
 # a reference to an entity (and its properties)
 class TKEntityReference(BaseModel):
     id: int
+    is_generic: bool = Field(default=True)
     properties: list[int] = Field(default=[])
 
 # LL statement
@@ -133,8 +119,7 @@ class TKStatement(BaseModel):
     subject: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
     predicate: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
     object: Optional[TKEntityReference] = None # optional has semantic 2925 vale
-    when: Optional[TKEntityReference] = None # optional, has time semantic value
-    where: Optional[TKEntityReference] = None # optional, has spacial semantic value
+    spacetime: Optional[TKSpaceTimeMap] = None # optional, has spacial semantic value (spacetimemap)
     entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
 
     # private attr for general counter

@@ -77,8 +77,6 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
 
     # the subject is found, assign subject
     tkSubject = llc_getEntity(subjectToken, [t for t in tokens if t.head == subjectToken], context)
-    tkSubjectProp1 = TKDictionaryDoc.find_one({"word": "black"}).run()
-    tkSubjectProp2 = TKDictionaryDoc.find_one({"word": "white"}).run()
 
     # ------------------------------
     # search object (optional)
@@ -92,11 +90,17 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
     # main statement
     tkMain = TKStatement()      
     tkMain.op = tkOp
-    if tkPredicate: tkMain.predicate = tkMain.create_entity(payload=tkPredicate)
+    if tkPredicate: 
+        tkMain.predicate = tkMain.create_entity(payload=tkPredicate)
+        # add properties
+
     if subjectToken: 
         tkMain.subject = tkMain.create_entity(payload=tkSubject)
-        tkMain.add_properties(properties=[tkSubjectProp1, tkSubjectProp2], target="subject")
-    if objectToken: tkMain.object = tkMain.create_entity(payload=tkObject)
+        # add properties
+
+    if objectToken: 
+        tkMain.object = tkMain.create_entity(payload=tkObject)
+        # add properties
 
     # search for more (decouple logical operators multiplying the statements)
     # ...
