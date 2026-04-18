@@ -1,9 +1,8 @@
 from ollama import Client as ollamaClient
-from pymongo import MongoClient
 import spacy
 from spacy.tokens import Token
 import numpy as np
-from lib.core.entities import EntityPayload, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKPlace, TKStatement, TKStatements
+from lib.core.entities import EntityPayload, TKContext, TKDictionary, TKEntityReference, TKGeneric, TKName, TKOperator, TKPlace, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -39,7 +38,7 @@ def llc_getEntity(token: Token, tokens: list[Token], context: TKContext = None) 
                 if doc_result:
                     break
 
-        # fallback result
+        # assign result
         if doc_result: tkMeaning = TKDictionary(**doc_result.model_dump(exclude={"id"}))
     else: 
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
@@ -78,6 +77,8 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
 
     # the subject is found, assign subject
     tkSubject = llc_getEntity(subjectToken, [t for t in tokens if t.head == subjectToken], context)
+    tkSubjectProp1 = TKDictionaryDoc.find_one({"word": "black"}).run()
+    tkSubjectProp2 = TKDictionaryDoc.find_one({"word": "white"}).run()
 
     # ------------------------------
     # search object (optional)
@@ -92,7 +93,9 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
     tkMain = TKStatement()      
     tkMain.op = tkOp
     if tkPredicate: tkMain.predicate = tkMain.create_entity(payload=tkPredicate)
-    if subjectToken: tkMain.subject = tkMain.create_entity(payload=tkSubject)
+    if subjectToken: 
+        tkMain.subject = tkMain.create_entity(payload=tkSubject)
+        tkMain.add_properties(properties=[tkSubjectProp1, tkSubjectProp2], target="subject")
     if objectToken: tkMain.object = tkMain.create_entity(payload=tkObject)
 
     # search for more (decouple logical operators multiplying the statements)

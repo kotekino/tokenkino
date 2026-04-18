@@ -71,6 +71,7 @@ class TKGeneric(BaseModel):
 # --------------------------------------------------
 
 # es testvar: TKOperator = TKOperator.AND
+
 # operator enum
 class TKOperator(str, Enum):
     NOT = "NOT"
@@ -82,60 +83,80 @@ class TKOperator(str, Enum):
     CONV = "CONV"
     EQ = "EQ"
 
+# space operator
+class TKSpaceOperator(str, Enum):
+    FROM = "FROM"
+    TO = "TO"
+    AT = "AT"
+    IN = "IN"
+    INTO = "INTO"
+    OUT = "OUT"
+    OUTOF = "OUTOF"
+
+# abstract places side
+class TKPlaceSide(str, Enum):
+    LEFT = "LEFT"
+    RIGHT = "RIGHT"
+    UP = "UP"
+    DOWN = "DOWN"
+
+# abstract places
+class TKAbstractPlace(BaseModel):
+    entity_type: Literal["abstract_place"] = Field(default="abstract_place")
+    proximity: Optional[int]= Field(default=0) # default here 0, there 10, far 100 very far 1000, very close 0.1
+    side: Optional[TKPlaceSide] = None # optional
+
+# space map
+SpacePayload = Union[TKPlace, TKAbstractPlace]
+class TKSpaceMap(BaseModel):
+    entity_type: Literal["space_map"] = Field(default="space_map")
+    op: TKSpaceOperator = Field(default=TKSpaceOperator.IN)
+    observer: SpacePayload = Field(discriminator='entity_type')
+    observed: SpacePayload = Field(discriminator='entity_type')
+
+# entities involved in statements
+# payload for entity
+EntityPayload = Union[TKName, TKDictionary, TKSpaceMap, TKGeneric]
+class TKEntity(BaseModel):
+    id: int = 0
+    payload: EntityPayload = Field(discriminator='entity_type')
+
+# a reference to an entity (and its properties)
+class TKEntityReference(BaseModel):
+    id: int
+    properties: list[int] = Field(default=[])
+
 # LL statement
 class TKStatement(BaseModel):
     entity_type: Literal["statement"] = Field(default="statement")
-    op: Optional[TKOperator] = None
-    subject: Optional[TKEntity] = None
-    predicate: Optional[TKEntity] = None
-    object: Optional[TKEntity] = None
-    when: Optional[TKEntity] = None
-    where: Optional[TKEntity] = None
-    spec: Optional[TKEntity] = None
-    entities: List[TKEntity] = Field(default_factory=list)
+    op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
+    subject: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
+    predicate: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
+    object: Optional[TKEntityReference] = None # optional has semantic 2925 vale
+    when: Optional[TKEntityReference] = None # optional, has time semantic value
+    where: Optional[TKEntityReference] = None # optional, has spacial semantic value
+    entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
 
     # private attr for general counter
     _id_counter: int = PrivateAttr(default=1)
 
     # factory for TKEntity
-    def create_entity(self, **kwargs) -> TKEntity:
+    def create_entity(self, **kwargs) -> TKEntityReference:
         entity = TKEntity(id=self._id_counter, **kwargs)
         self.entities.append(entity)
         self._id_counter += 1
-        return entity
+        return TKEntityReference(id=entity.id)
 
-    # register entity in the statement
-    def register_entity(self, entity: TKEntity) -> TKEntity:
-        if entity.id == 0:
-            entity.id = self._id_counter
-            self._id_counter += 1
-        
-        if entity not in self.entities:
-            self.entities.append(entity)
-        return entity 
-    
-    # rebuild ids
-    def model_post_init(self, __context):
-        if self.entities:
-            max_id = max(e.id for e in self.entities)
-            self._id_counter = max_id + 1    
-
-# payload for entity
-EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKStatement]
-
-# entities involved in statements
-class TKEntity(BaseModel):
-    id: int = 0
-    payload: EntityPayload = Field(discriminator='entity_type')
+    # add property to subject, predicate, object
+    def add_properties(self, properties: list[TKDictionary], target: str): 
+        attr: TKEntityReference = getattr(self, target)
+        for p in properties:
+            e = self.create_entity(payload=p)
+            attr.properties.append(e.id)
+        setattr(self, target, attr)
 
 # alias for statements
 TKStatements = list[TKStatement]
-
-# --------------------------------------------------
-# rebuild models to ensure all fields are properly processed
-# --------------------------------------------------
-TKStatement.model_rebuild()
-TKEntity.model_rebuild()
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica
