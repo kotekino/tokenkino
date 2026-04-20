@@ -2,7 +2,7 @@ from ollama import Client as ollamaClient
 import spacy
 from spacy.tokens import Token
 import numpy as np
-from lib.core.entities import EntityPayload, TKContext, TKDictionary, TKEntityReference, TKGeneric, TKName, TKOperator, TKPlace, TKStatement, TKStatements
+from lib.core.entities import EntityPayload, TKComplement, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -51,6 +51,35 @@ def llc_getEntity(token: Token, tokens: list[Token], context: TKContext = None) 
     # return result found
     return tkMeaning
 
+# get all indirect complements
+def llc_getComplements(tokens: list[Token], context: TKContext = None) -> list[tuple[TKComplement,Token]]: 
+    
+    indirectTokens: list[tuple[TKComplement,Token]] = []
+
+    for t in tokens:
+        # reset indirect
+        indirectToken: Token = None
+        indirect: tuple[TKComplement,Token] = None
+        vector = []
+
+        # vector
+        if t.has_vector: vector = t.vector
+
+        # case dative
+        if t.dep_ == "dative":
+            indirectToken = next((s for s in t.children if s.dep_ == "pobj"), None)
+            if indirectToken: indirect = [TKComplement(type="dative"), llc_getEntity(indirectToken, [t for t in tokens if t.head == indirectToken], context)]
+            
+        # other cases
+        if t.dep_ == "prep":
+            indirectToken = next((s for s in t.children if s.dep_ == "pobj"), None)
+            if indirectToken: indirect = [TKComplement(type="prep", vector=vector), llc_getEntity(indirectToken, [t for t in tokens if t.head == indirectToken], context)]
+
+        # if found 
+        if indirectToken: indirectTokens.append(indirect)
+
+    return indirectTokens
+
 # (ONGOING) parse primary and subordinate clauses
 def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None, ollamaClient: ollamaClient = None) -> TKStatements: 
     
@@ -79,10 +108,15 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
     tkSubject = llc_getEntity(subjectToken, [t for t in tokens if t.head == subjectToken], context)
 
     # ------------------------------
-    # search object (optional)
+    # search direct (optional)
     # ------------------------------
-    objectToken = next((s for s in tokens if s.dep_ == "dobj"), None)
-    if objectToken: tkObject = llc_getEntity(objectToken, [t for t in tokens if t.head == objectToken], context)
+    directToken = next((s for s in tokens if s.dep_ == "dobj"), None)
+    if directToken: tkDirect = llc_getEntity(directToken, [t for t in tokens if t.head == directToken], context)
+
+    # ------------------------------
+    # search indirect (optional)
+    # ------------------------------
+    indirectTokens = llc_getComplements(tokens, context)
 
     # put operator
     tkOp = TKOperator.AND # default
@@ -91,16 +125,20 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
     tkMain = TKStatement()      
     tkMain.op = tkOp
     if tkPredicate: 
-        tkMain.predicate = tkMain.create_entity(payload=tkPredicate)
+        predicateId = tkMain.create_predicate(payload=tkPredicate)
         # add properties
 
     if subjectToken: 
-        tkMain.subject = tkMain.create_entity(payload=tkSubject)
+        subjectId = tkMain.create_subject(payload=tkSubject)
         # add properties
 
-    if objectToken: 
-        tkMain.object = tkMain.create_entity(payload=tkObject)
+    if directToken: 
+        directId = tkMain.create_direct(payload=tkDirect)
         # add properties
+
+    for it in indirectTokens:
+        indirectId = tkMain.create_indirect(payload=it[1], complement=it[0])
+        # add properties        
 
     # search for more (decouple logical operators multiplying the statements)
     # ...
@@ -210,3 +248,21 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: ollamaClient = Non
 
     # return statement
     return tkStatements
+
+# reference: https://universaldependencies.org/u/dep/acl.html
+
+# acl: clausal modifier of noun (adnominal clause)
+# https://universaldependencies.org/u/dep/acl.html#acl-clausal-modifier-of-noun-adnominal-clause
+# ->
+
+# acl:relcl: relative clause modifier
+# https://universaldependencies.org/u/dep/acl-relcl.html
+# -> double the sentence object for both sentences
+
+# advcl: adverbial clause modifier
+# https://universaldependencies.org/u/dep/advcl.html#advcl-adverbial-clause-modifier
+# ->
+
+# advcl:relcl: adverbial relative clause modifier
+# https://universaldependencies.org/u/dep/advcl-relcl.html
+# ->

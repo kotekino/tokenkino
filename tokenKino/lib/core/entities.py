@@ -57,6 +57,11 @@ class TKPlace(BaseModel):
     physical_features: Optional[List[str]] = None
     location: Optional[GeoPoint] = None
 
+class TKComplement(BaseModel):
+    entity_type: Literal["complement"] = Field(default="complement")
+    type: str
+    vector: List[float] = Field(default_factory=list)
+
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
@@ -81,36 +86,14 @@ class TKOperator(str, Enum):
     CONV = "CONV"
     EQ = "EQ"
 
-# abstract places
-class TKAbstractPlace(BaseModel):
-    entity_type: Literal["abstract_place"] = Field(default="abstract_place")
-
 # space map: should manage where and when
 class TKSpaceTimeMap(BaseModel):
     entity_type: Literal["spacetime_map"] = Field(default="spacetime_map")
     
-    # from position in spacetime is relative to the observer (as position and as magnitude)
-    st_from: List[float] = Field(default_factory=list, min_length=4, max_length=4) # [t, x, y, z]
-    st_from_place: Optional[TKPlace] = None
-    st_from_dictionary: Optional[TKDictionary] = None
-    
-    # to position in spacetime is relative to the observer (as position and as magnitude)
-    st_to: List[float] = Field(default_factory=list, min_length=4, max_length=4)
-    st_to_place: Optional[TKPlace] = None
-    st_to_dictionary: Optional[TKDictionary] = None
-
-# entities involved in statements
-# payload for entity
-EntityPayload = Union[TKName, TKDictionary, TKSpaceTimeMap, TKGeneric]
-class TKEntity(BaseModel):
-    id: int = 0
-    payload: EntityPayload = Field(discriminator='entity_type')
-
-# a reference to an entity (and its properties)
-class TKEntityReference(BaseModel):
-    id: int
-    is_generic: bool = Field(default=True)
-    properties: list[int] = Field(default=[])
+    # position in spacetime is relative to the observer (as position and as magnitude)
+    spacetime: List[float] = Field(default_factory=list, min_length=4, max_length=4) # [t, x, y, z]
+    place: Optional[TKPlace] = None
+    dictionary: Optional[TKDictionary] = None
 
 # LL statement
 class TKStatement(BaseModel):
@@ -118,7 +101,8 @@ class TKStatement(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
     subject: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
     predicate: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
-    object: Optional[TKEntityReference] = None # optional has semantic 2925 vale
+    direct: Optional[TKEntityReference] = None # optional has semantic 2925 vale
+    indirect: list[TKEntityReference] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
     spacetime: Optional[TKSpaceTimeMap] = None # optional, has spacial semantic value (spacetimemap)
     entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
 
@@ -130,18 +114,63 @@ class TKStatement(BaseModel):
         entity = TKEntity(id=self._id_counter, **kwargs)
         self.entities.append(entity)
         self._id_counter += 1
-        return TKEntityReference(id=entity.id)
+        return entity
+
+    # factory for TKEntity
+    def create_subject(self, **kwargs) -> TKEntityReference:
+        entity = self.create_entity(**kwargs)
+        self.subject = TKEntityReference(id=entity.id)
+        return entity.id
+
+    # factory for TKEntity
+    def create_direct(self, **kwargs) -> TKEntityReference:
+        entity = self.create_entity(**kwargs)
+        self.direct = TKEntityReference(id=entity.id)
+        return entity.id
+
+    # factory for TKEntity
+    def create_indirect(self, **kwargs) -> TKEntityReference:
+        entity = self.create_entity(**kwargs)
+        self.indirect.append(TKEntityReference(id=entity.id, complement=kwargs["complement"]))
+        return entity.id
+
+    # factory for TKEntity
+    def create_predicate(self, **kwargs) -> TKEntityReference:
+        entity = self.create_entity(**kwargs)
+        self.predicate = TKEntityReference(id=entity.id)
+        return entity.id
 
     # add property to subject, predicate, object
     def add_properties(self, properties: list[TKDictionary], target: str): 
         attr: TKEntityReference = getattr(self, target)
         for p in properties:
-            e = self.create_entity(payload=p)
+            e = TKEntityReference(self.create_entity(payload=p).id)
             attr.properties.append(e.id)
         setattr(self, target, attr)
 
 # alias for statements
 TKStatements = list[TKStatement]
+
+# entities involved in statements
+# payload for entity
+EntityPayload = Union[TKName, TKDictionary, TKSpaceTimeMap, TKGeneric, TKStatement]
+class TKEntity(BaseModel):
+    id: int = 0
+    payload: EntityPayload = Field(discriminator='entity_type')
+
+# a reference to an entity (and its properties)
+class TKEntityReference(BaseModel):
+    id: int
+
+    # specific semantic value (termine, fine, specificazione, etc)
+    complement: Optional[TKComplement] = None
+
+    # properties (list of semantic values)
+    properties: list[int] = Field(default=[])
+
+TKStatement.model_rebuild()
+TKEntityReference.model_rebuild()
+TKEntity.model_rebuild()
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica
