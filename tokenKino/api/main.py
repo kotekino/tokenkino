@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 import os
 from fastapi import FastAPI, Query
+from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
-from lib.llc.functions import llc, llc_preparser
+from lib.llc.functions import llc, llc_diagram, llc_preparser
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import init_io
@@ -36,8 +37,18 @@ app = FastAPI(lifespan=lifespan)
 # endpoints
 @app.get("/api/v1/llc")
 def process(q: str = Query(..., min_length=3, description="Sentence to submit")):
-    res = llc(q, None, app.state.ai_client)
-    return {"status": "success", "data": res}
+    try:
+        res = llc(q, None, app.state.ai_client)
+        status = "complete"
+    except Exception as error:
+        res = repr(error)
+        status = "failed"
+    return {"status": status, "data": res}
+
+@app.get("/api/v1/render", response_class=HTMLResponse)
+def render(q: str = Query(..., min_length=3, description="Sentence to submit")):
+    res = llc_diagram(q)
+    return res
 
 @app.get("/api/v1/dict")
 def search(word: str):

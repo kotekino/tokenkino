@@ -1,20 +1,59 @@
-from ollama import Client as ollamaClient
+from typing import Any
+
+from ollama import Client as OllamaClient
 import spacy
+from spacy import displacy
 from spacy.tokens import Token
+import stanza
+import spacy_stanza
 import numpy as np
-from lib.core.entities import EntityPayload, TKComplement, TKEntity, TKSpaceTimeMap, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
+from lib.core.entities import EntityPayload, TKComplement, TKEntity, TKFullEntity, TKSpaceTimeMap, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 
 # define constants
 _SIMILAR_RESULTS: int = 5
+_UNABLE_TO_PROCESS: str = "Unable to process the sentence"
+_SPACY_MODEL = "en_core_web_md" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
 
-# load core web
-nlp = spacy.load("en_core_web_md")
+# stanza
+stanza.download("en", package="lines")
+
+# --- INIZIO PATCH PYTORCH ---
+import torch
+_original_torch_load = torch.load
+def _patched_torch_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return _original_torch_load(*args, **kwargs)
+torch.load = _patched_torch_load
+# --- FINE PATCH PYTORCH ---
+
+nlp = spacy_stanza.load_pipeline("en", package="lines")
+
+# load spacy model
+# nlp = spacy.load(_SPACY_MODEL)
+
+# global variables
+_context: TKContext = None
+_ollamaClient: OllamaClient = None
+
+# (ONGOING) get properties
+def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
+    doc_properties: list[TKFullEntity] = []
+    property: TKFullEntity = None
+
+    for t in tokens:
+        fullEntity = None
+        if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod":
+            property = llc_getFullEntity(t) 
+        
+        if property: doc_properties.append(property)
+
+    return doc_properties
 
 # (ONGOING) get seamntic value from dictionary + properties
-def llc_getEntity(token: Token, context: TKContext = None) -> EntityPayload:
+def llc_getFullEntity(token: Token) -> TKFullEntity:
     
     # related tokens to the entity
     tokens = list(token.subtree)
@@ -24,6 +63,8 @@ def llc_getEntity(token: Token, context: TKContext = None) -> EntityPayload:
 
     # try finding the meaning (in our dictionary)
     doc_result: TKDictionary = None
+    doc_properties: list[TKFullEntity] = []
+    tkComplement = None
 
     # should be in the dictionary
     if pos:
@@ -49,103 +90,85 @@ def llc_getEntity(token: Token, context: TKContext = None) -> EntityPayload:
             tkMeaning = TKName(name=token.lemma_)
 
     # if still no result, generic (it is used to manage unknown semantics)
-    if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=pos, upos=token.pos_, context=context)
+    if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=pos, upos=token.pos_)
+
+    # get properties (for each token directly bound to the result)
+    doc_properties = llc_getProperties([s for s in tokens if s.head == token])
+
+    # get complement
+    complement = next((s for s in token.children if s.dep_ == "case" or s.dep_ == "mark"), None)
+    if complement and complement.has_vector: tkComplement = TKComplement(type=complement.dep_, vector=complement.vector)    
 
     # return result found
-    return tkMeaning
+    return TKFullEntity(entity=tkMeaning, complement=tkComplement, properties=doc_properties)
 
-# (ONGOING) get all indirect complements
-def llc_getComplements(tokens: list[Token], context: TKContext = None, ollamaClient: ollamaClient = None) -> list[tuple[TKComplement,Token]]: 
+# (ONGOING) get all indirect complements (cycling remaining tokens)
+def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
     
-    indirectTokens: list[tuple[TKComplement,Token]] = []
+    indirectTokens: list[TKFullEntity] = []
 
     for t in tokens:
         # reset indirect
         indirectToken: Token = None
-        entity: TKEntity = None
-        vector = []
-
-        # vector
-        if t.has_vector: vector = t.vector
+        indirectEntity: TKFullEntity = None
 
         # case dative (can be a name [take the entity] or a prep [take the first child])
-        if t.dep_ == "dative":
-            # direct dative
-            if t.pos_ == "NOUN" or t.pos_ == "PROPN":
-                indirectToken = t
-            # dative through prep
-            elif t.pos_ == "ADP":
-                indirectToken = next((s for s in t.children if s.dep_ == "pobj"), None)
-            # get the entity from the token
-            entity = llc_getEntity(indirectToken, context)
-        # other cases
-        elif t.dep_ == "attr":
+        if t.dep_ == "obl":
             indirectToken = t
-            # get the entity from the token
-            entity = llc_getEntity(indirectToken, context)           
-        elif t.dep_ == "prep":
-            indirectToken = next((s for s in t.children if s.dep_ == "pobj" or s.dep_ == "pcomp"), None)
-            # get the entity from the token
-            entity = llc_getEntity(indirectToken, context)
-        elif t.dep_ == "case" and t.head.dep_ == "poss":
-            indirectToken = t.head
-            # get the entity from the token
-            entity = llc_getEntity(indirectToken, context)
-        elif t.dep_ == "acomp":
-            # get the entity from the token
+            indirectEntity = llc_getFullEntity(indirectToken)
+        elif t.dep_ == "iobj":
             indirectToken = t
-            entity = llc_getEntity(indirectToken, context)
-        elif t.dep_ == "ccomp":
+            indirectEntity = llc_getFullEntity(indirectToken)
+        elif t.dep_ == "xcomp":
             indirectToken = t
-            entity = llc_parseClause(indirectToken, list(indirectToken.subtree), context, ollamaClient)
+            indirectEntity = llc_parseSentence(indirectToken, list(indirectToken.subtree))
+        elif t.dep_ == "csubj":
+            indirectToken = t
+            statements = llc_parseSentence(indirectToken, list(indirectToken.subtree))
+            if len(statements) > 0:
+                complement = next((s for s in indirectToken.children if s.dep_ == "case" or s.dep_ == "mark"), None)
+                indirectEntity = TKFullEntity(entity=statements[0], complement=complement, properties=[])
 
         # if found 
         if indirectToken: 
-            indirectTokens.append([TKComplement(type=t.dep_, vector=vector), entity])
+            indirectTokens.append(indirectEntity)
 
     return indirectTokens
 
-# (ONGOING) parse primary and subordinate clauses
-def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None, ollamaClient: ollamaClient = None) -> TKStatement: 
-    
+# (ONGOING) parse sentence (simple or compoung)
+def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatements: 
+
     # init statement
     statements = TKStatements()
     
     # ------------------------------
-    # root predicate [verb, aux] (necessary: if missing then implied, rephrase)
+    # root is predicate
     # ------------------------------
 
-    # STOP llc_preparser: rearrange the sentence (elliptic, exclamation, colloquial) and override
-    if (root.pos_ != "VERB" and root.pos_ != "AUX"): return llc_preparser(tokens, context, ollamaClient)
-        
-    # the root is a verb, assign
-    tkPredicate = llc_getEntity(root, context)
+    # the root is a verb or an adjective, assign (auxiliaries are properties)
+    tkPredicate = llc_getFullEntity(root)
     if tkPredicate: tokens.remove(root)
 
     # ------------------------------
-    # search subject (necessary: if missing then implied, rephrase)
+    # search subject
     # ------------------------------
-    subjectToken = next((s for s in tokens if s.dep_ == "nsubj"), None)
-
-    # STOP llc_preparser: rearrange the sentence (verb present but no subject)
-    if not subjectToken: return llc_preparser(tokens, context, ollamaClient)
-
-    # the subject is found, assign subject
-    tkSubject = llc_getEntity(subjectToken, context)
-    if tkSubject: tokens.remove(subjectToken)
+    subjectToken = next((s for s in tokens if s.dep_ == "nsubj" and s.head == root), None)
+    if subjectToken:
+        tkSubject = llc_getFullEntity(subjectToken)
+        if tkSubject: tokens.remove(subjectToken)
 
     # ------------------------------
-    # search direct (optional)
+    # search direct
     # ------------------------------
-    directToken = next((s for s in tokens if s.dep_ == "dobj"), None)
+    directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
     if directToken: 
-        tkDirect = llc_getEntity(directToken, context)
+        tkDirect = llc_getFullEntity(directToken)
         if tkDirect: tokens.remove(directToken)
 
     # ------------------------------
-    # search indirect (optional)
+    # search indirect
     # ------------------------------
-    indirectTokens = llc_getComplements(tokens, context, ollamaClient)
+    indirectTokens = llc_getIndirects(tokens)
 
     # put operator
     tkOp = TKOperator.AND # default
@@ -154,45 +177,49 @@ def llc_parseClause(root: Token, tokens: list[Token], context: TKContext = None,
     tkMain = TKStatement()      
     tkMain.op = tkOp
     if tkPredicate: 
-        predicateId = tkMain.create_predicate(payload=tkPredicate)
+        predicateId = tkMain.create_predicate(payload=tkPredicate.entity)
         # add properties
+        if len(tkPredicate.properties) > 0: tkMain.add_properties(tkPredicate.properties, predicateId)
 
     if subjectToken: 
-        subjectId = tkMain.create_subject(payload=tkSubject)
+        subjectId = tkMain.create_subject(payload=tkSubject.entity)
         # add properties
+        if len(tkSubject.properties) > 0: tkMain.add_properties(tkSubject.properties, subjectId)
 
     if directToken: 
-        directId = tkMain.create_direct(payload=tkDirect)
+        directId = tkMain.create_direct(payload=tkDirect.entity)
         # add properties
+        if len(tkDirect.properties) > 0: tkMain.add_properties(tkDirect.properties, directId)
 
     for it in indirectTokens:
-        indirectId = tkMain.create_indirect(payload=it[1], complement=it[0])
-        # add properties        
+        indirectId = tkMain.create_indirect(payload=it.entity, complement=it.complement)
+        # add properties
+        if len(it.properties) > 0: tkMain.add_properties(it.properties, indirectId)
 
     # search for more (decouple logical operators multiplying the statements)
     # ...
 
     # build output
-    # statements.append(tkMain)
+    statements.append(tkMain)
 
     #return statements
-    return tkMain
+    return statements
 
-# (DONE, CHECK) core internal recursive function to parse a list of token into a TKStatements
-def llc_core(tokens: list[Token], context: TKContext = None, ollamaClient: ollamaClient = None) -> TKStatements: 
+# (DONE, REFINE) core internal recursive function to parse a list of token into a TKStatements
+def llc_core(tokens: list[Token]) -> TKStatements: 
 
     # init statement
     statements = TKStatements()
 
     # search separate predicates
-    roots = [s for s in tokens if s.dep_ == "ROOT"] # number of separate sentences
+    roots = [s for s in tokens if s.dep_ == "root"] # number of separate sentences
     
     # check for recursion
     if len(roots) > 1:
         # recurse condition with > 1 sentences (multiple roots)
         # recursive iteration for each predicate 
         for p in roots:
-            statements += llc_core(list(p.subtree), context, ollamaClient)
+            statements += llc_core(list(p.subtree))
 
     elif len(roots) == 1:
         root = roots[0] # get the only root
@@ -202,15 +229,15 @@ def llc_core(tokens: list[Token], context: TKContext = None, ollamaClient: ollam
         
         # cycle clauses
         for clauseRoot in clausesRoots:
-            statements += llc_parseClause(clauseRoot, list(clauseRoot.subtree), context, ollamaClient)
+            statements += llc_parseSentence(clauseRoot, list(clauseRoot.subtree))
 
     return statements
 
 # (DONE, REFINE) pre parser based on Phi-3 via Ollama: fix the sentences not understandable by llc
-def llc_preparser(tokens: str, context: TKContext = None, ollamaClient: ollamaClient = None) -> TKStatements | None:
+def llc_preparser(tokens: str) -> TKStatements | None:
 
     # no ollama available
-    if not ollamaClient: return None
+    if not _ollamaClient: raise Exception(_UNABLE_TO_PROCESS)
 
     # Prompt strutturato a blocchi logici (senza negazioni complesse)
     systemPrompt = """You are a strict syntax normalizer.
@@ -265,19 +292,34 @@ def llc_preparser(tokens: str, context: TKContext = None, ollamaClient: ollamaCl
     # parse the rearranged sentence and return the TKStatements result 
     return llc_core(normalized_text, context, ollamaClient)
 
-# ------------------------------------------
-# (DONE, CHECK) MAIN entry point to parse an input text
-# ------------------------------------------
-def llc(tokens: str, context: TKContext = None, ollamaClient: ollamaClient = None) -> TKStatements:
+# --------------------------------------------------------------
+# (DONE, REFINE) MAIN entry point to parse an input text
+# --------------------------------------------------------------
+def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = None) -> TKStatements:
+
+    # assign variables
+    _context = context
+    _ollamaClient = ollamaClient
 
     # spacy parse
     doc = nlp(tokens)
 
     # get all tokens
-    tkStatements: TKStatements = llc_core(list(doc), context, ollamaClient)
+    tkStatements: TKStatements = llc_core(list(doc))
 
     # return statement
     return tkStatements
+
+# (DONE) wrap the displacy dep diagram
+def llc_diagram(tokens: str) -> str:
+    
+    # spacy parse
+    doc = nlp(tokens)
+    diagram = displacy.render(doc, style = "dep")
+
+    html = '<html><body>' + diagram + '</body></html>'
+
+    return html
 
 # reference: https://universaldependencies.org/u/dep/acl.html
 

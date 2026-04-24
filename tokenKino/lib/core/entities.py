@@ -141,12 +141,24 @@ class TKStatement(BaseModel):
         return entity.id
 
     # add property to subject, predicate, object
-    def add_properties(self, properties: list[TKDictionary], target: str): 
-        attr: TKEntityReference = getattr(self, target)
-        for p in properties:
-            e = TKEntityReference(self.create_entity(payload=p).id)
-            attr.properties.append(e.id)
-        setattr(self, target, attr)
+    def add_properties(self, properties: list[TKFullEntity], target: int): 
+        # search target
+        reference: TKEntityReference = None
+        if self.subject and self.subject.id == target:
+            reference = self.subject
+        elif self.predicate and self.predicate.id == target:
+            reference = self.predicate
+        elif self.direct and self.direct.id == target:
+            reference = self.direct
+        else:
+            reference: TKEntityReference = next((t for t in self.indirect if t.id == target), None)            
+        
+         # add properties
+        if reference:
+            for p in properties:
+                entity = self.create_entity(payload=p.entity)        
+                e = TKEntityReference(id=entity.id)
+                reference.properties.append(e.id)
 
 # alias for statements
 TKStatements = list[TKStatement]
@@ -157,6 +169,16 @@ EntityPayload = Union[TKName, TKDictionary, TKSpaceTimeMap, TKGeneric, TKStateme
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
+
+# the full entity
+class TKFullEntity(BaseModel):
+    entity: EntityPayload = Field(discriminator='entity_type')
+
+    # specific semantic value (termine, fine, specificazione, etc)
+    complement: Optional[TKComplement] = None
+
+    # properties (list of semantic values)
+    properties: list[TKFullEntity] = Field(default=[])    
 
 # a reference to an entity (and its properties)
 class TKEntityReference(BaseModel):
@@ -171,6 +193,7 @@ class TKEntityReference(BaseModel):
 TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()
 TKEntity.model_rebuild()
+TKFullEntity.model_rebuild()
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica
