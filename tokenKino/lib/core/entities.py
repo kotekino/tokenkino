@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import List, Optional, Union, Literal
 from enum import Enum
-from pydantic import BaseModel, Field, PrivateAttr, RootModel
+from pydantic import BaseModel, Field, PrivateAttr, RootModel, computed_field
 
 # --------------------------------------------------
 # context
@@ -98,19 +98,28 @@ class TKSpaceTimeMap(BaseModel):
 # LL statement
 class TKStatement(BaseModel):
     entity_type: Literal["statement"] = Field(default="statement")
+
+    # public fields
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
     subject: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
     predicate: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
     direct: Optional[TKEntityReference] = None # optional has semantic 2925 vale
     indirect: list[TKEntityReference] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
     spacetime: Optional[TKSpaceTimeMap] = None # optional, has spacial semantic value (spacetimemap)
+    
+    # entities
     entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
-
-    # private attr for general counter
+    
+    # private fields
     _id_counter: int = PrivateAttr(default=1)
 
+    # properties
+    # @computed_field
+    # @property
+    # def test(self) -> List[TKEntity]:
+
     # factory for TKEntity
-    def create_entity(self, **kwargs) -> TKEntityReference:
+    def create_entity(self, **kwargs) -> TKEntity:
         entity = TKEntity(id=self._id_counter, **kwargs)
         self.entities.append(entity)
         self._id_counter += 1
@@ -119,13 +128,13 @@ class TKStatement(BaseModel):
     # factory for TKEntity
     def create_subject(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.subject = TKEntityReference(id=entity.id)
+        self.subject = TKEntityReference(id=entity.id, complement=kwargs["complement"])
         return entity.id
 
     # factory for TKEntity
     def create_direct(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.direct = TKEntityReference(id=entity.id)
+        self.direct = TKEntityReference(id=entity.id, complement=kwargs["complement"])
         return entity.id
 
     # factory for TKEntity
@@ -137,7 +146,7 @@ class TKStatement(BaseModel):
     # factory for TKEntity
     def create_predicate(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.predicate = TKEntityReference(id=entity.id)
+        self.predicate = TKEntityReference(id=entity.id, complement=kwargs["complement"])
         return entity.id
 
     # add property to subject, predicate, object
@@ -159,9 +168,6 @@ class TKStatement(BaseModel):
                 entity = self.create_entity(payload=p.entity)        
                 e = TKEntityReference(id=entity.id)
                 reference.properties.append(e.id)
-
-# alias for statements
-TKStatements = list[TKStatement]
 
 # entities involved in statements
 # payload for entity
@@ -194,6 +200,24 @@ TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()
 TKEntity.model_rebuild()
 TKFullEntity.model_rebuild()
+
+# alias for statement
+TKStatements = list[TKStatement]
+# --------------------------------------------------
+# flat statements related
+# --------------------------------------------------
+TKFlatMap = tuple[list[float], List[float]] # vector semantic complement, vector semantic dictionary
+class TKFlatStatement(BaseModel):
+    op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
+    subject: TKFlatMap
+    predicate: TKFlatMap
+    direct: TKFlatMap
+    indirect: list[TKFlatMap] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
+    spacetime: Optional[TKSpaceTimeMap] = None # optional, has spacial semantic value (spacetimemap)    
+
+# alias for list flat statement
+TKFlatStatements = list[TKFlatStatement]
+
 
 # Note per sviluppo delle logiche di valutazione
 # - subject, predicate, object e spec si valutano sempre su base semantica

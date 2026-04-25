@@ -7,7 +7,7 @@ from spacy.tokens import Token
 import stanza
 import spacy_stanza
 import numpy as np
-from lib.core.entities import EntityPayload, TKComplement, TKEntity, TKFullEntity, TKSpaceTimeMap, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
+from lib.core.entities import TKComplement, TKFlatStatements, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -45,7 +45,7 @@ def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
 
     for t in tokens:
         fullEntity = None
-        if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod":
+        if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss":
             property = llc_getFullEntity(t) 
         
         if property: doc_properties.append(property)
@@ -118,16 +118,12 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
             indirectEntity = llc_getFullEntity(indirectToken)
         elif t.dep_ == "iobj":
             indirectToken = t
-            indirectEntity = llc_getFullEntity(indirectToken)
-        elif t.dep_ == "xcomp":
+            indirectEntity = llc_getFullEntity(indirectToken)     
+        elif t.dep_ == "csubj" or t.dep_ == "xcomp":
             indirectToken = t
-            indirectEntity = llc_parseSentence(indirectToken, list(indirectToken.subtree))
-        elif t.dep_ == "csubj":
-            indirectToken = t
-            statements = llc_parseSentence(indirectToken, list(indirectToken.subtree))
-            if len(statements) > 0:
-                complement = next((s for s in indirectToken.children if s.dep_ == "case" or s.dep_ == "mark"), None)
-                indirectEntity = TKFullEntity(entity=statements[0], complement=complement, properties=[])
+            statement = llc_parseSentence(indirectToken, list(indirectToken.subtree))
+            if statement:
+                indirectEntity = TKFullEntity(entity=statement, complement=None, properties=[])
 
         # if found 
         if indirectToken: 
@@ -136,10 +132,7 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
     return indirectTokens
 
 # (ONGOING) parse sentence (simple or compoung)
-def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatements: 
-
-    # init statement
-    statements = TKStatements()
+def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatement: 
     
     # ------------------------------
     # root is predicate
@@ -177,17 +170,17 @@ def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatements:
     tkMain = TKStatement()      
     tkMain.op = tkOp
     if tkPredicate: 
-        predicateId = tkMain.create_predicate(payload=tkPredicate.entity)
+        predicateId = tkMain.create_predicate(payload=tkPredicate.entity, complement=tkPredicate.complement)
         # add properties
         if len(tkPredicate.properties) > 0: tkMain.add_properties(tkPredicate.properties, predicateId)
 
     if subjectToken: 
-        subjectId = tkMain.create_subject(payload=tkSubject.entity)
+        subjectId = tkMain.create_subject(payload=tkSubject.entity, complement=tkSubject.complement)
         # add properties
         if len(tkSubject.properties) > 0: tkMain.add_properties(tkSubject.properties, subjectId)
 
     if directToken: 
-        directId = tkMain.create_direct(payload=tkDirect.entity)
+        directId = tkMain.create_direct(payload=tkDirect.entity, complement=tkDirect.complement)
         # add properties
         if len(tkDirect.properties) > 0: tkMain.add_properties(tkDirect.properties, directId)
 
@@ -196,14 +189,8 @@ def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatements:
         # add properties
         if len(it.properties) > 0: tkMain.add_properties(it.properties, indirectId)
 
-    # search for more (decouple logical operators multiplying the statements)
-    # ...
-
-    # build output
-    statements.append(tkMain)
-
-    #return statements
-    return statements
+    #return statement
+    return tkMain
 
 # (DONE, REFINE) core internal recursive function to parse a list of token into a TKStatements
 def llc_core(tokens: list[Token]) -> TKStatements: 
@@ -269,7 +256,7 @@ def llc_preparser(tokens: str) -> TKStatements | None:
     user_prompt = f"Input: '{tokens}'\nOutput:"
 
     # get the answer
-    response = ollamaClient.generate(
+    response = _ollamaClient.generate(
         model='phi3', 
         prompt=user_prompt, 
         system=systemPrompt,
@@ -290,12 +277,25 @@ def llc_preparser(tokens: str) -> TKStatements | None:
     if unable: return None
 
     # parse the rearranged sentence and return the TKStatements result 
-    return llc_core(normalized_text, context, ollamaClient)
+    return llc_core(normalized_text)
+
+# (ONGOING)
+def llc_flat(tkStatements: TKStatements) -> TKFlatStatements | None:
+    
+    result: TKFlatStatements = []
+    #for s in tkStatements:
+        #tkFlat = TKFlatStatement(
+        #    op=s.op,
+        #    ...
+        #)
+        #result.append(tkFlat)
+
+    return result
 
 # --------------------------------------------------------------
 # (DONE, REFINE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
-def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = None) -> TKStatements:
+def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = None) -> tuple[TKFlatStatements, TKStatements]:
 
     # assign variables
     _context = context
@@ -307,8 +307,11 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
     # get all tokens
     tkStatements: TKStatements = llc_core(list(doc))
 
+    # flat statements
+    tkFlatStatements: TKFlatStatements = llc_flat(tkStatements)
+
     # return statement
-    return tkStatements
+    return [tkFlatStatements, tkStatements]
 
 # (DONE) wrap the displacy dep diagram
 def llc_diagram(tokens: str) -> str:
