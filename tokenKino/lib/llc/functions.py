@@ -15,7 +15,7 @@ from lib.core.mappers import TKPosMapper
 # define constants
 _SIMILAR_RESULTS: int = 5
 _UNABLE_TO_PROCESS: str = "Unable to process the sentence"
-_SPACY_MODEL = "en_core_web_md" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
+_SPACY_MODEL = "en_core_web_lg" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
 
 # stanza
 stanza.download("en", package="lines")
@@ -29,10 +29,9 @@ def _patched_torch_load(*args, **kwargs):
 torch.load = _patched_torch_load
 # --- FINE PATCH PYTORCH ---
 
-nlp = spacy_stanza.load_pipeline("en", package="lines")
-
 # load spacy model
-# nlp = spacy.load(_SPACY_MODEL)
+nlp_stanza = spacy_stanza.load_pipeline("en", package="lines")
+nlp = spacy.load(_SPACY_MODEL)
 
 # global variables
 _context: TKContext = None
@@ -45,8 +44,12 @@ def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
 
     for t in tokens:
         fullEntity = None
-        if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss":
+        if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
             property = llc_getFullEntity(t) 
+        elif t.dep_ == "conj":
+            property = llc_getFullEntity(t)
+        elif t.dep_ == "cc":
+            property = llc_getFullEntity(t)
         
         if property: doc_properties.append(property)
 
@@ -67,20 +70,25 @@ def llc_getFullEntity(token: Token) -> TKFullEntity:
     tkComplement = None
 
     # should be in the dictionary
-    if pos:
-        # search in dictionary
-        doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": pos}).run()
+    if len(pos) > 0:
+        for p in pos:
+            # search in dictionary
+            doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
+            if doc_result: break
                 
         # semantic fallback
-        if not doc_result:
-            query_vector = np.asarray([token.vector])
-            most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SIMILAR_RESULTS)
-            similar_keys = most_similar[0][0]
-            for key in similar_keys:
-                fallback_lemma = nlp.vocab.strings[key]     
-                doc_result = TKDictionaryDoc.find_one({"word": fallback_lemma, "pos": "v"}).run()
-                if doc_result:
-                    break
+        for p in pos:
+            if not doc_result:
+                newDoc = nlp.tokenizer(token.lemma_)
+                if newDoc and len(list(newDoc)) > 0:
+                    query_vector = np.asarray([newDoc[0].vector])
+                    most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SIMILAR_RESULTS)
+                    similar_keys = most_similar[0][0]
+                    for key in similar_keys:
+                        fallback_lemma = nlp.vocab.strings[key].lower()
+                        doc_result = TKDictionaryDoc.find_one({"word": fallback_lemma, "pos": p}).run()
+                        if doc_result:
+                            break
 
         # assign result
         if doc_result: tkMeaning = TKDictionary(**doc_result.model_dump(exclude={"id"}))
@@ -90,14 +98,15 @@ def llc_getFullEntity(token: Token) -> TKFullEntity:
             tkMeaning = TKName(name=token.lemma_)
 
     # if still no result, generic (it is used to manage unknown semantics)
-    if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=pos, upos=token.pos_)
+    knownPos = pos[0] if len(pos) > 0 else ""
+    if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
     # get properties (for each token directly bound to the result)
     doc_properties = llc_getProperties([s for s in tokens if s.head == token])
 
     # get complement
     complement = next((s for s in token.children if s.dep_ == "case" or s.dep_ == "mark"), None)
-    if complement and complement.has_vector: tkComplement = TKComplement(type=complement.dep_, vector=complement.vector)    
+    if complement and complement.has_vector: tkComplement = TKComplement(type=complement.dep_, lemma=complement.lemma_, vector=complement.vector)    
 
     # return result found
     return TKFullEntity(entity=tkMeaning, complement=tkComplement, properties=doc_properties)
@@ -163,12 +172,8 @@ def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatement:
     # ------------------------------
     indirectTokens = llc_getIndirects(tokens)
 
-    # put operator
-    tkOp = TKOperator.AND # default
-
     # main statement
     tkMain = TKStatement()      
-    tkMain.op = tkOp
     if tkPredicate: 
         predicateId = tkMain.create_predicate(payload=tkPredicate.entity, complement=tkPredicate.complement)
         # add properties
@@ -209,14 +214,7 @@ def llc_core(tokens: list[Token]) -> TKStatements:
             statements += llc_core(list(p.subtree))
 
     elif len(roots) == 1:
-        root = roots[0] # get the only root
-
-        # split every root in chunk to manage suboordinates and auxiliary verbs
-        clausesRoots: list[Token] = [root] # introduce the logic
-        
-        # cycle clauses
-        for clauseRoot in clausesRoots:
-            statements += llc_parseSentence(clauseRoot, list(clauseRoot.subtree))
+        statements.append(llc_parseSentence(roots[0], list(roots[0].subtree)))
 
     return statements
 
@@ -302,7 +300,7 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
     _ollamaClient = ollamaClient
 
     # spacy parse
-    doc = nlp(tokens)
+    doc = nlp_stanza(tokens)
 
     # get all tokens
     tkStatements: TKStatements = llc_core(list(doc))
@@ -317,7 +315,7 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
 def llc_diagram(tokens: str) -> str:
     
     # spacy parse
-    doc = nlp(tokens)
+    doc = nlp_stanza(tokens)
     diagram = displacy.render(doc, style = "dep")
 
     html = '<html><body>' + diagram + '</body></html>'
