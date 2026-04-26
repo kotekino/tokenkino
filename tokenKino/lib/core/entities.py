@@ -57,6 +57,7 @@ class TKPlace(BaseModel):
     physical_features: Optional[List[str]] = None
     location: Optional[GeoPoint] = None
 
+# complement for indirect
 class TKComplement(BaseModel):
     entity_type: Literal["complement"] = Field(default="complement")
     type: str
@@ -101,10 +102,10 @@ class TKStatement(BaseModel):
     entity_type: Literal["statement"] = Field(default="statement")
 
     # public fields
-    subject: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
-    predicate: Optional[TKEntityReference] = None # id of entity, mandatory, has semantic 2925 value
-    direct: Optional[TKEntityReference] = None # optional has semantic 2925 vale
-    indirect: list[TKEntityReference] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
+    subject: Optional[list[TKEntityReference]] = Field(default_factory=list) # id of entity, mandatory, has semantic 2925 value
+    predicate: Optional[list[TKEntityReference]] = Field(default_factory=list) # id of entity, mandatory, has semantic 2925 value
+    direct: Optional[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 vale
+    indirect: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
     
     # entities
     entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
@@ -125,27 +126,27 @@ class TKStatement(BaseModel):
         return entity
 
     # factory for TKEntity
-    def create_subject(self, **kwargs) -> TKEntityReference:
+    def add_subject(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.subject = TKEntityReference(id=entity.id, complement=kwargs["complement"])
+        self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"])
         return entity.id
 
     # factory for TKEntity
-    def create_direct(self, **kwargs) -> TKEntityReference:
+    def add_direct(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.direct = TKEntityReference(id=entity.id, complement=kwargs["complement"])
+        self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"])
         return entity.id
 
     # factory for TKEntity
-    def create_indirect(self, **kwargs) -> TKEntityReference:
+    def add_indirect(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.indirect.append(TKEntityReference(id=entity.id, complement=kwargs["complement"]))
+        self.indirect.append(TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"]))
         return entity.id
 
     # factory for TKEntity
-    def create_predicate(self, **kwargs) -> TKEntityReference:
+    def add_predicate(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.predicate = TKEntityReference(id=entity.id, complement=kwargs["complement"])
+        self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"])
         return entity.id
 
     # add property to subject, predicate, object
@@ -165,10 +166,8 @@ class TKStatement(BaseModel):
         if reference:
             for p in properties:
                 entity = self.create_entity(payload=p.entity)
-                e = TKEntityReference(id=entity.id)
-                reference.properties.append(e.id)
-
-                # check subproperties (properties with properties, like conj)
+                e = TKEntityReference(op=p.op, id=entity.id)
+                reference.properties.append(e)
 
 # entities involved in statements
 # payload for entity
@@ -179,6 +178,8 @@ class TKEntity(BaseModel):
 
 # the full entity
 class TKFullEntity(BaseModel):
+    op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
+
     entity: EntityPayload = Field(discriminator='entity_type')
 
     # specific semantic value (termine, fine, specificazione, etc)
@@ -189,6 +190,8 @@ class TKFullEntity(BaseModel):
 
 # a reference to an entity (and its properties)
 class TKEntityReference(BaseModel):
+    op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
+    
     # id
     id: int
 
@@ -196,7 +199,7 @@ class TKEntityReference(BaseModel):
     complement: Optional[TKComplement] = None
 
     # properties (list of semantic values)
-    properties: list[int] = Field(default=[])
+    properties: list[TKEntityReference] = Field(default=[])
 
 TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()

@@ -37,27 +37,66 @@ nlp = spacy.load(_SPACY_MODEL)
 _context: TKContext = None
 _ollamaClient: OllamaClient = None
 
+# get operator corresponding to cc
+def llc_ccToOperator(token: Token) -> TKOperator:
+    operator: TKOperator = TKOperator.AND # default
+
+    newDoc = nlp.tokenizer(token.lemma_)
+    query_vector = np.asarray([newDoc[0].vector])
+    most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SIMILAR_RESULTS)
+    similar_keys = most_similar[0][0]
+    for key in similar_keys:
+        fallback_lemma = nlp.vocab.strings[key].lower()
+    # todo
+
+    return operator
+
 # (ONGOING) get properties
-def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
+def llc_getProperties(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Token]]:
+
+    # initialize usedTokens
+    usedTokens: list[Token] = list()
+
     doc_properties: list[TKFullEntity] = []
-    property: TKFullEntity = None
+    property: tuple[list[TKFullEntity], list[Token]] = [list(),list()]
 
-    for t in tokens:
-        fullEntity = None
+    for t in (tt for tt in tokens if tt not in usedTokens):
         if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
-            property = llc_getFullEntity(t) 
-        elif t.dep_ == "conj":
-            property = llc_getFullEntity(t)
-        elif t.dep_ == "cc":
-            property = llc_getFullEntity(t)
-        
-        if property: doc_properties.append(property)
+            property = llc_getFullEntities(t)
 
-    return doc_properties
+        if len(property[0]) > 0: 
+            usedTokens += property[1]
+            usedTokens.append(t)
+            doc_properties += property[0]
+
+    return [doc_properties, usedTokens]
+
+# get related by conj entities
+def llc_getRelatedEntities(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Token]]:
+    result: list[TKFullEntity] = list()
+    usedTokens: list[Token] = list()
+    entity: tuple[list[TKFullEntity], list[Token]] = [list(),list()]
+
+    for t in (tt for tt in tokens if tt not in usedTokens):
+        if t.dep_ == "conj":
+            entity = llc_getFullEntities(t)
+            
+        if len(entity[0]):
+            usedTokens += entity[1]
+            usedTokens.append(t)            
+            result.append(entity[0])
+
+    return [result, usedTokens]
 
 # (ONGOING) get seamntic value from dictionary + properties
-def llc_getFullEntity(token: Token) -> TKFullEntity:
-    
+def llc_getFullEntities(token: Token) -> tuple[list[TKFullEntity], list[Token]]:
+
+    # initialize usedTokens
+    usedTokens: list[Token] = list()
+
+    # result
+    result: list[TKFullEntity] = list()
+
     # related tokens to the entity
     tokens = list(token.subtree)
 
@@ -101,101 +140,142 @@ def llc_getFullEntity(token: Token) -> TKFullEntity:
     knownPos = pos[0] if len(pos) > 0 else ""
     if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
+    # add itself as used token
+    usedTokens.append(token)
+
+    # get operator (todo refine logic)
+    opToken = next((s for s in token.subtree if (s.head == token or s == token) and (s.dep_ == "advmod" or s.dep_ == "cc")), None)
+    operator: TKOperator = llc_ccToOperator(opToken) if opToken else TKOperator.AND
+    if opToken: usedTokens.append(opToken)
+
     # get properties (for each token directly bound to the result)
-    doc_properties = llc_getProperties([s for s in tokens if s.head == token])
+    doc_properties = llc_getProperties([s for s in token.children if s not in usedTokens])
+    usedTokens += doc_properties[1]
 
     # get complement
-    complement = next((s for s in token.children if s.dep_ == "case" or s.dep_ == "mark"), None)
-    if complement and complement.has_vector: tkComplement = TKComplement(type=complement.dep_, lemma=complement.lemma_, vector=complement.vector)    
+    complement = next((s for s in token.children if s not in usedTokens and (s.dep_ == "case" or s.dep_ == "mark")), None)
+    if complement and complement.has_vector: 
+        tkComplement = TKComplement(type=complement.dep_, lemma=complement.lemma_, vector=complement.vector)    
+        usedTokens.append(complement)
+
+    # primary entity (from token)
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=operator, complement=tkComplement, properties=doc_properties[0])
+
+    # get related entities
+    secondaryEntities: list[TKFullEntity] = llc_getRelatedEntities(list(s for s in token.children if s not in usedTokens))
+    usedTokens += secondaryEntities[1]
 
     # return result found
-    return TKFullEntity(entity=tkMeaning, complement=tkComplement, properties=doc_properties)
+    result.append(primaryEntity)
+    for se in secondaryEntities[0]:
+        result += se
+
+    return [result, usedTokens]
 
 # (ONGOING) get all indirect complements (cycling remaining tokens)
 def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
     
-    indirectTokens: list[TKFullEntity] = []
+    # initialize usedTokens
+    usedTokens: list[Token] = list()
 
-    for t in tokens:
+    # initialize result
+    indirectFullEntities: list[TKFullEntity] = list()
+
+    for t in (tt for tt in tokens if tt not in usedTokens):
         # reset indirect
         indirectToken: Token = None
-        indirectEntity: TKFullEntity = None
+        indirectEntities: tuple[list[TKFullEntity], list[Token]] = [list(),list()]
 
         # case dative (can be a name [take the entity] or a prep [take the first child])
         if t.dep_ == "obl":
             indirectToken = t
-            indirectEntity = llc_getFullEntity(indirectToken)
+            indirectEntities = llc_getFullEntities(indirectToken)
+            usedTokens += indirectEntities[1] # get used tokens
         elif t.dep_ == "iobj":
             indirectToken = t
-            indirectEntity = llc_getFullEntity(indirectToken)     
+            indirectEntities = llc_getFullEntities(indirectToken)     
+            usedTokens += indirectEntities[1] # get used tokens
         elif t.dep_ == "csubj" or t.dep_ == "xcomp":
             indirectToken = t
             statement = llc_parseSentence(indirectToken, list(indirectToken.subtree))
+            usedTokens += statement[1] # get used tokens
             if statement:
-                indirectEntity = TKFullEntity(entity=statement, complement=None, properties=[])
+                # todo: manage sentences related by conj
+                indirectEntities = [[TKFullEntity(entity=statement[0], complement=None, properties=[])],usedTokens]
 
         # if found 
         if indirectToken: 
-            indirectTokens.append(indirectEntity)
+            indirectFullEntities.append(indirectEntities[0])
 
-    return indirectTokens
+    return [indirectFullEntities, usedTokens]
 
 # (ONGOING) parse sentence (simple or compoung)
-def llc_parseSentence(root: Token, tokens: list[Token]) -> TKStatement: 
+def llc_parseSentence(root: Token, tokens: list[Token]) -> tuple[TKStatement, list[Token]]: 
     
+    # initialize usedTokens
+    usedTokens: list[Token] = list()
+
     # ------------------------------
     # root is predicate
     # ------------------------------
 
     # the root is a verb or an adjective, assign (auxiliaries are properties)
-    tkPredicate = llc_getFullEntity(root)
-    if tkPredicate: tokens.remove(root)
+    tkPredicates = llc_getFullEntities(root)
+    usedTokens += tkPredicates[1] # get used tokens
+    tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
 
     # ------------------------------
     # search subject
     # ------------------------------
     subjectToken = next((s for s in tokens if s.dep_ == "nsubj" and s.head == root), None)
     if subjectToken:
-        tkSubject = llc_getFullEntity(subjectToken)
-        if tkSubject: tokens.remove(subjectToken)
+        tkSubjects = llc_getFullEntities(subjectToken)
+        usedTokens += tkSubjects[1] # get used tokens
+        tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
 
     # ------------------------------
     # search direct
     # ------------------------------
     directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
     if directToken: 
-        tkDirect = llc_getFullEntity(directToken)
-        if tkDirect: tokens.remove(directToken)
+        tkDirects = llc_getFullEntities(directToken)
+        usedTokens += tkDirects[1] # get used tokens
+        tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
 
     # ------------------------------
     # search indirect
     # ------------------------------
-    indirectTokens = llc_getIndirects(tokens)
+    indirectEntities = llc_getIndirects(tokens)
+    usedTokens += indirectEntities[1] # get used tokens
+    tokens = [t for t in tokens if t not in usedTokens] # remove used tokens  
 
     # main statement
     tkMain = TKStatement()      
-    if tkPredicate: 
-        predicateId = tkMain.create_predicate(payload=tkPredicate.entity, complement=tkPredicate.complement)
-        # add properties
-        if len(tkPredicate.properties) > 0: tkMain.add_properties(tkPredicate.properties, predicateId)
+    if len(tkPredicates[0]) > 0: 
+        for p in tkPredicates[0]:
+            predicateId = tkMain.add_predicate(payload=p.entity, op=p.op, complement=p.complement)
+            # add properties
+            if len(p.properties) > 0: tkMain.add_properties(p.properties, predicateId)
 
     if subjectToken: 
-        subjectId = tkMain.create_subject(payload=tkSubject.entity, complement=tkSubject.complement)
-        # add properties
-        if len(tkSubject.properties) > 0: tkMain.add_properties(tkSubject.properties, subjectId)
+        for s in tkSubjects[0]:
+            subjectId = tkMain.add_subject(payload=s.entity, op=s.op, complement=s.complement)
+            # add properties
+            if len(s.properties) > 0: tkMain.add_properties(s.properties, subjectId)
 
     if directToken: 
-        directId = tkMain.create_direct(payload=tkDirect.entity, complement=tkDirect.complement)
-        # add properties
-        if len(tkDirect.properties) > 0: tkMain.add_properties(tkDirect.properties, directId)
+        for d in tkDirects[0]:
+            directId = tkMain.add_direct(payload=d.entity, op=d.op, complement=d.complement)
+            # add properties
+            if len(d.properties) > 0: tkMain.add_properties(d.properties, directId)
 
-    for it in indirectTokens:
-        indirectId = tkMain.create_indirect(payload=it.entity, complement=it.complement)
+    for it in indirectEntities[0]:
+        indirectId = tkMain.add_indirect(payload=it[0].entity, op=it[0].op, complement=it[0].complement)
         # add properties
-        if len(it.properties) > 0: tkMain.add_properties(it.properties, indirectId)
+        if len(it[0].properties) > 0: tkMain.add_properties(it[0].properties, indirectId)
 
     #return statement
-    return tkMain
+    return [tkMain, usedTokens]
 
 # (DONE, REFINE) core internal recursive function to parse a list of token into a TKStatements
 def llc_core(tokens: list[Token]) -> TKStatements: 
@@ -214,7 +294,8 @@ def llc_core(tokens: list[Token]) -> TKStatements:
             statements += llc_core(list(p.subtree))
 
     elif len(roots) == 1:
-        statements.append(llc_parseSentence(roots[0], list(roots[0].subtree)))
+        sentence = llc_parseSentence(roots[0], list(roots[0].subtree))
+        statements.append(sentence[0])
 
     return statements
 
