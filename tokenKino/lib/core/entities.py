@@ -57,9 +57,9 @@ class TKPlace(BaseModel):
     physical_features: Optional[List[str]] = None
     location: Optional[GeoPoint] = None
 
-# complement for indirect
-class TKComplement(BaseModel):
-    entity_type: Literal["complement"] = Field(default="complement")
+# marker for indirect
+class TKMarker(BaseModel):
+    entity_type: Literal["marker"] = Field(default="marker")
     type: str
     lemma: str
     vector: List[float] = Field(default_factory=list)
@@ -88,6 +88,11 @@ class TKOperator(str, Enum):
     CONV = "CONV"
     EQ = "EQ"
 
+# clause type enum
+class TKClause(str, Enum):
+    MAIN = "main"
+    SUBORDINATE = "subordinate"
+
 # space map: should manage where and when
 class TKSpaceTimeMap(BaseModel):
     entity_type: Literal["spacetime_map"] = Field(default="spacetime_map")
@@ -101,11 +106,14 @@ class TKSpaceTimeMap(BaseModel):
 class TKStatement(BaseModel):
     entity_type: Literal["statement"] = Field(default="statement")
 
+    # clause type
+    clause_type: TKClause = Field(default=TKClause.MAIN)
+
     # public fields
     subject: Optional[list[TKEntityReference]] = Field(default_factory=list) # id of entity, mandatory, has semantic 2925 value
     predicate: Optional[list[TKEntityReference]] = Field(default_factory=list) # id of entity, mandatory, has semantic 2925 value
     direct: Optional[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 vale
-    indirect: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
+    indirect: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
     
     # entities
     entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
@@ -128,25 +136,25 @@ class TKStatement(BaseModel):
     # factory for TKEntity
     def add_subject(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"])
+        self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"])
         return entity.id
 
     # factory for TKEntity
     def add_direct(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"])
+        self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"])
         return entity.id
 
     # factory for TKEntity
     def add_indirect(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.indirect.append(TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"]))
+        self.indirect.append(TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"]))
         return entity.id
 
     # factory for TKEntity
     def add_predicate(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], complement=kwargs["complement"])
+        self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"])
         return entity.id
 
     # add property to subject, predicate, object
@@ -183,7 +191,7 @@ class TKFullEntity(BaseModel):
     entity: EntityPayload = Field(discriminator='entity_type')
 
     # specific semantic value (termine, fine, specificazione, etc)
-    complement: Optional[TKComplement] = None
+    marker: Optional[TKMarker] = None
 
     # properties (list of semantic values)
     properties: list[TKFullEntity] = Field(default=[])    
@@ -196,7 +204,7 @@ class TKEntityReference(BaseModel):
     id: int
 
     # specific semantic value (termine, fine, specificazione, etc)
-    complement: Optional[TKComplement] = None
+    marker: Optional[TKMarker] = None
 
     # properties (list of semantic values)
     properties: list[TKEntityReference] = Field(default=[])
@@ -211,13 +219,13 @@ TKStatements = list[TKStatement]
 # --------------------------------------------------
 # flat statements related
 # --------------------------------------------------
-TKFlatMap = tuple[list[float], List[float]] # vector semantic complement, vector semantic dictionary
+TKFlatMap = tuple[list[float], List[float]] # vector semantic marker, vector semantic dictionary
 class TKFlatStatement(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
     subject: TKFlatMap
     predicate: TKFlatMap
     direct: TKFlatMap
-    indirect: list[TKFlatMap] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of complement
+    indirect: list[TKFlatMap] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
     spacetime: Optional[TKSpaceTimeMap] = None # optional, has spacial semantic value (spacetimemap)    
 
 # alias for list flat statement
