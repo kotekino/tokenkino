@@ -92,6 +92,7 @@ class TKOperator(str, Enum):
 class TKClause(str, Enum):
     MAIN = "main"
     SUBORDINATE = "subordinate"
+    COORDINATE = "coordinate"
 
 # space map: should manage where and when
 class TKSpaceTimeMap(BaseModel):
@@ -110,10 +111,10 @@ class TKStatement(BaseModel):
     clause_type: TKClause = Field(default=TKClause.MAIN)
 
     # public fields
-    subject: Optional[list[TKEntityReference]] = Field(default_factory=list) # id of entity, mandatory, has semantic 2925 value
-    predicate: Optional[list[TKEntityReference]] = Field(default_factory=list) # id of entity, mandatory, has semantic 2925 value
-    direct: Optional[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 vale
-    indirect: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
+    subject: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
+    predicate: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
+    direct: Optional[TKEntityReference] = Field(default=None) # optional has semantic 2925 value
+    indirects: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
     
     # entities
     entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
@@ -134,43 +135,77 @@ class TKStatement(BaseModel):
         return entity
 
     # factory for TKEntity
-    def add_subject(self, **kwargs) -> TKEntityReference:
+    def create_subject(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"])
+        conjunctEntities: list[TKEntityReference] = list()
+        
+        if kwargs.get("conjuncts", None): 
+            conjuncts: list[TKFullEntity] = kwargs["conjunct"]
+            for c in conjuncts:
+                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+        
+        self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
         return entity.id
 
     # factory for TKEntity
-    def add_direct(self, **kwargs) -> TKEntityReference:
+    def create_direct(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"])
+        conjunctEntities: list[TKEntityReference] = list()
+        
+        if kwargs.get("conjuncts", None): 
+            conjuncts: list[TKFullEntity] = kwargs["conjunct"]
+            for c in conjuncts:
+                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+        
+        self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
         return entity.id
 
     # factory for TKEntity
     def add_indirect(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.indirect.append(TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"]))
+        conjunctEntities: list[TKEntityReference] = list()
+
+        if kwargs.get("conjuncts", None): 
+            conjuncts: list[TKFullEntity] = kwargs["conjunct"]
+            for c in conjuncts:
+                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+                
+        self.indirects.append(TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities))
         return entity.id
 
     # factory for TKEntity
-    def add_predicate(self, **kwargs) -> TKEntityReference:
+    def create_predicate(self, **kwargs) -> TKEntityReference:
         entity = self.create_entity(**kwargs)
-        self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"])
+        conjunctEntities: list[TKEntityReference] = list()
+
+        if kwargs.get("conjuncts", None):
+            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
+            for c in conjuncts:
+                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+       
+        self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
         return entity.id
 
     # add property to subject, predicate, object
     def add_properties(self, properties: list[TKFullEntity], target: int): 
+        
         # search target
         reference: TKEntityReference = None
-        if self.subject and self.subject.id == target:
-            reference = self.subject
-        elif self.predicate and self.predicate.id == target:
-            reference = self.predicate
-        elif self.direct and self.direct.id == target:
-            reference = self.direct
-        else:
-            reference: TKEntityReference = next((t for t in self.indirect if t.id == target), None)            
+
+        if len(self.subject) > 0:
+            reference: TKEntityReference = next((t for t in self.subject if t.id == target), None)   
+        elif len(self.predicate) > 0:
+            reference: TKEntityReference = next((t for t in self.predicate if t.id == target), None)   
+        elif len(self.direct) > 0:
+            reference: TKEntityReference = next((t for t in self.direct if t.id == target), None)   
+        elif len(self.indirects) > 0:
+            reference: TKEntityReference = next((t for t in self.indirects if t.id == target), None)            
         
-         # add properties
+         # target found, add properties
         if reference:
             for p in properties:
                 entity = self.create_entity(payload=p.entity)
@@ -193,11 +228,15 @@ class TKFullEntity(BaseModel):
     # specific semantic value (termine, fine, specificazione, etc)
     marker: Optional[TKMarker] = None
 
+    # conjuect
+    conjuncts: list[TKFullEntity] = Field(default_factory=list)
+
     # properties (list of semantic values)
-    properties: list[TKFullEntity] = Field(default=[])    
+    properties: list[TKFullEntity] = Field(default_factory=list)    
 
 # a reference to an entity (and its properties)
 class TKEntityReference(BaseModel):
+    # logical operator
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
     
     # id
@@ -206,22 +245,42 @@ class TKEntityReference(BaseModel):
     # specific semantic value (termine, fine, specificazione, etc)
     marker: Optional[TKMarker] = None
 
+    # conjuect
+    conjuncts: list[TKEntityReference] = Field(default_factory=list)  
+
     # properties (list of semantic values)
     properties: list[TKEntityReference] = Field(default=[])
+
+# alias for statement
+TKStatements = list[TKStatement]
+
+# llc item: can be a statement or an llcitem (recursive)
+class TKLLCContent(BaseModel):
+    subject: Optional[TKEntityReference] = Field(default=None)
+    predicate: Optional[TKEntityReference] = Field(default=None) 
+    direct: Optional[TKEntityReference] = Field(default=None) 
+    indirects: list[list[TKEntityReference]] = Field(default_factory=list)
+    spacetime: Optional[TKSpaceTimeMap] = None 
+class TKLLCItem(BaseModel):
+    op: TKOperator = Field(default=TKOperator.AND)
+    content: Optional[LLCItemPayload] = None 
+class TKLLC(BaseModel):
+    items: List[TKLLCItem] = Field(default_factory=list)
+    entities: List[TKEntity] = Field(default_factory=list)
+
+LLCItemPayload = Union[TKLLCItem, TKLLCContent]
 
 TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()
 TKEntity.model_rebuild()
 TKFullEntity.model_rebuild()
+TKLLCItem.model_rebuild()
 
-# alias for statement
-TKStatements = list[TKStatement]
 # --------------------------------------------------
-# flat statements related
+# flat llc
 # --------------------------------------------------
 TKFlatMap = tuple[list[float], List[float]] # vector semantic marker, vector semantic dictionary
 class TKFlatStatement(BaseModel):
-    op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
     subject: TKFlatMap
     predicate: TKFlatMap
     direct: TKFlatMap
