@@ -14,6 +14,7 @@ from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 
 # TODO: 
+# manage parataxis (and other non-standard coordination)
 # manage articles
 # manage copula verbs (be, seem, appear, become, etc.)
 # manage operators (llc_ccToOperator)
@@ -24,6 +25,12 @@ from lib.core.mappers import TKPosMapper
 _SIMILAR_RESULTS: int = 5
 _UNABLE_TO_PROCESS: str = "Unable to process the sentence"
 _SPACY_MODEL = "en_core_web_lg" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
+_BASE_ANCHORS = {
+    "and": TKOperator.AND,
+    "or": TKOperator.OR,
+    "not": TKOperator.NOT
+}
+threshold: float = 0.7 # threshold for fuzzy logic in operator mapping
 
 # stanza
 stanza.download("en", package="lines")
@@ -45,19 +52,36 @@ nlp = spacy.load(_SPACY_MODEL)
 _context: TKContext = None
 _ollamaClient: OllamaClient = None
 
-# (TODO) get operator corresponding to cc
+# get operator corresponding to cc
 def llc_ccToOperator(token: Token) -> TKOperator:
-    operator: TKOperator = TKOperator.AND # default
+    lemma = token.lemma_.lower()
+
+    # 1. STRADA VELOCE (Hit diretto)
+    if lemma in _BASE_ANCHORS:
+        return _BASE_ANCHORS[lemma]
+
+    # 2. SPAZIO VETTORIALE (Distanza dalle 3 ancore base)
+    best_op = TKOperator.AND  # Default di emergenza
+    highest_sim = -1.0
 
     newDoc = nlp.tokenizer(token.lemma_)
-    query_vector = np.asarray([newDoc[0].vector])
-    most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SIMILAR_RESULTS)
-    similar_keys = most_similar[0][0]
-    for key in similar_keys:
-        fallback_lemma = nlp.vocab.strings[key].lower()
-    # todo: transform a cc
 
-    return operator
+    for anchor_word, operator in _BASE_ANCHORS.items():
+        anchor_lexeme = nlp.vocab[anchor_word]
+        
+        if newDoc[0].has_vector and anchor_lexeme.has_vector:
+            sim = newDoc[0].similarity(anchor_lexeme)
+            if sim > highest_sim:
+                highest_sim = sim
+                best_op = operator
+
+    # 3. THRESHOLD CHECK
+    if highest_sim >= threshold:
+        print(f"Logica Fuzzy: [{lemma}] mappato a {best_op} (Sim: {highest_sim:.2f})")
+        return best_op
+    else:
+        print(f"Logica Fuzzy: [{lemma}] sotto la soglia. Uso default AND.")
+        return TKOperator.AND
 
 # (DONE) get properties
 def llc_getProperties(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Token]]:
@@ -69,6 +93,7 @@ def llc_getProperties(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Tok
     property: tuple[list[TKFullEntity], list[Token]] = [list(),list()]
 
     for t in (tt for tt in tokens if tt not in usedTokens):
+        property = [None, list()]
         if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
             availableTokens = [s for s in tokens if s not in usedTokens]
             property = llc_getFullEntity(t, availableTokens)
@@ -218,9 +243,14 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
             indirectToken = t
             availableTokens = [s for s in tokens if s not in usedTokens]
             childrenTokens = [s for s in list(indirectToken.children) if s in availableTokens]
-
-            # get marker 
             tkMarker: TKMarker = None
+            
+            # get coordination marker (like: otherwise, but, etc.)
+            marker = next((s for s in childrenTokens if s not in usedTokens and (s.dep_ == "advmod")), None)
+            if marker and llc_ccToOperator(marker) != None:
+                a = "it's like a conjunct" # TODO: addit in the conjuncts, instead of indirects
+
+            # get indirect marker 
             marker = next((s for s in childrenTokens if s not in usedTokens and (s.dep_ == "case" or s.dep_ == "mark")), None)
             if marker and marker.has_vector: 
                 tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
@@ -439,6 +469,8 @@ def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
     # multiple subjects
 
+    # indirects (ccomp)
+
     # return result
     return [clauses, entities]
 
@@ -522,7 +554,7 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
     tkStatements: TKStatements = llc_core(list(doc))
 
     # flat statements
-    tkLLC: TKLLC = llc_flat(tkStatements)
+    tkLLC: TKLLC = llc_flat(tkStatements) # if 1 == 0 else None
 
     # return statement
     return {

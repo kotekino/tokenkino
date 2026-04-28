@@ -196,12 +196,12 @@ class TKStatement(BaseModel):
         # search target
         reference: TKEntityReference = None
 
-        if len(self.subject) > 0:
-            reference: TKEntityReference = next((t for t in self.subject if t.id == target), None)   
-        elif len(self.predicate) > 0:
-            reference: TKEntityReference = next((t for t in self.predicate if t.id == target), None)   
-        elif len(self.direct) > 0:
-            reference: TKEntityReference = next((t for t in self.direct if t.id == target), None)   
+        if self.subject and self.subject.id == target:
+            reference = self.subject
+        elif self.predicate and self.predicate.id == target:
+            reference = self.predicate
+        elif self.direct and self.direct.id == target:
+            reference = self.direct
         elif len(self.indirects) > 0:
             reference: TKEntityReference = next((t for t in self.indirects if t.id == target), None)            
         
@@ -259,7 +259,7 @@ class TKLLCContent(BaseModel):
     subject: Optional[TKEntityReference] = Field(default=None)
     predicate: Optional[TKEntityReference] = Field(default=None) 
     direct: Optional[TKEntityReference] = Field(default=None) 
-    indirects: list[list[TKEntityReference]] = Field(default_factory=list)
+    indirects: list[TKEntityReference] = Field(default_factory=list)
     spacetime: Optional[TKSpaceTimeMap] = None 
 class TKLLCItem(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND)
