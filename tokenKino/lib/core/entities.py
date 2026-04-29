@@ -253,10 +253,10 @@ class TKLLSpacetime(BaseModel):
     velocity: List[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z]
 # confidence tone: question/statement
 class TKLLProperties(BaseModel):
-    tone: float = Field(default=0) # question -1 / neutral 0 / statement 1
-    certainty: float = Field(default=0) # unknown -1 / neutral 0 / fact 1
-    hope: float = Field(default=0) # neutral 0 / fact 1
-    # ... other flavors
+    tone: float = Field(default=0) # literal 0 / neutral 0.5 / ironic 1
+    mode: float = Field(default=0) # question 0 / neutral 0.5 / statement 1
+    certainty: tuple[int, float] = Field(default=0) # [subject in entities, unknown 0 / neutral 0.5 / fact 1]
+    hope: tuple[int,float] = Field(default=0) # [subject in entities, neutral 0 / neutral 0.5 / deep wish 1]
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
     id: int
