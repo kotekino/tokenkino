@@ -451,7 +451,7 @@ def llc_evaluateContent(stat: TKStatement) -> TKLLCContent:
     return content
 
 # create an tkllentity from tkentity
-def llc_evaluateEntity(ent: TKEntity) -> TKLLEntity:
+def llc_evaluateEntity(ent: TKEntity) -> list[TKLLEntity]:
 
     id = ent.id
     token = ''
@@ -463,12 +463,19 @@ def llc_evaluateEntity(ent: TKEntity) -> TKLLEntity:
         semantic: list[float] = ent.payload.vector
     elif ent.payload.entity_type == "name": token = ent.payload.name 
     elif ent.payload.entity_type == "generic": token = ent.payload.token
+    #elif ent.payload.entity_type == "statement":
+        # stat: TKStatement = ent.payload
+        # return llc_evaluateEntities(stat.entities)    
 
-    return TKLLEntity(id=id, tokens=token, abstraction_vector=abstraction, semantic_vector=semantic)
+    return [TKLLEntity(id=id, tokens=token, abstraction_vector=abstraction, semantic_vector=semantic)]
 
 # create a list of tkllentity from a list of tkentity
 def llc_evaluateEntities(ents: list[TKEntity]) -> list[TKLLEntity]:
-    return [llc_evaluateEntity(e) for e in ents]
+    result: list[TKLLEntity] = []
+    for e in ents:
+        subents = llc_evaluateEntity(e)
+        if len(subents) > 0: result.extend(subents)
+    return result
 
 # create a TKLLEntityReference from a TKEntityReference
 def llc_evaluateReference(ref: TKEntityReference) -> TKLLEntityReference:
@@ -482,10 +489,10 @@ def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
     # initialize result
     clauses: list[TKLLCItem] = list()
-    entities: list[TKLLEntity] = llc_evaluateEntities(copyStat.entities)
+    entities: list[TKLLEntity] = llc_evaluateEntities(copyStat.entities) 
 
     # main clause content (from deepcopy)
-    mainContent = llc_evaluateContent(copyStat)
+    mainContent = llc_evaluateContent(copyStat) 
 
     # add main clause to items
     mainClause: TKLLCItem = TKLLCItem(op=TKOperator.AND, content=mainContent)
@@ -513,6 +520,8 @@ def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
     # indirects clauses (ccomp, xcomp)
 
+    # indirect clauses (advcl)
+
     # return result
     return [clauses, entities]
 
@@ -531,17 +540,17 @@ def llc_getPredicateConjunct(reference: TKEntityReference, conjunct: TKEntity, p
     # assign result values with the id offset for entities    
     if originalStatement.subject: 
         subEntity = next((s for s in originalStatement.entities if s.id == originalStatement.subject.id), None)
-        if subEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=originalStatement.subject.id + parentOffset, payload=subEntity.payload, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts)))
+        if subEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=originalStatement.subject.id + parentOffset, payload=subEntity.payload, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts)))
     if originalStatement.predicate: 
         predEntity = next((s for s in originalStatement.entities if s.id == originalStatement.predicate.id), None)
-        if predEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=originalStatement.predicate.id + parentOffset, payload=predEntity.payload, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts)))
+        if predEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=originalStatement.predicate.id + parentOffset, payload=predEntity.payload, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts)))
     if originalStatement.direct: 
         directEntity = next((s for s in originalStatement.entities if s.id == originalStatement.direct.id), None)
-        if directEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=originalStatement.direct.id + parentOffset, payload=directEntity.payload, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts)))
+        if directEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=originalStatement.direct.id + parentOffset, payload=directEntity.payload, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts)))
     if originalStatement.indirects: 
         for i in originalStatement.indirects:
             indirectEntity = next((s for s in originalStatement.entities if s.id == i.id), list())
-            if indirectEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=i.id + parentOffset, payload=indirectEntity.payload, op=i.op, marker=i.marker, conjuncts=i.conjuncts)))
+            if indirectEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=i.id + parentOffset, payload=indirectEntity.payload, op=i.op, marker=i.marker, conjuncts=i.conjuncts)))
 
     # coordinated clause content (copy values)
     properties = TKLLProperties()
