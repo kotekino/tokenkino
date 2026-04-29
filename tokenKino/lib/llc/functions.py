@@ -232,16 +232,16 @@ def llc_getIndirects(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Toke
         if t.dep_ == "obl":
             indirectToken = t
             availableTokens = [s for s in tokens if s not in usedTokens]
-            indirectEntity = llc_getFullEntity(indirectToken, availableTokens)
-            usedTokens += indirectEntity[1] # get used tokens   
+            indirectEntity, ut = llc_getFullEntity(indirectToken, availableTokens)
+            usedTokens += ut # get used tokens   
         # indirect object (you give YOU something)
         elif t.dep_ == "iobj":
             indirectToken = t
             availableTokens = [s for s in tokens if s not in usedTokens]
-            indirectEntity = llc_getFullEntity(indirectToken, availableTokens)
-            usedTokens += indirectEntity[1] # get used tokens
+            indirectEntity, ut = llc_getFullEntity(indirectToken, availableTokens)
+            usedTokens += ut # get used tokens
         # clausal complements
-        if t.dep_ == "xcomp" or t.dep_ == "ccomp":
+        if t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl":
             indirectToken = t
             availableTokens = [s for s in tokens if s not in usedTokens]
             indirectEntity, ut = llc_parseSubordinate(indirectToken, availableTokens)
