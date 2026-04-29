@@ -442,17 +442,31 @@ def llc_preparser(tokens: str) -> TKStatements | None:
 # create a TKLLCContent object from a TKStatement
 def llc_evaluateContent(stat: TKStatement, parentOffset: int = 0) -> TKLLCContent:
 
-    subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
     predEntity = next((e for e in stat.entities if stat.predicate and e.id == stat.predicate.id), None)
+    subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
     dirEntity = next((e for e in stat.entities if stat.direct and e.id == stat.direct.id), None)
     indEntities = [e for e in stat.entities if e.id in [i.id for i in stat.indirects]]
 
     properties = TKLLProperties()
     spacetime = TKLLSpacetime()
-    subject = TKLLEntityReference(id=stat.subject.id + parentOffset) if subjEntity and subjEntity.payload.entity_type != "statement" else None
-    predicate = TKLLEntityReference(id=stat.predicate.id + parentOffset) if predEntity and predEntity.payload.entity_type != "statement" else None
-    direct = TKLLEntityReference(id=stat.direct.id + parentOffset) if dirEntity and dirEntity.payload.entity_type != "statement" else None
-    indirects = [TKLLEntityReference(id=e.id + parentOffset) for e in indEntities if e.payload.entity_type != "statement"] if len(indEntities) > 0 else list()
+
+    predicate = None
+    subject = None
+    direct = None
+    indirects: list[TKLLEntityReference] = list()
+
+    if predEntity and predEntity.payload.entity_type == "statement": parentOffset -= 1
+    else: predicate = TKLLEntityReference(id=stat.predicate.id + parentOffset) if predEntity else None
+    parentOffset -= len(stat.predicate.conjuncts) if stat.predicate and stat.predicate.conjuncts else 0
+    
+    if subjEntity and subjEntity.payload.entity_type == "statement": parentOffset -= 1
+    else: subject = TKLLEntityReference(id=stat.subject.id + parentOffset) if subjEntity else None
+    if dirEntity and dirEntity.payload.entity_type == "statement": parentOffset -= 1
+    else: direct = TKLLEntityReference(id=stat.direct.id + parentOffset) if dirEntity else None
+    for e in indEntities:
+        if e.payload.entity_type == "statement": parentOffset -= 1
+        else: indirects.append(TKLLEntityReference(id=e.id + parentOffset))
+    
     content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
     return content
 
@@ -481,7 +495,8 @@ def llc_evaluateEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TK
     result: list[TKLLEntity] = []
     for e in ents:
         subents = llc_evaluateEntity(e, parentOffset)
-        if len(subents) > 0: result.extend(subents)
+        if len(subents) > 0: result.extend(subents) 
+        else: parentOffset -= 1 # if the entity is a statement, it doesn't generate an entity but it generates an offset for the next entities
     return result
 
 # create a TKLLEntityReference from a TKEntityReference
@@ -509,7 +524,7 @@ def llc_getProcessStatement(statement: TKStatement, reference: TKEntityReference
         subClauses.append(subClause)
 
         if len(statement.predicate.conjuncts) > 0 :
-            recursiveOffsetEntities: int = len(originalStatement.entities) + parentOffset
+            recursiveOffsetEntities: int = len(originalStatement.entities) - len(statement.predicate.conjuncts) + parentOffset
             for c in list(statement.predicate.conjuncts):
                 conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
                 llcItems, llcEntities = llc_getProcessStatement(conjunctStatement.payload, c, recursiveOffsetEntities)
@@ -544,10 +559,12 @@ def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
     items: list[TKLLCItem] = list()
 
     # for each statement, flatten it and add to the result
+    parentOffset: int = 0
     for stat in tkStatements:
-        i, e = llc_getProcessStatement(stat)
+        i, e = llc_getProcessStatement(stat, None, parentOffset)
         items.extend(i)
         entities.extend(e)
+        parentOffset += len(e)
 
     result = TKLLC(items=items, entities=entities)
     return result
