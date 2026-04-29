@@ -76,7 +76,6 @@ class TKGeneric(BaseModel):
 # --------------------------------------------------
 # statements related
 # --------------------------------------------------
-
 # operator enum
 class TKOperator(str, Enum):
     NOT = "NOT"
@@ -93,15 +92,6 @@ class TKClause(str, Enum):
     MAIN = "main"
     SUBORDINATE = "subordinate"
     COORDINATE = "coordinate"
-
-# space map: should manage where and when
-class TKSpaceTimeMap(BaseModel):
-    entity_type: Literal["spacetime_map"] = Field(default="spacetime_map")
-    
-    # position in spacetime is relative to the observer (as position and as magnitude)
-    spacetime: List[float] = Field(default_factory=list, min_length=4, max_length=4) # [t, x, y, z]
-    place: Optional[TKPlace] = None
-    dictionary: Optional[TKDictionary] = None
 
 # LL statement
 class TKStatement(BaseModel):
@@ -214,7 +204,7 @@ class TKStatement(BaseModel):
 
 # entities involved in statements
 # payload for entity
-EntityPayload = Union[TKName, TKDictionary, TKSpaceTimeMap, TKGeneric, TKStatement]
+EntityPayload = Union[TKName, TKDictionary, TKGeneric, TKStatement]
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
@@ -254,38 +244,46 @@ class TKEntityReference(BaseModel):
 # alias for statement
 TKStatements = list[TKStatement]
 
+# --------------------------------------------------
+# flat llc
+# --------------------------------------------------
+# space map: should manage where and when and the velocity in each dimension
+class TKLLSpacetime(BaseModel):
+    position: List[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z]
+    velocity: List[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z]
+# confidence tone: question/statement
+class TKLLProperties(BaseModel):
+    tone: float = Field(default=0) # question -1 / neutral 0 / statement 1
+    certainty: float = Field(default=0) # unknown -1 / neutral 0 / 
+    # ... other flavors
+# entity: can have different semantic vectors
+class TKLLEntity(BaseModel):
+    id: int
+    token: str
+    abstraction_vector: List[float] = Field(default_factory=list) # [abstract -1 vs concrete 1, ]
+    semantic_vector: List[float] = Field(default_factory=list)
+# entity reference for the content
+class TKLLEntityReference(BaseModel):
+    id: int
 # llc item: can be a statement or an llcitem (recursive)
 class TKLLCContent(BaseModel):
-    subject: Optional[TKEntityReference] = Field(default=None)
-    predicate: Optional[TKEntityReference] = Field(default=None) 
-    direct: Optional[TKEntityReference] = Field(default=None) 
-    indirects: list[TKEntityReference] = Field(default_factory=list)
-    spacetime: Optional[TKSpaceTimeMap] = None 
+    properties: TKLLProperties
+    subject: Optional[TKLLEntityReference] = Field(default=None)
+    predicate: Optional[TKLLEntityReference] = Field(default=None) 
+    direct: Optional[TKLLEntityReference] = Field(default=None) 
+    indirects: list[TKLLEntityReference] = Field(default_factory=list)
+    spacetime: TKLLSpacetime 
 class TKLLCItem(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND)
     content: Optional[LLCItemPayload] = None 
 class TKLLC(BaseModel):
     items: List[TKLLCItem] = Field(default_factory=list)
-    entities: List[TKEntity] = Field(default_factory=list)
+    entities: List[TKLLEntity] = Field(default_factory=list)
 
-LLCItemPayload = Union[TKLLCItem, TKLLCContent]
+LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]
 
 TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()
 TKEntity.model_rebuild()
 TKFullEntity.model_rebuild()
 TKLLCItem.model_rebuild()
-
-# --------------------------------------------------
-# flat llc
-# --------------------------------------------------
-TKFlatMap = tuple[list[float], List[float]] # vector semantic marker, vector semantic dictionary
-class TKFlatStatement(BaseModel):
-    subject: TKFlatMap
-    predicate: TKFlatMap
-    direct: TKFlatMap
-    indirect: list[TKFlatMap] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
-    spacetime: Optional[TKSpaceTimeMap] = None # optional, has spacial semantic value (spacetimemap)    
-
-# alias for list flat statement
-TKFlatStatements = list[TKFlatStatement]

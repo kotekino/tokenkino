@@ -5,10 +5,12 @@ from ollama import Client as OllamaClient
 import spacy
 from spacy import displacy
 from spacy.tokens import Token
+from spacy import Language
 import stanza
 import spacy_stanza
+from spacy_stanza import Language as StanzaLanguage
 import numpy as np
-from lib.core.entities import TKLLC, EntityPayload, TKClause, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKMarker, TKFlatStatements, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKSpaceTimeMap, TKStatement, TKStatements
+from lib.core.entities import TKLLC, EntityPayload, TKClause, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -16,21 +18,21 @@ from lib.core.mappers import TKPosMapper
 # TODO: 
 # manage parataxis (and other non-standard coordination)
 # manage articles
+# manage det
 # manage copula verbs (be, seem, appear, become, etc.)
 # manage operators (llc_ccToOperator)
+# evaluators:
+#   llc_evaluateEntity
+#   llc_evaluateContent
 # flat compiler
 # test against every sentence from UD2
 
 # define constants
-_SIMILAR_RESULTS: int = 5
-_UNABLE_TO_PROCESS: str = "Unable to process the sentence"
+_ERRORS_UNABLE_TO_PROCESS: str = "Unable to process the sentence"
+_SPACY_MAX_SIMILAR_RESULTS: int = 5
 _SPACY_MODEL = "en_core_web_lg" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
-_BASE_ANCHORS = {
-    "and": TKOperator.AND,
-    "or": TKOperator.OR,
-    "not": TKOperator.NOT
-}
-threshold: float = 0.7 # threshold for fuzzy logic in operator mapping
+_OPERATORS_BASE_ANCHORS = {"and": TKOperator.AND, "or": TKOperator.OR, "not": TKOperator.NOT}
+_OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 # threshold for fuzzy logic in operator mapping
 
 # stanza
 stanza.download("en", package="lines")
@@ -52,13 +54,14 @@ nlp = spacy.load(_SPACY_MODEL)
 _context: TKContext = None
 _ollamaClient: OllamaClient = None
 
+
 # get operator corresponding to cc
 def llc_ccToOperator(token: Token) -> TKOperator:
     lemma = token.lemma_.lower()
 
     # 1. STRADA VELOCE (Hit diretto)
-    if lemma in _BASE_ANCHORS:
-        return _BASE_ANCHORS[lemma]
+    if lemma in _OPERATORS_BASE_ANCHORS:
+        return _OPERATORS_BASE_ANCHORS[lemma]
 
     # 2. SPAZIO VETTORIALE (Distanza dalle 3 ancore base)
     best_op = TKOperator.AND  # Default di emergenza
@@ -66,7 +69,7 @@ def llc_ccToOperator(token: Token) -> TKOperator:
 
     newDoc = nlp.tokenizer(token.lemma_)
 
-    for anchor_word, operator in _BASE_ANCHORS.items():
+    for anchor_word, operator in _OPERATORS_BASE_ANCHORS.items():
         anchor_lexeme = nlp.vocab[anchor_word]
         
         if newDoc[0].has_vector and anchor_lexeme.has_vector:
@@ -76,7 +79,7 @@ def llc_ccToOperator(token: Token) -> TKOperator:
                 best_op = operator
 
     # 3. THRESHOLD CHECK
-    if highest_sim >= threshold:
+    if highest_sim >= _OPERATORS_SIMILARITY_THRESHOLD:
         print(f"Logica Fuzzy: [{lemma}] mappato a {best_op} (Sim: {highest_sim:.2f})")
         return best_op
     else:
@@ -167,7 +170,7 @@ def llc_getFullEntity(token: Token, tokens: list[Token], predicate: bool = False
                 newDoc = nlp.tokenizer(token.lemma_)
                 if newDoc and len(list(newDoc)) > 0:
                     query_vector = np.asarray([newDoc[0].vector])
-                    most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SIMILAR_RESULTS)
+                    most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SPACY_MAX_SIMILAR_RESULTS)
                     similar_keys = most_similar[0][0]
                     for key in similar_keys:
                         fallback_lemma = nlp.vocab.strings[key].lower()
@@ -203,11 +206,11 @@ def llc_getFullEntity(token: Token, tokens: list[Token], predicate: bool = False
     primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, marker=tkMarker, properties=doc_properties[0])
 
     # get related entities
-    for c in conjuncts:
-        conjunctEntity: TKFullEntity = llc_getRelatedEntity(c, list(s for s in subtree if s not in usedTokens), predicate)
-        if conjunctEntity[0]:
-            primaryEntity.conjuncts.append(conjunctEntity[0])
-            usedTokens += conjunctEntity[1]
+    for c in [cc for cc in conjuncts if cc.head == token]:
+        ce, ut = llc_getRelatedEntity(c, list(s for s in subtree if s not in usedTokens), predicate)
+        if ce:
+            primaryEntity.conjuncts.append(ce)
+            usedTokens += ut
 
     return [primaryEntity, usedTokens]
 
@@ -370,7 +373,7 @@ def llc_core(tokens: list[Token]) -> TKStatements:
 def llc_preparser(tokens: str) -> TKStatements | None:
 
     # no ollama available
-    if not _ollamaClient: raise Exception(_UNABLE_TO_PROCESS)
+    if not _ollamaClient: raise Exception(_ERRORS_UNABLE_TO_PROCESS)
 
     # Prompt strutturato a blocchi logici (senza negazioni complesse)
     systemPrompt = """You are a strict syntax normalizer.
@@ -428,6 +431,40 @@ def llc_preparser(tokens: str) -> TKStatements | None:
 # --------------------------------------------------------------
 # FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) and TKEntity as entities (subjects, direct and indirect objects)
 # --------------------------------------------------------------
+# create a TKLLCContent object from a TKStatement
+def llc_evaluateContent(stat: TKStatement) -> TKLLCContent:
+    properties = TKLLProperties()
+    spacetime = TKLLSpacetime()
+    subject = TKLLEntityReference(id=stat.subject.id)
+    predicate = TKLLEntityReference(id=stat.predicate.id)
+    direct = TKLLEntityReference(id=stat.direct.id)
+    indirects = [TKLLEntityReference(id=e.id) for e in stat.indirects]
+    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
+    return content
+
+# create an tkllentity from tkentity
+def llc_evaluateEntity(ent: TKEntity) -> TKLLEntity:
+
+    id = ent.id
+    token = ''
+    semantic: list[float] = list()
+    abstraction: list[float] = [0]
+    
+    if ent.payload.entity_type == "dictionary": 
+        token = ent.payload.word
+        semantic: list[float] = ent.payload.vector
+    elif ent.payload.entity_type == "name": token = ent.payload.name 
+    elif ent.payload.entity_type == "generic": token = ent.payload.token
+
+    return TKLLEntity(id=id, token=token, abstraction_vector=abstraction, semantic_vector=semantic)
+
+# create a list of tkllentity from a list of tkentity
+def llc_evaluateEntities(ents: list[TKEntity]) -> list[TKLLEntity]:
+    return [llc_evaluateEntity(e) for e in ents]
+
+# create a TKLLEntityReference from a TKEntityReference
+def llc_evaluateReference(ref: TKEntityReference) -> TKLLEntityReference:
+    return TKLLEntityReference(id=ref.id)
 
 # get content
 def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
@@ -437,10 +474,10 @@ def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
     # initialize result
     clauses: list[TKLLCItem] = list()
-    entities: list[TKEntity] = copyStat.entities
+    entities: list[TKLLEntity] = llc_evaluateEntities(copyStat.entities)
 
     # main clause content (from deepcopy)
-    mainContent: TKLLCContent = TKLLCContent(subject=copyStat.subject, predicate=copyStat.predicate, direct=copyStat.direct, indirects=copyStat.indirects)
+    mainContent = llc_evaluateContent(copyStat)
 
     # add main clause to items
     mainClause: TKLLCItem = TKLLCItem(op=TKOperator.AND, content=mainContent)
@@ -449,9 +486,6 @@ def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
     # coordinated clauses (add conjunct as new clause, remove the conjunct)
     if len(stat.predicate.conjuncts) > 0:
         
-        # remove conjuncts from the main predicate and from the entities
-        mainClause.content.predicate.conjuncts = None 
-
         # initialize offset for entities
         offsetEntities: int = len(copyStat.entities)    
 
@@ -484,56 +518,67 @@ def llc_getPredicateConjunct(reference: TKEntityReference, conjunct: TKEntity, p
     
     # initialize result
     clauses: list[TKLLCItem] = list()
-    additionalEntities: list[TKEntity] =  list()
+    additionalEntities: list[TKLLEntity] = list()
     
     # assign result values with the id offset for entities    
     if originalStatement.subject: 
         subEntity = next((s for s in originalStatement.entities if s.id == originalStatement.subject.id), None)
-        if subEntity: additionalEntities.append(TKEntity(id=originalStatement.subject.id + parentOffset, payload=subEntity.payload, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts))
+        if subEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=originalStatement.subject.id + parentOffset, payload=subEntity.payload, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts)))
     if originalStatement.predicate: 
         predEntity = next((s for s in originalStatement.entities if s.id == originalStatement.predicate.id), None)
-        if predEntity: additionalEntities.append(TKEntity(id=originalStatement.predicate.id + parentOffset, payload=predEntity.payload, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts))
+        if predEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=originalStatement.predicate.id + parentOffset, payload=predEntity.payload, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts)))
     if originalStatement.direct: 
         directEntity = next((s for s in originalStatement.entities if s.id == originalStatement.direct.id), None)
-        if directEntity: additionalEntities.append(TKEntity(id=originalStatement.direct.id + parentOffset, payload=directEntity.payload, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts))
+        if directEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=originalStatement.direct.id + parentOffset, payload=directEntity.payload, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts)))
     if originalStatement.indirects: 
         for i in originalStatement.indirects:
             indirectEntity = next((s for s in originalStatement.entities if s.id == i.id), list())
-            if indirectEntity: additionalEntities.append(TKEntity(id=i.id + parentOffset, payload=indirectEntity.payload, op=i.op, marker=i.marker, conjuncts=i.conjuncts))
+            if indirectEntity: additionalEntities.append(llc_evaluateEntity(TKEntity(id=i.id + parentOffset, payload=indirectEntity.payload, op=i.op, marker=i.marker, conjuncts=i.conjuncts)))
 
     # coordinated clause content (copy values)
-    subject = TKEntityReference(id=originalStatement.subject.id + parentOffset, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts) if originalStatement.subject else None
-    predicate = TKEntityReference(id=originalStatement.predicate.id + parentOffset, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts) if originalStatement.predicate else None
-    direct = TKEntityReference(id=originalStatement.direct.id + parentOffset, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts) if originalStatement.direct else None
-    indirect = [TKEntityReference(id=i.id + parentOffset, op=i.op, marker=i.marker, conjuncts=i.conjuncts) for i in originalStatement.indirects] if len(originalStatement.indirects) > 0 else list()
-    spacetime: TKSpaceTimeMap = None
+    properties = TKLLProperties()
+    spacetime = TKLLSpacetime()
+    subject = llc_evaluateReference(TKEntityReference(id=originalStatement.subject.id + parentOffset, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts)) if originalStatement.subject else None
+    predicate = llc_evaluateReference(TKEntityReference(id=originalStatement.predicate.id + parentOffset, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts)) if originalStatement.predicate else None
+    direct = llc_evaluateReference(TKEntityReference(id=originalStatement.direct.id + parentOffset, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts)) if originalStatement.direct else None
+    indirects = [llc_evaluateReference(TKEntityReference(id=i.id + parentOffset, op=i.op, marker=i.marker, conjuncts=i.conjuncts)) for i in originalStatement.indirects] if len(originalStatement.indirects) > 0 else list()
 
-    mainContent = TKLLCContent(subject=subject, predicate=predicate, direct=direct, indirects=indirect, spacetime=spacetime)
-    mainClause = TKLLCItem(op=reference.op, content=mainContent)
-    clauses.append(mainClause)
+    # we are parsing a statement, so the content it's an item with that content
+    if len(conjunct.payload.predicate.conjuncts) > 0 :
+        subClauses: list[TKLLCItem] = list()       
 
-    if len(reference.conjuncts) > 0 :
-        predicate.conjuncts = None
-        recursiveOffsetEntities: int = len(originalStatement.entities) + parentOffset
-        for c in list(reference.conjuncts):
-            conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
-            llcItem, llcEntities = llc_getPredicateConjunct(c, conjunctStatement, recursiveOffsetEntities)
-            clauses.append(llcItem)
-            additionalEntities.extend(llcEntities)            
+        subContent = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
+        subClause = TKLLCItem(op=TKOperator.AND, content=subContent)         
+        subClauses.append(subClause)
+
+        if len(conjunct.payload.predicate.conjuncts) > 0 :
+            recursiveOffsetEntities: int = len(originalStatement.entities) + parentOffset
+            for c in list(conjunct.payload.predicate.conjuncts):
+                conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
+                llcItem, llcEntities = llc_getPredicateConjunct(c, conjunctStatement, recursiveOffsetEntities)
+                subClauses.extend(llcItem)
+                additionalEntities.extend(llcEntities)
+        
+        mainClause = TKLLCItem(op=reference.op, content=subClauses)
+        clauses.append(mainClause)
+    else:
+        mainContent = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
+        mainClause = TKLLCItem(op=reference.op, content=mainContent)        
+        clauses.append(mainClause)
     
     return [clauses, additionalEntities]
 
 # (DONE) main flat function
 def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
     
-    entities: list[TKEntity] = list()
+    entities: list[TKLLEntity] = list()
     items: list[TKLLCItem] = list()
 
     # for each statement, flatten it and add to the result
     for stat in tkStatements:
-        llcstat = llc_getContent(stat)
-        items.extend(llcstat[0])
-        entities.extend(llcstat[1])
+        i, e = llc_getContent(stat)
+        items.extend(i)
+        entities.extend(e)
 
     result = TKLLC(items=items, entities=entities)
     return result
@@ -572,6 +617,7 @@ def llc_diagram(tokens: str) -> str:
     html = '<html><body>' + diagram + '</body></html>'
 
     return html
+
 
 # reference: https://universaldependencies.org/u/dep/acl.html
 
