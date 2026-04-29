@@ -440,20 +440,26 @@ def llc_preparser(tokens: str) -> TKStatements | None:
 # FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) and TKEntity as entities (subjects, direct and indirect objects)
 # --------------------------------------------------------------
 # create a TKLLCContent object from a TKStatement
-def llc_evaluateContent(stat: TKStatement) -> TKLLCContent:
+def llc_evaluateContent(stat: TKStatement, parentOffset: int = 0) -> TKLLCContent:
+
+    subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
+    predEntity = next((e for e in stat.entities if stat.predicate and e.id == stat.predicate.id), None)
+    dirEntity = next((e for e in stat.entities if stat.direct and e.id == stat.direct.id), None)
+    indEntities = [e for e in stat.entities if e.id in [i.id for i in stat.indirects]]
+
     properties = TKLLProperties()
     spacetime = TKLLSpacetime()
-    subject = TKLLEntityReference(id=stat.subject.id) if stat.subject else None
-    predicate = TKLLEntityReference(id=stat.predicate.id) if stat.predicate else None
-    direct = TKLLEntityReference(id=stat.direct.id) if stat.direct else None
-    indirects = [TKLLEntityReference(id=e.id) for e in stat.indirects]
+    subject = TKLLEntityReference(id=stat.subject.id + parentOffset) if subjEntity and subjEntity.payload.entity_type != "statement" else None
+    predicate = TKLLEntityReference(id=stat.predicate.id + parentOffset) if predEntity and predEntity.payload.entity_type != "statement" else None
+    direct = TKLLEntityReference(id=stat.direct.id + parentOffset) if dirEntity and dirEntity.payload.entity_type != "statement" else None
+    indirects = [TKLLEntityReference(id=e.id + parentOffset) for e in indEntities if e.payload.entity_type != "statement"] if len(indEntities) > 0 else list()
     content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
     return content
 
 # create an tkllentity from tkentity
-def llc_evaluateEntity(ent: TKEntity) -> list[TKLLEntity]:
+def llc_evaluateEntity(ent: TKEntity, parentOffset: int = 0) -> list[TKLLEntity]:
 
-    id = ent.id
+    id = ent.id + parentOffset
     token = ''
     semantic: list[float] = list()
     abstraction: list[float] = [0]
@@ -463,17 +469,18 @@ def llc_evaluateEntity(ent: TKEntity) -> list[TKLLEntity]:
         semantic: list[float] = ent.payload.vector
     elif ent.payload.entity_type == "name": token = ent.payload.name 
     elif ent.payload.entity_type == "generic": token = ent.payload.token
-    #elif ent.payload.entity_type == "statement":
+    elif ent.payload.entity_type == "statement":
+        return list()
         # stat: TKStatement = ent.payload
         # return llc_evaluateEntities(stat.entities)    
 
     return [TKLLEntity(id=id, tokens=token, abstraction_vector=abstraction, semantic_vector=semantic)]
 
 # create a list of tkllentity from a list of tkentity
-def llc_evaluateEntities(ents: list[TKEntity]) -> list[TKLLEntity]:
+def llc_evaluateEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TKLLEntity]:
     result: list[TKLLEntity] = []
     for e in ents:
-        subents = llc_evaluateEntity(e)
+        subents = llc_evaluateEntity(e, parentOffset)
         if len(subents) > 0: result.extend(subents)
     return result
 
@@ -481,109 +488,54 @@ def llc_evaluateEntities(ents: list[TKEntity]) -> list[TKLLEntity]:
 def llc_evaluateReference(ref: TKEntityReference) -> TKLLEntityReference:
     return TKLLEntityReference(id=ref.id)
 
-# get content
-def llc_getContent(stat: TKStatement) -> tuple[list[TKLLCItem], list[TKEntity]]:
-
-    # deep copy
-    copyStat: TKStatement = copy.deepcopy(stat)
-
-    # initialize result
-    clauses: list[TKLLCItem] = list()
-    entities: list[TKLLEntity] = llc_evaluateEntities(copyStat.entities) 
-
-    # main clause content (from deepcopy)
-    mainContent = llc_evaluateContent(copyStat) 
-
-    # add main clause to items
-    mainClause: TKLLCItem = TKLLCItem(op=TKOperator.AND, content=mainContent)
-    clauses.append(mainClause)
-
-    # coordinated clauses (add conjunct as new clause, remove the conjunct)
-    if len(stat.predicate.conjuncts) > 0:
-        
-        # initialize offset for entities
-        offsetEntities: int = len(copyStat.entities)    
-
-        for c in list(stat.predicate.conjuncts):
-            # get conjunct statement from entities
-            conjunctStatement = next((s for s in stat.entities if s.id == c.id), None)
-
-            # remove conjunct statement from entities
-            entities.remove(next((e for e in entities if e.id == c.id), None))
-
-            # call the get predicate conjunct function
-            llcItems, llcEntities = llc_getPredicateConjunct(c, conjunctStatement, offsetEntities)
-            if llcItems: clauses.extend(llcItems)
-            if llcEntities: entities.extend(llcEntities)
-
-    # multiple subjects
-
-    # indirects clauses (ccomp, xcomp)
-
-    # indirect clauses (advcl)
-
-    # return result
-    return [clauses, entities]
-
 # get predicate conjunct content (recursive function to manage multiple levels of coordination)
-def llc_getPredicateConjunct(reference: TKEntityReference, conjunct: TKEntity, parentOffset: int) -> tuple[list[TKLLCItem], list[TKEntity]]:
+def llc_getProcessStatement(statement: TKStatement, reference: TKEntityReference = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
-    # get conjunct statement from entities
-
-    if not isinstance(conjunct.payload, TKStatement): return [None, list()] # safety check
-    originalStatement: TKStatement = copy.deepcopy(conjunct.payload)
+    originalStatement: TKStatement = copy.deepcopy(statement)
     
     # initialize result
     clauses: list[TKLLCItem] = list()
-    additionalEntities: list[TKLLEntity] = list()
-    
-    # assign result values with the id offset for entities    
-    if originalStatement.subject: 
-        subEntity = next((s for s in originalStatement.entities if s.id == originalStatement.subject.id), None)
-        if subEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=originalStatement.subject.id + parentOffset, payload=subEntity.payload, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts)))
-    if originalStatement.predicate: 
-        predEntity = next((s for s in originalStatement.entities if s.id == originalStatement.predicate.id), None)
-        if predEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=originalStatement.predicate.id + parentOffset, payload=predEntity.payload, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts)))
-    if originalStatement.direct: 
-        directEntity = next((s for s in originalStatement.entities if s.id == originalStatement.direct.id), None)
-        if directEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=originalStatement.direct.id + parentOffset, payload=directEntity.payload, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts)))
-    if originalStatement.indirects: 
-        for i in originalStatement.indirects:
-            indirectEntity = next((s for s in originalStatement.entities if s.id == i.id), list())
-            if indirectEntity: additionalEntities.extend(llc_evaluateEntity(TKEntity(id=i.id + parentOffset, payload=indirectEntity.payload, op=i.op, marker=i.marker, conjuncts=i.conjuncts)))
+    entities: list[TKLLEntity] = llc_evaluateEntities(originalStatement.entities, parentOffset) # exclude statements, managed later
+    op = reference.op if reference else TKOperator.AND
 
-    # coordinated clause content (copy values)
-    properties = TKLLProperties()
-    spacetime = TKLLSpacetime()
-    subject = llc_evaluateReference(TKEntityReference(id=originalStatement.subject.id + parentOffset, op=originalStatement.subject.op, marker=originalStatement.subject.marker, conjuncts=originalStatement.subject.conjuncts)) if originalStatement.subject else None
-    predicate = llc_evaluateReference(TKEntityReference(id=originalStatement.predicate.id + parentOffset, op=originalStatement.predicate.op, marker=originalStatement.predicate.marker, conjuncts=originalStatement.predicate.conjuncts)) if originalStatement.predicate else None
-    direct = llc_evaluateReference(TKEntityReference(id=originalStatement.direct.id + parentOffset, op=originalStatement.direct.op, marker=originalStatement.direct.marker, conjuncts=originalStatement.direct.conjuncts)) if originalStatement.direct else None
-    indirects = [llc_evaluateReference(TKEntityReference(id=i.id + parentOffset, op=i.op, marker=i.marker, conjuncts=i.conjuncts)) for i in originalStatement.indirects] if len(originalStatement.indirects) > 0 else list()
-
-    # we are parsing a statement, so the content it's an item with that content
-    if len(conjunct.payload.predicate.conjuncts) > 0 :
+    # ------------------------------------------------------------------------------
+    # coordinated clauses (add conjunct as new clause, remove the conjunct)
+    # ------------------------------------------------------------------------------
+    if len(statement.predicate.conjuncts) > 0 :
         subClauses: list[TKLLCItem] = list()       
-
-        subContent = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
+        
+        subContent = llc_evaluateContent(originalStatement, parentOffset) # exclude statements, managed later
         subClause = TKLLCItem(op=TKOperator.AND, content=subContent)         
         subClauses.append(subClause)
 
-        if len(conjunct.payload.predicate.conjuncts) > 0 :
+        if len(statement.predicate.conjuncts) > 0 :
             recursiveOffsetEntities: int = len(originalStatement.entities) + parentOffset
-            for c in list(conjunct.payload.predicate.conjuncts):
+            for c in list(statement.predicate.conjuncts):
                 conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
-                llcItem, llcEntities = llc_getPredicateConjunct(c, conjunctStatement, recursiveOffsetEntities)
-                subClauses.extend(llcItem)
-                additionalEntities.extend(llcEntities)
+                llcItems, llcEntities = llc_getProcessStatement(conjunctStatement.payload, c, recursiveOffsetEntities)
+                subClauses.extend(llcItems)
+                entities.extend(llcEntities)
         
-        mainClause = TKLLCItem(op=reference.op, content=subClauses)
+        mainClause = TKLLCItem(op=op, content=subClauses)
         clauses.append(mainClause)
     else:
-        mainContent = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, spacetime=spacetime)
-        mainClause = TKLLCItem(op=reference.op, content=mainContent)        
+        mainContent = llc_evaluateContent(originalStatement, parentOffset) # exclude statements, managed later
+        mainClause = TKLLCItem(op=op, content=mainContent)        
         clauses.append(mainClause)
     
-    return [clauses, additionalEntities]
+    # ------------------------------------------------------------------------------
+    # multiple subjects 
+    # ------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------
+    # indirects clauses (ccomp, xcomp)
+    # ------------------------------------------------------------------------------
+
+    # ------------------------------------------------------------------------------
+    # indirect clauses (advcl)
+    # ------------------------------------------------------------------------------
+
+    return [clauses, entities]
 
 # (DONE) main flat function
 def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
@@ -593,7 +545,7 @@ def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
 
     # for each statement, flatten it and add to the result
     for stat in tkStatements:
-        i, e = llc_getContent(stat)
+        i, e = llc_getProcessStatement(stat)
         items.extend(i)
         entities.extend(e)
 
