@@ -254,12 +254,13 @@ class TKLLSpacetime(BaseModel):
 # confidence tone: question/statement
 class TKLLProperties(BaseModel):
     tone: float = Field(default=0) # question -1 / neutral 0 / statement 1
-    certainty: float = Field(default=0) # unknown -1 / neutral 0 / 
+    certainty: float = Field(default=0) # unknown -1 / neutral 0 / fact 1
+    hope: float = Field(default=0) # neutral 0 / fact 1
     # ... other flavors
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
     id: int
-    token: str
+    tokens: str
     abstraction_vector: List[float] = Field(default_factory=list) # [abstract -1 vs concrete 1, ]
     semantic_vector: List[float] = Field(default_factory=list)
 # entity reference for the content
