@@ -21,13 +21,13 @@ TKContext = list[TKMessage]
 # geo point
 class GeoPoint(BaseModel):
     type: Literal["Point"] = "Point"
-    coordinates: List[float] 
+    coordinates: list[float] 
 
 # base word (2925 base words, having semantic vector with 2925 dimensions)
 class TKBase(BaseModel):
     entity_type: Literal["base"] = Field(default="base")
     word: str
-    vector: List[float] = Field(default_factory=list, min_length=2925, max_length=2925)
+    vector: list[float] = Field(default_factory=list, min_length=2925, max_length=2925)
     index: int
 
 # dictionary (referring to the 2925 base words, having semantic vector with 2925 dimensions)
@@ -37,7 +37,7 @@ class TKDictionary(BaseModel):
     pos: str = Field(pattern="^[avrns]$") 
     sense: str
     definition: str
-    vector: List[float] = Field(default_factory=list)
+    vector: list[float] = Field(default_factory=list, min_length=2925, max_length=2925)
 
 # list of proper names
 class TKName(BaseModel):
@@ -52,9 +52,9 @@ class TKPlace(BaseModel):
     category: str
     parent_admin: str
     parent_geo: str
-    path_admin: List[str] = Field(default_factory=list)
-    path_geo: List[str] = Field(default_factory=list)
-    physical_features: Optional[List[str]] = None
+    path_admin: list[str] = Field(default_factory=list)
+    path_geo: list[str] = Field(default_factory=list)
+    physical_features: Optional[list[str]] = None
     location: Optional[GeoPoint] = None
 
 # marker for indirect
@@ -62,7 +62,7 @@ class TKMarker(BaseModel):
     entity_type: Literal["marker"] = Field(default="marker")
     type: str
     lemma: str
-    vector: List[float] = Field(default_factory=list)
+    vector: list[float] = Field(default_factory=list)
 
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
@@ -107,7 +107,7 @@ class TKStatement(BaseModel):
     indirects: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
     
     # entities
-    entities: List[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
+    entities: list[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
     
     # private fields
     _id_counter: int = PrivateAttr(default=1)
@@ -115,7 +115,7 @@ class TKStatement(BaseModel):
     # properties
     # @computed_field
     # @property
-    # def test(self) -> List[TKEntity]:
+    # def test(self) -> list[TKEntity]:
 
     # factory for TKEntity
     def create_entity(self, **kwargs) -> TKEntity:
@@ -130,7 +130,7 @@ class TKStatement(BaseModel):
         conjunctEntities: list[TKEntityReference] = list()
         
         if kwargs.get("conjuncts", None): 
-            conjuncts: list[TKFullEntity] = kwargs["conjunct"]
+            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
                 conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
@@ -144,7 +144,7 @@ class TKStatement(BaseModel):
         conjunctEntities: list[TKEntityReference] = list()
         
         if kwargs.get("conjuncts", None): 
-            conjuncts: list[TKFullEntity] = kwargs["conjunct"]
+            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
                 conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
@@ -158,7 +158,7 @@ class TKStatement(BaseModel):
         conjunctEntities: list[TKEntityReference] = list()
 
         if kwargs.get("conjuncts", None): 
-            conjuncts: list[TKFullEntity] = kwargs["conjunct"]
+            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
                 conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
@@ -204,7 +204,7 @@ class TKStatement(BaseModel):
 
 # entities involved in statements
 # payload for entity
-EntityPayload = Union[TKName, TKDictionary, TKGeneric, TKStatement]
+EntityPayload = Union[TKName, TKDictionary, TKPlace,TKGeneric, TKStatement]
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
@@ -247,11 +247,18 @@ TKStatements = list[TKStatement]
 # --------------------------------------------------
 # flat llc
 # --------------------------------------------------
-# space map: should manage where and when and the velocity in each dimension
+# spacetime representation for an entity (in the relative space of the context of the statement, not absolute spacetime)
 class TKLLSpacetime(BaseModel):
-    position: List[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z]
-    velocity: List[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z]
-# confidence tone: question/statement
+    size: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the size of the entity in spacetime
+    position: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the center of the entity in spacetime
+    velocity: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the velocity of the entity in spacetime
+# the map of the relative spacetime in the context of the statement
+class TKLLSpacetimeMap(BaseModel):
+    tbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
+    xbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
+    ybounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
+    zbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
+#  tone, mode, certainty, hope
 class TKLLProperties(BaseModel):
     tone: float = Field(default=0) # literal 0 / neutral 0.5 / ironic 1
     mode: float = Field(default=0) # question 0 / neutral 0.5 / statement 1
@@ -261,11 +268,12 @@ class TKLLProperties(BaseModel):
 class TKLLEntity(BaseModel):
     id: int
     tokens: str
-    abstraction_vector: List[float] = Field(default_factory=list) # [abstract -1 vs concrete 1, ]
-    semantic_vector: List[float] = Field(default_factory=list)
+    semantic_vector: list[float] = Field(default_factory=list)
+    spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime) 
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
+    properties: list[TKLLEntityReference] = Field(default_factory=list)
 # llc item: can be a statement or an llcitem (recursive)
 class TKLLCContent(BaseModel):
     properties: TKLLProperties
@@ -273,13 +281,15 @@ class TKLLCContent(BaseModel):
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 
     indirects: list[TKLLEntityReference] = Field(default_factory=list)
-    spacetime: TKLLSpacetime 
 class TKLLCItem(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND)
     content: Optional[LLCItemPayload] = None 
 class TKLLC(BaseModel):
-    items: List[TKLLCItem] = Field(default_factory=list)
-    entities: List[TKLLEntity] = Field(default_factory=list)
+    map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
+    items: list[TKLLCItem] = Field(default_factory=list)
+    entities: list[TKLLEntity] = Field(default_factory=list)
+class TKLLVector(BaseModel):
+    vector: list[float] = Field(default_factory=list)
 
 LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]
 
