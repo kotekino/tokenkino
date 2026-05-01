@@ -26,6 +26,6 @@ def init_io(mongo_uri: str = None, mongo_db_name: str = None, ollama_uri: str = 
 
     # --- OLLAMA AI ---
     ollama_uri = ollama_uri or os.getenv("OLLAMA_HOST", "http://localhost:11434")
-    ai_client = ollama.Client(host=ollama_uri)
+    ai_client = ollama.AsyncClient(host=ollama_uri)
 
     return mongo_client, ai_client   

@@ -3,11 +3,13 @@ import os
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
-from lib.llc.functions import llc, llc_diagram, llc_preparser
+from lib.llc.parser import llc, llc_diagram
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
+from lib.llc.preparser import llc_pre_init, llc_pre_prepare, llc_pre_typos
+from lib.tkll.functions import tkll_searchSimilarTokens
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -25,6 +27,9 @@ async def lifespan(app: FastAPI):
     # Salviamo nello stato
     app.state.db_client = db_client
     app.state.ai_client = ai_client
+
+    # init preparser
+    await llc_pre_init(ai_client)
     
     yield  #where fastapi runs
     
@@ -34,28 +39,45 @@ async def lifespan(app: FastAPI):
 # init fastapi app
 app = FastAPI(lifespan=lifespan)
 
-# endpoints
-@app.get("/api/v1/llc")
-def process(q: str = Query(..., min_length=3, description="Sentence to submit")):
+# ------------------------
+# TKLLC endpoints
+# ------------------------
+@app.get("/api/v1/tkllc")
+async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
     try:
-        res = llc(q, None, app.state.ai_client)
+        preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
+        res = llc(preparsedTokens, None, app.state.ai_client)
         status = "complete"
     except Exception as error:
         res = repr(error)
         status = "failed"
     return {"status": status, "data": res}
 
-@app.get("/api/v1/render", response_class=HTMLResponse)
-def render(q: str = Query(..., min_length=3, description="Sentence to submit")):
-    res = llc_diagram(q)
+@app.get("/api/v1/tkllc/render", response_class=HTMLResponse)
+async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
+    preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
+    res = llc_diagram(preparsedTokens)
     return res
 
-@app.get("/api/v1/dict")
-def search(word: str):
-    doc = TKDictionaryDoc.find_one(TKDictionaryDoc.word == word).run()
+# ------------------------
+# TKLL endpoints
+# ------------------------
+@app.get("/api/v1/tkll/dict")
+async def search(token: str, prepare: int = 0):
+    preparsedTokens = await llc_pre_prepare(token) if prepare == 1 else token
+    doc = tkll_searchSimilarTokens(preparsedTokens)
+
     return doc
 
-@app.get("/api/v1/llc_preparser")
-def preparse(tokens: str):
-    res = llc_preparser(tokens, None, app.state.ai_client)
+# ------------------------
+# PRE endpoints
+# ------------------------
+@app.get("/api/v1/pre/polish")
+async def polish(tokens: str):
+    res = await llc_pre_typos(tokens)
+    return res
+
+@app.get("/api/v1/pre/prepare")
+async def prepare(tokens: str):
+    res = await llc_pre_prepare(tokens)
     return res

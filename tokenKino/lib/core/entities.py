@@ -3,6 +3,8 @@ from typing import List, Optional, Union, Literal
 from enum import Enum
 from pydantic import BaseModel, Field, PrivateAttr, RootModel, computed_field
 
+_VECTOR_INDEX = "vector_index"
+
 # --------------------------------------------------
 # context
 # --------------------------------------------------

@@ -10,27 +10,23 @@ import stanza
 import spacy_stanza
 from spacy_stanza import Language as StanzaLanguage
 import numpy as np
-from lib.core.entities import TKLLC, EntityPayload, LLCItemPayload, TKClause, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
+from lib.core.entities import TKLLC, EntityPayload, LLCItemPayload, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
+from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
+from lib.llc.flattener import llc_flat, llc_raw
 
 # TODO: 
 # GOING manage spacetime (temporal and spatial modifiers)
 # GOING manage compiler (flat and recursive)
 # manage parataxis (and other non-standard coordination)
 # manage articles
+# manage passive
 # manage det
 # manage copula verbs (be, seem, appear, become, etc.)
 # manage plurality
 # test against every sentence from UD2
-
-# define constants
-_ERRORS_UNABLE_TO_PROCESS: str = "Unable to process the sentence"
-_SPACY_MAX_SIMILAR_RESULTS: int = 5
-_SPACY_MODEL = "en_core_web_lg" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
-_OPERATORS_BASE_ANCHORS = {"and": TKOperator.AND, "or": TKOperator.OR, "not": TKOperator.NOT}
-_OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 # threshold for fuzzy logic in operator mapping
 
 # stanza
 stanza.download("en", package="lines")
@@ -51,7 +47,6 @@ nlp = spacy.load(_SPACY_MODEL)
 # global variables
 _context: TKContext = None
 _ollamaClient: OllamaClient = None
-
 
 # get operator corresponding to cc
 def llc_ccToOperator(token: Token) -> TKOperator:
@@ -295,7 +290,7 @@ def llc_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = 
     # ------------------------------
     # search subject (first csubj, then nsubj)
     # ------------------------------
-    subjectToken = next((s for s in tokens if (s.dep_ == "nsubj") and s.head == root), None)
+    subjectToken = next((s for s in tokens if (s.dep_ == "nsubj" or s.dep_ == "nsubj:pass") and s.head == root), None)
     if subjectToken:
         tkSubject = llc_getFullEntity(subjectToken, tokens)
         usedTokens += tkSubject[1] # get used tokens
@@ -372,284 +367,11 @@ def llc_core(tokens: list[Token]) -> TKStatements:
 
     return statements
 
-# (DONE) pre parser based on Phi-3 via Ollama: fix the sentences not understandable by llc
-def llc_preparser(tokens: str) -> TKStatements | None:
-
-    # no ollama available
-    if not _ollamaClient: raise Exception(_ERRORS_UNABLE_TO_PROCESS)
-
-    # Prompt strutturato a blocchi logici (senza negazioni complesse)
-    systemPrompt = """You are a strict syntax normalizer.
-    Your ONLY job is to rewrite elliptical phrases, exclamations, greetings, or short answers into explicit Subject-Verb-Object (SVO) sentences.
-
-    Rules:
-    - Keep the exact original meaning.
-    - Maintain the original grammatical person. Assume 1st person singular ('I') for general exclamations or greetings unless stated otherwise.
-    - Output ONLY the final sentence. Absolutely no explanations, no notes, and do not write "You are expressing...".
-
-    Examples:
-    Input: 'Silence!'
-    Output: 'You must stay silent.'
-
-    Input: 'Exactly.'
-    Output: 'That is exactly right.'
-
-    Input: 'mornin guys'
-    Output: 'I wish you a good morning.'
-
-    Input: 'oh god'
-    Output: 'I am shocked.'
-
-    Input: 'What a cold day!'
-    Output: 'This day is cold.'
-    """
-
-    # ask ollama to rephrase
-    user_prompt = f"Input: '{tokens}'\nOutput:"
-
-    # get the answer
-    response = _ollamaClient.generate(
-        model='phi3', 
-        prompt=user_prompt, 
-        system=systemPrompt,
-        options={
-            'temperature': 0.0,
-            'top_k': 10,
-            'top_p': 0.5
-        }
-    )
-
-    # normalized text
-    normalized_text = response['response'].strip().strip("'").strip('"')
-
-    # check semantic value via spacy
-    # CRITICAL HERE: remove any noise with 100% confidence
-    
-    unable: bool = False
-    if unable: return None
-
-    # parse the rearranged sentence and return the TKStatements result 
-    return llc_core(normalized_text)
-
-# --------------------------------------------------------------
-# FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) and TKEntity as entities (subjects, direct and indirect objects)
-# --------------------------------------------------------------
-def llc_evaluateReference(ref: TKEntityReference, entities: list[TKEntity], parentOffset: int = 0) -> TKLLEntityReference:
-    properties: list[TKLLEntityReference] = list()
-    return TKLLEntityReference(id=ref.id + parentOffset, properties=properties)
-
-# create a TKLLCContent object from a TKStatement
-def llc_evaluateContent(stat: TKStatement, parentOffset: int = 0) -> tuple[LLCItemPayload, list[TKLLEntity]]:
-
-    entities: list[TKLLEntity] = list()
-    additionalItems: list[TKLLCItem] = list()
-
-    predEntity = next((e for e in stat.entities if stat.predicate and e.id == stat.predicate.id), None)
-    subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
-    dirEntity = next((e for e in stat.entities if stat.direct and e.id == stat.direct.id), None)
-    indEntities = [e for e in stat.entities if e.id in [i.id for i in stat.indirects]]
-
-    properties = TKLLProperties()
-
-    predicate = None
-    subject = None
-    direct = None
-    indirects: list[TKLLEntityReference] = list()
-
-    # ---------------------------------------------
-    # predicate it cant be a statement
-    # ---------------------------------------------
-    predicate = llc_evaluateReference(stat.predicate, stat.entities, parentOffset) if predEntity else None
-    
-    # manage coordinate clauses
-    if len(stat.predicate.conjuncts) > 0 :
-        recursiveOffsetEntities: int = len(stat.entities) - len(stat.predicate.conjuncts) + parentOffset
-        parentOffset -= len(stat.predicate.conjuncts) # update offset
-        for c in list(stat.predicate.conjuncts):
-            conjunctStatement = next((s for s in stat.entities if s.id == c.id), None)
-            additionalItems, additionalEntities = llc_getProcessStatement(conjunctStatement.payload, c, recursiveOffsetEntities)
-            entities.extend(additionalEntities)
-            parentOffset += len(additionalEntities)
-
-    # subject
-    if subjEntity and subjEntity.payload.entity_type == "statement": 
-        # exclude statements
-        parentOffset -= 1
-    else: 
-        subject = llc_evaluateReference(stat.subject, stat.entities, parentOffset) if subjEntity else None
-
-    # direct
-    if dirEntity and dirEntity.payload.entity_type == "statement": 
-        # exclude statements not affecting time and space
-        parentOffset -= 1
-    else: 
-        direct = llc_evaluateReference(stat.direct, stat.entities, parentOffset) if dirEntity else None
-
-    # indirects
-    for e in indEntities:
-        if e.payload.entity_type == "statement": 
-            # exclude statements
-            parentOffset -= 1
-        else: 
-            indirects.append(llc_evaluateReference(e, stat.entities, parentOffset))
-    
-    # set content
-    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
-    
-    # check additional items
-    if len(additionalItems) > 0:
-        subItems: list[TKLLCItem] = list()
-        subContent = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
-        subItems.append(TKLLCItem(op=TKOperator.AND, content=subContent))
-        subItems.extend(additionalItems)
-        return subItems, entities
-    else:
-        return content, entities
-
-# create an tkllentity from tkentity
-def llc_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> list[TKLLEntity]:
-
-    id = ent.id + parentOffset
-    token = ''
-    semantic: list[float] = list()
-    spacetime: TKLLSpacetime = TKLLSpacetime()
-
-    if ent.payload.entity_type == "dictionary": 
-        token = ent.payload.word
-        semantic: list[float] = ent.payload.vector
-    elif ent.payload.entity_type == "name": 
-        token = ent.payload.name
-    elif ent.payload.entity_type == "place": 
-        token = ent.payload.name
-    elif ent.payload.entity_type == "generic": 
-        token = ent.payload.token
-    elif ent.payload.entity_type == "statement":
-        # excluded statements
-        return list()
-        # stat: TKStatement = ent.payload
-        # return llc_evaluateEntities(stat.entities)    
-
-    return [TKLLEntity(id=id, tokens=token, semantic_vector=semantic, spacetime=spacetime)]
-
-# create a list of tkllentity from a list of tkentity
-def llc_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TKLLEntity]:
-    result: list[TKLLEntity] = []
-    for e in ents:
-        subents = llc_initializeEntity(e, parentOffset)
-        if len(subents) > 0: result.extend(subents) 
-        else: parentOffset -= 1 # if the entity is a statement, it doesn't generate an entity but it generates an offset for the next entities
-    return result
-
-# get predicate conjunct content (recursive function to manage multiple levels of coordination)
-def llc_getProcessStatement(statement: TKStatement, reference: TKEntityReference = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
-
-    originalStatement: TKStatement = copy.deepcopy(statement)
-    
-    # initialize result
-    clauses: list[TKLLCItem] = list()
-    entities: list[TKLLEntity] = llc_initializeEntities(originalStatement.entities, parentOffset) # exclude statements, managed later
-    op = reference.op if reference else TKOperator.AND
-
-    mainContent, additionalEntities = llc_evaluateContent(originalStatement, parentOffset) # exclude statements, managed later
-    mainClause = TKLLCItem(op=op, content=mainContent)        
-    clauses.append(mainClause)
-    entities.extend(additionalEntities)
-
-    return [clauses, entities]
-
-# (DOING) build spacetime map from entities and normalize the spacetime of the entities in the map (-1, 1)
-def llc_normalizeSpacetimeMap(entities: list[TKLLEntity]) -> TKLLSpacetimeMap:
-    spacetimeMap: TKLLSpacetimeMap = TKLLSpacetimeMap()
-
-    # get bounds
-    minT = min(e.spacetime.position[0] - e.spacetime.size[0] / 2 for e in entities) if len(entities) > 0 else 0
-    maxT = max(e.spacetime.position[0] + e.spacetime.size[0] / 2 for e in entities) if len(entities) > 0 else 0
-    minX = min(e.spacetime.position[1] - e.spacetime.size[1] / 2 for e in entities) if len(entities) > 0 else 0
-    maxX = max(e.spacetime.position[1] + e.spacetime.size[1] / 2 for e in entities) if len(entities) > 0 else 0
-    minY = min(e.spacetime.position[2] - e.spacetime.size[2] / 2 for e in entities) if len(entities) > 0 else 0
-    maxY = max(e.spacetime.position[2] + e.spacetime.size[2] / 2 for e in entities) if len(entities) > 0 else 0
-    minZ = min(e.spacetime.position[3] - e.spacetime.size[3] / 2 for e in entities) if len(entities) > 0 else 0
-    maxZ = max(e.spacetime.position[3] + e.spacetime.size[3] / 2 for e in entities) if len(entities) > 0 else 0
-
-    # same scale for x, y, z
-    minSpace = min(minX, minY, minZ)
-    maxSpace = max(maxX, maxY, maxZ)
-
-    # normalize function (from - x to x => from -1 to 1)
-    def normalize(value: float, min: float, max: float) -> float:
-        if max - min == 0: return 0
-        return (value - min) / (max - min) * 2 - 1
-
-    spacetimeMap.tbounds = [normalize(minT, minT, maxT), normalize(maxT, minT, maxT)]
-    spacetimeMap.xbounds = [normalize(minX, minSpace, maxSpace), normalize(maxX, minSpace, maxSpace)]
-    spacetimeMap.ybounds = [normalize(minY, minSpace, maxSpace), normalize(maxY, minSpace, maxSpace)]
-    spacetimeMap.zbounds = [normalize(minZ, minSpace, maxSpace), normalize(maxZ, minSpace, maxSpace)]
-
-    # recalculate the spacetime of the entities in the map
-    for e in entities:
-        e.spacetime.position[0] = normalize(e.spacetime.position[0], minT, maxT)
-        e.spacetime.position[1] = normalize(e.spacetime.position[1], minSpace, maxSpace)
-        e.spacetime.position[2] = normalize(e.spacetime.position[2], minSpace, maxSpace)
-        e.spacetime.position[3] = normalize(e.spacetime.position[3], minSpace, maxSpace)
-        e.spacetime.size[0] = normalize(e.spacetime.size[0], minT, maxT)
-        e.spacetime.size[1] = normalize(e.spacetime.size[1], minSpace, maxSpace)
-        e.spacetime.size[2] = normalize(e.spacetime.size[2], minSpace, maxSpace)
-        e.spacetime.size[3] = normalize(e.spacetime.size[3], minSpace, maxSpace)
-
-    return spacetimeMap, entities
-
-# (DONE) main flat function
-def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
-    
-    entities: list[TKLLEntity] = list()
-    items: list[TKLLCItem] = list()
-
-    # for each statement, flatten it and add to the result
-    parentOffset: int = 0
-    for stat in tkStatements:
-        i, e = llc_getProcessStatement(stat, None, parentOffset)
-        items.extend(i)
-        entities.extend(e)
-        parentOffset += len(e)
-
-    # spacetimemap: build the spacetime map relative to the context of the statements
-    spacetimemap, entities = llc_normalizeSpacetimeMap(entities)
-
-    # return result
-    result = TKLLC(items=items, entities=entities, map=spacetimemap)
-    return result
-
-# (DOING) parse content object (recursively)
-def llc_raw_recursive(content: LLCItemPayload, entities: list[TKLLEntity]) -> str:
-    
-    result: str = ""
-    if isinstance(content, TKLLCContent):
-
-        subject = next((e.tokens for e in entities if e.id == content.subject.id), '') if content.subject else ''
-        predicate = next((e.tokens for e in entities if e.id == content.predicate.id), '') if content.predicate else ''
-        direct = next((e.tokens for e in entities if e.id == content.direct.id), '') if content.direct else ''
-        indirects = ' '.join([next((e.tokens for e in entities if e.id == i.id), '') for i in content.indirects]) if content.indirects else ''
-
-        result = f"{subject} {predicate} {direct} {indirects}"
-    elif isinstance(content, list):
-        for item in content:
-            result += f" {item.op.value} ({llc_raw_recursive(item.content, entities)})"
-
-    return result.strip()
-
-# (DOING) get raw output from TKLLC
-def llc_raw(tkLLC: TKLLC) -> str:
-
-    result: str = ""
-    for item in tkLLC.items:
-        result += item.op + ' ' + llc_raw_recursive(item.content, tkLLC.entities)
-
-    return result
-
 # --------------------------------------------------------------
 # (DONE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
 def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
+    global _context, _ollamaClient
 
     # assign variables
     _context = context
