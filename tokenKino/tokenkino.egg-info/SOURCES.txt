@@ -10,11 +10,15 @@ lib/core/mappers.py
 lib/core/models.py
 lib/llc/__init__.py
 lib/llc/constants.py
+lib/llc/decompiler.py
 lib/llc/flattener.py
 lib/llc/parser.py
 lib/llc/preparser.py
+lib/llc/translator.py
 lib/tagger/__init__.py
 lib/tagger/functions.py
+lib/tkll/__init__.py
+lib/tkll/functions.py
 tokenkino.egg-info/PKG-INFO
 tokenkino.egg-info/SOURCES.txt
 tokenkino.egg-info/dependency_links.txt

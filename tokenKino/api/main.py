@@ -46,7 +46,11 @@ app = FastAPI(lifespan=lifespan)
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
     try:
         preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
-        res = llc(preparsedTokens, None, app.state.ai_client)
+        result = llc(preparsedTokens, None, app.state.ai_client)
+        res = {
+            "original": tokens,
+            "llc": result
+        }
         status = "complete"
     except Exception as error:
         res = repr(error)

@@ -8,4 +8,7 @@ _OPERATORS_BASE_ANCHORS = {"and": TKOperator.AND, "or": TKOperator.OR, "not": TK
 _OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 # threshold for fuzzy logic in operator mapping
 _OLLAMA_MODEL1 = 'llama3:latest'
 _OLLAMA_MODEL2 = 'phi3:latest'
+_OLLAMA_TRANS1 = 'aya:latest'
+_OLLAMA_TRANS2 = 'translategemma:4b'
 _PRE_SIMILARITY_THRESHOLD = 0.8
+_MIN_SIMILARITY = 0.9

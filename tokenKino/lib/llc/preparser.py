@@ -5,16 +5,17 @@ import spacy
 from symspellpy import SymSpell
 import pkg_resources
 from lib.core.entities import TKStatements
-from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _OLLAMA_MODEL1, _OLLAMA_MODEL2, _PRE_SIMILARITY_THRESHOLD, _SPACY_MODEL
+from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _MIN_SIMILARITY, _OLLAMA_MODEL1, _OLLAMA_MODEL2, _OLLAMA_TRANS1, _OLLAMA_TRANS2, _PRE_SIMILARITY_THRESHOLD, _SPACY_MODEL
 from lib.llc.parser import llc_core
 from ollama import AsyncClient as OllamaClient
 import asyncio
 from collections import Counter
+from lib.llc.translator import TKTranslator
 
 # global state
 _init: bool = False
 _ollamaClient: OllamaClient = None
-_required_models = [_OLLAMA_MODEL1, _OLLAMA_MODEL2]
+_required_models = [_OLLAMA_MODEL1, _OLLAMA_MODEL2, _OLLAMA_TRANS1, _OLLAMA_TRANS2]
 
 # sym spell
 sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
@@ -25,6 +26,8 @@ sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
 
 # lingua
 _detector = LanguageDetectorBuilder.from_all_languages().build()
+_translator: TKTranslator = TKTranslator()
+_nlp = spacy.load(_SPACY_MODEL)
 
 # initializer
 async def llc_pre_init(ollamaClient: OllamaClient = None):
@@ -112,8 +115,8 @@ async def llc_pre_typos(tokens: str) -> str:
     return fixed
 
 # translate in english
-async def llc_pre_translate(tokens: str, language: str) -> str:
-    global _init, _ollamaClient
+async def llc_pre_translate(tokens: str) -> str:
+    global _init, _ollamaClient, _nlp
 
     # Controllo stato iniziale
     if not _ollamaClient or not _init: 
@@ -121,7 +124,7 @@ async def llc_pre_translate(tokens: str, language: str) -> str:
 
     # Prompt di sistema draconiano con inserimento dinamico della lingua target
     systemPrompt = (
-        f"You are a professional translator. Translate the input text strictly into {language}. "
+        f"You are a professional translator. Translate the input text strictly into english. "
         "You ONLY return a JSON object with the key 'translation'. "
         "If you are not able to translate, the key 'translation' must be the original input. "
         "Do not add notes, markdown, or comments."
@@ -131,7 +134,7 @@ async def llc_pre_translate(tokens: str, language: str) -> str:
 
     # Preparo i due task concorrenti
     r1 = _ollamaClient.generate(
-        model=_OLLAMA_MODEL1, # Ti consiglio di assegnare Llama 3 a questo!
+        model=_OLLAMA_TRANS1, # aya
         prompt=user_prompt, 
         system=systemPrompt,
         format='json',
@@ -141,7 +144,7 @@ async def llc_pre_translate(tokens: str, language: str) -> str:
         }
     )
     r2 = _ollamaClient.generate(
-        model=_OLLAMA_MODEL2, # Phi 3
+        model=_OLLAMA_TRANS2, # gemma
         prompt=user_prompt, 
         system=systemPrompt,
         format='json',
@@ -169,18 +172,27 @@ async def llc_pre_translate(tokens: str, language: str) -> str:
         print(f"Modello 2 ha fallito: {e}")
 
     # LOGICA DI RISOLUZIONE (Gerarchica invece che per Consenso)
-    
+    t3 = _translator.translate(tokens)
+
+    # check vector
+    t1doc = _nlp(t1) if t1 else None
+    t2doc = _nlp(t2) if t2 else None
+    t3doc = _nlp(t3) if t3 else None
+    s1 = t1doc.similarity(t2doc) if t1doc and t2doc else -1.0
+    s2 = t1doc.similarity(t3doc) if t1doc and t3doc else -1.0
+    s3 = t2doc.similarity(t3doc) if t2doc and t3doc else -1.0
+    best = max(s1, s2, s3)
+
+    if best < _MIN_SIMILARITY:
+        return tokens
+
     # 1. Se il Modello Principale (Llama 3) ha restituito qualcosa di sensato, vince sempre lui.
-    if t1 and t1 != "":
+    if best == s1:
         return t1
-    
-    # 2. Se Llama 3 ha fallito, usiamo il Modello Secondario (Phi 3).
-    if t2 and t2 != "":
-        return t2
-    
-    # 3. Se entrambi esplodono o restituiscono stringhe vuote, restituiamo l'input originale 
-    # per evitare che il programma in cascata vada in crash (Fail-Safe).
-    return tokens
+    elif best == s2 or best == s3:
+        return t3
+    else:
+        return tokens # fallback, input
 
 # get language
 async def llc_pre_getLanguage(tokens: str) -> str:
@@ -196,20 +208,19 @@ async def llc_pre_getLanguage(tokens: str) -> str:
 
 # prepare text
 async def llc_pre_prepare(tokens: str) -> str:
-    # load spacy
-    nlp = spacy.load(_SPACY_MODEL)
+    global _nlp
 
     # translate if not en
     language = await llc_pre_getLanguage(tokens)
     if language != "en":
-        tokens = await llc_pre_translate(tokens, "en")
+        tokens = await llc_pre_translate(tokens)
 
     # remove typos
     result = await llc_pre_typos(tokens)
 
     # check vector
-    inputDoc = nlp(tokens)
-    outputDoc = nlp(result)
+    inputDoc = _nlp(tokens)
+    outputDoc = _nlp(result)
 
     # compare vectors
     similarity = inputDoc.similarity(outputDoc)

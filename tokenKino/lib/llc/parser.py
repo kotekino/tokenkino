@@ -15,7 +15,9 @@ from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
-from lib.llc.flattener import llc_flat, llc_raw
+from lib.llc.flattener import llc_flat
+from lib.llc.decompiler import llc_raw
+
 
 # TODO: 
 # GOING manage spacetime (temporal and spatial modifiers)
@@ -391,9 +393,10 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
 
     # return statement
     return {
+        "input": tokens,
         "raw": rawOutput,
-        "llc (flat)": tkLLC, 
-        "llc (recursive)": tkStatements
+        "flat": tkLLC, 
+        "recursive": tkStatements
         }
 
 # (DONE) wrap the displacy dep diagram

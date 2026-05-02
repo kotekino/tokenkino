@@ -106,7 +106,7 @@ class TKStatement(BaseModel):
     subject: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
     predicate: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
     direct: Optional[TKEntityReference] = Field(default=None) # optional has semantic 2925 value
-    indirects: list[list[TKEntityReference]] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
+    indirects: list[TKEntityReference] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
     
     # entities
     entities: list[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
@@ -275,6 +275,7 @@ class TKLLEntity(BaseModel):
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
+    marker: Optional[TKMarker] = None
     properties: list[TKLLEntityReference] = Field(default_factory=list)
 # llc item: can be a statement or an llcitem (recursive)
 class TKLLCContent(BaseModel):

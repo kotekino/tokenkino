@@ -9,3 +9,10 @@ fastapi
 pydantic
 bunnet
 ollama
+transformers
+torch
+sentencepiece
+spacy_stanza
+symspellpy
+asyncio
+lingua

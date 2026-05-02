@@ -15,6 +15,7 @@ COPY . .
 
 # Installiamo il pacchetto e le dipendenze
 RUN pip install --no-cache-dir .
+RUN python -c "from transformers import MarianMTModel, MarianTokenizer; MarianTokenizer.from_pretrained('Helsinki-NLP/opus-mt-mul-en'); MarianMTModel.from_pretrained('Helsinki-NLP/opus-mt-mul-en')"
 
 # Esponiamo la porta di FastAPI
 EXPOSE 8000
