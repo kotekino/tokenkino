@@ -134,7 +134,7 @@ class TKStatement(BaseModel):
         if kwargs.get("conjuncts", None): 
             conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunct = self.create_entity(payload=c.entity)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
         
         self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
@@ -148,7 +148,7 @@ class TKStatement(BaseModel):
         if kwargs.get("conjuncts", None): 
             conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunct = self.create_entity(payload=c.entity)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
         
         self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
@@ -162,7 +162,7 @@ class TKStatement(BaseModel):
         if kwargs.get("conjuncts", None): 
             conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunct = self.create_entity(payload=c.entity)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
                 
         self.indirects.append(TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities))
@@ -176,7 +176,7 @@ class TKStatement(BaseModel):
         if kwargs.get("conjuncts", None):
             conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
             for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity, op=c.op, marker=c.marker, conjuncts=c.conjuncts)
+                conjunct = self.create_entity(payload=c.entity)
                 conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
        
         self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
@@ -203,6 +203,11 @@ class TKStatement(BaseModel):
                 entity = self.create_entity(payload=p.entity)
                 e = TKEntityReference(op=p.op, id=entity.id)
                 reference.properties.append(e)
+                for c in p.conjuncts:
+                    conjunct = self.create_entity(payload=c.entity, op=c.op, marker=None, conjuncts=c.conjuncts)
+                    reference.properties.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+
+
 
 # entities involved in statements
 # payload for entity

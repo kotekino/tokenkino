@@ -82,64 +82,52 @@ def llc_ccToOperator(token: Token) -> TKOperator:
         return TKOperator.AND
 
 # (DONE) get properties
-def llc_getProperties(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Token]]:
-
-    # initialize usedTokens
-    usedTokens: list[Token] = list()
+def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
 
     doc_properties: list[TKFullEntity] = []
-    property: tuple[list[TKFullEntity], list[Token]] = [list(),list()]
+    property: TKFullEntity
 
-    for t in (tt for tt in tokens if tt not in usedTokens):
-        property = [None, list()]
+    for t in tokens:
+        property = None
         if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
-            availableTokens = [s for s in tokens if s not in usedTokens]
-            property = llc_getFullEntity(t, availableTokens)
+            property = llc_getFullEntity(t, False)
 
-        if property[0]: 
-            usedTokens += property[1]
-            usedTokens.append(t)
-            doc_properties.append(property[0])
+        if property: 
+            doc_properties.append(property)
 
-    return [doc_properties, usedTokens]
+    return doc_properties
 
 # (DONE) get related by conj entities
-def llc_getRelatedEntity(token: Token, tokens: list[Token], statement: bool = False) -> tuple[TKFullEntity, list[Token]]:
+def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
     
-    usedTokens: list[Token] = list()
-    entity: tuple[TKFullEntity, list[Token]] = None
+    entity: TKFullEntity = None
 
     # decide if its a conj single word or a sentence
     if statement:
-        sentence = llc_parseSentence(token, tokens, clause_type=TKClause.COORDINATE)
-        entity = [TKFullEntity(entity=sentence[0], marker=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence[0] else None, sentence[1]]
+        sentence = llc_parseSentence(token, clause_type=TKClause.COORDINATE)
+        entity = TKFullEntity(entity=sentence[0], marker=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence else None
     else:
-        entity = llc_getFullEntity(token, tokens, False)
+        entity = llc_getFullEntity(token, False)
     
     # if found an entity
-    if entity[0]:
-        usedTokens += entity[1]
+    if entity:
         
         # search operator, otherwise default
-        opToken = next(tt for tt in tokens if tt not in usedTokens and tt in list(token.children) and (tt.dep_ == "cc"))
-        if opToken: usedTokens.append(opToken)  
+        opToken = next(tt for tt in list(token.children) if tt.dep_ == "cc")
         operator: TKOperator = llc_ccToOperator(opToken) if opToken else TKOperator.AND
 
-        entity[0].op = operator    
-        return [entity[0], usedTokens]
+        entity.op = operator    
+        return entity
     
     return [None, usedTokens]
 
 # (ONGOING) get seamntic value from dictionary + properties
-def llc_getFullEntity(token: Token, tokens: list[Token], predicate: bool = False) -> tuple[TKFullEntity, list[Token]]:
-
-    # initialize usedTokens
-    usedTokens: list[Token] = list()
+def llc_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
 
     # related tokens to the entity
-    subtree = [t for t in tokens if t in list(token.subtree)]
-    children = [t for t in tokens if t in list(token.children)]
-    conjuncts = [t for t in tokens if t in list(token.conjuncts)]
+    subtree = list(token.subtree)
+    children = list(token.children)
+    conjuncts = list(token.conjuncts)
 
     # get wn pos
     pos = TKPosMapper.get_wn_pos(token.pos_)
@@ -181,171 +169,134 @@ def llc_getFullEntity(token: Token, tokens: list[Token], predicate: bool = False
     knownPos = pos[0] if len(pos) > 0 else ""
     if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
-    # add itself as used token
-    usedTokens.append(token)
 
     # get properties (for each token directly bound to the result)
-    doc_properties = llc_getProperties([s for s in children if s not in usedTokens])
-    usedTokens += doc_properties[1]
+    doc_properties = llc_getProperties(children)
 
     # get marker 
-    marker = next((s for s in children if s not in usedTokens and (s.dep_ == "case" or s.dep_ == "mark")), None)
+    marker = next((s for s in children if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
         tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
-        usedTokens.append(marker)
 
     # primary entity (from token)
-    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, marker=tkMarker, properties=doc_properties[0])
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, marker=tkMarker, properties=doc_properties)
 
     # get related entities
     for c in [cc for cc in conjuncts if cc.head == token]:
-        ce, ut = llc_getRelatedEntity(c, list(c.subtree), predicate)
-        if ce:
-            primaryEntity.conjuncts.append(ce)
-            usedTokens += ut
+        relatedEntity = llc_getRelatedEntity(c, predicate)
+        if relatedEntity:
+            primaryEntity.conjuncts.append(relatedEntity)
 
-    return [primaryEntity, usedTokens]
+    return primaryEntity
 
 # (ONGOING) get all indirect objects (cycling remaining tokens)
-def llc_getIndirects(tokens: list[Token]) -> tuple[list[TKFullEntity], list[Token]]: 
-    
-    # initialize usedTokens
-    usedTokens: list[Token] = list()
+def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
 
     # initialize result
     indirectFullEntities: list[TKFullEntity] = list()
 
-    for t in (tt for tt in tokens if tt not in usedTokens):
-        # reset indirect
-        indirectToken: Token = None
+    for t in tokens:
+
+        # reset indirect entity
+        indirectEntity = None
 
         # case dative (can be a name [take the entity] or a prep [take the first child])
         # oblique (expect a case or marker)
-        if t.dep_ == "obl":
-            indirectToken = t
-            availableTokens = [s for s in tokens if s not in usedTokens]
-            indirectEntity, ut = llc_getFullEntity(indirectToken, availableTokens)
-            usedTokens += ut # get used tokens   
+        if t.dep_ == "obl": 
+            indirectEntity = llc_getFullEntity(t, False)
         # indirect object (you give YOU something)
-        elif t.dep_ == "iobj":
-            indirectToken = t
-            availableTokens = [s for s in tokens if s not in usedTokens]
-            indirectEntity, ut = llc_getFullEntity(indirectToken, availableTokens)
-            usedTokens += ut # get used tokens
+        elif t.dep_ == "iobj": 
+            indirectEntity = llc_getFullEntity(t, False)
         # clausal complements
-        if t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl":
-            indirectToken = t
-            availableTokens = [s for s in tokens if s not in usedTokens]
-            indirectEntity, ut = llc_parseSubordinate(indirectToken, availableTokens)
-            usedTokens += ut # get used tokens
+        if t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl": 
+            indirectEntity = llc_parseSubordinate(t, False)
 
         # if found 
-        if indirectToken: 
+        if indirectEntity: 
             indirectFullEntities.append(indirectEntity)
 
-    return [indirectFullEntities, usedTokens]
+    return indirectFullEntities
 
 # parse a subordinate clause
-def llc_parseSubordinate(token: Token, tokens: list[Token]) -> tuple[TKFullEntity, list[Token]]:
+def llc_parseSubordinate(token: Token) -> TKFullEntity:
 
     # initialize variables
-    childrenTokens = [s for s in list(token.children) if s in tokens]
+    childrenTokens = list(token.children)
     tkMarker: TKMarker = None
-    usedTokens: list[Token] = list()
     result: TKFullEntity = None
 
     # get coordination marker (like: otherwise, but, etc.)
-    marker = next((s for s in childrenTokens if s not in usedTokens and (s.dep_ == "advmod")), None)
+    marker = next((s for s in childrenTokens if s.dep_ == "advmod"), None)
     if marker and llc_ccToOperator(marker) != None:
-        a = "it's like a conjunct" # TODO: addit in the conjuncts, instead of indirects
+        a = "it's like a conjunct" # TODO: add it in the conjuncts, instead of indirects
 
     # get indirect marker 
-    marker = next((s for s in childrenTokens if s not in usedTokens and (s.dep_ == "case" or s.dep_ == "mark")), None)
+    marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
         tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
-        usedTokens.append(marker)
-    
-    # update remaining tokens
-    subtreeTokens = [s for s in list(token.subtree) if s in tokens and s not in usedTokens]
 
-    st, ut = llc_parseSentence(token, subtreeTokens, clause_type=TKClause.SUBORDINATE)
-    usedTokens += ut # get used tokens
-    if st: result = TKFullEntity(entity=st, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
+    tkStatement = llc_parseSentence(token, list(token.subtree), clause_type=TKClause.SUBORDINATE)
+    if tkStatement: result = TKFullEntity(entity=tkStatement, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
     
-    return [result, usedTokens]
+    return result
 
 # (ONGOING) parse sentence (simple or compoung)
-def llc_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> tuple[TKStatement, list[Token]]: 
+def llc_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
     
-    # initialize usedTokens
-    usedTokens: list[Token] = list()
-
     # ------------------------------
     # root is predicate
     # ------------------------------
 
     # the root is a verb or an adjective, assign (auxiliaries are properties)
-    tkPredicate = llc_getFullEntity(root, tokens, True)
-    usedTokens += tkPredicate[1] # get used tokens
-    tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
+    tkPredicate = llc_getFullEntity(root, True)
 
     # ------------------------------
     # search subject (first csubj, then nsubj)
     # ------------------------------
     subjectToken = next((s for s in tokens if (s.dep_ == "nsubj" or s.dep_ == "nsubj:pass") and s.head == root), None)
-    if subjectToken:
-        tkSubject = llc_getFullEntity(subjectToken, tokens)
-        usedTokens += tkSubject[1] # get used tokens
-        tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
-    else:
-        subjectToken = next((s for s in tokens if (s.dep_ == "csubj") and s.head == root and s not in usedTokens), None)
+    if subjectToken: tkSubject = llc_getFullEntity(subjectToken, tokens)
+    else: 
+        subjectToken = next((s for s in tokens if (s.dep_ == "csubj") and s.head == root), None)
         if subjectToken:
-            subtreeTokens = [s for s in list(subjectToken.subtree) if s in tokens and s not in usedTokens]
-            tkSubject = llc_parseSubordinate(subjectToken, subtreeTokens)
-            usedTokens += tkSubject[1] # get used tokens
-            tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
+            tkSubject = llc_parseSubordinate(subjectToken, list(subjectToken.subtree))
 
     # ------------------------------
     # search direct
     # ------------------------------
     directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
     if directToken: 
-        tkDirect = llc_getFullEntity(directToken, tokens)
-        usedTokens += tkDirect[1] # get used tokens
-        tokens = [t for t in tokens if t not in usedTokens] # remove used tokens
+        tkDirect = llc_getFullEntity(directToken, False)
 
     # ------------------------------
     # search indirect
     # ------------------------------
     indirectEntities = llc_getIndirects(tokens)
-    usedTokens += indirectEntities[1] # get used tokens
-    tokens = [t for t in tokens if t not in usedTokens] # remove used tokens  
 
     # main statement
     tkMain = TKStatement()
     tkMain.clause_type = clause_type
-    if tkPredicate[0]: 
-        predicateId = tkMain.create_predicate(payload=tkPredicate[0].entity, op=tkPredicate[0].op, marker=tkPredicate[0].marker, conjuncts=tkPredicate[0].conjuncts)
+    if tkPredicate: 
+        predicateId = tkMain.create_predicate(payload=tkPredicate.entity, op=tkPredicate.op, marker=tkPredicate.marker, conjuncts=tkPredicate.conjuncts)
         # add properties
-        if len(tkPredicate[0].properties) > 0: tkMain.add_properties(tkPredicate[0].properties, predicateId)
+        if len(tkPredicate.properties) > 0: tkMain.add_properties(tkPredicate.properties, predicateId)
 
     if subjectToken:
-        subjectId = tkMain.create_subject(payload=tkSubject[0].entity, op=tkSubject[0].op, marker=tkSubject[0].marker, conjuncts=tkSubject[0].conjuncts)
+        subjectId = tkMain.create_subject(payload=tkSubject.entity, op=tkSubject.op, marker=tkSubject.marker, conjuncts=tkSubject.conjuncts)
         # add properties
-        if len(tkSubject[0].properties) > 0: tkMain.add_properties(tkSubject[0].properties, subjectId)
+        if len(tkSubject.properties) > 0: tkMain.add_properties(tkSubject.properties, subjectId)
 
     if directToken: 
-        directId = tkMain.create_direct(payload=tkDirect[0].entity, op=tkDirect[0].op, marker=tkDirect[0].marker, conjuncts=tkDirect[0].conjuncts)
+        directId = tkMain.create_direct(payload=tkDirect.entity, op=tkDirect.op, marker=tkDirect.marker, conjuncts=tkDirect.conjuncts)
         # add properties
-        if len(tkDirect[0].properties) > 0: tkMain.add_properties(tkDirect[0].properties, directId)
+        if len(tkDirect.properties) > 0: tkMain.add_properties(tkDirect.properties, directId)
 
-    for it in indirectEntities[0]:
+    for it in indirectEntities:
         indirectId = tkMain.add_indirect(payload=it.entity, op=it.op, marker=it.marker, conjuncts=it.conjuncts)
         # add properties
         if len(it.properties) > 0: tkMain.add_properties(it.properties, indirectId)
 
     #return statement
-    return [tkMain, usedTokens]
+    return tkMain
 
 # (DONE) core internal recursive function to parse a list of token into a TKStatements
 def llc_core(tokens: list[Token]) -> TKStatements: 
@@ -365,7 +316,7 @@ def llc_core(tokens: list[Token]) -> TKStatements:
 
     elif len(roots) == 1:
         sentence = llc_parseSentence(roots[0], list(roots[0].subtree), clause_type=TKClause.MAIN)
-        statements.append(sentence[0])
+        statements.append(sentence)
 
     return statements
 
