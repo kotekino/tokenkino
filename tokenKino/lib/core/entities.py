@@ -94,6 +94,14 @@ class TKClause(str, Enum):
     MAIN = "main"
     SUBORDINATE = "subordinate"
     COORDINATE = "coordinate"
+# clause subordinate type
+class TKClauseType(str, Enum):
+    FINAL = "final"
+    CAUSAL = "causal"
+    TEMPORAL = "temporal"
+    HYPOTETIC = "hypotetic"
+    LOCATIVE = "locative"
+    OTHER = "other"
 
 # LL statement
 class TKStatement(BaseModel):
@@ -207,8 +215,6 @@ class TKStatement(BaseModel):
                     conjunct = self.create_entity(payload=c.entity, op=c.op, marker=None, conjuncts=c.conjuncts)
                     reference.properties.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
 
-
-
 # entities involved in statements
 # payload for entity
 EntityPayload = Union[TKName, TKDictionary, TKPlace,TKGeneric, TKStatement]
@@ -270,7 +276,7 @@ class TKLLProperties(BaseModel):
     tone: float = Field(default=0) # literal 0 / neutral 0.5 / ironic 1
     mode: float = Field(default=0) # question 0 / neutral 0.5 / statement 1
     certainty: tuple[int, float] = Field(default=0) # [subject in entities, unknown 0 / neutral 0.5 / fact 1]
-    hope: tuple[int,float] = Field(default=0) # [subject in entities, neutral 0 / neutral 0.5 / deep wish 1]
+    hope: tuple[int,float] = Field(default=0) # [subject in entities, deep avoid 0 / neutral 0.5 / deep wish 1]
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
     id: int

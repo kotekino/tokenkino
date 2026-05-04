@@ -104,8 +104,8 @@ def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
 
     # decide if its a conj single word or a sentence
     if statement:
-        sentence = llc_parseSentence(token, clause_type=TKClause.COORDINATE)
-        entity = TKFullEntity(entity=sentence[0], marker=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence else None
+        sentence = llc_parseSentence(token.subtree, clause_type=TKClause.COORDINATE)
+        entity = TKFullEntity(entity=sentence, marker=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence else None
     else:
         entity = llc_getFullEntity(token, False)
     
@@ -113,7 +113,7 @@ def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
     if entity:
         
         # search operator, otherwise default
-        opToken = next(tt for tt in list(token.children) if tt.dep_ == "cc")
+        opToken = next(tt for tt in list(token.subtree) if tt.dep_ == "cc")
         operator: TKOperator = llc_ccToOperator(opToken) if opToken else TKOperator.AND
 
         entity.op = operator    
@@ -125,7 +125,6 @@ def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
 def llc_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
 
     # related tokens to the entity
-    subtree = list(token.subtree)
     children = list(token.children)
     conjuncts = list(token.conjuncts)
 
@@ -195,7 +194,10 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
     # initialize result
     indirectFullEntities: list[TKFullEntity] = list()
 
+    usedTokens: list[Token] = list()
+
     for t in tokens:
+        if t in usedTokens: continue
 
         # reset indirect entity
         indirectEntity = None
@@ -204,12 +206,21 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
         # oblique (expect a case or marker)
         if t.dep_ == "obl": 
             indirectEntity = llc_getFullEntity(t, False)
+            if indirectEntity:
+                usedTokens.extend(t.children)
+                usedTokens.extend(t.subtree)
         # indirect object (you give YOU something)
         elif t.dep_ == "iobj": 
             indirectEntity = llc_getFullEntity(t, False)
+            if indirectEntity:
+                usedTokens.extend(t.children)
+                usedTokens.extend(t.subtree)            
         # clausal complements
         if t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl": 
-            indirectEntity = llc_parseSubordinate(t, False)
+            indirectEntity = llc_parseSubordinate(t)
+            if indirectEntity:
+                usedTokens.extend(t.children)
+                usedTokens.extend(t.subtree)
 
         # if found 
         if indirectEntity: 
@@ -235,37 +246,44 @@ def llc_parseSubordinate(token: Token) -> TKFullEntity:
     if marker and marker.has_vector: 
         tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
 
-    tkStatement = llc_parseSentence(token, list(token.subtree), clause_type=TKClause.SUBORDINATE)
+    tokenSubtree = [t for t in token.subtree if t != marker]
+
+    tkStatement = llc_parseSentence(tokenSubtree, clause_type=TKClause.SUBORDINATE)
     if tkStatement: result = TKFullEntity(entity=tkStatement, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
     
     return result
 
 # (ONGOING) parse sentence (simple or compoung)
-def llc_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
+def llc_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
     
+    # get root
+    subStatement = " ".join([t.text for t in inputTokens])
+    doc = nlp_stanza(subStatement)
+    tokens = list(doc)
+    root = next(s for s in list(doc) if s.dep_ == "root")
+   
     # ------------------------------
     # root is predicate
     # ------------------------------
-
     # the root is a verb or an adjective, assign (auxiliaries are properties)
     tkPredicate = llc_getFullEntity(root, True)
 
     # ------------------------------
     # search subject (first csubj, then nsubj)
     # ------------------------------
+    tkSubject = None
     subjectToken = next((s for s in tokens if (s.dep_ == "nsubj" or s.dep_ == "nsubj:pass") and s.head == root), None)
-    if subjectToken: tkSubject = llc_getFullEntity(subjectToken, tokens)
+    if subjectToken: tkSubject = llc_getFullEntity(subjectToken, False)
     else: 
         subjectToken = next((s for s in tokens if (s.dep_ == "csubj") and s.head == root), None)
-        if subjectToken:
-            tkSubject = llc_parseSubordinate(subjectToken, list(subjectToken.subtree))
+        if subjectToken: tkSubject = llc_parseSubordinate(subjectToken)
 
     # ------------------------------
     # search direct
     # ------------------------------
+    tkDirect = None
     directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
-    if directToken: 
-        tkDirect = llc_getFullEntity(directToken, False)
+    if directToken: tkDirect = llc_getFullEntity(directToken, False)
 
     # ------------------------------
     # search indirect
@@ -315,7 +333,7 @@ def llc_core(tokens: list[Token]) -> TKStatements:
             statements += llc_core(list(p.subtree))
 
     elif len(roots) == 1:
-        sentence = llc_parseSentence(roots[0], list(roots[0].subtree), clause_type=TKClause.MAIN)
+        sentence = llc_parseSentence(list(roots[0].subtree), clause_type=TKClause.MAIN)
         statements.append(sentence)
 
     return statements
