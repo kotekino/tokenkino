@@ -92,15 +92,15 @@ async def llc_pre_typos(tokens: str) -> str:
 
     # normalized texts
     try:
-        nt1 = json.loads(o1_res['response'].lower())['corrected_text']
+        nt1 = json.loads(o1_res['response'])['corrected_text']
     except Exception as e:
         nt1 = ''
     try:
-        nt2 = json.loads(o2_res['response'].lower())['corrected_text']
+        nt2 = json.loads(o2_res['response'])['corrected_text']
     except Exception as e:
         nt2 = ''       
     
-    suggestions = sym_spell.lookup_compound(tokens, max_edit_distance=2)
+    suggestions = sym_spell.lookup_compound(tokens, max_edit_distance=2, transfer_casing=True)
     nt3 = suggestions[0].term
 
     results = [nt1, nt2, nt3]
@@ -160,7 +160,6 @@ async def llc_pre_translate(tokens: str) -> str:
     # Estrazione sicura dai JSON
     t1 = ""
     try:
-        # Usa .strip() per pulire la stringa, non .lower() per mantenere le maiuscole corrette!
         t1 = json.loads(o1_res['response'])['translation'].strip()
     except Exception as e:
         print(f"Modello 1 ha fallito: {e}")

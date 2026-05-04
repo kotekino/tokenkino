@@ -56,6 +56,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
     dirEntity = next((e for e in stat.entities if stat.direct and e.id == stat.direct.id), None)
     indEntities = [e for e in stat.entities if e.id in [i.id for i in stat.indirects]]
+    originalEntities = [e for e in stat.entities if e.payload.entity_type != "statement"]
 
     predicate = None
     subject = None
@@ -69,8 +70,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
     # COORDINATE clauses
     if len(stat.predicate.conjuncts) > 0 :
-        recursiveOffsetEntities: int = len(stat.entities) - len(stat.predicate.conjuncts) + parentOffset
-        parentOffset -= len(stat.predicate.conjuncts)
+        recursiveOffsetEntities: int = max([e.id for e in originalEntities]) + parentOffset
         for c in list(stat.predicate.conjuncts):
             conjunctStatement = next((s for s in stat.entities if s.id == c.id), None)
             additionalItems, additionalEntities = llc_getProcessStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
@@ -125,7 +125,6 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
         indirectEntity = next(i for i in indEntities if i.id == indirectReference.id)
         if indirectEntity.payload.entity_type == "statement": 
 
-            parentOffset -= 1 # remove statement entity space
             subordinate: TKStatement = indirectEntity.payload
             subordinateType = llc_parseMarker(indirectReference.marker)
 
@@ -161,7 +160,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                 # other means it affects something else, but the operator is AND               
                 operator = TKOperator.AND
 
-            ai, ae = llc_getProcessStatement(subordinate, operator, subProperties, len(stat.entities) + parentOffset)
+            ai, ae = llc_getProcessStatement(subordinate, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
             
             # add properties
 
@@ -225,7 +224,7 @@ def llc_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[
     for e in ents:
         subent = llc_initializeEntity(e, parentOffset)
         if subent: result.append(subent) 
-        else: parentOffset -= 1 # if the entity is a statement, it doesn't generate an entity but it generates an offset for the next entities
+        # else: parentOffset -= 1 # if the entity is a statement, it doesn't generate an entity but it generates an offset for the next entities
     return result
 
 # get predicate conjunct content (recursive function to manage multiple levels of coordination)

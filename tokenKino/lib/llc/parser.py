@@ -259,8 +259,8 @@ def llc_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause
     # get root
     subStatement = " ".join([t.text for t in inputTokens])
     doc = nlp_stanza(subStatement)
-    tokens = list(doc)
-    root = next(s for s in list(doc) if s.dep_ == "root")
+    root = [s for s in list(doc) if s.dep_ == "root"][0]
+    tokens = list(root.children) 
    
     # ------------------------------
     # root is predicate
@@ -332,7 +332,7 @@ def llc_core(tokens: list[Token]) -> TKStatements:
         for p in roots:
             statements += llc_core(list(p.subtree))
 
-    elif len(roots) == 1:
+    elif len(roots) == 1:              
         sentence = llc_parseSentence(list(roots[0].subtree), clause_type=TKClause.MAIN)
         statements.append(sentence)
 
@@ -358,7 +358,7 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
     tkLLC: TKLLC = llc_flat(tkStatements) # if 1 == 0 else None
 
     # raw output
-    rawOutput = llc_raw(tkLLC)
+    rawOutput = llc_raw(tkLLC) if tkLLC else ''
 
     # return statement
     return {
