@@ -68,13 +68,14 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     # ---------------------------------------------
     predicate = llc_evaluateReference(stat.predicate, stat.entities, parentOffset) if predEntity else None
 
-    # COORDINATE clauses
+    # COORDINATE clauses (at the end, max prio)
     if len(stat.predicate.conjuncts) > 0 :
         recursiveOffsetEntities: int = max([e.id for e in originalEntities]) + parentOffset
         for c in list(stat.predicate.conjuncts):
             conjunctStatement = next((s for s in stat.entities if s.id == c.id), None)
-            additionalItems, additionalEntities = llc_getProcessStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
-            entities.extend(additionalEntities)
+            ai, ae = llc_getProcessStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
+            entities.extend(ae)
+            additionalItems.extend(ai)
 
     # ---------------------------------------------
     # subject (manage statements)
@@ -182,7 +183,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                     indRefCopy.conjuncts = []
                     ai, ae = llc_getProcessStatement(dupStat, c, None, parentOffset)
                     additionalItems.extend(ai)                    
-    
+
     # set content
     content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
     
