@@ -42,7 +42,7 @@ def llc_raw(tkLLC: TKLLC) -> str:
     i: int = 0
     for item in tkLLC.items:
         op = item.op if i > 0 or item.op != TKOperator.AND else ''
-        result += op + ' ' + llc_raw_recursive(item.content, tkLLC.entities)
+        result += op + ' (' + llc_raw_recursive(item.content, tkLLC.entities) + ') '
         i += 1
 
     # clean text

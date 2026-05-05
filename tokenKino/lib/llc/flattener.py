@@ -56,7 +56,6 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
     dirEntity = next((e for e in stat.entities if stat.direct and e.id == stat.direct.id), None)
     indEntities = [e for e in stat.entities if e.id in [i.id for i in stat.indirects]]
-    originalEntities = [e for e in stat.entities if e.payload.entity_type != "statement"]
 
     predicate = None
     subject = None
@@ -67,15 +66,6 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     # predicate it cant be a statement
     # ---------------------------------------------
     predicate = llc_evaluateReference(stat.predicate, stat.entities, parentOffset) if predEntity else None
-
-    # COORDINATE clauses (at the end, max prio)
-    if len(stat.predicate.conjuncts) > 0 :
-        recursiveOffsetEntities: int = max([e.id for e in originalEntities]) + parentOffset
-        for c in list(stat.predicate.conjuncts):
-            conjunctStatement = next((s for s in stat.entities if s.id == c.id), None)
-            ai, ae = llc_getProcessStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
-            entities.extend(ae)
-            additionalItems.extend(ai)
 
     # ---------------------------------------------
     # subject (manage statements)
@@ -94,7 +84,11 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                     conjunctSubject =  next((s for s in stat.entities if s.id == c.id), None)
                     dupStat = copy.deepcopy(stat)
                     dupStat.subject.id = conjunctSubject.id
+                    
+                    # reset other conjuncts
                     dupStat.subject.conjuncts = []
+                    dupStat.predicate.conjuncts = []
+
                     ai, ae = llc_getProcessStatement(dupStat, c.op, None, parentOffset)
                     additionalItems.extend(ai)
 
@@ -116,6 +110,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                     dupStat = copy.deepcopy(stat)
                     dupStat.direct.id = conjunctDirect.id
                     dupStat.direct.conjuncts = []
+                    dupStat.predicate.conjuncts = []             
                     ai, ae = llc_getProcessStatement(dupStat, c.op, None, parentOffset)
                     additionalItems.extend(ai)            
 
@@ -181,6 +176,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                     indRefCopy = next(i for i in dupStat.indirects if indirectReference.id == i.id)
                     indRefCopy.id = conjunctIndirect.id
                     indRefCopy.conjuncts = []
+                    dupStat.predicate.conjuncts = []
                     ai, ae = llc_getProcessStatement(dupStat, c, None, parentOffset)
                     additionalItems.extend(ai)                    
 
@@ -241,9 +237,18 @@ def llc_getProcessStatement(statement: TKStatement, op: TKOperator = None, prope
     entities: list[TKLLEntity] = llc_initializeEntities(originalStatement.entities, parentOffset) # exclude statements, managed later
 
     mainContent, additionalEntities = llc_evaluateContent(originalStatement, properties, parentOffset) # exclude statements, managed later
-    mainClause = TKLLCItem(op=op, content=mainContent)        
+    mainClause = TKLLCItem(op=op, content=mainContent)
     clauses.append(mainClause)
     entities.extend(additionalEntities)
+
+    # COORDINATE clauses (at the end, max prio)
+    if len(originalStatement.predicate.conjuncts) > 0:
+        recursiveOffsetEntities: int = max([e.id for e in originalStatement.entities]) + parentOffset
+        for c in list(originalStatement.predicate.conjuncts):
+            conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
+            ai, ae = llc_getProcessStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
+            entities.extend(ae)
+            clauses.extend(ai)
 
     return [clauses, entities]
 

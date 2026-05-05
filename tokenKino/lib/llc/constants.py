@@ -7,7 +7,8 @@ _SPACY_MODEL = "en_core_web_lg" # alternatives: en_core_web_md (fast), en_core_w
 _OPERATORS_BASE_ANCHORS = {
     "and": TKOperator.AND, 
     "or": TKOperator.OR, 
-    "not": TKOperator.NOT
+    "not": TKOperator.NOT,
+    ",": TKOperator.AND
     }
 _OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 
 _SUBORDINATE_TYPE_BASE_ANCHORS = {

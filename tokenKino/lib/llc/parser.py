@@ -113,7 +113,7 @@ def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
     if entity:
         
         # search operator, otherwise default
-        opToken = next(tt for tt in list(token.subtree) if tt.dep_ == "cc")
+        opToken = next((tt for tt in list(token.subtree) if tt.dep_ == "cc" or tt.dep_ == "punct"), None)
         operator: TKOperator = llc_ccToOperator(opToken) if opToken else TKOperator.AND
 
         entity.op = operator    

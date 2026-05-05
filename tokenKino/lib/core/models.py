@@ -2,6 +2,8 @@ from typing import Annotated, Literal # <--- Importante
 from bunnet import Document, Indexed
 from lib.core.entities import TKBase, TKDictionary, TKName, TKPlace
 
+_VECTOR_INDEX = "vector_index"
+
 # Documento per le parole base
 class TKBaseDoc(TKBase, Document):
     # Diciamo: "Il tipo è str, ed è indicizzato come unico"

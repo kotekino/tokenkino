@@ -1,5 +1,5 @@
 from lib.core.models import TKDictionaryDoc
-from lib.core.entities import _VECTOR_INDEX
+from lib.core.models import _VECTOR_INDEX
 
 def tkll_searchSimilarTokens(token: str, limit: int = 10):
     doc = TKDictionaryDoc.find_one(TKDictionaryDoc.word == token).run()

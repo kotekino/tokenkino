@@ -3,8 +3,6 @@ from typing import List, Optional, Union, Literal
 from enum import Enum
 from pydantic import BaseModel, Field, PrivateAttr, RootModel, computed_field
 
-_VECTOR_INDEX = "vector_index"
-
 # --------------------------------------------------
 # context
 # --------------------------------------------------
@@ -94,6 +92,7 @@ class TKClause(str, Enum):
     MAIN = "main"
     SUBORDINATE = "subordinate"
     COORDINATE = "coordinate"
+
 # clause subordinate type
 class TKClauseType(str, Enum):
     FINAL = "final"
@@ -265,46 +264,54 @@ class TKLLSpacetime(BaseModel):
     size: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the size of the entity in spacetime
     position: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the center of the entity in spacetime
     velocity: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the velocity of the entity in spacetime
+
 # the map of the relative spacetime in the context of the statement
 class TKLLSpacetimeMap(BaseModel):
     tbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
     xbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
     ybounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
     zbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
+
 #  tone, mode, certainty, hope
 class TKLLProperties(BaseModel):
     tone: float = Field(default=0) # literal 0 / neutral 0.5 / ironic 1
     mode: float = Field(default=0) # question 0 / neutral 0.5 / statement 1
     certainty: tuple[int, float] = Field(default=0) # [subject in entities, unknown 0 / neutral 0.5 / fact 1]
     hope: tuple[int,float] = Field(default=0) # [subject in entities, deep avoid 0 / neutral 0.5 / deep wish 1]
+
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
     id: int
     tokens: str
     semantic_vector: list[float] = Field(default_factory=list)
     spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime) 
+
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
     marker: Optional[TKMarker] = None
     properties: list[TKLLEntityReference] = Field(default_factory=list)
-# llc item: can be a statement or an llcitem (recursive)
+
+# llc content: can be a content or another llcitem (recursive)
 class TKLLCContent(BaseModel):
     properties: TKLLProperties
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 
     indirects: list[TKLLEntityReference] = Field(default_factory=list)
+
+# llc item: can be a statement or an llcitem (recursive)
 class TKLLCItem(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND)
     content: Optional[LLCItemPayload] = None 
+
+# llc 
 class TKLLC(BaseModel):
     map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
     items: list[TKLLCItem] = Field(default_factory=list)
     entities: list[TKLLEntity] = Field(default_factory=list)
-class TKLLVector(BaseModel):
-    vector: list[float] = Field(default_factory=list)
 
+# payload for item
 LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]
 
 TKStatement.model_rebuild()
