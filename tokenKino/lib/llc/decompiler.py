@@ -5,12 +5,22 @@ from lib.core.entities import TKLLC, LLCItemPayload, TKLLCContent, TKLLEntity, T
 def llc_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
 
     entity: str = next((e.tokens for e in entities if e.id == ref.id), "")
-    marker: str = ref.marker.lemma if ref.marker else ""
-    properties: str = ""
-    for p in ref.properties:
-        properties += " " + llc_raw_entity(p, entities)
+    
+    preProperties: str = ""
+    i: int = 0
+    for pp in (p for p in ref.properties if not p.reference.marker):
+        op = pp.op if i > 0 or pp.op != TKOperator.AND else ''
+        preProperties += op + " " + llc_raw_entity(pp.reference, entities)
+        i += 1
+    
+    i: int = 0
+    postProperties: str = ""
+    for pp in (p for p in ref.properties if p.reference.marker):
+        op = pp.op if i > 0 or pp.op != TKOperator.AND else ''
+        postProperties += op + " " + pp.reference.marker.lemma + " " + llc_raw_entity(pp.reference, entities)
+        i += 1
 
-    result = f"{marker.strip()} {properties.strip()} {entity.strip()}"
+    result = f"{preProperties.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
 

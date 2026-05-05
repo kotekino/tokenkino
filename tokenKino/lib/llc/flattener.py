@@ -5,7 +5,7 @@
 import copy
 
 import spacy
-from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKMarker, TKOperator, TKStatement, TKStatements
+from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.llc.constants import _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 
 nlp = spacy.load(_SPACY_MODEL)
@@ -14,9 +14,9 @@ nlp = spacy.load(_SPACY_MODEL)
 def llc_evaluateReference(ref: TKEntityReference, entities: list[TKEntity], parentOffset: int = 0) -> TKLLEntityReference:
     
     # evaluate properties
-    properties: list[TKLLEntityReference] = list()
+    properties: list[TKLLEntityProperty] = list()
     for p in ref.properties:
-        properties.append(llc_evaluateReference(p, entities, parentOffset))
+        properties.append(TKLLEntityProperty(op=p.op, reference=llc_evaluateReference(p, entities, parentOffset)))
 
     # evaluate marker
     marker = ref.marker
@@ -162,7 +162,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                 # other means it affects something else, but the operator is AND               
                 operator = TKOperator.AND
 
-            ai, ae = llc_getProcessStatement(subordinate, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
+            ai, ae = llc_processStatement(subordinate, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
             
             # add properties
 
@@ -185,26 +185,35 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     else:
         return content, entities
 
-# duplicate content
-def llc_duplicateContent(content: LLCItemPayload, operator: TKOperator, replaceId: int = 0, withId: int = 0) -> list[TKLLCItem]:
-    result: list[TKLLCItem] = list()
+# modify content
+def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, int]) -> LLCItemPayload:
     
-    # adjust content
-    if isinstance(content, TKLLCItem): content = content.content
-
-    # is content
+    # last level
     if isinstance(content, TKLLCContent):
-        # reached content
         dupContentSub: TKLLCContent = copy.deepcopy(content)
-        if dupContentSub.subject.id == replaceId: dupContentSub.subject.id = withId
-        if dupContentSub.direct.id == replaceId: dupContentSub.direct.id = withId
-        result = [TKLLCItem(op=TKOperator.AND, content=content), TKLLCItem(op=operator, content=dupContentSub)]
+        if dupContentSub.subject.id == rep[1]: dupContentSub.subject.id = rep[2]
+        if dupContentSub.direct.id == rep[1]: dupContentSub.direct.id = rep[2]        
     else:
-        dupItemsSub: list[TKLLCItem] = copy.deepcopy(content)
-        for item in dupItemsSub:
-            result.extend(llc_duplicateContent(item, operator, replaceId, withId))
+        dupContentSub: list[TKLLCItem] = copy.deepcopy(content)
+        for eidx in range(len(dupContentSub)):
+            dupContentSub[eidx].content = llc_modifyContent(dupContentSub[eidx].content, rep)
+    
+    return dupContentSub
 
-    return result
+# multiply content 
+def llc_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOperator, int, int]]) -> list[TKLLCItem]:
+    
+    # subresult
+    subresult: list[TKLLCItem] = list()
+    subresult.append(TKLLCItem(op=TKOperator.AND, content=content))
+   
+    # reached content
+    for rep in replacements:
+        dupContentSub: TKLLCContent = copy.deepcopy(content)
+        newContent = llc_modifyContent(dupContentSub, rep)
+        subresult.append(TKLLCItem(op=rep[0], content=newContent))
+
+    return subresult
 
 # evaluate item
 def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operator: TKOperator, parentOffset: int = 0) -> tuple[TKLLCItem, list[TKLLEntity]]:
@@ -214,30 +223,31 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
 
     # multiple subjects: duplicate sentences, with the conjunct subject
     if statement.subject and len(statement.subject.conjuncts) > 0:
-        items: list[TKLLCItem] = list()
+        replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.subject.conjuncts):
             conjunctSubject =  next((s for s in statement.entities if s.id == c.id), None)
-            items.extend(llc_duplicateContent(mainContent, c.op, originalContent.subject.id, conjunctSubject.id))
+            replacements.append([c.op, originalContent.subject.id, conjunctSubject.id])
 
         # replace content with list of items
-        mainContent = TKLLCItem(op=operator, content=items)
+        mainContent = llc_multiplyContent(mainContent, replacements)
     
     # multiple direct: duplicate sentences, with the conjunct direct
     if statement.direct and len(statement.direct.conjuncts) > 0:
-        items: list[TKLLCItem] = list()
+        replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.direct.conjuncts):
             conjunctDirect =  next((s for s in statement.entities if s.id == c.id), None)
-            items.extend(llc_duplicateContent(mainContent, c.op, originalContent.direct.id, conjunctDirect.id))
+            replacements.append([c.op, originalContent.direct.id, conjunctDirect.id])
 
         # replace content with list of items
-        mainContent = TKLLCItem(op=operator, content=items)
+        mainContent = llc_multiplyContent(mainContent, replacements)
     
-    if isinstance(mainContent, TKLLCContent): mainContent = TKLLCItem(op=operator, content=mainContent)
+    # assign 
+    mainContent = TKLLCItem(op=operator, content=mainContent)
 
     return [mainContent, additionalEntities]
 
 # get predicate conjunct content (recursive function to manage multiple levels of coordination)
-def llc_getProcessStatement(statement: TKStatement, op: TKOperator = None, properties: TKLLProperties = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
+def llc_processStatement(statement: TKStatement, op: TKOperator = None, properties: TKLLProperties = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
     if op == None: op = TKOperator.AND
     if properties == None: properties = TKLLProperties()
@@ -259,9 +269,10 @@ def llc_getProcessStatement(statement: TKStatement, op: TKOperator = None, prope
         recursiveOffsetEntities: int = max([e.id for e in originalStatement.entities]) + parentOffset
         for c in list(originalStatement.predicate.conjuncts):
             conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
-            ai, ae = llc_getProcessStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
+            ai, ae = llc_processStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
             entities.extend(ae)
             clauses.extend(ai)
+            recursiveOffsetEntities += len(ae)
 
     return [clauses, entities]
 
@@ -315,7 +326,7 @@ def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
     # for each statement, flatten it and add to the result
     parentOffset: int = 0
     for stat in tkStatements:
-        i, e = llc_getProcessStatement(stat, TKOperator.AND, None, parentOffset)
+        i, e = llc_processStatement(stat, TKOperator.AND, None, parentOffset)
         items.extend(i)
         entities.extend(e)
         parentOffset += len(e)

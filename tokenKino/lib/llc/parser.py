@@ -168,11 +168,10 @@ def llc_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     knownPos = pos[0] if len(pos) > 0 else ""
     if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
-
     # get properties (for each token directly bound to the result)
     doc_properties = llc_getProperties(children)
 
-    # get marker 
+    # get marker if properties 
     marker = next((s for s in children if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
         tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
@@ -260,7 +259,7 @@ def llc_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause
     subStatement = " ".join([t.text for t in inputTokens])
     doc = nlp_stanza(subStatement)
     root = [s for s in list(doc) if s.dep_ == "root"][0]
-    tokens = list(root.children) 
+    tokens = list(root.subtree) 
    
     # ------------------------------
     # root is predicate

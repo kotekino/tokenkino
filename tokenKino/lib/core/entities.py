@@ -208,11 +208,11 @@ class TKStatement(BaseModel):
         if reference:
             for p in properties:
                 entity = self.create_entity(payload=p.entity)
-                e = TKEntityReference(op=p.op, id=entity.id)
+                e = TKEntityReference(op=p.op, id=entity.id, marker=p.marker)
                 reference.properties.append(e)
                 for c in p.conjuncts:
-                    conjunct = self.create_entity(payload=c.entity, op=c.op, marker=None, conjuncts=c.conjuncts)
-                    reference.properties.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+                    conjunct = self.create_entity(payload=c.entity)
+                    reference.properties.append(TKEntityReference(id=conjunct.id, op=c.op, marker=p.marker, conjuncts=c.conjuncts))
 
 # entities involved in statements
 # payload for entity
@@ -286,11 +286,16 @@ class TKLLEntity(BaseModel):
     semantic_vector: list[float] = Field(default_factory=list)
     spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime) 
 
+# entity property
+class TKLLEntityProperty(BaseModel):
+    op: TKOperator
+    reference: TKLLEntityReference
+
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
     marker: Optional[TKMarker] = None
-    properties: list[TKLLEntityReference] = Field(default_factory=list)
+    properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
 # llc content: can be a content or another llcitem (recursive)
 class TKLLCContent(BaseModel):
