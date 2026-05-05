@@ -192,7 +192,9 @@ def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, int])
     if isinstance(content, TKLLCContent):
         dupContentSub: TKLLCContent = copy.deepcopy(content)
         if dupContentSub.subject.id == rep[1]: dupContentSub.subject.id = rep[2]
-        if dupContentSub.direct.id == rep[1]: dupContentSub.direct.id = rep[2]        
+        if dupContentSub.direct.id == rep[1]: dupContentSub.direct.id = rep[2]       
+        for iidx in range(len(dupContentSub.indirects)):
+            if dupContentSub.indirects[iidx].id == rep[1]: dupContentSub.indirects[iidx].id = rep[2]
     else:
         dupContentSub: list[TKLLCItem] = copy.deepcopy(content)
         for eidx in range(len(dupContentSub)):
@@ -240,6 +242,20 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
 
         # replace content with list of items
         mainContent = llc_multiplyContent(mainContent, replacements)
+
+    # multiple indirect: duplicate sentences, with the conjunct direct
+    idx: int = 0
+    for ind in statement.indirects:
+        replacements: list[tuple[TKOperator, int, int]] = list()
+        if len(ind.conjuncts) > 0:
+            for c in list(ind.conjuncts):
+                originalIndirect = originalContent.indirects[idx]
+                conjunctInd =  next((s for s in statement.entities if s.id == c.id), None)
+                replacements.append([c.op, originalIndirect.id, conjunctInd.id])
+        idx += 1
+        if len(replacements) > 0:
+            # replace content with list of items
+            mainContent = llc_multiplyContent(mainContent, replacements)        
     
     # assign 
     mainContent = TKLLCItem(op=operator, content=mainContent)
