@@ -10,6 +10,7 @@ from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.llc.preparser import llc_pre_init, llc_pre_prepare, llc_pre_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
+from lib.llc.decompiler import llc_decompile, llc_decompiler_init
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
 
     # init preparser
     await llc_pre_init(ai_client)
+    await llc_decompiler_init(ai_client)
     
     yield  #where fastapi runs
     
@@ -47,9 +49,17 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
     try:
         preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
         result = llc(preparsedTokens, None, app.state.ai_client)
+        raw = result['raw']
+        output = await llc_decompile(raw)
+        flat = result['flat']
+        recursive = result['recursive']
+       
         res = {
             "original": tokens,
-            "llc": result
+            "raw output": raw,
+            "polished output": output,
+            "llc flat": flat,
+            "llc recursive": recursive,
         }
         status = "complete"
     except Exception as error:
@@ -84,4 +94,12 @@ async def polish(tokens: str):
 @app.get("/api/v1/pre/prepare")
 async def prepare(tokens: str):
     res = await llc_pre_prepare(tokens)
+    return res
+
+# ------------------------
+# OUT endpoints
+# ------------------------
+@app.get("/api/v1/out")
+async def polish(tokens: str):
+    res = await llc_decompile(tokens)
     return res

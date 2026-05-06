@@ -1,5 +1,6 @@
 from transformers import MarianMTModel, MarianTokenizer
 
+# translator class via marian tokenizer
 class TKTranslator:
     def __init__(self):
         # Carica pesi e tokenizzatore in RAM all'avvio del container
