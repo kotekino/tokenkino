@@ -299,25 +299,10 @@ def llc_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause
     # main statement
     tkMain = TKStatement()
     tkMain.clause_type = clause_type
-    if tkPredicate: 
-        predicateId = tkMain.create_predicate(payload=tkPredicate.entity, op=tkPredicate.op, marker=tkPredicate.marker, conjuncts=tkPredicate.conjuncts)
-        # add properties
-        if len(tkPredicate.properties) > 0: tkMain.add_properties(tkPredicate.properties, predicateId)
-
-    if subjectToken:
-        subjectId = tkMain.create_subject(payload=tkSubject.entity, op=tkSubject.op, marker=tkSubject.marker, conjuncts=tkSubject.conjuncts)
-        # add properties
-        if len(tkSubject.properties) > 0: tkMain.add_properties(tkSubject.properties, subjectId)
-
-    if directToken: 
-        directId = tkMain.create_direct(payload=tkDirect.entity, op=tkDirect.op, marker=tkDirect.marker, conjuncts=tkDirect.conjuncts)
-        # add properties
-        if len(tkDirect.properties) > 0: tkMain.add_properties(tkDirect.properties, directId)
-
-    for it in indirectEntities:
-        indirectId = tkMain.add_indirect(payload=it.entity, op=it.op, marker=it.marker, conjuncts=it.conjuncts)
-        # add properties
-        if len(it.properties) > 0: tkMain.add_properties(it.properties, indirectId)
+    if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
+    if subjectToken: tkMain.create_subject(fullEntity=tkSubject)
+    if directToken: tkMain.create_direct(fullEntity=tkDirect)
+    for it in indirectEntities: tkMain.add_indirect(fullEntity=it)
 
     #return statement
     return tkMain

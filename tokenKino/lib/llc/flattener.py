@@ -18,6 +18,10 @@ def llc_evaluateReference(ref: TKEntityReference, entities: list[TKEntity], pare
     for p in ref.properties:
         properties.append(TKLLEntityProperty(op=p.op, reference=llc_evaluateReference(p, entities, parentOffset)))
 
+    # evaluate conjuncts
+    for c in ref.conjuncts:
+        properties.append(TKLLEntityProperty(op=c.op, reference=llc_evaluateReference(c, entities, parentOffset)))
+
     # evaluate marker
     marker = ref.marker
     

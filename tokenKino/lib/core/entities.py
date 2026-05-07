@@ -1,4 +1,5 @@
 from __future__ import annotations
+import copy
 from typing import List, Optional, Union, Literal
 from enum import Enum
 from pydantic import BaseModel, Field, PrivateAttr, RootModel, computed_field
@@ -133,64 +134,52 @@ class TKStatement(BaseModel):
         self._id_counter += 1
         return entity
 
-    # factory for TKEntity
-    def create_subject(self, **kwargs) -> TKEntityReference:
-        entity = self.create_entity(**kwargs)
-        conjunctEntities: list[TKEntityReference] = list()
+    # create subject
+    def create_subject(self, fullEntity: TKFullEntity) -> TKEntityReference:
+        entity = self.create_entity(payload=fullEntity.entity)
+        self.subject = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker)
         
-        if kwargs.get("conjuncts", None): 
-            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
-            for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity)
-                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
-        
-        self.subject = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
-        return entity.id
-
-    # factory for TKEntity
-    def create_direct(self, **kwargs) -> TKEntityReference:
-        entity = self.create_entity(**kwargs)
-        conjunctEntities: list[TKEntityReference] = list()
-        
-        if kwargs.get("conjuncts", None): 
-            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
-            for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity)
-                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
-        
-        self.direct = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
-        return entity.id
-
-    # factory for TKEntity
-    def add_indirect(self, **kwargs) -> TKEntityReference:
-        entity = self.create_entity(**kwargs)
-        conjunctEntities: list[TKEntityReference] = list()
-
-        if kwargs.get("conjuncts", None): 
-            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
-            for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity)
-                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
+        # add properties and conjuncts
+        if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
+        if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
                 
-        self.indirects.append(TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities))
         return entity.id
 
-    # factory for TKEntity
-    def create_predicate(self, **kwargs) -> TKEntityReference:
-        entity = self.create_entity(**kwargs)
-        conjunctEntities: list[TKEntityReference] = list()
+    # create direct
+    def create_direct(self, fullEntity: TKFullEntity) -> TKEntityReference:
+        entity = self.create_entity(payload=fullEntity.entity)
+        self.direct = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker)
+        
+        # add properties and conjuncts
+        if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
+        if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
+                
+        return entity.id
 
-        if kwargs.get("conjuncts", None):
-            conjuncts: list[TKFullEntity] = kwargs["conjuncts"]
-            for c in conjuncts:
-                conjunct = self.create_entity(payload=c.entity)
-                conjunctEntities.append(TKEntityReference(id=conjunct.id, op=c.op, marker=c.marker, conjuncts=c.conjuncts))
-       
-        self.predicate = TKEntityReference(id=entity.id, op=kwargs["op"], marker=kwargs["marker"], conjuncts=conjunctEntities)
+    # add indirect
+    def add_indirect(self, fullEntity: TKFullEntity) -> TKEntityReference:
+        entity = self.create_entity(payload=fullEntity.entity)
+        self.indirects.append(TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker))
+        
+        # add properties and conjuncts
+        if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
+        if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
+                
+        return entity.id
+
+    # create predicate
+    def create_predicate(self, fullEntity: TKFullEntity) -> TKEntityReference:
+        entity = self.create_entity(payload=fullEntity.entity)
+        self.predicate = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker)
+        
+        # add properties and conjuncts
+        if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
+        if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
+                
         return entity.id
 
     # recursively search properties
-    def search_properties(self, ref: TKEntityReference) -> list[TKEntityReference]:
+    def search_childrenEntities(self, ref: TKEntityReference) -> list[TKEntityReference]:
         
         result: list[TKEntityReference] = list()
 
@@ -198,50 +187,33 @@ class TKStatement(BaseModel):
         if len(ref.properties):
             for p in ref.properties:
                 result.append(p)
-                result.extend(self.search_properties(p)) # recursive part
+                result.extend(self.search_childrenEntities(p)) # recursive part (properties and conjuncts)
+        
+        # if conjuncts
+        if len(ref.conjuncts):
+            for c in ref.conjuncts:
+                result.append(c)
+                result.extend(self.search_childrenEntities(c)) # recursive part (properties)
 
-        return result
-            
+        return result        
 
-    # add property to subject, predicate, object
+    # add property to subject, predicate, object, indirect
     def add_properties(self, properties: list[TKFullEntity], target: int): 
         
         # search target
         reference: TKEntityReference = None
         references: list[TKEntityReference] = list()
-        subproperties: list[TKEntityReference] = list()
-        conjuncts: list[TKEntityReference] = list()
 
         # add object to search into
-        if self.subject:
-            references.append(self.subject)
-            for p in self.subject.properties:
-                subproperties.append(p)
-                for c in p.conjuncts:
-                    conjuncts.append(c)
-        if self.predicate :
-            references.append(self.predicate)
-            for p in self.predicate.properties:
-                subproperties.append(p)
-                for c in p.conjuncts:
-                    conjuncts.append(c)
-        if self.direct:
-            references.append(self.direct)
-            for p in self.direct.properties:
-                subproperties.append(p)
-                for c in p.conjuncts:
-                    conjuncts.append(c)
-        if len(self.indirects) > 0:
-            for i in self.indirects:
-                references.append(i)
-                for p in i.properties:
-                    subproperties.append(p)
-                    for c in p.conjuncts:
-                        conjuncts.append(c)        
+        if self.subject: references.append(self.subject)
+        if self.predicate: references.append(self.predicate)
+        if self.direct: references.append(self.direct)
+        for i in self.indirects: references.append(i)
         
-        # put everything in the possible references
-        references.extend(subproperties)
-        references.extend(conjuncts)
+        # put everything in the possible references (1 level)
+        children: list[TKEntityReference] = list()
+        for r in references: children.extend(self.search_childrenEntities(r))
+        references.extend(children)
 
         # get reference (fields or properties)
         reference: TKEntityReference = next((t for t in references if t.id == target), None)           
@@ -249,24 +221,53 @@ class TKStatement(BaseModel):
          # target found, add properties
         if reference:
             for p in properties:
+                
                 # cereate property reference
                 entity = self.create_entity(payload=p.entity)
                 e = TKEntityReference(op=p.op, id=entity.id, marker=p.marker)
                 reference.properties.append(e)
 
-                # recurse properties of properties (recursive)
-                if len(p.properties): self.add_properties(p.properties, entity.id)                
+                # recurse properties and conjuncts of conjuncts (recursive)
+                if len(p.properties) > 0: self.add_properties(p.properties, entity.id)
+                if len(p.conjuncts) > 0: self.add_conjuncts(p.conjuncts, entity.id)
+        else:
+            wrong = True 
+
+    # add conjunct to subject, predicate, object, indirect
+    def add_conjuncts(self, conjuncts: list[TKFullEntity], target: int):
+        
+        # search target
+        reference: TKEntityReference = None
+        references: list[TKEntityReference] = list()
+
+        # add object to search into
+        if self.subject: references.append(self.subject)
+        if self.predicate: references.append(self.predicate)
+        if self.direct: references.append(self.direct)
+        for i in self.indirects: references.append(i)
+        
+        # put everything in the possible references (1 level)
+        children: list[TKEntityReference] = list()
+        for r in references: children.extend(self.search_childrenEntities(r))
+        references.extend(children)
+
+        # get reference (fields or properties)
+        reference: TKEntityReference = next((t for t in references if t.id == target), None)           
+
+         # target found, add properties
+        if reference:
+            for c in conjuncts:
                 
-                # recurse properties of conjuncts (recursive)
-                for c in p.conjuncts:
+                # cereate property reference
+                entity = self.create_entity(payload=c.entity)
+                e = TKEntityReference(op=c.op, id=entity.id, marker=c.marker)
+                reference.conjuncts.append(e)
 
-                    # duplicate conjuncts
-                    conjunct = self.create_entity(payload=c.entity)
-                    reference.properties.append(TKEntityReference(id=conjunct.id, op=c.op, marker=p.marker, conjuncts=c.conjuncts))
-                    
-                    # add properties of conjunct
-                    if len(c.properties): self.add_properties(c.properties, c.id)
-
+                # recurse properties and conjuncts of conjuncts (recursive)
+                if len(c.properties) > 0: self.add_properties(c.properties, entity.id)
+                if len(c.conjuncts) > 0: self.add_conjuncts(c.conjuncts, entity.id)
+        else:
+            wrong = True
 
 # entities involved in statements
 EntityPayload = Union[TKName, TKDictionary, TKPlace,TKGeneric, TKStatement]
