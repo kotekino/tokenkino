@@ -20,14 +20,16 @@ from lib.llc.decompiler import llc_raw
 
 
 # TODO: 
-# GOING manage spacetime (temporal and spatial modifiers)
-# GOING manage compiler (flat and recursive)
-# manage parataxis (and other non-standard coordination)
-# manage articles
-# manage passive
-# manage det
-# manage copula verbs (be, seem, appear, become, etc.)
-# manage plurality
+# manage properties with properties (parser)
+# manage det (parser)
+# manage articles (parser)
+# manage pronouns (parser)
+# GOING manage spacetime (temporal and spatial modifiers) (flattener)
+# manage parataxis (and other non-standard coordination) (parser)
+# manage passive (parser)
+# manage copula verbs (be, seem, appear, become, etc.) (parser)
+# manage plurality (parser)
+#
 # test against every sentence from UD2
 
 # stanza
@@ -89,7 +91,7 @@ def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
 
     for t in tokens:
         property = None
-        if t.dep_ == "advmod" or t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
+        if t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
             property = llc_getFullEntity(t, False)
 
         if property: 
@@ -208,6 +210,11 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
             if indirectEntity:
                 usedTokens.extend(t.children)
                 usedTokens.extend(t.subtree)
+        elif t.dep_ == "advmod":
+            indirectEntity = llc_getFullEntity(t, False)
+            if indirectEntity:
+                usedTokens.extend(t.children)
+                usedTokens.extend(t.subtree)            
         # indirect object (you give YOU something)
         elif t.dep_ == "iobj": 
             indirectEntity = llc_getFullEntity(t, False)

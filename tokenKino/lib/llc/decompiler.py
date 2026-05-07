@@ -41,6 +41,7 @@ def llc_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
 
     entity: str = next((e.tokens for e in entities if e.id == ref.id), "")
     
+    # properties pre poned
     preProperties: str = ""
     i: int = 0
     for pp in (p for p in ref.properties if not p.reference.marker):
@@ -48,14 +49,18 @@ def llc_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
         preProperties += op + " " + llc_raw_entity(pp.reference, entities)
         i += 1
     
+    # properties postponed
     i: int = 0
     postProperties: str = ""
     for pp in (p for p in ref.properties if p.reference.marker):
         op = pp.op if i > 0 or pp.op != TKOperator.AND else ''
-        postProperties += op + " " + pp.reference.marker.lemma + " " + llc_raw_entity(pp.reference, entities)
+        postProperties += op + " " + llc_raw_entity(pp.reference, entities)
         i += 1
 
-    result = f"{preProperties.strip()} {entity.strip()} {postProperties.strip()}"
+    # marker
+    marker: str = ref.marker.lemma if ref.marker else ''
+
+    result = f"{marker.strip()} {preProperties.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
 
