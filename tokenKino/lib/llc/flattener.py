@@ -28,7 +28,7 @@ def llc_recurseReferenceProperties(ref: TKEntityReference, parentOffset: int, is
     return flattenedProperties
 
 # evaluate reference
-def llc_evaluateReference(ref: TKEntityReference, entities: list[TKEntity], parentOffset: int = 0, isProperty = False) -> TKLLEntityReference:
+def llc_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, isProperty = False) -> TKLLEntityReference:
     
     # evaluate marker
     marker = ref.marker
@@ -117,7 +117,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     # ---------------------------------------------
     # predicate it cant be a statement
     # ---------------------------------------------
-    predicate = llc_evaluateReference(stat.predicate, stat.entities, parentOffset) if predEntity else None
+    predicate = llc_evaluateReference(stat.predicate, parentOffset) if predEntity else None
 
     # ---------------------------------------------
     # subject (manage statements)
@@ -127,7 +127,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             # exclude statements: csubj -> find a way to manage it
             parentOffset -= 1
         else: 
-            subject = llc_evaluateReference(stat.subject, stat.entities, parentOffset) if subjEntity else None
+            subject = llc_evaluateReference(stat.subject, parentOffset) if subjEntity else None
 
     # ---------------------------------------------
     # direct (manage statements)
@@ -137,7 +137,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             # exclude statements not affecting time and space
             parentOffset -= 1
         else: 
-            direct = llc_evaluateReference(stat.direct, stat.entities, parentOffset) if dirEntity else None
+            direct = llc_evaluateReference(stat.direct, parentOffset) if dirEntity else None
 
     # ---------------------------------------------
     # indirects (manage statements)
@@ -190,7 +190,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
         else: 
             indRef = next(i for i in stat.indirects if indirectReference.id == i.id)
-            indirects.append(llc_evaluateReference(indRef, stat.entities, parentOffset))
+            indirects.append(llc_evaluateReference(indRef, parentOffset))
 
     # set content
     content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
@@ -205,15 +205,15 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
         return content, entities
 
 # modify content
-def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, int]) -> LLCItemPayload:
+def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, TKEntityReference]) -> LLCItemPayload:
     
     # last level
     if isinstance(content, TKLLCContent):
         dupContentSub: TKLLCContent = copy.deepcopy(content)
-        if dupContentSub.subject and dupContentSub.subject.id == rep[1]: dupContentSub.subject.id = rep[2]
-        if dupContentSub.direct and dupContentSub.direct.id == rep[1]: dupContentSub.direct.id = rep[2]       
+        if dupContentSub.subject and dupContentSub.subject.id == rep[1]: dupContentSub.subject = rep[2]
+        if dupContentSub.direct and dupContentSub.direct.id == rep[1]: dupContentSub.direct = rep[2]       
         for iidx in range(len(dupContentSub.indirects)):
-            if dupContentSub.indirects[iidx].id == rep[1]: dupContentSub.indirects[iidx].id = rep[2]
+            if dupContentSub.indirects[iidx].id == rep[1]: dupContentSub.indirects[iidx] = rep[2]
     else:
         dupContentSub: list[TKLLCItem] = copy.deepcopy(content)
         for eidx in range(len(dupContentSub)):
@@ -222,7 +222,7 @@ def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, int])
     return dupContentSub
 
 # multiply content 
-def llc_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOperator, int, int]]) -> list[TKLLCItem]:
+def llc_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOperator, int, TKEntityReference]]) -> list[TKLLCItem]:
     
     # subresult
     subresult: list[TKLLCItem] = list()
@@ -246,8 +246,9 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
     if statement.subject and len(statement.subject.conjuncts) > 0:
         replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.subject.conjuncts):
-            conjunctSubject =  next((s for s in statement.entities if s.id == c.id), None)
-            replacements.append([c.op, originalContent.subject.id, conjunctSubject.id])
+            # get properties and conjuncts of the replacing entity
+            ef = llc_evaluateReference(c, parentOffset, False)
+            replacements.append([c.op, originalContent.subject.id, ef])
 
         # replace content with list of items
         mainContent = llc_multiplyContent(mainContent, replacements)
@@ -256,8 +257,8 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
     if statement.direct and len(statement.direct.conjuncts) > 0:
         replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.direct.conjuncts):
-            conjunctDirect =  next((s for s in statement.entities if s.id == c.id), None)
-            replacements.append([c.op, originalContent.direct.id, conjunctDirect.id])
+            ef = llc_evaluateReference(c, parentOffset, False)
+            replacements.append([c.op, originalContent.direct.id, ef])
 
         # replace content with list of items
         mainContent = llc_multiplyContent(mainContent, replacements)
@@ -269,8 +270,8 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
         if len(ind.conjuncts) > 0:
             for c in list(ind.conjuncts):
                 originalIndirect = originalContent.indirects[idx]
-                conjunctInd =  next((s for s in statement.entities if s.id == c.id), None)
-                replacements.append([c.op, originalIndirect.id, conjunctInd.id])
+                ef = llc_evaluateReference(c, parentOffset, False)
+                replacements.append([c.op, originalIndirect.id, ef])
         idx += 1
         if len(replacements) > 0:
             # replace content with list of items
