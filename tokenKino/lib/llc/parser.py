@@ -334,11 +334,19 @@ def llc_core(tokens: list[Token]) -> TKStatements:
 
     return statements
 
+# clean text
+def llc_cleanInput(tokens: str) -> str:
+    result = " ".join(tokens.split())
+    return result
+
 # --------------------------------------------------------------
 # (DONE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
 def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
     global _context, _ollamaClient
+
+    # prepare input
+    tokens = llc_cleanInput(tokens)
 
     # assign variables
     _context = context

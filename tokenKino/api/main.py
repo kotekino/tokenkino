@@ -47,7 +47,9 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/api/v1/tkllc")
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0):
     try:
+        
         preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
+        
         result = llc(preparsedTokens, None, app.state.ai_client)
         raw = result['raw']
         output = await llc_decompile(raw) if output == 1 else ''
