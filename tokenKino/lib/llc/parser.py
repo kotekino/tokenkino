@@ -20,7 +20,8 @@ from lib.llc.decompiler import llc_raw
 
 
 # TODO: 
-# manage properties with properties (parser)
+
+# properties of replaced subjects, directs, indirects: http://localhost:8000/api/v1/tkllc?tokens=the%20cat%20plays%20with%20a%20ball%20and%20%20cute%20and%20little%20mouse
 # manage det (parser)
 # manage articles (parser)
 # manage pronouns (parser)
@@ -346,7 +347,7 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
     tkStatements: TKStatements = llc_core(list(doc))
 
     # flat statements
-    tkLLC: TKLLC = llc_flat(tkStatements) # if 1 == 0 else None
+    tkLLC: TKLLC = llc_flat(tkStatements)
 
     # raw output
     rawOutput = llc_raw(tkLLC) if tkLLC else ''

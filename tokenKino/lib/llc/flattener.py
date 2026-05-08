@@ -10,20 +10,35 @@ from lib.llc.constants import _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUB
 
 nlp = spacy.load(_SPACY_MODEL)
 
-# evaluate reference
-def llc_evaluateReference(ref: TKEntityReference, entities: list[TKEntity], parentOffset: int = 0) -> TKLLEntityReference:
+# recurse properties of properties and conjunct of properties
+def llc_recurseReferenceProperties(ref: TKEntityReference, parentOffset: int, isProperty = False) -> list[tuple[TKLLEntityReference]]:
     
-    # evaluate properties
-    properties: list[TKLLEntityProperty] = list()
+    # init
+    flattenedProperties: list[TKLLEntityReference] = list()
+
     for p in ref.properties:
-        properties.append(TKLLEntityProperty(op=p.op, reference=llc_evaluateReference(p, entities, parentOffset)))
+        flattenedProperties.append([p.op, TKLLEntityReference(id=p.id + parentOffset, marker=None, properties=list())])
+        flattenedProperties.extend(llc_recurseReferenceProperties(p, parentOffset, True))
 
-    # evaluate conjuncts
-    for c in ref.conjuncts:
-        properties.append(TKLLEntityProperty(op=c.op, reference=llc_evaluateReference(c, entities, parentOffset)))
+    if isProperty:
+        for c in ref.conjuncts:
+            flattenedProperties.append([c.op, TKLLEntityReference(id=c.id + parentOffset, marker=None, properties=list())])
+            flattenedProperties.extend(llc_recurseReferenceProperties(c, parentOffset, True))
+    
+    return flattenedProperties
 
+# evaluate reference
+def llc_evaluateReference(ref: TKEntityReference, entities: list[TKEntity], parentOffset: int = 0, isProperty = False) -> TKLLEntityReference:
+    
     # evaluate marker
     marker = ref.marker
+
+    # recurse
+    flattenedProperties = llc_recurseReferenceProperties(ref, parentOffset, isProperty)
+    properties: list[TKLLEntityProperty] = list()
+
+    for fp in flattenedProperties:
+        properties.append(TKLLEntityProperty(op=fp[0], reference=fp[1]))
     
     # return result
     return TKLLEntityReference(id=ref.id + parentOffset, marker=marker, properties=properties)
@@ -195,8 +210,8 @@ def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, int])
     # last level
     if isinstance(content, TKLLCContent):
         dupContentSub: TKLLCContent = copy.deepcopy(content)
-        if dupContentSub.subject.id == rep[1]: dupContentSub.subject.id = rep[2]
-        if dupContentSub.direct.id == rep[1]: dupContentSub.direct.id = rep[2]       
+        if dupContentSub.subject and dupContentSub.subject.id == rep[1]: dupContentSub.subject.id = rep[2]
+        if dupContentSub.direct and dupContentSub.direct.id == rep[1]: dupContentSub.direct.id = rep[2]       
         for iidx in range(len(dupContentSub.indirects)):
             if dupContentSub.indirects[iidx].id == rep[1]: dupContentSub.indirects[iidx].id = rep[2]
     else:
