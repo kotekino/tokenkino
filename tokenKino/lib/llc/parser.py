@@ -174,7 +174,7 @@ def llc_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     # get properties (for each token directly bound to the result)
     doc_properties = llc_getProperties(children)
 
-    # get marker if properties 
+    # get marker
     marker = next((s for s in children if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
         tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
@@ -251,7 +251,11 @@ def llc_parseSubordinate(token: Token) -> TKFullEntity:
     # get indirect marker 
     marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
-        tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
+        tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector, connect_clause=token.dep_)    
+
+    # update marker
+    if marker == None: 
+        marker = TKMarker(connect_clause=token.dep_)
 
     tokenSubtree = [t for t in token.subtree if t != marker]
 

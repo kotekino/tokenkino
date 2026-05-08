@@ -46,6 +46,9 @@ def llc_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, isProp
 # parse marker: it must take in account the CONTEXT of the marker (todo)
 def llc_parseMarker(marker: TKMarker) -> TKClauseType:
 
+    # parse marker on lemma, then connect_clause then fallback other
+    if not marker.lemma: return marker.connect_clause if marker.connect_clause else TKClauseType.OTHER
+
     # 1. simple case
     if marker.lemma in _SUBORDINATE_TYPE_BASE_ANCHORS:
         return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.lemma]
@@ -177,6 +180,31 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                 # locativa (timespacemap) -> obvious
                 # I do x in S1 and I go to S2 => I do x S1 and I do go S2                
                 operator = TKOperator.AND
+            elif subordinateType == TKClauseType.CCOMP:
+                operator = TKOperator.AND
+
+                # get values of hope and certainty from the parent
+
+                subProperties.hope = [subProperties.hope[1], 0.5] # influence hope
+                subProperties.certainty = [subProperties.hope[1], 0.5] # influence certainty
+
+            elif subordinateType == TKClauseType.XCOMP:
+                operator = TKOperator.AND
+
+                # parse parent to find the subject, implicit in the xcomp
+                # it can be the direct (if present) or the subject
+                if stat.direct: 
+                    subordinate.subject = stat.direct 
+                    # subordinate.subject.id -= parentOffset # remove offset, already pointing to the parent entity
+                elif stat.subject: 
+                    subordinate.subject = stat.subject
+                    # subordinate.subject.id -= parentOffset # remove offset, already pointing to the parent entity
+
+                # get values of hope and certainty from the parent
+
+                subProperties.hope = [subProperties.hope[1], 0.5] # influence hope
+                subProperties.certainty = [subProperties.hope[1], 0.5] # influence certainty
+
             else:
                 # other means it affects something else, but the operator is AND               
                 operator = TKOperator.AND

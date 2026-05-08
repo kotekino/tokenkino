@@ -61,9 +61,10 @@ class TKPlace(BaseModel):
 # marker for indirect
 class TKMarker(BaseModel):
     entity_type: Literal["marker"] = Field(default="marker")
-    type: str
-    lemma: str
+    type: str = Field(default="implicit")
+    lemma: Optional[str]
     vector: list[float] = Field(default_factory=list)
+    connect_clause: Optional[str]= None
 
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
@@ -101,6 +102,8 @@ class TKClauseType(str, Enum):
     TEMPORAL = "temporal"
     HYPOTETIC = "hypotetic"
     LOCATIVE = "locative"
+    CCOMP = "ccomp"
+    XCOMP = "xcomp"
     OTHER = "other"
 
 # LL statement

@@ -16,7 +16,9 @@ _SUBORDINATE_TYPE_BASE_ANCHORS = {
     "if": TKClauseType.HYPOTETIC, 
     "from": TKClauseType.LOCATIVE, 
     "in": TKClauseType.LOCATIVE, 
-    "when": TKClauseType.TEMPORAL
+    "when": TKClauseType.TEMPORAL,
+    "to": TKClauseType.XCOMP,
+    "that": TKClauseType.CCOMP
     }
 _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD: float = 0.6
 _OLLAMA_MODEL1 = 'llama3:latest'
