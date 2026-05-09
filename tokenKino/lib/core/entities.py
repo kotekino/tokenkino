@@ -61,19 +61,32 @@ class TKPlace(BaseModel):
 # marker for indirect
 class TKMarker(BaseModel):
     entity_type: Literal["marker"] = Field(default="marker")
-    type: str = Field(default="implicit")
-    lemma: Optional[str]
+    marker_type: str = Field(default="implicit")
+    lemma: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
-    connect_clause: Optional[str]= None
+    connect_clause: Optional[str] = None
 
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
     token: str
-    upos: str
+    upos: Optional[str] = None
     pos: Optional[str] = None
     definition: Optional[str] = None
     context: Optional[TKContext] = None
+
+# meta entities: possible stakeholders (me, tokenkino or anyone else)
+class TKStakeholder(str, Enum):
+    ME = "me"
+    OTHER = "other"
+
+# a meta entity referencing a stakeholder
+class TKMetaEntity(BaseModel):
+    entity_type: Literal["meta"] = Field(default="meta")
+    who: TKStakeholder = Field(default=TKStakeholder.OTHER)
+    name: str = Field(defaul="unknown")
+    isTalking: bool = Field(default=True)
+    isListening: bool = Field(default=False)
 
 # --------------------------------------------------
 # statements related
@@ -123,7 +136,7 @@ class TKStatement(BaseModel):
     entities: list[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
     
     # private fields
-    _id_counter: int = PrivateAttr(default=1)
+    _id_counter: int = PrivateAttr(default=0)
 
     # properties
     # @computed_field
@@ -273,7 +286,7 @@ class TKStatement(BaseModel):
             wrong = True
 
 # entities involved in statements
-EntityPayload = Union[TKName, TKDictionary, TKPlace,TKGeneric, TKStatement]
+EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement]
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
@@ -281,6 +294,8 @@ class TKEntity(BaseModel):
 # the full entity
 class TKFullEntity(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
+
+    token: Optional[str] = None
 
     entity: EntityPayload = Field(discriminator='entity_type')
 
@@ -331,10 +346,10 @@ class TKLLSpacetimeMap(BaseModel):
 
 #  tone, mode, certainty, hope
 class TKLLProperties(BaseModel):
-    tone: float = Field(default=0) # literal 0 / neutral 0.5 / ironic 1
-    mode: float = Field(default=0) # question 0 / neutral 0.5 / statement 1
-    certainty: tuple[int, float] = Field(default=0) # [subject in entities, unknown 0 / neutral 0.5 / fact 1]
-    hope: tuple[int,float] = Field(default=0) # [subject in entities, deep avoid 0 / neutral 0.5 / deep wish 1]
+    tone: float = Field(default=0.5) # literal 0 / neutral 0.5 / ironic 1
+    mode: float = Field(default=0.5) # question 0 / neutral 0.5 / order 1
+    certainty: Optional[tuple[int, float]] = None # [subject in entities, unknown 0 / neutral 0.5 / fact 1]
+    hope: Optional[tuple[int,float]] = None # [subject in entities, deep avoid 0 / neutral 0.5 / deep wish 1]
 
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):

@@ -1,7 +1,12 @@
 
-# --------------------------------------------------------------
-# FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) and TKEntity as entities (subjects, direct and indirect objects)
-# --------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------
+# FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) 
+# and TKEntity as entities (subjects, direct and indirect objects)
+#
+# TASKS
+# ONGOING manage xcomp and ccomp 
+# ONGOING manage spacetime (temporal and spatial modifiers)
+# ------------------------------------------------------------------------------------------------
 import copy
 
 import spacy
@@ -151,17 +156,18 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
             subordinate: TKStatement = indirectEntity.payload
             subordinateType = llc_parseMarker(indirectReference.marker)
+            subjectTalkerIdx: int = 1
 
             # finale, causale, ipotetica, temporale, locativa: add root sentences and the correct operator
             operator: TKOperator = TKOperator.AND
-            subProperties = TKLLProperties(hope=[subject.id, 0.5]) # neutral hope
+            subProperties = TKLLProperties(certainty=[subjectTalkerIdx, 0.5], hope=[subjectTalkerIdx, 0.5]) # neutral
 
             # finale (imply) -> subject implied to be explicited
             # I do x to obtain y => [hope++] if I do this I obtain y => [hope++] I do this IMPLY I obtain y (same subject)
             # I do x to have you doing y =>[hope++] if I do this you doing y => [hope++] I do this IMPLY you doing y (different subject)
             if subordinateType == TKClauseType.FINAL:
                 operator = TKOperator.IMPLY
-                subProperties.hope = [subProperties.hope[1], 1] # max hope
+                subProperties.hope = [subjectTalkerIdx, 1] # max hope
             elif subordinateType == TKClauseType.CAUSAL:
                 # causale (imply) -> simple obvious
                 # i do this because I done that => I do this CONV i done that                
@@ -170,7 +176,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                 # ipotetica (imply) -> simple, obvious
                 # I do this if you do that => you do that IMPLY (or EQ if only, only if) I do this
                 operator = TKOperator.CONV
-                subProperties.hope = [subProperties.hope[1], 0.5] # neutral
+                subProperties.hope = [subjectTalkerIdx, 0.5] # neutral
             elif subordinateType == TKClauseType.TEMPORAL:
                 # temporale (timespacemap, IMPLY) -> tricky can imply with a smooth degree
                 # I have done this when/after/before I was doing that => I do this T1 and I do this T2 = f(T1)
@@ -185,8 +191,9 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
                 # get values of hope and certainty from the parent
 
-                subProperties.hope = [subProperties.hope[1], 0.5] # influence hope
-                subProperties.certainty = [subProperties.hope[1], 0.5] # influence certainty
+                subProperties.hope = [subjectTalkerIdx, 0.5] # influence hope
+                subProperties.certainty = [subjectTalkerIdx, 0.5] # influence certainty
+                subProperties.mode = [subjectTalkerIdx, 0.5] # influence mode
 
             elif subordinateType == TKClauseType.XCOMP:
                 operator = TKOperator.AND
@@ -202,8 +209,9 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
                 # get values of hope and certainty from the parent
 
-                subProperties.hope = [subProperties.hope[1], 0.5] # influence hope
-                subProperties.certainty = [subProperties.hope[1], 0.5] # influence certainty
+                subProperties.hope = [subjectTalkerIdx, 0.5] # influence hope
+                subProperties.certainty = [subjectTalkerIdx, 0.5] # influence certainty
+                subProperties.mode = [subjectTalkerIdx, 0.5] # influence mode
 
             else:
                 # other means it affects something else, but the operator is AND               

@@ -5,10 +5,8 @@ class TKTranslator:
     def __init__(self):
         # Carica pesi e tokenizzatore in RAM all'avvio del container
         model_name = "Helsinki-NLP/opus-mt-mul-en"
-        print("Loadng NMT ...")
         self.tokenizer = MarianTokenizer.from_pretrained(model_name)
         self.model = MarianMTModel.from_pretrained(model_name)
-        print("NMT ready")
 
     def translate(self, text: str) -> str:
         # 1. Trasforma il testo in tensori Pytorch

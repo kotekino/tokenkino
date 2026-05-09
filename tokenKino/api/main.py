@@ -3,12 +3,12 @@ import os
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
-from lib.llc.parser import llc, llc_diagram
+from lib.llc.parser import parser, parser_diagram
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
-from lib.llc.preparser import llc_pre_init, llc_pre_prepare, llc_pre_typos
+from lib.llc.preparser import preparser_init, preparser_prepare, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import llc_decompile, llc_decompiler_init
 
@@ -30,7 +30,7 @@ async def lifespan(app: FastAPI):
     app.state.ai_client = ai_client
 
     # init preparser
-    await llc_pre_init(ai_client)
+    await preparser_init(ai_client)
     await llc_decompiler_init(ai_client)
     
     yield  #where fastapi runs
@@ -45,12 +45,12 @@ app = FastAPI(lifespan=lifespan)
 # TKLLC endpoints
 # ------------------------
 @app.get("/api/v1/tkllc")
-async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0):
+async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
     try:
         
-        preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
+        preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
         
-        result = llc(preparsedTokens, None, app.state.ai_client)
+        result = parser(preparsedTokens, talker,  None, app.state.ai_client)
         raw = result['raw']
         output = await llc_decompile(raw) if output == 1 else ''
         flat = result['flat']
@@ -71,8 +71,8 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
 
 @app.get("/api/v1/tkllc/render", response_class=HTMLResponse)
 async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
-    preparsedTokens = await llc_pre_prepare(tokens) if prepare == 1 else tokens
-    res = llc_diagram(preparsedTokens)
+    preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
+    res = parser_diagram(preparsedTokens)
     return res
 
 # ------------------------
@@ -80,7 +80,7 @@ async def render(tokens: str = Query(..., min_length=3, description="Sentence to
 # ------------------------
 @app.get("/api/v1/tkll/dict")
 async def search(token: str, prepare: int = 0):
-    preparsedTokens = await llc_pre_prepare(token) if prepare == 1 else token
+    preparsedTokens = await preparser_prepare(token) if prepare == 1 else token
     doc = tkll_searchSimilarTokens(preparsedTokens)
 
     return doc
@@ -90,12 +90,12 @@ async def search(token: str, prepare: int = 0):
 # ------------------------
 @app.get("/api/v1/pre/polish")
 async def polish(tokens: str):
-    res = await llc_pre_typos(tokens)
+    res = await preparser_typos(tokens)
     return res
 
 @app.get("/api/v1/pre/prepare")
 async def prepare(tokens: str):
-    res = await llc_pre_prepare(tokens)
+    res = await preparser_prepare(tokens)
     return res
 
 # ------------------------

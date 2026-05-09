@@ -21,9 +21,9 @@ _SUBORDINATE_TYPE_BASE_ANCHORS = {
     "that": TKClauseType.CCOMP
     }
 _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD: float = 0.6
-_OLLAMA_MODEL1 = 'llama3:latest'
-_OLLAMA_MODEL2 = 'phi3:latest'
-_OLLAMA_TRANS1 = 'aya:latest'
-_OLLAMA_TRANS2 = 'translategemma:4b'
+_OLLAMA_MODEL1 = 'llama3:8b' # general purpose 8b
+_OLLAMA_MODEL2 = 'gemma2:9b' # general purpose 3.8b
+_OLLAMA_TRANS1 = 'aya:8b' # translation 8b
+_OLLAMA_TRANS2 = 'translategemma:4b' # translation 4b
 _PRE_SIMILARITY_THRESHOLD = 0.8
 _MIN_SIMILARITY = 0.9

@@ -6,7 +6,7 @@ from symspellpy import SymSpell
 import pkg_resources
 from lib.core.entities import TKStatements
 from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _MIN_SIMILARITY, _OLLAMA_MODEL1, _OLLAMA_MODEL2, _OLLAMA_TRANS1, _OLLAMA_TRANS2, _PRE_SIMILARITY_THRESHOLD, _SPACY_MODEL
-from lib.llc.parser import llc_core
+from lib.llc.parser import parser_core
 from ollama import AsyncClient as OllamaClient
 import asyncio
 from collections import Counter
@@ -30,7 +30,7 @@ _translator: TKTranslator = TKTranslator()
 _nlp = spacy.load(_SPACY_MODEL)
 
 # initializer
-async def llc_pre_init(ollamaClient: OllamaClient = None):
+async def preparser_init(ollamaClient: OllamaClient = None):
     global _init, _ollamaClient
     
     if not ollamaClient: 
@@ -53,7 +53,7 @@ async def llc_pre_init(ollamaClient: OllamaClient = None):
     return
 
 # polish a sentence from the typos
-async def llc_pre_typos(tokens: str) -> str:
+async def preparser_typos(tokens: str) -> str:
     global _init, _ollamaClient
 
     # no ollama available
@@ -115,7 +115,7 @@ async def llc_pre_typos(tokens: str) -> str:
     return fixed
 
 # translate in english
-async def llc_pre_translate(tokens: str) -> str:
+async def preparser_translate(tokens: str) -> str:
     global _init, _ollamaClient, _nlp
 
     # Controllo stato iniziale
@@ -162,13 +162,13 @@ async def llc_pre_translate(tokens: str) -> str:
     try:
         t1 = json.loads(o1_res['response'])['translation'].strip()
     except Exception as e:
-        print(f"Modello 1 ha fallito: {e}")
+        t1 = ""
 
     t2 = ""
     try:
         t2 = json.loads(o2_res['response'])['translation'].strip()
     except Exception as e:
-        print(f"Modello 2 ha fallito: {e}")
+        t2 = ""
 
     # LOGICA DI RISOLUZIONE (Gerarchica invece che per Consenso)
     t3 = _translator.translate(tokens)
@@ -194,7 +194,7 @@ async def llc_pre_translate(tokens: str) -> str:
         return tokens # fallback, input
 
 # get language
-async def llc_pre_getLanguage(tokens: str) -> str:
+async def preparser_getLanguage(tokens: str) -> str:
     if not tokens or not tokens.strip():
         return "en"
     try:
@@ -206,16 +206,16 @@ async def llc_pre_getLanguage(tokens: str) -> str:
         return "en"
 
 # prepare text
-async def llc_pre_prepare(tokens: str) -> str:
+async def preparser_prepare(tokens: str) -> str:
     global _nlp
 
     # translate if not en
-    language = await llc_pre_getLanguage(tokens)
+    language = await preparser_getLanguage(tokens)
     if language != "en":
-        tokens = await llc_pre_translate(tokens)
+        tokens = await preparser_translate(tokens)
 
     # remove typos
-    result = await llc_pre_typos(tokens)
+    result = await preparser_typos(tokens)
 
     # check vector
     inputDoc = _nlp(tokens)

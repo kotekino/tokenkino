@@ -1,3 +1,21 @@
+# ------------------------------------------------------------------------------------------------
+# PARSER: transform a token list into a list of TKStatements (using spacy for the first ingestion)
+#
+# TASKS
+# manage articles 
+# manage pronouns
+# manage parataxis (and other non-standard coordination) 
+# manage passive 
+# manage copula verbs (be, seem, appear, become, etc.) 
+# manage plurality 
+# 
+# problems
+# http://localhost:8000/api/v1/tkllc?tokens=Let%27s%20try%20to%20make%20a%20simple%20phrase%20and%20see%20how%20Gemma%20behaves
+# line 215: fix the way we manage advmod
+#
+# test against every sentence from UD2 
+# ------------------------------------------------------------------------------------------------
+
 from typing import Any
 from unittest import result
 import copy
@@ -10,28 +28,16 @@ import stanza
 import spacy_stanza
 from spacy_stanza import Language as StanzaLanguage
 import numpy as np
-from lib.core.entities import TKLLC, EntityPayload, LLCItemPayload, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKName, TKOperator, TKStatement, TKStatements
+from lib.core.entities import TKLLC, EntityPayload, LLCItemPayload, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKStakeholder, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
 from lib.llc.flattener import llc_flat
 from lib.llc.decompiler import llc_raw
+from lib.core.utilities import util_removeSpace
+from lib.core.constants import _ME_NAME
 
-
-# TODO: 
-
-# properties of replaced subjects, directs, indirects: http://localhost:8000/api/v1/tkllc?tokens=the%20cat%20plays%20with%20a%20ball%20and%20%20cute%20and%20little%20mouse
-# manage det (parser)
-# manage articles (parser)
-# manage pronouns (parser)
-# GOING manage spacetime (temporal and spatial modifiers) (flattener)
-# manage parataxis (and other non-standard coordination) (parser)
-# manage passive (parser)
-# manage copula verbs (be, seem, appear, become, etc.) (parser)
-# manage plurality (parser)
-#
-# test against every sentence from UD2
 
 # stanza
 stanza.download("en", package="lines")
@@ -52,9 +58,11 @@ nlp = spacy.load(_SPACY_MODEL)
 # global variables
 _context: TKContext = None
 _ollamaClient: OllamaClient = None
+_talker: str = None
+_usedTokens: list[str] = list()
 
 # get operator corresponding to cc
-def llc_ccToOperator(token: Token) -> TKOperator:
+def parser_ccToOperator(token: Token) -> TKOperator:
     lemma = token.lemma_.lower()
 
     # 1. STRADA VELOCE (Hit diretto)
@@ -78,14 +86,12 @@ def llc_ccToOperator(token: Token) -> TKOperator:
 
     # 3. THRESHOLD CHECK
     if highest_sim >= _OPERATORS_SIMILARITY_THRESHOLD:
-        print(f"Logica Fuzzy: [{lemma}] mappato a {best_op} (Sim: {highest_sim:.2f})")
         return best_op
     else:
-        print(f"Logica Fuzzy: [{lemma}] sotto la soglia. Uso default AND.")
         return TKOperator.AND
 
 # (DONE) get properties
-def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
+def parser_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
 
     doc_properties: list[TKFullEntity] = []
     property: TKFullEntity
@@ -93,7 +99,7 @@ def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
     for t in tokens:
         property = None
         if t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
-            property = llc_getFullEntity(t, False)
+            property = parser_getFullEntity(t, False)
 
         if property: 
             doc_properties.append(property)
@@ -101,23 +107,23 @@ def llc_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
     return doc_properties
 
 # (DONE) get related by conj entities
-def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
+def parser_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
     
     entity: TKFullEntity = None
 
     # decide if its a conj single word or a sentence
     if statement:
-        sentence = llc_parseSentence(token.subtree, clause_type=TKClause.COORDINATE)
-        entity = TKFullEntity(entity=sentence, marker=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence else None
+        sentence = parser_parseSentence(token.subtree, clause_type=TKClause.COORDINATE)
+        entity = TKFullEntity(entity=sentence, marker=None, token=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence else None
     else:
-        entity = llc_getFullEntity(token, False)
+        entity = parser_getFullEntity(token, False)
     
     # if found an entity
     if entity:
         
         # search operator, otherwise default
         opToken = next((tt for tt in list(token.subtree) if tt.dep_ == "cc" or tt.dep_ == "punct"), None)
-        operator: TKOperator = llc_ccToOperator(opToken) if opToken else TKOperator.AND
+        operator: TKOperator = parser_ccToOperator(opToken) if opToken else TKOperator.AND
 
         entity.op = operator    
         return entity
@@ -125,11 +131,12 @@ def llc_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEntity:
     return [None, usedTokens]
 
 # (ONGOING) get seamntic value from dictionary + properties
-def llc_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
+def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
+    global _usedTokens
 
     # related tokens to the entity
-    children = list(token.children)
     conjuncts = list(token.conjuncts)
+    children = list(token.children)
 
     # get wn pos
     pos = TKPosMapper.get_wn_pos(token.pos_)
@@ -172,26 +179,27 @@ def llc_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
     # get properties (for each token directly bound to the result)
-    doc_properties = llc_getProperties(children)
+    doc_properties = parser_getProperties(children)
 
     # get marker
     marker = next((s for s in children if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
-        tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
+        tkMarker = TKMarker(marker_type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
 
     # primary entity (from token)
-    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, marker=tkMarker, properties=doc_properties)
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, token=token.text, marker=tkMarker, properties=doc_properties)
+    _usedTokens.append(token.text)
 
     # get related entities
     for c in [cc for cc in conjuncts if cc.head == token]:
-        relatedEntity = llc_getRelatedEntity(c, predicate)
+        relatedEntity = parser_getRelatedEntity(c, predicate)
         if relatedEntity:
             primaryEntity.conjuncts.append(relatedEntity)
 
     return primaryEntity
 
 # (ONGOING) get all indirect objects (cycling remaining tokens)
-def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
+def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
 
     # initialize result
     indirectFullEntities: list[TKFullEntity] = list()
@@ -206,37 +214,29 @@ def llc_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
 
         # case dative (can be a name [take the entity] or a prep [take the first child])
         # oblique (expect a case or marker)
-        if t.dep_ == "obl": 
-            indirectEntity = llc_getFullEntity(t, False)
-            if indirectEntity:
-                usedTokens.extend(t.children)
-                usedTokens.extend(t.subtree)
-        elif t.dep_ == "advmod":
-            indirectEntity = llc_getFullEntity(t, False)
-            if indirectEntity:
-                usedTokens.extend(t.children)
-                usedTokens.extend(t.subtree)            
+        if t.dep_ == "obl": indirectEntity = parser_getFullEntity(t, False)
+        elif t.dep_ == "advmod": 
+            # can be an entity or can be a sentence: FIX
+            indirectEntity = parser_getFullEntity(t, False)
         # indirect object (you give YOU something)
-        elif t.dep_ == "iobj": 
-            indirectEntity = llc_getFullEntity(t, False)
-            if indirectEntity:
-                usedTokens.extend(t.children)
-                usedTokens.extend(t.subtree)            
+        elif t.dep_ == "iobj": indirectEntity = parser_getFullEntity(t, False)
         # clausal complements
         if t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl": 
-            indirectEntity = llc_parseSubordinate(t)
-            if indirectEntity:
-                usedTokens.extend(t.children)
-                usedTokens.extend(t.subtree)
+            indirectEntity = parser_parseSubordinate(t)
 
         # if found 
         if indirectEntity: 
+            # mark already used
+            usedTokens.extend(t.children)
+            usedTokens.extend(t.subtree)
+            
+            # append indirect
             indirectFullEntities.append(indirectEntity)
 
     return indirectFullEntities
 
 # parse a subordinate clause
-def llc_parseSubordinate(token: Token) -> TKFullEntity:
+def parser_parseSubordinate(token: Token) -> TKFullEntity:
 
     # initialize variables
     childrenTokens = list(token.children)
@@ -245,64 +245,78 @@ def llc_parseSubordinate(token: Token) -> TKFullEntity:
 
     # get coordination marker (like: otherwise, but, etc.)
     marker = next((s for s in childrenTokens if s.dep_ == "advmod"), None)
-    if marker and llc_ccToOperator(marker) != None:
+    if marker and parser_ccToOperator(marker) != None:
         a = "it's like a conjunct" # TODO: add it in the conjuncts, instead of indirects
 
     # get indirect marker 
     marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
-        tkMarker = TKMarker(type=marker.dep_, lemma=marker.lemma_, vector=marker.vector, connect_clause=token.dep_)    
+        tkMarker = TKMarker(marker_type=marker.dep_, lemma=marker.lemma_, vector=marker.vector, connect_clause=token.dep_)    
 
     # update marker
     if marker == None: 
-        marker = TKMarker(connect_clause=token.dep_)
+        tkMarker = TKMarker(connect_clause=token.dep_)
 
     tokenSubtree = [t for t in token.subtree if t != marker]
 
-    tkStatement = llc_parseSentence(tokenSubtree, clause_type=TKClause.SUBORDINATE)
-    if tkStatement: result = TKFullEntity(entity=tkStatement, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
+    tkStatement = parser_parseSentence(tokenSubtree, clause_type=TKClause.SUBORDINATE)
+    if tkStatement: result = TKFullEntity(entity=tkStatement, token=None, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
     
     return result
 
 # (ONGOING) parse sentence (simple or compoung)
-def llc_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
-    
-    # get root
-    subStatement = " ".join([t.text for t in inputTokens])
+def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
+    global _talker, _usedTokens
+
+    # get root (if one)
+    subStatement = " ".join([t.text for t in inputTokens if t.text not in _usedTokens])
     doc = nlp_stanza(subStatement)
-    root = [s for s in list(doc) if s.dep_ == "root"][0]
+    roots = [s for s in list(doc) if s.dep_ == "root"]
+    if len(roots) > 0: 
+        root = roots[0]
+    else:
+        return None
+    
     tokens = list(root.subtree) 
    
     # ------------------------------
     # root is predicate
     # ------------------------------
     # the root is a verb or an adjective, assign (auxiliaries are properties)
-    tkPredicate = llc_getFullEntity(root, True)
+    tkPredicate = parser_getFullEntity(root, True)
 
     # ------------------------------
     # search subject (first csubj, then nsubj)
     # ------------------------------
     tkSubject = None
     subjectToken = next((s for s in tokens if (s.dep_ == "nsubj" or s.dep_ == "nsubj:pass") and s.head == root), None)
-    if subjectToken: tkSubject = llc_getFullEntity(subjectToken, False)
+    if subjectToken: tkSubject = parser_getFullEntity(subjectToken, False)
     else: 
         subjectToken = next((s for s in tokens if (s.dep_ == "csubj") and s.head == root), None)
-        if subjectToken: tkSubject = llc_parseSubordinate(subjectToken)
+        if subjectToken: tkSubject = parser_parseSubordinate(subjectToken)
 
     # ------------------------------
     # search direct
     # ------------------------------
     tkDirect = None
     directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
-    if directToken: tkDirect = llc_getFullEntity(directToken, False)
+    if directToken: tkDirect = parser_getFullEntity(directToken, False)
 
     # ------------------------------
     # search indirect
     # ------------------------------
-    indirectEntities = llc_getIndirects(tokens)
+    indirectEntities = parser_getIndirects(tokens)
 
     # main statement
     tkMain = TKStatement()
+ 
+    # ----------------------------------------
+    # always create source and target entities
+    # ----------------------------------------
+    if clause_type == TKClause.MAIN: 
+        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
+        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
+    
     tkMain.clause_type = clause_type
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
     if subjectToken: tkMain.create_subject(fullEntity=tkSubject)
@@ -313,7 +327,7 @@ def llc_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause
     return tkMain
 
 # (DONE) core internal recursive function to parse a list of token into a TKStatements
-def llc_core(tokens: list[Token]) -> TKStatements: 
+def parser_core(tokens: list[Token]) -> TKStatements: 
 
     # init statement
     statements = TKStatements()
@@ -326,37 +340,34 @@ def llc_core(tokens: list[Token]) -> TKStatements:
         # recurse condition with > 1 sentences (multiple roots)
         # recursive iteration for each predicate 
         for p in roots:
-            statements += llc_core(list(p.subtree))
+            statements += parser_core(list(p.subtree))
 
     elif len(roots) == 1:              
-        sentence = llc_parseSentence(list(roots[0].subtree), clause_type=TKClause.MAIN)
+        sentence = parser_parseSentence(list(roots[0].subtree), clause_type=TKClause.MAIN)
         statements.append(sentence)
 
     return statements
 
-# clean text
-def llc_cleanInput(tokens: str) -> str:
-    result = " ".join(tokens.split())
-    return result
-
 # --------------------------------------------------------------
 # (DONE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
-def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
-    global _context, _ollamaClient
+def parser(tokens: str, talker: str = "unknown", context: TKContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
+    global _context, _ollamaClient, _talker, _usedTokens
 
     # prepare input
-    tokens = llc_cleanInput(tokens)
+    tokens = util_removeSpace(tokens)
+    _usedTokens = list()
 
     # assign variables
     _context = context
+    _talker = talker
     _ollamaClient = ollamaClient
 
     # spacy parse
     doc = nlp_stanza(tokens)
 
     # get all tokens
-    tkStatements: TKStatements = llc_core(list(doc))
+    tkStatements: TKStatements = parser_core(list(doc))
 
     # flat statements
     tkLLC: TKLLC = llc_flat(tkStatements)
@@ -373,7 +384,7 @@ def llc(tokens: str, context: TKContext = None, ollamaClient: OllamaClient = Non
         }
 
 # (DONE) wrap the displacy dep diagram
-def llc_diagram(tokens: str) -> str:
+def parser_diagram(tokens: str) -> str:
     
     # spacy parse
     doc = nlp_stanza(tokens)
