@@ -136,7 +136,7 @@ class TKStatement(BaseModel):
     entities: list[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
     
     # private fields
-    _id_counter: int = PrivateAttr(default=0)
+    _id_counter: int = PrivateAttr(default=1)
 
     # properties
     # @computed_field

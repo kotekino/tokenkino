@@ -37,6 +37,7 @@ from lib.llc.flattener import llc_flat
 from lib.llc.decompiler import llc_raw
 from lib.core.utilities import util_removeSpace
 from lib.core.constants import _ME_NAME
+from functools import cmp_to_key
 
 
 # stanza
@@ -198,12 +199,23 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
 
     return primaryEntity
 
+# custom comparator for indirects
+def parser_indirectComparator(a: Token, b: Token):
+
+    _highPrioDep = ['xcomp', 'ccomp', 'advcl', 'acl']
+
+    if a.dep_ in _highPrioDep and b.dep_ not in _highPrioDep:
+        return 1
+    elif a.dep_ not in _highPrioDep and b.dep_ in _highPrioDep:
+        return -1
+    else:
+        return (a.dep_ > b.dep_) - (a.dep_ < b.dep_)
+
 # (ONGOING) get all indirect objects (cycling remaining tokens)
 def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
 
     # initialize result
     indirectFullEntities: list[TKFullEntity] = list()
-
     usedTokens: list[Token] = list()
 
     for t in tokens:
@@ -215,9 +227,8 @@ def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
         # case dative (can be a name [take the entity] or a prep [take the first child])
         # oblique (expect a case or marker)
         if t.dep_ == "obl": indirectEntity = parser_getFullEntity(t, False)
-        elif t.dep_ == "advmod": 
-            # can be an entity or can be a sentence: FIX
-            indirectEntity = parser_getFullEntity(t, False)
+        # adverb (of predicate)
+        elif t.dep_ == "advmod": indirectEntity = parser_getFullEntity(t, False)
         # indirect object (you give YOU something)
         elif t.dep_ == "iobj": indirectEntity = parser_getFullEntity(t, False)
         # clausal complements
@@ -303,9 +314,9 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     if directToken: tkDirect = parser_getFullEntity(directToken, False)
 
     # ------------------------------
-    # search indirect
+    # search indirect (only on root's children)
     # ------------------------------
-    indirectEntities = parser_getIndirects(tokens)
+    indirectEntities = parser_getIndirects(root.children)
 
     # main statement
     tkMain = TKStatement()
@@ -314,9 +325,9 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     # always create source and target entities
     # ----------------------------------------
     if clause_type == TKClause.MAIN: 
-        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
         tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
-    
+        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
+        
     tkMain.clause_type = clause_type
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
     if subjectToken: tkMain.create_subject(fullEntity=tkSubject)
