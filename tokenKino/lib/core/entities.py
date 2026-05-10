@@ -378,7 +378,6 @@ class TKLLCContent(BaseModel):
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 
     indirects: list[TKLLEntityReference] = Field(default_factory=list)
-    hidden: bool = Field(default=False)
 
 # llc item: can be a statement or an llcitem (recursive)
 class TKLLCItem(BaseModel):

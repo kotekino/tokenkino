@@ -13,8 +13,11 @@ import copy
 import spacy
 from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.llc.constants import _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.parser import parser_getFullEntity
 
 nlp = spacy.load(_SPACY_MODEL)
+
+_original_entities: list[TKEntity] = list()
 
 # recurse properties of properties and conjunct of properties
 def llc_recurseReferenceProperties(ref: TKEntityReference, parentOffset: int, isProperty = False) -> list[tuple[TKLLEntityReference]]:
@@ -109,6 +112,7 @@ def llc_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[
 
 # create a TKLLCContent object from a TKStatement
 def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOffset: int = 0) -> tuple[LLCItemPayload, list[TKLLEntity]]:
+    global _original_entities
 
     entities: list[TKLLEntity] = list()
     additionalItems: list[TKLLCItem] = list()
@@ -151,10 +155,12 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     # ---------------------------------------------
     # indirects (manage statements)
     # ---------------------------------------------
-    hiddenMain: bool = False
+    
     for indirectReference in stat.indirects:
         indirectEntity = next(i for i in indEntities if i.id == indirectReference.id)
         if indirectEntity.payload.entity_type == "statement": 
+
+            replaceSubject: int = None
 
             subordinate: TKStatement = indirectEntity.payload
             subordinateType = llc_parseMarker(indirectReference.marker)
@@ -206,14 +212,10 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
                 # parse parent to find the subject, implicit in the xcomp
                 # it can be the direct (if present) or the subject
-                if stat.direct: 
-                    subordinate.subject = stat.direct 
-                    # todo: refine remove offset, already pointing to the parent entity
-                    subordinate.subject.id -= parentOffset 
-                elif stat.subject: 
-                    subordinate.subject = stat.subject
-                    # todo: refine remove offset, already pointing to the parent entity
-                    subordinate.subject.id -= parentOffset 
+                if stat.direct:
+                    replaceSubject = stat.direct.id
+                elif stat.subject:
+                    replaceSubject = stat.subject.id
 
                 # get values of predicate semantic from the parent
                 if predEntity and predEntity.payload.vector: subProperties.sentiment = predEntity.payload.vector
@@ -223,7 +225,12 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                 operator = TKOperator.AND
 
             ai, ae = llc_processStatement(subordinate, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
-            
+
+            # replace subject (xcomp, ccomp)
+            if replaceSubject:
+                # todo
+                subordinate.subject = next((e for e in _original_entities if e.id == stat.subject.id + parentOffset), None)
+
             # add properties
             additionalItems.extend(ai)
             entities.extend(ae)
@@ -233,7 +240,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             indirects.append(llc_evaluateReference(indRef, parentOffset))
 
     # set content
-    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, hidden=hiddenMain)
+    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
     
     # check additional items
     if len(additionalItems) > 0:
@@ -324,6 +331,7 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
 
 # get predicate conjunct content (recursive function to manage multiple levels of coordination)
 def llc_processStatement(statement: TKStatement, op: TKOperator = None, properties: TKLLProperties = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
+    global _original_entities
 
     if op == None: op = TKOperator.AND
     if properties == None: properties = TKLLProperties()
@@ -333,6 +341,8 @@ def llc_processStatement(statement: TKStatement, op: TKOperator = None, properti
     # initialize result
     clauses: list[TKLLCItem] = list()
     entities: list[TKLLEntity] = llc_initializeEntities(originalStatement.entities, parentOffset) # exclude statements, managed later
+
+    _original_entities = copy.deepcopy(entities) # deepcopy?
 
     # evaluate clauses
     mainItem, additionalEntities = llc_evaluateItem(statement, properties, op, parentOffset)

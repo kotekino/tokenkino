@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import copy
 import os
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
@@ -10,7 +11,9 @@ from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
-from lib.llc.decompiler import llc_decompile, llc_decompiler_init
+from lib.llc.decompiler import llc_decompile, llc_decompiler_init, llc_raw
+from lib.core.entities import TKLLC, TKStatement
+from lib.llc.flattener import llc_flat
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -48,20 +51,20 @@ app = FastAPI(lifespan=lifespan)
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
     try:
         
+        # pipeline pre (if prepare), recursive, flat, raw, output (if output)
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
-        
-        result = parser(preparsedTokens, talker,  None, app.state.ai_client)
-        raw = result['raw']
-        output = await llc_decompile(raw) if output == 1 else ''
-        flat = result['flat']
-        recursive = result['recursive']
+        recursiveResult = parser(preparsedTokens, talker,  None, app.state.ai_client)
+        recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
+        flatResult: TKLLC = llc_flat(recursiveResultCopy) 
+        rawResult = llc_raw(flatResult) if flatResult else ''
+        outputResult = await llc_decompile(rawResult) if output == 1 else ''
        
         res = {
             "original": tokens,
-            "raw output": raw,
-            "polished output": output,
-            "llc flat": flat,
-            "llc recursive": recursive,
+            "raw output": rawResult,
+            "polished output": outputResult,
+            "llc flat": flatResult,
+            "llc recursive": recursiveResult,
         }
         status = "complete"
     except Exception as error:

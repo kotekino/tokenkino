@@ -31,12 +31,11 @@ import stanza
 import spacy_stanza
 from spacy_stanza import Language as StanzaLanguage
 import numpy as np
-from lib.core.entities import TKLLC, EntityPayload, LLCItemPayload, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKStakeholder, TKStatement, TKStatements
+from lib.core.entities import TKLLC, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKStakeholder, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
-from lib.llc.flattener import llc_flat
 from lib.llc.decompiler import llc_raw
 from lib.core.utilities import util_removeSpace
 from lib.core.constants import _ME_NAME
@@ -377,20 +376,8 @@ def parser(tokens: str, talker: str = "unknown", context: TKContext = None, olla
     # get all tokens
     tkStatements: TKStatements = parser_core(list(doc))
 
-    # flat statements (on a copy of the tkStatements)
-    tkCopy: TKStatement = copy.deepcopy(tkStatements)
-    tkLLC: TKLLC = llc_flat(tkCopy) 
-
-    # raw output
-    rawOutput = llc_raw(tkLLC) if tkLLC else ''
-
     # return statement
-    return {
-        "input": tokens,
-        "raw": rawOutput,
-        "flat": tkLLC, 
-        "recursive": tkStatements
-        }
+    return tkStatements
 
 # (DONE) wrap the displacy dep diagram
 def parser_diagram(tokens: str) -> str:
