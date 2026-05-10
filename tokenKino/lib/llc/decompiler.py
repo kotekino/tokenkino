@@ -53,13 +53,13 @@ def llc_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
         postProperties += op + " " + llc_raw_entity(pp.reference, entities)
         i += 1
 
-    # marker
+    # marker (todo: heck if we should print it or not)
     marker: str = ''
-    if ref.marker:
-        if ref.marker.lemma:
-            marker = ref.marker.lemma 
-        elif ref.marker.connect_clause == 'iobj':
-            marker = 'to'
+    # if ref.marker:
+    #    if ref.marker.lemma:
+    #        marker = ref.marker.lemma 
+    #    elif ref.marker.connect_clause == 'iobj':
+    #        marker = 'to'
             
     result = f"{marker.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
 
