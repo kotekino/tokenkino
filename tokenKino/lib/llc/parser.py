@@ -4,6 +4,7 @@
 # TASKS
 # manage articles 
 # manage pronouns
+# manage auxiliaries
 # manage parataxis (and other non-standard coordination) 
 # manage passive 
 # manage copula verbs (be, seem, appear, become, etc.) 
@@ -11,7 +12,9 @@
 # 
 # problems
 # http://localhost:8000/api/v1/tkllc?tokens=Let%27s%20try%20to%20make%20a%20simple%20phrase%20and%20see%20how%20Gemma%20behaves
-# line 215: fix the way we manage advmod
+# http://localhost:8000/api/v1/tkllc/render?tokens=I%27m%20good%20however%20I%20can%20be%20better
+# http://localhost:8000/api/v1/tkllc?tokens=I%27m%20good%20but%20I%20can%20be%20better
+# line 215: fix the way we manage advmod, parataxis
 #
 # test against every sentence from UD2 
 # ------------------------------------------------------------------------------------------------
@@ -39,9 +42,8 @@ from lib.core.utilities import util_removeSpace
 from lib.core.constants import _ME_NAME
 from functools import cmp_to_key
 
-
 # stanza
-stanza.download("en", package="lines")
+# stanza.download("en", package="lines")
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
@@ -53,14 +55,14 @@ torch.load = _patched_torch_load
 # --- FINE PATCH PYTORCH ---
 
 # load spacy model
-nlp_stanza = spacy_stanza.load_pipeline("en", package="lines")
+# nlp_stanza = spacy_stanza.load_pipeline("en", package="lines")
+nlp_stanza = spacy_stanza.load_pipeline("en")
 nlp = spacy.load(_SPACY_MODEL)
 
 # global variables
 _context: TKContext = None
 _ollamaClient: OllamaClient = None
 _talker: str = None
-_usedTokens: list[str] = list()
 
 # get operator corresponding to cc
 def parser_ccToOperator(token: Token) -> TKOperator:
@@ -112,28 +114,23 @@ def parser_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEnti
     
     entity: TKFullEntity = None
 
+    # search operator, otherwise default
+    opToken = next((tt for tt in list(token.subtree) if tt.dep_ == "cc" or tt.dep_ == "punct"), None)
+    operator: TKOperator = parser_ccToOperator(opToken) if opToken else TKOperator.AND
+
     # decide if its a conj single word or a sentence
     if statement:
-        sentence = parser_parseSentence(token.subtree, clause_type=TKClause.COORDINATE)
-        entity = TKFullEntity(entity=sentence, marker=None, token=None, properties=[], conjunct=None, op=TKOperator.AND) if sentence else None
+        subtree = [t for t in token.subtree if t != opToken] # remove operator
+        sentence = parser_parseSentence(subtree, clause_type=TKClause.COORDINATE)
+        entity = TKFullEntity(entity=sentence, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
     else:
         entity = parser_getFullEntity(token, False)
     
-    # if found an entity
-    if entity:
-        
-        # search operator, otherwise default
-        opToken = next((tt for tt in list(token.subtree) if tt.dep_ == "cc" or tt.dep_ == "punct"), None)
-        operator: TKOperator = parser_ccToOperator(opToken) if opToken else TKOperator.AND
-
-        entity.op = operator    
-        return entity
-    
-    return [None, usedTokens]
+    # no entity found
+    return entity
 
 # (ONGOING) get seamntic value from dictionary + properties
 def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
-    global _usedTokens
 
     # related tokens to the entity
     conjuncts = list(token.conjuncts)
@@ -187,15 +184,17 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     if marker and marker.has_vector: 
         tkMarker = TKMarker(marker_type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
 
+    # update marker
+    if tkMarker == None and token.dep_ == "iobj": 
+        tkMarker = TKMarker(connect_clause=token.dep_)
+
     # primary entity (from token)
     primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, token=token.text, marker=tkMarker, properties=doc_properties)
-    _usedTokens.append(token.text)
 
     # get related entities
     for c in [cc for cc in conjuncts if cc.head == token]:
         relatedEntity = parser_getRelatedEntity(c, predicate)
-        if relatedEntity:
-            primaryEntity.conjuncts.append(relatedEntity)
+        if relatedEntity: primaryEntity.conjuncts.append(relatedEntity)
 
     return primaryEntity
 
@@ -227,12 +226,14 @@ def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
         # case dative (can be a name [take the entity] or a prep [take the first child])
         # oblique (expect a case or marker)
         if t.dep_ == "obl": indirectEntity = parser_getFullEntity(t, False)
-        # adverb (of predicate)
-        elif t.dep_ == "advmod": indirectEntity = parser_getFullEntity(t, False)
+        # adverb (of predicate) # todo fix
+        elif t.dep_ == "advmod": 
+            indirectEntity = parser_getFullEntity(t, False)
         # indirect object (you give YOU something)
-        elif t.dep_ == "iobj": indirectEntity = parser_getFullEntity(t, False)
+        elif t.dep_ == "iobj": 
+            indirectEntity = parser_getFullEntity(t, False)
         # clausal complements
-        if t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl": 
+        elif t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl" or t.dep_ == "parataxis": 
             indirectEntity = parser_parseSubordinate(t)
 
         # if found 
@@ -254,11 +255,6 @@ def parser_parseSubordinate(token: Token) -> TKFullEntity:
     tkMarker: TKMarker = None
     result: TKFullEntity = None
 
-    # get coordination marker (like: otherwise, but, etc.)
-    marker = next((s for s in childrenTokens if s.dep_ == "advmod"), None)
-    if marker and parser_ccToOperator(marker) != None:
-        a = "it's like a conjunct" # TODO: add it in the conjuncts, instead of indirects
-
     # get indirect marker 
     marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
@@ -277,17 +273,19 @@ def parser_parseSubordinate(token: Token) -> TKFullEntity:
 
 # (ONGOING) parse sentence (simple or compoung)
 def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
-    global _talker, _usedTokens
+    global _talker
 
-    # get root (if one)
-    subStatement = " ".join([t.text for t in inputTokens if t.text not in _usedTokens])
+    # get root of the sub statement
+    subStatement = " ".join([t.text for t in inputTokens])
     doc = nlp_stanza(subStatement)
     roots = [s for s in list(doc) if s.dep_ == "root"]
     if len(roots) > 0: 
-        root = roots[0]
+        root = next((t for t in inputTokens if t.text == roots[0].text), None)
+        if root == None: return None
     else:
         return None
     
+    # parse the original subtree
     tokens = list(root.subtree) 
    
     # ------------------------------
@@ -307,7 +305,7 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
         if subjectToken: tkSubject = parser_parseSubordinate(subjectToken)
 
     # ------------------------------
-    # search direct
+    # search direct (anomaly: double obj. one is iobj)
     # ------------------------------
     tkDirect = None
     directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
@@ -363,11 +361,10 @@ def parser_core(tokens: list[Token]) -> TKStatements:
 # (DONE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
 def parser(tokens: str, talker: str = "unknown", context: TKContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
-    global _context, _ollamaClient, _talker, _usedTokens
+    global _context, _ollamaClient, _talker
 
     # prepare input
     tokens = util_removeSpace(tokens)
-    _usedTokens = list()
 
     # assign variables
     _context = context
@@ -380,8 +377,9 @@ def parser(tokens: str, talker: str = "unknown", context: TKContext = None, olla
     # get all tokens
     tkStatements: TKStatements = parser_core(list(doc))
 
-    # flat statements
-    tkLLC: TKLLC = llc_flat(tkStatements)
+    # flat statements (on a copy of the tkStatements)
+    tkCopy: TKStatement = copy.deepcopy(tkStatements)
+    tkLLC: TKLLC = llc_flat(tkCopy) 
 
     # raw output
     rawOutput = llc_raw(tkLLC) if tkLLC else ''

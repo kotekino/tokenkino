@@ -3,9 +3,10 @@
 # FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) 
 # and TKEntity as entities (subjects, direct and indirect objects)
 #
-# TASKS
-# ONGOING manage xcomp and ccomp 
-# ONGOING manage spacetime (temporal and spatial modifiers)
+# problems
+# http://localhost:8000/api/v1/tkllc?tokens=Let%27s%20try%20to%20make%20a%20simple%20phrase%20and%20see%20how%20Gemma%20behaves
+# manage xcomp and ccomp (line 208): subject replacement problem
+# manage spacetime (temporal and spatial modifiers)
 # ------------------------------------------------------------------------------------------------
 import copy
 
@@ -150,68 +151,72 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     # ---------------------------------------------
     # indirects (manage statements)
     # ---------------------------------------------
+    hiddenMain: bool = False
     for indirectReference in stat.indirects:
         indirectEntity = next(i for i in indEntities if i.id == indirectReference.id)
         if indirectEntity.payload.entity_type == "statement": 
 
             subordinate: TKStatement = indirectEntity.payload
             subordinateType = llc_parseMarker(indirectReference.marker)
-            subjectTalkerIdx: int = 1
-
-            # finale, causale, ipotetica, temporale, locativa: add root sentences and the correct operator
+            
+            # analyze subordinate to flatten it with an operator and modify properties
             operator: TKOperator = TKOperator.AND
-            subProperties = TKLLProperties(certainty=[subjectTalkerIdx, 0.5], hope=[subjectTalkerIdx, 0.5]) # neutral
-
-            # finale (imply) -> subject implied to be explicited
-            # I do x to obtain y => [hope++] if I do this I obtain y => [hope++] I do this IMPLY I obtain y (same subject)
-            # I do x to have you doing y =>[hope++] if I do this you doing y => [hope++] I do this IMPLY you doing y (different subject)
+            subProperties = TKLLProperties() # all neutral
             if subordinateType == TKClauseType.FINAL:
+                # finale (imply) -> subject implied to be explicited
+                # I do x to obtain y => [hope++] if I do this I obtain y => [hope++] I do this IMPLY I obtain y (same subject)
+                # I do x to have you doing y =>[hope++] if I do this you doing y => [hope++] I do this IMPLY you doing y (different subject)
                 operator = TKOperator.IMPLY
-                subProperties.hope = [subjectTalkerIdx, 1] # max hope
+                
+                # increase hope feeling (properties) of the main sentence
+                # subProperties.sentiment = sentiment_generate(sentiment=['hope', 'goal'])
+            elif subordinateType == TKClauseType.PARATAXIS:
+                # can be det, can be imply: todo
+                operator = TKOperator.THAT
+
             elif subordinateType == TKClauseType.CAUSAL:
                 # causale (imply) -> simple obvious
                 # i do this because I done that => I do this CONV i done that                
                 operator = TKOperator.CONV
+
             elif subordinateType == TKClauseType.HYPOTETIC:
                 # ipotetica (imply) -> simple, obvious
                 # I do this if you do that => you do that IMPLY (or EQ if only, only if) I do this
                 operator = TKOperator.CONV
-                subProperties.hope = [subjectTalkerIdx, 0.5] # neutral
+
             elif subordinateType == TKClauseType.TEMPORAL:
                 # temporale (timespacemap, IMPLY) -> tricky can imply with a smooth degree
                 # I have done this when/after/before I was doing that => I do this T1 and I do this T2 = f(T1)
                 # I always do this when I do that => I do this -> I do that (always, often)                
                 operator = TKOperator.AND
+
             elif subordinateType == TKClauseType.LOCATIVE:
                 # locativa (timespacemap) -> obvious
                 # I do x in S1 and I go to S2 => I do x S1 and I do go S2                
                 operator = TKOperator.AND
+
             elif subordinateType == TKClauseType.CCOMP:
-                operator = TKOperator.AND
+                operator = TKOperator.THAT
 
-                # get values of hope and certainty from the parent
-
-                subProperties.hope = [subjectTalkerIdx, 0.5] # influence hope
-                subProperties.certainty = [subjectTalkerIdx, 0.5] # influence certainty
-                subProperties.mode = [subjectTalkerIdx, 0.5] # influence mode
+                # get values of predicate semantic from the parent
+                if predEntity and predEntity.payload.vector: subProperties.sentiment = predEntity.payload.vector
 
             elif subordinateType == TKClauseType.XCOMP:
-                operator = TKOperator.AND
+                operator = TKOperator.THAT
 
                 # parse parent to find the subject, implicit in the xcomp
                 # it can be the direct (if present) or the subject
                 if stat.direct: 
                     subordinate.subject = stat.direct 
-                    # subordinate.subject.id -= parentOffset # remove offset, already pointing to the parent entity
+                    # todo: refine remove offset, already pointing to the parent entity
+                    subordinate.subject.id -= parentOffset 
                 elif stat.subject: 
                     subordinate.subject = stat.subject
-                    # subordinate.subject.id -= parentOffset # remove offset, already pointing to the parent entity
+                    # todo: refine remove offset, already pointing to the parent entity
+                    subordinate.subject.id -= parentOffset 
 
-                # get values of hope and certainty from the parent
-
-                subProperties.hope = [subjectTalkerIdx, 0.5] # influence hope
-                subProperties.certainty = [subjectTalkerIdx, 0.5] # influence certainty
-                subProperties.mode = [subjectTalkerIdx, 0.5] # influence mode
+                # get values of predicate semantic from the parent
+                if predEntity and predEntity.payload.vector: subProperties.sentiment = predEntity.payload.vector
 
             else:
                 # other means it affects something else, but the operator is AND               
@@ -220,7 +225,6 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             ai, ae = llc_processStatement(subordinate, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
             
             # add properties
-
             additionalItems.extend(ai)
             entities.extend(ae)
 
@@ -229,7 +233,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             indirects.append(llc_evaluateReference(indRef, parentOffset))
 
     # set content
-    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
+    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, hidden=hiddenMain)
     
     # check additional items
     if len(additionalItems) > 0:

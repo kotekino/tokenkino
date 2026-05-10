@@ -54,8 +54,13 @@ def llc_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
         i += 1
 
     # marker
-    marker: str = ref.marker.lemma if ref.marker else ''
-
+    marker: str = ''
+    if ref.marker:
+        if ref.marker.lemma:
+            marker = ref.marker.lemma 
+        elif ref.marker.connect_clause == 'iobj':
+            marker = 'to'
+            
     result = f"{marker.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
@@ -65,12 +70,10 @@ def llc_raw_recursive(content: LLCItemPayload, entities: list[TKLLEntity]) -> st
     
     result: str = ""
     if isinstance(content, TKLLCContent):
-
         subject = llc_raw_entity(content.subject, entities) if content.subject else ''
         predicate = llc_raw_entity(content.predicate, entities) if content.predicate else ''
         direct = llc_raw_entity(content.direct,entities) if content.direct else ''
         indirects = ' '.join([llc_raw_entity(i, entities) for i in content.indirects]) if content.indirects else ''
-
         result = f"{subject} {predicate} {direct} {indirects}"
     elif isinstance(content, list):
         i: int = 0

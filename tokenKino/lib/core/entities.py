@@ -101,6 +101,7 @@ class TKOperator(str, Enum):
     IMPLY = "IMPLY"
     CONV = "CONV"
     EQ = "EQ"
+    THAT = "THAT"
 
 # clause type enum
 class TKClause(str, Enum):
@@ -117,6 +118,7 @@ class TKClauseType(str, Enum):
     LOCATIVE = "locative"
     CCOMP = "ccomp"
     XCOMP = "xcomp"
+    PARATAXIS = "parataxis"
     OTHER = "other"
 
 # LL statement
@@ -344,12 +346,12 @@ class TKLLSpacetimeMap(BaseModel):
     ybounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
     zbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
 
-#  tone, mode, certainty, hope
+#  property related the sentence by the talker point of view
 class TKLLProperties(BaseModel):
-    tone: float = Field(default=0.5) # literal 0 / neutral 0.5 / ironic 1
-    mode: float = Field(default=0.5) # question 0 / neutral 0.5 / order 1
-    certainty: Optional[tuple[int, float]] = None # [subject in entities, unknown 0 / neutral 0.5 / fact 1]
-    hope: Optional[tuple[int,float]] = None # [subject in entities, deep avoid 0 / neutral 0.5 / deep wish 1]
+    ironic: float = Field(default=0.5) # literal 0 / neutral 0.5 / ironic 1
+    dubitative: float = Field(default=0.5) # statement 0 / question 1
+    imperative: float = Field(default=0.5) # neutral 0 / order 1
+    sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925)) # related to one or more base words
 
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
@@ -376,6 +378,7 @@ class TKLLCContent(BaseModel):
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 
     indirects: list[TKLLEntityReference] = Field(default_factory=list)
+    hidden: bool = Field(default=False)
 
 # llc item: can be a statement or an llcitem (recursive)
 class TKLLCItem(BaseModel):
