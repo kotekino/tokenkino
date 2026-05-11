@@ -66,6 +66,12 @@ class TKMarker(BaseModel):
     vector: list[float] = Field(default_factory=list)
     connect_clause: Optional[str] = None
 
+# auxiliaries
+class TKAux(BaseModel):
+    entity_type: Literal["aux"] = Field(default="aux")
+    lemma: Optional[str] = None
+    vector: list[float] = Field(default_factory=list)
+
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
@@ -111,6 +117,8 @@ class TKClause(str, Enum):
 
 # clause subordinate type
 class TKClauseType(str, Enum):
+    MAIN = "main"
+    COORDINATE = "coordinate"
     FINAL = "final"
     CAUSAL = "causal"
     TEMPORAL = "temporal"
@@ -155,7 +163,7 @@ class TKStatement(BaseModel):
     # create subject
     def create_subject(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.subject = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker)
+        self.subject = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -166,7 +174,7 @@ class TKStatement(BaseModel):
     # create direct
     def create_direct(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.direct = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker)
+        self.direct = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -177,7 +185,7 @@ class TKStatement(BaseModel):
     # add indirect
     def add_indirect(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.indirects.append(TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker))
+        self.indirects.append(TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux))
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -188,7 +196,7 @@ class TKStatement(BaseModel):
     # create predicate
     def create_predicate(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.predicate = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker)
+        self.predicate = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -242,7 +250,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=p.entity)
-                e = TKEntityReference(op=p.op, id=entity.id, marker=p.marker)
+                e = TKEntityReference(op=p.op, id=entity.id, marker=p.marker, aux=p.aux)
                 reference.properties.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -278,7 +286,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, id=entity.id, marker=c.marker)
+                e = TKEntityReference(op=c.op, id=entity.id, marker=c.marker, aux=c.aux)
                 reference.conjuncts.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -301,8 +309,11 @@ class TKFullEntity(BaseModel):
 
     entity: EntityPayload = Field(discriminator='entity_type')
 
-    # specific semantic value (termine, fine, specificazione, etc)
+    # spacy semantic value
     marker: Optional[TKMarker] = None
+    
+    # specific semantic value
+    aux: Optional[TKAux] = None
 
     # conjuect
     conjuncts: list[TKFullEntity] = Field(default_factory=list)
@@ -318,8 +329,11 @@ class TKEntityReference(BaseModel):
     # id
     id: int
 
-    # specific semantic value (termine, fine, specificazione, etc)
+    # specific semantic value
     marker: Optional[TKMarker] = None
+
+    # specific semantic value
+    aux: Optional[TKAux] = None
 
     # conjuect
     conjuncts: list[TKEntityReference] = Field(default_factory=list)  
@@ -373,6 +387,7 @@ class TKLLEntityReference(BaseModel):
 
 # llc content: can be a content or another llcitem (recursive)
 class TKLLCContent(BaseModel):
+    clause_type: TKClauseType = Field(default=TKClauseType.MAIN)
     properties: TKLLProperties
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 

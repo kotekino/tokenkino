@@ -3,9 +3,10 @@
 # FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) 
 # and TKEntity as entities (subjects, direct and indirect objects)
 #
-# problems
-# http://localhost:8000/api/v1/tkllc?tokens=Let%27s%20try%20to%20make%20a%20simple%20phrase%20and%20see%20how%20Gemma%20behaves
-# manage xcomp and ccomp (line 208): subject replacement problem
+# tasks
+# http://localhost:8000/api/v1/tkllc?tokens=you%20look%20great%20and%20I%20am%20sure%20about%20that
+# conjunct indexes still wrong (if markers and auxiliaries) 
+#
 # manage spacetime (temporal and spatial modifiers)
 # ------------------------------------------------------------------------------------------------
 import copy
@@ -17,33 +18,31 @@ from lib.llc.parser import parser_getFullEntity
 
 nlp = spacy.load(_SPACY_MODEL)
 
-_original_entities: list[TKEntity] = list()
-
 # recurse properties of properties and conjunct of properties
-def llc_recurseReferenceProperties(ref: TKEntityReference, parentOffset: int, isProperty = False) -> list[tuple[TKLLEntityReference]]:
+def flattener_recurseReferenceProperties(ref: TKEntityReference, parentOffset: int, isProperty = False) -> list[tuple[TKLLEntityReference]]:
     
     # init
     flattenedProperties: list[TKLLEntityReference] = list()
 
     for p in ref.properties:
         flattenedProperties.append([p.op, TKLLEntityReference(id=p.id + parentOffset, marker=None, properties=list())])
-        flattenedProperties.extend(llc_recurseReferenceProperties(p, parentOffset, True))
+        flattenedProperties.extend(flattener_recurseReferenceProperties(p, parentOffset, True))
 
     if isProperty:
         for c in ref.conjuncts:
             flattenedProperties.append([c.op, TKLLEntityReference(id=c.id + parentOffset, marker=None, properties=list())])
-            flattenedProperties.extend(llc_recurseReferenceProperties(c, parentOffset, True))
+            flattenedProperties.extend(flattener_recurseReferenceProperties(c, parentOffset, True))
     
     return flattenedProperties
 
 # evaluate reference
-def llc_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, isProperty = False) -> TKLLEntityReference:
+def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, isProperty = False) -> TKLLEntityReference:
     
     # evaluate marker
     marker = ref.marker
 
     # recurse
-    flattenedProperties = llc_recurseReferenceProperties(ref, parentOffset, isProperty)
+    flattenedProperties = flattener_recurseReferenceProperties(ref, parentOffset, isProperty)
     properties: list[TKLLEntityProperty] = list()
 
     for fp in flattenedProperties:
@@ -53,7 +52,7 @@ def llc_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, isProp
     return TKLLEntityReference(id=ref.id + parentOffset, marker=marker, properties=properties)
 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
-def llc_parseMarker(marker: TKMarker) -> TKClauseType:
+def flattener_parseMarker(marker: TKMarker) -> TKClauseType:
 
     # parse marker on lemma, then connect_clause then fallback other
     if not marker.lemma: return marker.connect_clause if marker.connect_clause else TKClauseType.OTHER
@@ -79,7 +78,7 @@ def llc_parseMarker(marker: TKMarker) -> TKClauseType:
     return best_type
 
 # create an tkllentity from tkentity
-def llc_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEntity:
+def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEntity:
 
     id = ent.id + parentOffset
     token = ''
@@ -102,17 +101,16 @@ def llc_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEntity:
     return TKLLEntity(id=id, tokens=token, semantic_vector=semantic, spacetime=spacetime)
 
 # create a list of tkllentity from a list of tkentity
-def llc_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TKLLEntity]:
+def flattener_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TKLLEntity]:
     result: list[TKLLEntity] = []
     for e in ents:
-        subent = llc_initializeEntity(e, parentOffset)
+        subent = flattener_initializeEntity(e, parentOffset)
         if subent: result.append(subent) 
         # else: parentOffset -= 1 # if the entity is a statement, it doesn't generate an entity but it generates an offset for the next entities
     return result
 
 # create a TKLLCContent object from a TKStatement
-def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOffset: int = 0) -> tuple[LLCItemPayload, list[TKLLEntity]]:
-    global _original_entities
+def flattener_evaluateContent(stat: TKStatement, clauseType: TKClauseType, properties: TKLLProperties, parentOffset: int = 0) -> tuple[LLCItemPayload, list[TKLLEntity]]:
 
     entities: list[TKLLEntity] = list()
     additionalItems: list[TKLLCItem] = list()
@@ -130,7 +128,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
     # ---------------------------------------------
     # predicate it cant be a statement
     # ---------------------------------------------
-    predicate = llc_evaluateReference(stat.predicate, parentOffset) if predEntity else None
+    predicate = flattener_evaluateReference(stat.predicate, parentOffset) if predEntity else None
 
     # ---------------------------------------------
     # subject (manage statements)
@@ -140,7 +138,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             # exclude statements: csubj -> find a way to manage it
             parentOffset -= 1
         else: 
-            subject = llc_evaluateReference(stat.subject, parentOffset) if subjEntity else None
+            subject = flattener_evaluateReference(stat.subject, parentOffset) if subjEntity else None
 
     # ---------------------------------------------
     # direct (manage statements)
@@ -150,7 +148,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             # exclude statements not affecting time and space
             parentOffset -= 1
         else: 
-            direct = llc_evaluateReference(stat.direct, parentOffset) if dirEntity else None
+            direct = flattener_evaluateReference(stat.direct, parentOffset) if dirEntity else None
 
     # ---------------------------------------------
     # indirects (manage statements)
@@ -163,7 +161,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
             replaceSubject: int = None
 
             subordinate: TKStatement = indirectEntity.payload
-            subordinateType = llc_parseMarker(indirectReference.marker)
+            subordinateType = flattener_parseMarker(indirectReference.marker)
             
             # analyze subordinate to flatten it with an operator and modify properties
             operator: TKOperator = TKOperator.AND
@@ -202,34 +200,18 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
                 operator = TKOperator.AND
 
             elif subordinateType == TKClauseType.CCOMP:
+                # explicit subject
                 operator = TKOperator.THAT
-
-                # get values of predicate semantic from the parent
-                if predEntity and predEntity.payload.vector: subProperties.sentiment = predEntity.payload.vector
 
             elif subordinateType == TKClauseType.XCOMP:
+                # no subject: search it in the main statement
                 operator = TKOperator.THAT
-
-                # parse parent to find the subject, implicit in the xcomp
-                # it can be the direct (if present) or the subject
-                if stat.direct:
-                    replaceSubject = stat.direct.id
-                elif stat.subject:
-                    replaceSubject = stat.subject.id
-
-                # get values of predicate semantic from the parent
-                if predEntity and predEntity.payload.vector: subProperties.sentiment = predEntity.payload.vector
 
             else:
                 # other means it affects something else, but the operator is AND               
                 operator = TKOperator.AND
 
-            ai, ae = llc_processStatement(subordinate, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
-
-            # replace subject (xcomp, ccomp)
-            if replaceSubject:
-                # todo
-                subordinate.subject = next((e for e in _original_entities if e.id == stat.subject.id + parentOffset), None)
+            ai, ae = flattener_processStatement(subordinate, subordinateType, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
 
             # add properties
             additionalItems.extend(ai)
@@ -237,10 +219,10 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
 
         else: 
             indRef = next(i for i in stat.indirects if indirectReference.id == i.id)
-            indirects.append(llc_evaluateReference(indRef, parentOffset))
+            indirects.append(flattener_evaluateReference(indRef, parentOffset))
 
     # set content
-    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
+    content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, clause_type=clauseType)
     
     # check additional items
     if len(additionalItems) > 0:
@@ -252,7 +234,7 @@ def llc_evaluateContent(stat: TKStatement, properties: TKLLProperties, parentOff
         return content, entities
 
 # modify content
-def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, TKEntityReference]) -> LLCItemPayload:
+def flattener_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, TKEntityReference]) -> LLCItemPayload:
     
     # last level
     if isinstance(content, TKLLCContent):
@@ -264,12 +246,12 @@ def llc_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int, TKEnt
     else:
         dupContentSub: list[TKLLCItem] = copy.deepcopy(content)
         for eidx in range(len(dupContentSub)):
-            dupContentSub[eidx].content = llc_modifyContent(dupContentSub[eidx].content, rep)
+            dupContentSub[eidx].content = flattener_modifyContent(dupContentSub[eidx].content, rep)
     
     return dupContentSub
 
 # multiply content 
-def llc_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOperator, int, TKEntityReference]]) -> list[TKLLCItem]:
+def flattener_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOperator, int, TKEntityReference]]) -> list[TKLLCItem]:
     
     # subresult
     subresult: list[TKLLCItem] = list()
@@ -278,15 +260,18 @@ def llc_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOper
     # reached content
     for rep in replacements:
         dupContentSub: TKLLCContent = copy.deepcopy(content)
-        newContent = llc_modifyContent(dupContentSub, rep)
+        newContent = flattener_modifyContent(dupContentSub, rep)
         subresult.append(TKLLCItem(op=rep[0], content=newContent))
 
     return subresult
 
 # evaluate item
-def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operator: TKOperator, parentOffset: int = 0) -> tuple[TKLLCItem, list[TKLLEntity]]:
+def flattener_evaluateItem(statement: TKStatement, clauseType: TKClauseType, properties: TKLLProperties, operator: TKOperator, parentOffset: int = 0) -> tuple[TKLLCItem, list[TKLLEntity]]:
     
-    originalContent, additionalEntities = llc_evaluateContent(statement, properties, parentOffset) 
+    # get the content
+    originalContent, additionalEntities = flattener_evaluateContent(statement, clauseType, properties, parentOffset) 
+    
+    # start duplication stack
     mainContent = copy.deepcopy(originalContent)
 
     # multiple subjects: duplicate sentences, with the conjunct subject
@@ -294,21 +279,21 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
         replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.subject.conjuncts):
             # get properties and conjuncts of the replacing entity
-            ef = llc_evaluateReference(c, parentOffset, False)
+            ef = flattener_evaluateReference(c, parentOffset, False)
             replacements.append([c.op, originalContent.subject.id, ef])
 
         # replace content with list of items
-        mainContent = llc_multiplyContent(mainContent, replacements)
+        mainContent = flattener_multiplyContent(mainContent, replacements)
     
     # multiple direct: duplicate sentences, with the conjunct direct
     if statement.direct and len(statement.direct.conjuncts) > 0:
         replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.direct.conjuncts):
-            ef = llc_evaluateReference(c, parentOffset, False)
+            ef = flattener_evaluateReference(c, parentOffset, False)
             replacements.append([c.op, originalContent.direct.id, ef])
 
         # replace content with list of items
-        mainContent = llc_multiplyContent(mainContent, replacements)
+        mainContent = flattener_multiplyContent(mainContent, replacements)
 
     # multiple indirect: duplicate sentences, with the conjunct direct
     idx: int = 0
@@ -317,12 +302,12 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
         if len(ind.conjuncts) > 0:
             for c in list(ind.conjuncts):
                 originalIndirect = originalContent.indirects[idx]
-                ef = llc_evaluateReference(c, parentOffset, False)
+                ef = flattener_evaluateReference(c, parentOffset, False)
                 replacements.append([c.op, originalIndirect.id, ef])
         idx += 1
         if len(replacements) > 0:
             # replace content with list of items
-            mainContent = llc_multiplyContent(mainContent, replacements)        
+            mainContent = flattener_multiplyContent(mainContent, replacements)        
     
     # assign 
     mainContent = TKLLCItem(op=operator, content=mainContent)
@@ -330,8 +315,7 @@ def llc_evaluateItem(statement: TKStatement, properties: TKLLProperties, operato
     return [mainContent, additionalEntities]
 
 # get predicate conjunct content (recursive function to manage multiple levels of coordination)
-def llc_processStatement(statement: TKStatement, op: TKOperator = None, properties: TKLLProperties = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
-    global _original_entities
+def flattener_processStatement(statement: TKStatement, clauseType: TKClauseType, op: TKOperator = None, properties: TKLLProperties = None, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKEntity]]:
 
     if op == None: op = TKOperator.AND
     if properties == None: properties = TKLLProperties()
@@ -340,30 +324,28 @@ def llc_processStatement(statement: TKStatement, op: TKOperator = None, properti
     
     # initialize result
     clauses: list[TKLLCItem] = list()
-    entities: list[TKLLEntity] = llc_initializeEntities(originalStatement.entities, parentOffset) # exclude statements, managed later
-
-    _original_entities = copy.deepcopy(entities) # deepcopy?
+    entities: list[TKLLEntity] = flattener_initializeEntities(originalStatement.entities, parentOffset) # exclude statements, managed later
 
     # evaluate clauses
-    mainItem, additionalEntities = llc_evaluateItem(statement, properties, op, parentOffset)
+    mainItem, additionalEntities = flattener_evaluateItem(statement, clauseType, properties, op, parentOffset)
 
     clauses.append(mainItem)
     entities.extend(additionalEntities)
 
     # COORDINATE clauses (at the end, max prio)
     if len(originalStatement.predicate.conjuncts) > 0:
-        recursiveOffsetEntities: int = max([e.id for e in originalStatement.entities]) + parentOffset
+        recursiveOffsetEntities: int = max([e.id for e in entities]) + parentOffset
         for c in list(originalStatement.predicate.conjuncts):
             conjunctStatement = next((s for s in originalStatement.entities if s.id == c.id), None)
-            ai, ae = llc_processStatement(conjunctStatement.payload, c.op, None, recursiveOffsetEntities)
+            ai, ae = flattener_processStatement(conjunctStatement.payload, TKClauseType.COORDINATE, c.op, None, recursiveOffsetEntities)
             entities.extend(ae)
             clauses.extend(ai)
-            recursiveOffsetEntities += len(ae)
+            recursiveOffsetEntities = max([e.id for e in ae])
 
     return [clauses, entities]
 
 # (DOING) build spacetime map from entities and normalize the spacetime of the entities in the map (-1, 1)
-def llc_normalizeSpacetimeMap(entities: list[TKLLEntity]) -> TKLLSpacetimeMap:
+def flattener_normalizeSpacetimeMap(entities: list[TKLLEntity]) -> TKLLSpacetimeMap:
     spacetimeMap: TKLLSpacetimeMap = TKLLSpacetimeMap()
 
     # get bounds
@@ -403,22 +385,53 @@ def llc_normalizeSpacetimeMap(entities: list[TKLLEntity]) -> TKLLSpacetimeMap:
 
     return spacetimeMap, entities
 
-# (DONE) main flat function
-def llc_flat(tkStatements: TKStatements) -> TKLLC | None:
+# search xcomp subjects
+def flattener_searchXCompSubjects(items: list[TKLLCItem], entities: list[TKLLEntity]) -> list[TKLLCItem]:
+    
+    # cycle on every item
+    prevItem: TKLLCItem = None
+    for item in items:
+        if isinstance(item.content, TKLLCContent):
+            if prevItem != None \
+            and item.content.clause_type == TKClauseType.XCOMP \
+            and isinstance(prevItem.content, TKLLCContent) \
+            and not item.content.subject:
+                # get previous subject or direct
+                if prevItem.content.direct:
+                    item.content.subject = prevItem.content.direct 
+                elif prevItem.content.subject:
+                    item.content.subject = prevItem.content.subject 
+        else:
+            # go until a content is found
+            item.content = flattener_searchXCompSubjects(item.content, entities)
+        prevItem = item
+    
+    return items
+
+# main flat function
+def flattener_flat(tkStatements: TKStatements) -> TKLLC | None:
     
     entities: list[TKLLEntity] = list()
     items: list[TKLLCItem] = list()
 
     # for each statement, flatten it and add to the result
     parentOffset: int = 0
+    iCounter: int = 1
     for stat in tkStatements:
-        i, e = llc_processStatement(stat, TKOperator.AND, None, parentOffset)
+        clauseType = TKClauseType.MAIN if iCounter == 1 else TKClauseType.COORDINATE
+        i, e = flattener_processStatement(stat, clauseType, TKOperator.AND, None, parentOffset)
         items.extend(i)
         entities.extend(e)
-        parentOffset += len(e)
+        parentOffset = max([ee.id for ee in e])
+        iCounter += 1
 
     # spacetimemap: build the spacetime map relative to the context of the statements
-    spacetimemap, entities = llc_normalizeSpacetimeMap(entities)
+    spacetimemap, entities = flattener_normalizeSpacetimeMap(entities)
+
+    # XCOMP: add subjects from parent main
+    items = flattener_searchXCompSubjects(items, entities)
+
+    # MATCH SUBJECTS within the statement 
 
     # return result
     result = TKLLC(items=items, entities=entities, map=spacetimemap)

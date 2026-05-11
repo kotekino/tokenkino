@@ -4,17 +4,12 @@
 # TASKS
 # manage articles 
 # manage pronouns
-# manage auxiliaries
-# manage parataxis (and other non-standard coordination) 
 # manage passive 
-# manage copula verbs (be, seem, appear, become, etc.) 
 # manage plurality 
 # 
-# problems
-# http://localhost:8000/api/v1/tkllc?tokens=Let%27s%20try%20to%20make%20a%20simple%20phrase%20and%20see%20how%20Gemma%20behaves
-# http://localhost:8000/api/v1/tkllc/render?tokens=I%27m%20good%20however%20I%20can%20be%20better
-# http://localhost:8000/api/v1/tkllc?tokens=I%27m%20good%20but%20I%20can%20be%20better
-# line 215: fix the way we manage advmod, parataxis
+# tasks
+# http://localhost:8000/api/v1/tkllc?tokens=I%27m%20good%20but%20I%20have%20no%20energy
+# line 215: fix the way we manage adversatives (but)
 #
 # test against every sentence from UD2 
 # ------------------------------------------------------------------------------------------------
@@ -31,7 +26,7 @@ import stanza
 import spacy_stanza
 from spacy_stanza import Language as StanzaLanguage
 import numpy as np
-from lib.core.entities import TKLLC, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKStakeholder, TKStatement, TKStatements
+from lib.core.entities import TKLLC, TKAux, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKStakeholder, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -100,7 +95,11 @@ def parser_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
 
     for t in tokens:
         property = None
-        if t.dep_ == "nummod" or t.dep_ == "amod" or t.dep_ == "nmod" or t.dep_ == "nmod:poss" or t.dep_ == "det":
+        if t.dep_ == "nummod" \
+        or t.dep_ == "amod" \
+        or t.dep_ == "nmod" \
+        or t.dep_ == "nmod:poss" \
+        or t.dep_ == "det":
             property = parser_getFullEntity(t, False)
 
         if property: 
@@ -121,7 +120,7 @@ def parser_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEnti
     if statement:
         subtree = [t for t in token.subtree if t != opToken] # remove operator
         sentence = parser_parseSentence(subtree, clause_type=TKClause.COORDINATE)
-        entity = TKFullEntity(entity=sentence, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
+        entity = TKFullEntity(entity=sentence, aux=None, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
     else:
         entity = parser_getFullEntity(token, False)
     
@@ -142,9 +141,10 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     doc_result: TKDictionary = None
     doc_properties: list[TKFullEntity] = []
     tkMarker = None
+    tkAux = None
 
-    # should be in the dictionary
-    if len(pos) > 0:
+    # should be in the dictionary (exclude auxiliaries, pronouns)
+    if len(pos) > 0 and token.pos_ != "AUX" and token.pos_ != 'PROPN':
         for p in pos:
             # search in dictionary
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
@@ -187,8 +187,13 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     if tkMarker == None and token.dep_ == "iobj": 
         tkMarker = TKMarker(connect_clause=token.dep_)
 
+    # get auxiliary
+    aux = next((s for s in children if s.pos_ == "AUX"), None)
+    if aux and aux.has_vector:
+        tkAux = TKAux(lemma=aux.lemma_, vector=aux.vector)
+
     # primary entity (from token)
-    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, token=token.text, marker=tkMarker, properties=doc_properties)
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties)
 
     # get related entities
     for c in [cc for cc in conjuncts if cc.head == token]:
@@ -266,7 +271,7 @@ def parser_parseSubordinate(token: Token) -> TKFullEntity:
     tokenSubtree = [t for t in token.subtree if t != marker]
 
     tkStatement = parser_parseSentence(tokenSubtree, clause_type=TKClause.SUBORDINATE)
-    if tkStatement: result = TKFullEntity(entity=tkStatement, token=None, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
+    if tkStatement: result = TKFullEntity(entity=tkStatement, token=None, aux=None, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
     
     return result
 

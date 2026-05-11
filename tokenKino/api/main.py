@@ -13,7 +13,7 @@ from lib.llc.preparser import preparser_init, preparser_prepare, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import llc_decompile, llc_decompiler_init, llc_raw
 from lib.core.entities import TKLLC, TKStatement
-from lib.llc.flattener import llc_flat
+from lib.llc.flattener import flattener_flat
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -55,7 +55,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
         recursiveResult = parser(preparsedTokens, talker,  None, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = llc_flat(recursiveResultCopy) 
+        flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
         rawResult = llc_raw(flatResult) if flatResult else ''
         outputResult = await llc_decompile(rawResult) if output == 1 else ''
        

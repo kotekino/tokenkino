@@ -8,7 +8,9 @@ _OPERATORS_BASE_ANCHORS = {
     "and": TKOperator.AND, 
     "or": TKOperator.OR, 
     "not": TKOperator.NOT,
-    ",": TKOperator.AND
+    ",": TKOperator.AND,
+    ":": TKOperator.THAT,
+    "so": TKOperator.THAT
     }
 _OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 
 _SUBORDINATE_TYPE_BASE_ANCHORS = {
