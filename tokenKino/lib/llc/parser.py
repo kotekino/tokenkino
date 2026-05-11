@@ -2,12 +2,14 @@
 # PARSER: transform a token list into a list of TKStatements (using spacy for the first ingestion)
 #
 # TASKS
-# manage articles 
+# manage articles
+#  
 # manage pronouns
-# manage passive 
+#
+# manage passive
+#  
 # manage plurality 
-# 
-# tasks
+#
 # http://localhost:8000/api/v1/tkllc?tokens=I%27m%20good%20but%20I%20have%20no%20energy
 # line 215: fix the way we manage adversatives (but)
 #

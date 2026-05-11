@@ -4,10 +4,8 @@
 # and TKEntity as entities (subjects, direct and indirect objects)
 #
 # tasks
-# http://localhost:8000/api/v1/tkllc?tokens=you%20look%20great%20and%20I%20am%20sure%20about%20that
-# conjunct indexes still wrong (if markers and auxiliaries) 
-#
-# manage spacetime (temporal and spatial modifiers)
+# match subjects line 432
+# manage spacetime (temporal and spatial modifiers) line 85
 # ------------------------------------------------------------------------------------------------
 import copy
 
