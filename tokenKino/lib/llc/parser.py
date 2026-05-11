@@ -2,13 +2,13 @@
 # PARSER: transform a token list into a list of TKStatements (using spacy for the first ingestion)
 #
 # TASKS
-# manage articles
+# manage articles (needed?)
 #  
-# manage pronouns
+# manage pronouns (needed!)
 #
-# manage passive
+# manage passive (needed?)
 #  
-# manage plurality 
+# manage plurality (needed)
 #
 # http://localhost:8000/api/v1/tkllc?tokens=I%27m%20good%20but%20I%20have%20no%20energy
 # line 215: fix the way we manage adversatives (but)
@@ -33,7 +33,7 @@ from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
-from lib.llc.decompiler import llc_raw
+from lib.llc.decompiler import decompiler_raw
 from lib.core.utilities import util_removeSpace
 from lib.core.constants import _ME_NAME
 from functools import cmp_to_key

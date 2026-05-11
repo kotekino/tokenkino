@@ -370,9 +370,15 @@ class TKLLProperties(BaseModel):
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
     id: int
-    tokens: str
+    token: str
     semantic_vector: list[float] = Field(default_factory=list)
     spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime) 
+
+# unique entity in a sentence
+class TKLLUniqueEntities(BaseModel):
+    id: int
+    references: list[int] = Field(default_factory=list())
+    token: str
 
 # entity property
 class TKLLEntityProperty(BaseModel):
@@ -404,6 +410,7 @@ class TKLLC(BaseModel):
     map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
     items: list[TKLLCItem] = Field(default_factory=list)
     entities: list[TKLLEntity] = Field(default_factory=list)
+    uniqueEntities: list[TKLLUniqueEntities] = Field(default_factory=list())
 
 # payload for item
 LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]

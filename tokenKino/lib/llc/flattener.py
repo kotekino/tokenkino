@@ -10,7 +10,7 @@
 import copy
 
 import spacy
-from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKMarker, TKOperator, TKStatement, TKStatements
+from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKLLUniqueEntities, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.llc.constants import _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.llc.parser import parser_getFullEntity
 
@@ -90,13 +90,15 @@ def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEnti
         token = ent.payload.name
     elif ent.payload.entity_type == "place": 
         token = ent.payload.name
+    elif ent.payload.entity_type == "meta":
+        token = ent.payload.name
     elif ent.payload.entity_type == "generic": 
         token = ent.payload.token
     elif ent.payload.entity_type == "statement":
         # excluded statements
         return None
 
-    return TKLLEntity(id=id, tokens=token, semantic_vector=semantic, spacetime=spacetime)
+    return TKLLEntity(id=id, token=token, semantic_vector=semantic, spacetime=spacetime)
 
 # create a list of tkllentity from a list of tkentity
 def flattener_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TKLLEntity]:
@@ -104,7 +106,6 @@ def flattener_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) ->
     for e in ents:
         subent = flattener_initializeEntity(e, parentOffset)
         if subent: result.append(subent) 
-        # else: parentOffset -= 1 # if the entity is a statement, it doesn't generate an entity but it generates an offset for the next entities
     return result
 
 # create a TKLLCContent object from a TKStatement
@@ -406,6 +407,29 @@ def flattener_searchXCompSubjects(items: list[TKLLCItem], entities: list[TKLLEnt
     
     return items
 
+# match entities
+def flattener_extractUniqueEntities(entities: list[TKLLEntity], existingUniqueEntities: list[TKLLUniqueEntities]) -> list[TKLLUniqueEntities]:
+
+    result: list[TKLLUniqueEntities] = existingUniqueEntities
+
+    # resolve pronouns: 
+    # in general:
+    # you -> id == 2
+    # i -> id == 1
+    # BUT the quote does not work like this: we need a talker and listener relative to the quote
+
+    # resolve identities
+    iCounter = len(existingUniqueEntities) + 1
+    for e in entities:
+        ref = next((t for t in result if t.token == e.token), None)
+        if ref == None:
+            result.append(TKLLUniqueEntities(id=iCounter, token=e.token, references=[e.id]))
+            iCounter += 1
+        else:
+            ref.references.append(e.id)
+
+    return result
+
 # main flat function
 def flattener_flat(tkStatements: TKStatements) -> TKLLC | None:
     
@@ -413,25 +437,30 @@ def flattener_flat(tkStatements: TKStatements) -> TKLLC | None:
     items: list[TKLLCItem] = list()
 
     # for each statement, flatten it and add to the result
+    uniqueEntities: list[TKLLUniqueEntities] = list()
     parentOffset: int = 0
     iCounter: int = 1
     for stat in tkStatements:
         clauseType = TKClauseType.MAIN if iCounter == 1 else TKClauseType.COORDINATE
         i, e = flattener_processStatement(stat, clauseType, TKOperator.AND, None, parentOffset)
+
+         # XCOMP: add subjects from parent main
+        i = flattener_searchXCompSubjects(i, e)
+
+        # MATCH SUBJECTS within the statement to unique entities
+        flattener_extractUniqueEntities(e, uniqueEntities) 
+
         items.extend(i)
         entities.extend(e)
+        
+        # recalculate the offset
         parentOffset = max([ee.id for ee in e])
         iCounter += 1
 
     # spacetimemap: build the spacetime map relative to the context of the statements
     spacetimemap, entities = flattener_normalizeSpacetimeMap(entities)
 
-    # XCOMP: add subjects from parent main
-    items = flattener_searchXCompSubjects(items, entities)
-
-    # MATCH SUBJECTS within the statement 
-
     # return result
-    result = TKLLC(items=items, entities=entities, map=spacetimemap)
+    result = TKLLC(items=items, entities=entities, uniqueEntities=uniqueEntities, map=spacetimemap)
     return result
 

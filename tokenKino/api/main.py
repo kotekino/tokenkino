@@ -11,7 +11,7 @@ from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
-from lib.llc.decompiler import llc_decompile, llc_decompiler_init, llc_raw
+from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.entities import TKLLC, TKStatement
 from lib.llc.flattener import flattener_flat
 
@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
 
     # init preparser
     await preparser_init(ai_client)
-    await llc_decompiler_init(ai_client)
+    await decompiler_init(ai_client)
     
     yield  #where fastapi runs
     
@@ -56,8 +56,8 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         recursiveResult = parser(preparsedTokens, talker,  None, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
         flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
-        rawResult = llc_raw(flatResult) if flatResult else ''
-        outputResult = await llc_decompile(rawResult) if output == 1 else ''
+        rawResult = decompiler_raw(flatResult) if flatResult else ''
+        outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
        
         res = {
             "original": tokens,
@@ -106,5 +106,5 @@ async def prepare(tokens: str):
 # ------------------------
 @app.get("/api/v1/out")
 async def polish(tokens: str):
-    res = await llc_decompile(tokens)
+    res = await decompiler_decompile(tokens)
     return res
