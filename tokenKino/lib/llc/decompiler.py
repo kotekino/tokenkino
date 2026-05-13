@@ -1,7 +1,7 @@
 import asyncio
 from collections import Counter
 import json
-from lib.core.entities import TKLLC, LLCItemPayload, TKLLCContent, TKLLEntity, TKLLEntityReference, TKOperator
+from lib.core.entities import TKLLC, LLCItemPayload, TKLLCContent, TKLLEntity, TKLLEntityReference, TKLLUniqueEntity, TKOperator
 from ollama import AsyncClient as OllamaClient
 from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _OLLAMA_MODEL1, _OLLAMA_MODEL2
 
@@ -36,50 +36,56 @@ async def decompiler_init(ollamaClient: OllamaClient = None):
     _init = True
     return
 
-# process single entity with properties and marker
-def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
+# decode entity from unique entities
+def decompiler_decodeRealEntity(entity: TKLLEntity, uniqueEntities: list[TKLLUniqueEntity]) -> str:
+    if entity.entity_type == "pronoun":
+        uniqueEntity: TKLLUniqueEntity = next((ue for ue in uniqueEntities if entity.id in ue.references), None)
+        return uniqueEntity.token if uniqueEntity else entity.token
+    else: 
+        return entity.token
 
-    entity: str = next((e.token for e in entities if e.id == ref.id), "")
+# process single entity with properties and marker
+def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity], uniqueEntities: list[TKLLUniqueEntity]) -> str:
+
+    entity: str = next((decompiler_decodeRealEntity(e, uniqueEntities) for e in entities if e.id == ref.id), "")
     
     # property pre poned (not marker, first)
     firstProp = next((p for p in ref.properties if not p.reference.marker), None)
-    preProperty: str = decompiler_raw_entity(firstProp.reference, entities) if firstProp else ''
+    preProperty: str = decompiler_raw_entity(firstProp.reference, entities, uniqueEntities) if firstProp else ''
     
     # properties postponed
     i: int = 0
     postProperties: str = ""
     for pp in (p for p in ref.properties if p.reference.id != firstProp.reference.id):
         op = pp.op if i > 0 or pp.op != TKOperator.AND else ''
-        postProperties += op + " " + decompiler_raw_entity(pp.reference, entities)
+        postProperties += op + " " + decompiler_raw_entity(pp.reference, entities, uniqueEntities)
         i += 1
 
-    # marker (todo: heck if we should print it or not)
-    marker: str = ''
-    # if ref.marker:
-    #    if ref.marker.lemma:
-    #        marker = ref.marker.lemma 
-    #    elif ref.marker.connect_clause == 'iobj':
-    #        marker = 'to'
-            
-    result = f"{marker.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
+    # marker only for complements
+    marker = ''
+    if ref.marker:
+        marker: str = ref.marker.lemma if not ref.marker.connect_clause else ''
+    marker = ''
+
+    result = f"{marker} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
 
 # recurse content to output raw sentences
-def decompiler_raw_recursive(content: LLCItemPayload, entities: list[TKLLEntity]) -> str:
+def decompiler_raw_recursive(content: LLCItemPayload, entities: list[TKLLEntity], uniqueEntities: list[TKLLUniqueEntity]) -> str:
     
     result: str = ""
     if isinstance(content, TKLLCContent):
-        subject = decompiler_raw_entity(content.subject, entities) if content.subject else ''
-        predicate = decompiler_raw_entity(content.predicate, entities) if content.predicate else ''
-        direct = decompiler_raw_entity(content.direct,entities) if content.direct else ''
-        indirects = ' '.join([decompiler_raw_entity(i, entities) for i in content.indirects]) if content.indirects else ''
+        subject = decompiler_raw_entity(content.subject, entities, uniqueEntities) if content.subject else ''
+        predicate = decompiler_raw_entity(content.predicate, entities, uniqueEntities) if content.predicate else ''
+        direct = decompiler_raw_entity(content.direct, entities, uniqueEntities) if content.direct else ''
+        indirects = ' '.join([decompiler_raw_entity(i, entities, uniqueEntities) for i in content.indirects]) if content.indirects else ''
         result = f"{subject} {predicate} {direct} {indirects}"
     elif isinstance(content, list):
         i: int = 0
         for item in content:
             op = item.op.value if i > 0 or item.op.value != TKOperator.AND else ''
-            result += f" {op} ({decompiler_raw_recursive(item.content, entities)})"
+            result += f" {op} ({decompiler_raw_recursive(item.content, entities, uniqueEntities)})"
             i += 1
 
     return result.strip()
@@ -91,7 +97,7 @@ def decompiler_raw(tkLLC: TKLLC) -> str:
     i: int = 0
     for item in tkLLC.items:
         op = item.op if i > 0 or item.op != TKOperator.AND else ''
-        result += op + ' (' + decompiler_raw_recursive(item.content, tkLLC.entities) + ') '
+        result += op + ' (' + decompiler_raw_recursive(item.content, tkLLC.entities, tkLLC.uniqueEntities) + ') '
         i += 1
 
     # clean text

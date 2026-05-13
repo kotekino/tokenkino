@@ -28,7 +28,7 @@ import stanza
 import spacy_stanza
 from spacy_stanza import Language as StanzaLanguage
 import numpy as np
-from lib.core.entities import TKLLC, TKAux, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKStakeholder, TKStatement, TKStatements
+from lib.core.entities import TKLLC, TKAux, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKPronoun, TKStakeholder, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -144,9 +144,10 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     doc_properties: list[TKFullEntity] = []
     tkMarker = None
     tkAux = None
+    tkMeaning = None
 
     # should be in the dictionary (exclude auxiliaries, pronouns)
-    if len(pos) > 0 and token.pos_ != "AUX" and token.pos_ != 'PROPN':
+    if len(pos) > 0 and token.pos_ != "AUX" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
         for p in pos:
             # search in dictionary
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
@@ -172,10 +173,14 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
         if token.pos_ == "PROPN":
             tkMeaning = TKName(name=token.lemma_)
+        elif token.pos_ == "PRON":
+            vector: list[int] = token.vector if token.has_vector else []
+            tkMeaning = TKPronoun(lemma=token.lemma_, vector=vector)
 
     # if still no result, generic (it is used to manage unknown semantics)
     knownPos = pos[0] if len(pos) > 0 else ""
-    if not doc_result: tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
+    if not tkMeaning and not doc_result: 
+        tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
     # get properties (for each token directly bound to the result)
     doc_properties = parser_getProperties(children)
@@ -328,9 +333,9 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     # ----------------------------------------
     # always create source and target entities
     # ----------------------------------------
-    if clause_type == TKClause.MAIN: 
-        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
-        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
+    # manage quotes
+    tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
+    tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
         
     tkMain.clause_type = clause_type
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)

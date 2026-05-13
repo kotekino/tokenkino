@@ -9,7 +9,7 @@ from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
-from lib.llc.preparser import preparser_init, preparser_prepare, preparser_typos
+from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.entities import TKLLC, TKStatement
@@ -99,6 +99,11 @@ async def polish(tokens: str):
 @app.get("/api/v1/pre/prepare")
 async def prepare(tokens: str):
     res = await preparser_prepare(tokens)
+    return res
+
+@app.get("/api/v1/pre/translate")
+async def prepare(tokens: str):
+    res = await preparser_translate(tokens)
     return res
 
 # ------------------------

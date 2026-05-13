@@ -72,6 +72,12 @@ class TKAux(BaseModel):
     lemma: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
 
+# pronoun
+class TKPronoun(BaseModel):
+    entity_type: Literal["pronoun"] = Field(default="pronoun")
+    lemma: Optional[str] = None
+    vector: list[float] = Field(default_factory=list)
+
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
@@ -107,7 +113,12 @@ class TKOperator(str, Enum):
     IMPLY = "IMPLY"
     CONV = "CONV"
     EQ = "EQ"
-    THAT = "THAT"
+    THAT = "THAT",
+    ANDNOT = "AND NOT"
+    ORNOT = "OR NOT"
+    NOTIMPLY = "NOT IMPLY"
+    NOTCONV = "NOT CONV"
+    NOTEQ = "NOT EQ"
 
 # clause type enum
 class TKClause(str, Enum):
@@ -296,10 +307,11 @@ class TKStatement(BaseModel):
             wrong = True
 
 # entities involved in statements
-EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement]
+EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement, TKPronoun]
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
+    referenceId: int = 0
 
 # the full entity
 class TKFullEntity(BaseModel):
@@ -370,12 +382,14 @@ class TKLLProperties(BaseModel):
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
     id: int
+    referenceId: int
     token: str
+    entity_type: str = Field(default='generic')
     semantic_vector: list[float] = Field(default_factory=list)
-    spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime) 
+    spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime)
 
 # unique entity in a sentence
-class TKLLUniqueEntities(BaseModel):
+class TKLLUniqueEntity(BaseModel):
     id: int
     references: list[int] = Field(default_factory=list())
     token: str
@@ -410,7 +424,7 @@ class TKLLC(BaseModel):
     map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
     items: list[TKLLCItem] = Field(default_factory=list)
     entities: list[TKLLEntity] = Field(default_factory=list)
-    uniqueEntities: list[TKLLUniqueEntities] = Field(default_factory=list())
+    uniqueEntities: list[TKLLUniqueEntity] = Field(default_factory=list())
 
 # payload for item
 LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]

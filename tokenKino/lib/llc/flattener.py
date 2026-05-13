@@ -10,9 +10,10 @@
 import copy
 
 import spacy
-from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKLLUniqueEntities, TKMarker, TKOperator, TKStatement, TKStatements
-from lib.llc.constants import _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKLLUniqueEntity, TKMarker, TKOperator, TKStatement, TKStatements
+from lib.llc.constants import _PRONOUNS_BASE_ANCHORS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.llc.parser import parser_getFullEntity
+from lib.llc.constants import _LISTENER_ID, _TALKER_ID
 
 nlp = spacy.load(_SPACY_MODEL)
 
@@ -82,6 +83,8 @@ def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEnti
     token = ''
     semantic: list[float] = list()
     spacetime: TKLLSpacetime = TKLLSpacetime()
+    entity_type = ent.payload.entity_type
+    referenceId = ent.referenceId + parentOffset if ent.referenceId > 0 else 0
 
     if ent.payload.entity_type == "dictionary": 
         token = ent.payload.word
@@ -92,13 +95,16 @@ def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEnti
         token = ent.payload.name
     elif ent.payload.entity_type == "meta":
         token = ent.payload.name
+    elif ent.payload.entity_type == "pronoun":
+        token = ent.payload.lemma
+        semantic: list[float] = ent.payload.vector
     elif ent.payload.entity_type == "generic": 
         token = ent.payload.token
     elif ent.payload.entity_type == "statement":
         # excluded statements
         return None
 
-    return TKLLEntity(id=id, token=token, semantic_vector=semantic, spacetime=spacetime)
+    return TKLLEntity(id=id, referenceId=referenceId, token=token, semantic_vector=semantic, spacetime=spacetime, entity_type=entity_type)
 
 # create a list of tkllentity from a list of tkentity
 def flattener_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) -> list[TKLLEntity]:
@@ -156,8 +162,6 @@ def flattener_evaluateContent(stat: TKStatement, clauseType: TKClauseType, prope
     for indirectReference in stat.indirects:
         indirectEntity = next(i for i in indEntities if i.id == indirectReference.id)
         if indirectEntity.payload.entity_type == "statement": 
-
-            replaceSubject: int = None
 
             subordinate: TKStatement = indirectEntity.payload
             subordinateType = flattener_parseMarker(indirectReference.marker)
@@ -407,28 +411,54 @@ def flattener_searchXCompSubjects(items: list[TKLLCItem], entities: list[TKLLEnt
     
     return items
 
+# search entities references by pronoun
+def flattener_getEntitiesByPronoun(lemma: str) -> int:
+    
+    resultId: int = None
+
+    lemma = lemma.lower()
+    if lemma in _PRONOUNS_BASE_ANCHORS:
+        resultId = _PRONOUNS_BASE_ANCHORS[lemma]
+
+    return resultId
+
 # match entities
-def flattener_extractUniqueEntities(entities: list[TKLLEntity], existingUniqueEntities: list[TKLLUniqueEntities]) -> list[TKLLUniqueEntities]:
+def flattener_extractUniqueEntities(entities: list[TKLLEntity], existingUniqueEntities: list[TKLLUniqueEntity]) -> list[TKLLUniqueEntity]:
 
-    result: list[TKLLUniqueEntities] = existingUniqueEntities
-
-    # resolve pronouns: 
-    # in general:
-    # you -> id == 2
-    # i -> id == 1
-    # BUT the quote does not work like this: we need a talker and listener relative to the quote
+    result: list[TKLLUniqueEntity] = existingUniqueEntities
 
     # resolve identities
     iCounter = len(existingUniqueEntities) + 1
     for e in entities:
-        ref = next((t for t in result if t.token == e.token), None)
+        # itself or the referenced (search in entities)
+        referencedEntity = next((ee for ee in entities if ee.id == e.referenceId), None) if e.referenceId > 0 else e
+        if referencedEntity == None: 
+            referencedEntity = e
+        ref = next((t for t in result if t.token == referencedEntity.token), None)
         if ref == None:
-            result.append(TKLLUniqueEntities(id=iCounter, token=e.token, references=[e.id]))
+            result.append(TKLLUniqueEntity(id=iCounter, token=e.token, references=[e.id]))
             iCounter += 1
         else:
             ref.references.append(e.id)
 
     return result
+
+# resolve pronouns to the talker and listener of the sentence
+def flattener_resolvePronouns(stat: TKStatement) -> TKStatement:
+
+    # resolve pronouns: 
+    for e in stat.entities:
+        if e.payload.entity_type == "statement":
+            flattener_resolvePronouns(e.payload) # recurse
+        else:
+            if e.payload.entity_type == "pronoun":
+                referenceFound = flattener_getEntitiesByPronoun(e.payload.lemma) # relative to the sentence
+
+                # remove reference to pronoun and assign it to the real entity
+                if referenceFound:
+                    e.referenceId = referenceFound
+
+    return stat
 
 # main flat function
 def flattener_flat(tkStatements: TKStatements) -> TKLLC | None:
@@ -437,10 +467,14 @@ def flattener_flat(tkStatements: TKStatements) -> TKLLC | None:
     items: list[TKLLCItem] = list()
 
     # for each statement, flatten it and add to the result
-    uniqueEntities: list[TKLLUniqueEntities] = list()
+    uniqueEntities: list[TKLLUniqueEntity] = list()
     parentOffset: int = 0
     iCounter: int = 1
     for stat in tkStatements:
+
+        # assign pronouns to real entities
+        flattener_resolvePronouns(stat)
+
         clauseType = TKClauseType.MAIN if iCounter == 1 else TKClauseType.COORDINATE
         i, e = flattener_processStatement(stat, clauseType, TKOperator.AND, None, parentOffset)
 
@@ -463,4 +497,3 @@ def flattener_flat(tkStatements: TKStatements) -> TKLLC | None:
     # return result
     result = TKLLC(items=items, entities=entities, uniqueEntities=uniqueEntities, map=spacetimemap)
     return result
-
