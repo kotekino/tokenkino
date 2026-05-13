@@ -4,7 +4,6 @@
 # and TKEntity as entities (subjects, direct and indirect objects)
 #
 # tasks
-# match subjects line 432
 # manage spacetime (temporal and spatial modifiers) line 85
 # ------------------------------------------------------------------------------------------------
 import copy

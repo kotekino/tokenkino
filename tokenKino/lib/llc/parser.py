@@ -3,16 +3,12 @@
 #
 # TASKS
 # manage articles (needed?)
-#  
-# manage pronouns (needed!)
-#
-# manage passive (needed?)
-#  
 # manage plurality (needed)
-#
-# http://localhost:8000/api/v1/tkllc?tokens=I%27m%20good%20but%20I%20have%20no%20energy
-# line 215: fix the way we manage adversatives (but)
-#
+# manage negative (won't, don't)
+# manage relative subjects (quotes, needed)
+# manage advmod (needed): can be a property (GENETICALLY modified food) or an operator (I am NOT good) or a marker
+# I%20require%20something%20to%20fix
+# manage indirects ACL: they may be bound to the direct, so not part of the children line 325
 # test against every sentence from UD2 
 # ------------------------------------------------------------------------------------------------
 
@@ -236,7 +232,8 @@ def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
 
         # case dative (can be a name [take the entity] or a prep [take the first child])
         # oblique (expect a case or marker)
-        if t.dep_ == "obl": indirectEntity = parser_getFullEntity(t, False)
+        if t.dep_ == "obl": 
+            indirectEntity = parser_getFullEntity(t, False)
         # adverb (of predicate) # todo fix
         elif t.dep_ == "advmod": 
             indirectEntity = parser_getFullEntity(t, False)
