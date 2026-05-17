@@ -137,6 +137,9 @@ class TKClauseType(str, Enum):
     LOCATIVE = "locative"
     CCOMP = "ccomp"
     XCOMP = "xcomp"
+    ACL = "acl"
+    ACLRELCL = "acl:relcl"
+    ADVCL = "advcl"
     PARATAXIS = "parataxis"
     OTHER = "other"
 
@@ -402,6 +405,7 @@ class TKLLEntityProperty(BaseModel):
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
+    op: TKOperator = Field(default=TKOperator.AND)
     marker: Optional[TKMarker] = None
     properties: list[TKLLEntityProperty] = Field(default_factory=list)
 

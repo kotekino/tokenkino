@@ -4,11 +4,8 @@
 # TASKS
 # manage articles (needed?)
 # manage plurality (needed)
-# manage negative (won't, don't)
 # manage relative subjects (quotes, needed)
-# manage advmod (needed): can be a property (GENETICALLY modified food) or an operator (I am NOT good) or a marker
-# I%20require%20something%20to%20fix
-# manage indirects ACL: they may be bound to the direct, so not part of the children line 325
+#
 # test against every sentence from UD2 
 # ------------------------------------------------------------------------------------------------
 
@@ -19,10 +16,7 @@ from ollama import Client as OllamaClient
 import spacy
 from spacy import displacy
 from spacy.tokens import Token
-from spacy import Language
-import stanza
 import spacy_stanza
-from spacy_stanza import Language as StanzaLanguage
 import numpy as np
 from lib.core.entities import TKLLC, TKAux, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKPronoun, TKStakeholder, TKStatement, TKStatements
 from lib.core.io import init_io
@@ -33,9 +27,6 @@ from lib.llc.decompiler import decompiler_raw
 from lib.core.utilities import util_removeSpace
 from lib.core.constants import _ME_NAME
 from functools import cmp_to_key
-
-# stanza
-# stanza.download("en", package="lines")
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
@@ -57,8 +48,8 @@ _ollamaClient: OllamaClient = None
 _talker: str = None
 
 # get operator corresponding to cc
-def parser_ccToOperator(token: Token) -> TKOperator:
-    lemma = token.lemma_.lower()
+def parser_ccToOperator(token: Token | str) -> TKOperator:
+    lemma = token.lemma_.lower() if isinstance(token, Token) else token
 
     # 1. STRADA VELOCE (Hit diretto)
     if lemma in _OPERATORS_BASE_ANCHORS:
@@ -86,7 +77,7 @@ def parser_ccToOperator(token: Token) -> TKOperator:
         return TKOperator.AND
 
 # (DONE) get properties
-def parser_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
+def parser_getProperties(tokens: list[Token], predicate: bool = False) -> list[TKFullEntity]:
 
     doc_properties: list[TKFullEntity] = []
     property: TKFullEntity
@@ -96,6 +87,8 @@ def parser_getProperties(tokens: list[Token]) -> list[TKFullEntity]:
         if t.dep_ == "nummod" \
         or t.dep_ == "amod" \
         or t.dep_ == "nmod" \
+        or t.dep_ == "advmod" \
+        or t.dep_ == "compound" \
         or t.dep_ == "nmod:poss" \
         or t.dep_ == "det":
             property = parser_getFullEntity(t, False)
@@ -127,6 +120,9 @@ def parser_getRelatedEntity(token: Token, statement: bool = False) -> TKFullEnti
 
 # (ONGOING) get seamntic value from dictionary + properties
 def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
+
+    # set operator
+    op = TKOperator.AND
 
     # related tokens to the entity
     conjuncts = list(token.conjuncts)
@@ -179,16 +175,23 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
         tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
     # get properties (for each token directly bound to the result)
-    doc_properties = parser_getProperties(children)
+    doc_properties = parser_getProperties(children, predicate)
 
+    # search operators in properties (advmod)
+    for dp in doc_properties:
+        if dp.entity.entity_type == "generic" and dp.entity.upos == "PART":
+            op = parser_ccToOperator(dp.entity.token)
+            if op and op != TKOperator.AND: doc_properties.remove(dp) # not?
+        
     # get marker
     marker = next((s for s in children if s.dep_ == "case" or s.dep_ == "mark"), None)
-    if marker and marker.has_vector: 
+    if marker and marker.has_vector and not predicate: 
         tkMarker = TKMarker(marker_type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)    
 
     # update marker
-    if tkMarker == None and token.dep_ == "iobj": 
-        tkMarker = TKMarker(connect_clause=token.dep_)
+    if tkMarker == None and token.dep_ == "iobj":
+        newMarker = nlp.tokenizer("to")
+        tkMarker = TKMarker(lemma="to", vector=newMarker.vector if newMarker.has_vector else [])
 
     # get auxiliary
     aux = next((s for s in children if s.pos_ == "AUX"), None)
@@ -196,7 +199,7 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
         tkAux = TKAux(lemma=aux.lemma_, vector=aux.vector)
 
     # primary entity (from token)
-    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=TKOperator.AND, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties)
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=op, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties)
 
     # get related entities
     for c in [cc for cc in conjuncts if cc.head == token]:
@@ -234,14 +237,16 @@ def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
         # oblique (expect a case or marker)
         if t.dep_ == "obl": 
             indirectEntity = parser_getFullEntity(t, False)
-        # adverb (of predicate) # todo fix
-        elif t.dep_ == "advmod": 
-            indirectEntity = parser_getFullEntity(t, False)
         # indirect object (you give YOU something)
         elif t.dep_ == "iobj": 
             indirectEntity = parser_getFullEntity(t, False)
         # clausal complements
-        elif t.dep_ == "xcomp" or t.dep_ == "ccomp" or t.dep_ == "advcl" or t.dep_ == "acl" or t.dep_ == "parataxis": 
+        elif t.dep_ == "xcomp" \
+            or t.dep_ == "ccomp" \
+            or t.dep_ == "advcl" \
+            or t.dep_ == "acl" \
+            or t.dep_ == "acl:relcl" \
+            or t.dep_ == "parataxis": 
             indirectEntity = parser_parseSubordinate(t)
 
         # if found 
@@ -294,7 +299,8 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
         return None
     
     # parse the original subtree
-    tokens = list(root.subtree) 
+    tokens = list(root.subtree)
+    subtreeNoSelf = [t for t in tokens if t != root]
    
     # ------------------------------
     # root is predicate
@@ -313,7 +319,7 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
         if subjectToken: tkSubject = parser_parseSubordinate(subjectToken)
 
     # ------------------------------
-    # search direct (anomaly: double obj. one is iobj)
+    # search direct
     # ------------------------------
     tkDirect = None
     directToken = next((s for s in tokens if s.dep_ == "obj" and s.head == root), None)
@@ -322,7 +328,7 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     # ------------------------------
     # search indirect (only on root's children)
     # ------------------------------
-    indirectEntities = parser_getIndirects(root.children)
+    indirectEntities = parser_getIndirects(subtreeNoSelf)
 
     # main statement
     tkMain = TKStatement()
@@ -398,21 +404,3 @@ def parser_diagram(tokens: str) -> str:
     html = '<html><body>' + diagram + '</body></html>'
 
     return html
-
-# reference: https://universaldependencies.org/u/dep/acl.html
-
-# acl: clausal modifier of noun (adnominal clause)
-# https://universaldependencies.org/u/dep/acl.html#acl-clausal-modifier-of-noun-adnominal-clause
-# ->
-
-# acl:relcl: relative clause modifier
-# https://universaldependencies.org/u/dep/acl-relcl.html
-# -> double the sentence object for both sentences
-
-# advcl: adverbial clause modifier
-# https://universaldependencies.org/u/dep/advcl.html#advcl-adverbial-clause-modifier
-# ->
-
-# advcl:relcl: adverbial relative clause modifier
-# https://universaldependencies.org/u/dep/advcl-relcl.html
-# ->

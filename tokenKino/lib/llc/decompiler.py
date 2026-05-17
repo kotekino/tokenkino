@@ -57,17 +57,18 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity], 
     i: int = 0
     postProperties: str = ""
     for pp in (p for p in ref.properties if p.reference.id != firstProp.reference.id):
-        op = pp.op if i > 0 or pp.op != TKOperator.AND else ''
+        op = pp.op.value if pp.op and (i > 0 or pp.op != TKOperator.AND) else ""
         postProperties += op + " " + decompiler_raw_entity(pp.reference, entities, uniqueEntities)
         i += 1
 
     # marker only for complements
     marker = ''
-    if ref.marker:
-        marker: str = ref.marker.lemma if not ref.marker.connect_clause else ''
-    marker = ''
+    if ref.marker: marker: str = ref.marker.lemma if not ref.marker.connect_clause else ""
+    
+    # entity op
+    opString: str = ref.op.value if ref.op and ref.op != TKOperator.AND else ""
 
-    result = f"{marker} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
+    result = f"{opString} {marker} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
 

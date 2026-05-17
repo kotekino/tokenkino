@@ -27,7 +27,6 @@ _SUBORDINATE_TYPE_BASE_ANCHORS = {
     "from": TKClauseType.LOCATIVE, 
     "in": TKClauseType.LOCATIVE, 
     "when": TKClauseType.TEMPORAL,
-    "to": TKClauseType.XCOMP,
     "that": TKClauseType.CCOMP
     }
 _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD: float = 0.6

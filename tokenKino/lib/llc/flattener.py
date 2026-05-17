@@ -38,6 +38,7 @@ def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, 
     
     # evaluate marker
     marker = ref.marker
+    op = ref.op
 
     # recurse
     flattenedProperties = flattener_recurseReferenceProperties(ref, parentOffset, isProperty)
@@ -47,13 +48,14 @@ def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, 
         properties.append(TKLLEntityProperty(op=fp[0], reference=fp[1]))
     
     # return result
-    return TKLLEntityReference(id=ref.id + parentOffset, marker=marker, properties=properties)
+    return TKLLEntityReference(id=ref.id + parentOffset, marker=marker, properties=properties, op=op)
 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
 def flattener_parseMarker(marker: TKMarker) -> TKClauseType:
 
     # parse marker on lemma, then connect_clause then fallback other
-    if not marker.lemma: return marker.connect_clause if marker.connect_clause else TKClauseType.OTHER
+    if marker.connect_clause: return marker.connect_clause
+    if not marker.lemma: return TKClauseType.OTHER
 
     # 1. simple case
     if marker.lemma in _SUBORDINATE_TYPE_BASE_ANCHORS:
@@ -203,6 +205,15 @@ def flattener_evaluateContent(stat: TKStatement, clauseType: TKClauseType, prope
 
             elif subordinateType == TKClauseType.CCOMP:
                 # explicit subject
+                operator = TKOperator.THAT
+
+            elif subordinateType == TKClauseType.ACL:
+                operator = TKOperator.THAT
+
+            elif subordinateType == TKClauseType.ACLRELCL:
+                operator = TKOperator.THAT
+
+            elif subordinateType == TKClauseType.ADVCL:
                 operator = TKOperator.THAT
 
             elif subordinateType == TKClauseType.XCOMP:
