@@ -3,7 +3,7 @@
 # FLAT compiler: transform TKStatements into a flat list of TKLLCItem (with TKEntity as predicate) 
 # and TKEntity as entities (subjects, direct and indirect objects)
 #
-# tasks
+
 # manage spacetime (temporal and spatial modifiers) line 85
 # ------------------------------------------------------------------------------------------------
 import copy
@@ -96,6 +96,8 @@ def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEnti
         token = ent.payload.name
     elif ent.payload.entity_type == "meta":
         token = ent.payload.name
+    elif ent.payload.entity_type == "num":
+        token = str(ent.payload.value)
     elif ent.payload.entity_type == "pronoun":
         token = ent.payload.lemma
         semantic: list[float] = ent.payload.vector

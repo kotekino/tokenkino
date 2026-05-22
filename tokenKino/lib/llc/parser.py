@@ -1,12 +1,5 @@
 # ------------------------------------------------------------------------------------------------
 # PARSER: transform a token list into a list of TKStatements (using spacy for the first ingestion)
-#
-# TASKS
-# manage articles (needed?)
-# manage plurality (needed)
-# manage relative subjects (quotes, needed)
-#
-# test against every sentence from UD2 
 # ------------------------------------------------------------------------------------------------
 
 from typing import Any
@@ -15,10 +8,10 @@ import copy
 from ollama import Client as OllamaClient
 import spacy
 from spacy import displacy
-from spacy.tokens import Token
+from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.entities import TKLLC, TKAux, TKClause, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKOperator, TKPronoun, TKStakeholder, TKStatement, TKStatements
+from lib.core.entities import TKLLC, TKAux, TKClause, TKEntityReference, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStakeholder, TKStatement, TKStatements
 from lib.core.io import init_io
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
@@ -27,6 +20,8 @@ from lib.llc.decompiler import decompiler_raw
 from lib.core.utilities import util_removeSpace
 from lib.core.constants import _ME_NAME
 from functools import cmp_to_key
+import textacy
+from word2number import w2n
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
@@ -139,7 +134,7 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
     tkMeaning = None
 
     # should be in the dictionary (exclude auxiliaries, pronouns)
-    if len(pos) > 0 and token.pos_ != "AUX" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
+    if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != "AUX" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
         for p in pos:
             # search in dictionary
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
@@ -165,6 +160,15 @@ def parser_getFullEntity(token: Token, predicate: bool = False) -> TKFullEntity:
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
         if token.pos_ == "PROPN":
             tkMeaning = TKName(name=token.lemma_)
+        if token.pos_ == "NUM":
+            clean_text = token.text.replace(',', '').strip()
+            numValue = 0
+            try:
+                numValue = float(clean_text)
+            except ValueError:
+                numValue = float(w2n.word_to_num(clean_text))
+            
+            tkMeaning = TKNumber(value=numValue, num_type=token.ent_type_, text=token.lemma_)
         elif token.pos_ == "PRON":
             vector: list[int] = token.vector if token.has_vector else []
             tkMeaning = TKPronoun(lemma=token.lemma_, vector=vector)
@@ -221,7 +225,7 @@ def parser_indirectComparator(a: Token, b: Token):
         return (a.dep_ > b.dep_) - (a.dep_ < b.dep_)
 
 # (ONGOING) get all indirect objects (cycling remaining tokens)
-def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]: 
+def parser_getIndirects(tokens: list[Token], quotes: list[tuple[list[Token], list[Token], Span]] = None) -> list[TKFullEntity]: 
 
     # initialize result
     indirectFullEntities: list[TKFullEntity] = list()
@@ -246,8 +250,14 @@ def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
             or t.dep_ == "advcl" \
             or t.dep_ == "acl" \
             or t.dep_ == "acl:relcl" \
-            or t.dep_ == "parataxis": 
-            indirectEntity = parser_parseSubordinate(t)
+            or t.dep_ == "parataxis":
+
+            forcedSubject: Token = None
+            for q in quotes: 
+                if t.text in (c.text for c in list(q.content)): 
+                    forcedSubject = q.speaker[0] if len(q.speaker) > 0 else None
+                continue
+            indirectEntity = parser_parseSubordinate(t, forcedSubject)
 
         # if found 
         if indirectEntity: 
@@ -261,7 +271,7 @@ def parser_getIndirects(tokens: list[Token]) -> list[TKFullEntity]:
     return indirectFullEntities
 
 # parse a subordinate clause
-def parser_parseSubordinate(token: Token) -> TKFullEntity:
+def parser_parseSubordinate(token: Token, forcedSubject: Token = None) -> TKFullEntity:
 
     # initialize variables
     childrenTokens = list(token.children)
@@ -279,13 +289,13 @@ def parser_parseSubordinate(token: Token) -> TKFullEntity:
 
     tokenSubtree = [t for t in token.subtree if t != marker]
 
-    tkStatement = parser_parseSentence(tokenSubtree, clause_type=TKClause.SUBORDINATE)
+    tkStatement = parser_parseSentence(tokenSubtree, clause_type=TKClause.SUBORDINATE, forcedSubject=forcedSubject)
     if tkStatement: result = TKFullEntity(entity=tkStatement, token=None, aux=None, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
     
     return result
 
 # (ONGOING) parse sentence (simple or compoung)
-def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause.MAIN) -> TKStatement: 
+def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKClause.MAIN, forcedSubject: Token = None) -> TKStatement: 
     global _talker
 
     # get root of the sub statement
@@ -298,6 +308,9 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     else:
         return None
     
+    # check for quotes
+    quotes = list(textacy.extract.triples.direct_quotations(doc))
+
     # parse the original subtree
     tokens = list(root.subtree)
     subtreeNoSelf = [t for t in tokens if t != root]
@@ -328,7 +341,7 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     # ------------------------------
     # search indirect (only on root's children)
     # ------------------------------
-    indirectEntities = parser_getIndirects(subtreeNoSelf)
+    indirectEntities = parser_getIndirects(subtreeNoSelf, quotes)
 
     # main statement
     tkMain = TKStatement()
@@ -337,8 +350,13 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     # always create source and target entities
     # ----------------------------------------
     # manage quotes
-    tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
-    tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
+    if (forcedSubject):
+        forceSubjectEntity = parser_getFullEntity(forcedSubject, False)
+        tkMain.create_entity(payload=forceSubjectEntity.entity)
+        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
+    else:
+        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
+        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
         
     tkMain.clause_type = clause_type
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)

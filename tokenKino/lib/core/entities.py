@@ -78,6 +78,13 @@ class TKPronoun(BaseModel):
     lemma: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
 
+# num
+class TKNumber(BaseModel):
+    entity_type: Literal["num"] = Field(default="num")
+    text: str
+    value: float
+    num_type: str
+
 # generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
@@ -310,7 +317,7 @@ class TKStatement(BaseModel):
             wrong = True
 
 # entities involved in statements
-EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement, TKPronoun]
+EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement, TKPronoun, TKNumber]
 class TKEntity(BaseModel):
     id: int = 0
     payload: EntityPayload = Field(discriminator='entity_type')
