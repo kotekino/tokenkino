@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Debugger: FastAPI",
+            "name": "Python Debugger: API",
             "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
@@ -16,6 +16,19 @@
                 "--reload"
             ],
             "jinja": true
-        }
+        },
+        {
+            "name": "Python Debugger: Brain",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "cwd": "${workspaceFolder}/tokenKino", 
+            "envFile": "${workspaceFolder}/tokenKino/.env",
+            "args": [
+                "brain.main:app",
+                "--reload"
+            ],
+            "jinja": true
+        },        
     ]
 }
