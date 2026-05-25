@@ -21,14 +21,10 @@
             "name": "Python Debugger: Brain",
             "type": "debugpy",
             "request": "launch",
-            "module": "uvicorn",
-            "cwd": "${workspaceFolder}/tokenKino", 
+            "module": "brain.main",
+            "cwd": "${workspaceFolder}/tokenKino",
             "envFile": "${workspaceFolder}/tokenKino/.env",
-            "args": [
-                "brain.main:app",
-                "--reload"
-            ],
-            "jinja": true
-        },        
+            "console": "integratedTerminal"
+        } 
     ]
 }

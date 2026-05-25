@@ -19,7 +19,7 @@ dependencies = [
 
 [tool.taskipy.tasks]
 api = "uvicorn api.main:app --reload"
-brain = "uvicorn brain.main:app --reload"
+brain = "python -m brain.main"
 
 
 [tool.setuptools.packages.find]
