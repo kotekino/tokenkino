@@ -1,1 +1,2 @@
-_ME_NAME = 'tokenkino'
+_ME_NAME = "tokenKino"
+_ME_UID = "tokenKino"

@@ -53,18 +53,21 @@ def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
 def flattener_parseMarker(marker: TKMarker) -> TKClauseType:
 
-    # parse marker on lemma, then connect_clause then fallback other
-    if marker.connect_clause: return marker.connect_clause
-    if not marker.lemma: return TKClauseType.OTHER
+    # if no lemma, return other
+    if not marker.lemma: 
+        if marker.connect_clause: 
+            return marker.connect_clause
+        else:
+            return TKClauseType.OTHER
+
+    # 0. get doc
+    newDoc = nlp.tokenizer(marker.lemma)
 
     # 1. simple case
     if marker.lemma in _SUBORDINATE_TYPE_BASE_ANCHORS:
         return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.lemma]
 
-    # get doc
-    newDoc = nlp.tokenizer(marker.lemma)
-
-    # 2. vector space
+    # 2. vector space on the marker
     best_type = TKClauseType.OTHER  
     for anchor_word, sub_type in _SUBORDINATE_TYPE_BASE_ANCHORS.items():
         anchor_lexeme = nlp.vocab[anchor_word]
@@ -74,8 +77,14 @@ def flattener_parseMarker(marker: TKMarker) -> TKClauseType:
             if sim > _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD:
                 best_type = sub_type
 
-    # 3. threshold check
-    return best_type
+    if best_type != TKClauseType.OTHER:
+        return best_type
+
+    # 3. parse marker on lemma, then connect_clause then fallback other
+    if marker.connect_clause: return marker.connect_clause
+    
+    # 4. fallback
+    return TKClauseType.OTHER
 
 # create an tkllentity from tkentity
 def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEntity:
@@ -95,7 +104,7 @@ def flattener_initializeEntity(ent: TKEntity, parentOffset: int = 0) -> TKLLEnti
     elif ent.payload.entity_type == "place": 
         token = ent.payload.name
     elif ent.payload.entity_type == "meta":
-        token = ent.payload.name
+        token = ent.payload.who.name
     elif ent.payload.entity_type == "num":
         token = str(ent.payload.value)
     elif ent.payload.entity_type == "pronoun":

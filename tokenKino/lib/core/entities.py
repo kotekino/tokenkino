@@ -1,19 +1,10 @@
 from __future__ import annotations
 import copy
+import time
 from typing import List, Optional, Union, Literal
 from enum import Enum
+from bson import ObjectId
 from pydantic import BaseModel, Field, PrivateAttr, RootModel, computed_field
-
-# --------------------------------------------------
-# context
-# --------------------------------------------------
-class TKMessage(BaseModel):
-    source: str
-    target: str
-    message: str
-
-# alias for list of messages
-TKContext = list[TKMessage]
 
 # --------------------------------------------------
 # mongo knowledgebase
@@ -92,18 +83,11 @@ class TKGeneric(BaseModel):
     upos: Optional[str] = None
     pos: Optional[str] = None
     definition: Optional[str] = None
-    context: Optional[TKContext] = None
-
-# meta entities: possible stakeholders (me, tokenkino or anyone else)
-class TKStakeholder(str, Enum):
-    ME = "me"
-    OTHER = "other"
 
 # a meta entity referencing a stakeholder
 class TKMetaEntity(BaseModel):
     entity_type: Literal["meta"] = Field(default="meta")
-    who: TKStakeholder = Field(default=TKStakeholder.OTHER)
-    name: str = Field(defaul="unknown")
+    who: MEMStakeholder
     isTalking: bool = Field(default=True)
     isListening: bool = Field(default=False)
 
@@ -440,6 +424,52 @@ class TKLLC(BaseModel):
 # payload for item
 LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]
 
+# --------------------------------------------------
+# memory
+# --------------------------------------------------
+
+# known talking entities
+class MEMStakeholder(BaseModel):
+    name: str
+    uid: str
+    channel: str = Field(default="internal")
+    isMe: bool = Field(default=False)
+    createdAt: int = Field(default_factory=lambda: int(time.time()))
+
+# mem item properties
+class MEMItemProperties(BaseModel):
+    trusted: float = Field(default=0.5) # 0 not trusted, 1 fully trusted
+
+# memory item
+class MEMItem(BaseModel):
+    tkllc: TKLLC
+    sourceId: str # unique stakeholder objectId of the source (talker)
+    targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
+    channel: Optional[str] = None # channel of the message (e.g. "discord", "atproto", "internal")
+    timestamp: int = Field(default_factory=lambda: int(time.time())) # timestamp of the message
+    raw: Optional[str] = None # raw message (optional, for debugging and learning purposes)
+
+# alias for list of memory items
+MEMContext = list[MEMItem]
+
+# axiom
+class MEMAxiom(MEMItem, MEMItemProperties):
+    archived: bool = Field(default=True) # if archived, the axiom is not used for reasoning and deriving new knowledge
+    readonly: bool = Field(default=False) # if readonly, the axiom cannot be archived and is always used for reasoning and deriving new knowledge
+    createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
+    archivedAt: Optional[int] = None # timestamp of archiving (if archived, the axiom is not used for reasoning and deriving new knowledge)
+    trusted: float = Field(default=1)
+
+# theorem
+class MEMTheorem(MEMItem, MEMItemProperties):
+    archived: bool = Field(default=True) # if archived, the theorem is not used for reasoning and deriving new knowledge
+    createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
+    archivedAt: Optional[int] = None # timestamp of archiving (if archived, the theorem is not used for reasoning and deriving new knowledge)
+    trusted: float = Field(default=0.9)
+
+
+# rebuild models (important to do after editing the models, to update the internal pydantic model)
+TKMetaEntity.model_rebuild()
 TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()
 TKEntity.model_rebuild()

@@ -3,6 +3,8 @@ import logging
 import signal
 import sys
 
+from tokenKino.lib.core.io import init_io
+
 # Configurazione del logging per vedere cosa succede in console
 logging.basicConfig(
     level=logging.INFO,
@@ -48,7 +50,7 @@ async def main():
     logger.info("🚀 Init tokenKino")
     
     # 1. Init
-    # db, ai_client = init_io()
+    db, db_memory, ai_client = init_io()
     
     # 2. Graceful Shutdown
     loop = asyncio.get_running_loop()

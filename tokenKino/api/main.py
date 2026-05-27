@@ -7,13 +7,14 @@ from pymongo import MongoClient
 from lib.llc.parser import parser, parser_diagram
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
-from lib.core.io import init_io
-from lib.core.models import TKDictionaryDoc
+from lib.core.io import get_stakeholder, get_tokenkino, init_io
+from lib.core.models import TKMemoryItemDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.entities import TKLLC, TKStatement
 from lib.llc.flattener import flattener_flat
+from lib.core.constants import _ME_UID
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -23,14 +24,18 @@ async def lifespan(app: FastAPI):
 
     # IO init
     uri = os.getenv("MONGO_URI")
-    db_name = os.getenv("MONGO_DB_NAME")    
+    db_name = os.getenv("MONGO_DB_NAME")  
+    db_name_memory = os.getenv("MONGO_DB_NAME_MEMORY")  
     ollama_host = os.getenv("OLLAMA_HOST")
 
-    db_client, ai_client = init_io(uri, db_name, ollama_host)
-    
+    db_client, db_memory_client, ai_client = init_io(uri, db_name, db_name_memory, ollama_host)
+    tokenkino = get_tokenkino()
+
     # Salviamo nello stato
     app.state.db_client = db_client
     app.state.ai_client = ai_client
+    app.state.db_memory_client = db_memory_client
+    app.state.tokenkino = tokenkino
 
     # init preparser
     await preparser_init(ai_client)
@@ -50,10 +55,12 @@ app = FastAPI(lifespan=lifespan)
 @app.get("/api/v1/tkllc")
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
     try:
-        
+        # get talker entity from memory, or create it if not exists
+        talkerEntity = get_stakeholder(talker)
+
         # pipeline pre (if prepare), recursive, flat, raw, output (if output)
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
-        recursiveResult = parser(preparsedTokens, talker,  None, app.state.ai_client)
+        recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokenkino, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
         flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
         rawResult = decompiler_raw(flatResult) if flatResult else ''
@@ -67,6 +74,18 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
             "llc recursive": recursiveResult,
         }
         status = "complete"
+
+        # store in memory
+        if flatResult:
+            memory_doc: TKMemoryItemDoc = TKMemoryItemDoc(
+                tkllc=flatResult,
+                sourceId=str(talkerEntity.id),
+                targetId=str(app.state.tokenkino.id),
+                channel="api",
+                raw=tokens
+            )
+            memory_doc.insert()
+
     except Exception as error:
         res = repr(error)
         status = "failed"

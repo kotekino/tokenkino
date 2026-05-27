@@ -11,8 +11,7 @@ from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.entities import TKLLC, TKAux, TKClause, TKEntityReference, TKMarker, TKFullEntity, TKContext, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStakeholder, TKStatement, TKStatements
-from lib.core.io import init_io
+from lib.core.entities import TKLLC, MEMContext, MEMStakeholder, TKAux, TKClause, TKEntityReference, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStatement, TKStatements
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
@@ -38,9 +37,10 @@ nlp_stanza = spacy_stanza.load_pipeline("en")
 nlp = spacy.load(_SPACY_MODEL)
 
 # global variables
-_context: TKContext = None
+_context: MEMContext = None
 _ollamaClient: OllamaClient = None
-_talker: str = None
+_talker: MEMStakeholder = None
+_tokenkino: MEMStakeholder = None
 
 # get operator corresponding to cc
 def parser_ccToOperator(token: Token | str) -> TKOperator:
@@ -239,7 +239,7 @@ def parser_getIndirects(tokens: list[Token], quotes: list[tuple[list[Token], lis
 
         # case dative (can be a name [take the entity] or a prep [take the first child])
         # oblique (expect a case or marker)
-        if t.dep_ == "obl": 
+        if t.dep_ == "obl" or t.dep_ == "obl:tmod":
             indirectEntity = parser_getFullEntity(t, False)
         # indirect object (you give YOU something)
         elif t.dep_ == "iobj": 
@@ -353,10 +353,10 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
     if (forcedSubject):
         forceSubjectEntity = parser_getFullEntity(forcedSubject, False)
         tkMain.create_entity(payload=forceSubjectEntity.entity)
-        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
+        tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=True, isTalking=False))
     else:
-        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.OTHER, name=_talker))
-        tkMain.create_entity(payload=TKMetaEntity(who=TKStakeholder.ME, name=_ME_NAME, isListening=True, isTalking=False))
+        tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=False, isTalking=True))
+        tkMain.create_entity(payload=TKMetaEntity(who=_tokenkino, isListening=True, isTalking=False))
         
     tkMain.clause_type = clause_type
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
@@ -392,16 +392,19 @@ def parser_core(tokens: list[Token]) -> TKStatements:
 # --------------------------------------------------------------
 # (DONE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
-def parser(tokens: str, talker: str = "unknown", context: TKContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
-    global _context, _ollamaClient, _talker
+def parser(tokens: str, talker: MEMStakeholder, tokenkino: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
+    global _context, _ollamaClient, _talker, _tokenkino
 
     # prepare input
     tokens = util_removeSpace(tokens)
 
     # assign variables
     _context = context
-    _talker = talker
     _ollamaClient = ollamaClient
+
+    # determine stakeholders
+    _talker =talker
+    _tokenkino = tokenkino
 
     # spacy parse
     doc = nlp_stanza(tokens)
