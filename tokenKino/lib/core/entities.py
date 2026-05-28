@@ -397,6 +397,7 @@ class TKLLEntityProperty(BaseModel):
 class TKLLEntityReference(BaseModel):
     id: int
     op: TKOperator = Field(default=TKOperator.AND)
+    aux: Optional[TKAux] = None
     marker: Optional[TKMarker] = None
     properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
@@ -427,12 +428,18 @@ LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]
 # --------------------------------------------------
 # memory
 # --------------------------------------------------
+# channel where a memory is originated
+class MEMChannels(str, Enum):
+    INTERNAL = "internal"
+    API = "api"
+    DISCORD = "discord"
+    ATPROTO = "atproto"
 
 # known talking entities
 class MEMStakeholder(BaseModel):
     name: str
     uid: str
-    channel: str = Field(default="internal")
+    channel: MEMChannels = Field(default=MEMChannels.INTERNAL)
     isMe: bool = Field(default=False)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
 
@@ -446,7 +453,6 @@ class MEMItem(BaseModel):
     sourceId: str # unique stakeholder objectId of the source (talker)
     targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
     channel: Optional[str] = None # channel of the message (e.g. "discord", "atproto", "internal")
-    timestamp: int = Field(default_factory=lambda: int(time.time())) # timestamp of the message
     raw: Optional[str] = None # raw message (optional, for debugging and learning purposes)
 
 # alias for list of memory items
@@ -454,8 +460,8 @@ MEMContext = list[MEMItem]
 
 # axiom
 class MEMAxiom(MEMItem, MEMItemProperties):
-    archived: bool = Field(default=True) # if archived, the axiom is not used for reasoning and deriving new knowledge
-    readonly: bool = Field(default=False) # if readonly, the axiom cannot be archived and is always used for reasoning and deriving new knowledge
+    archived: bool = Field(default=False) # if archived, the axiom is not used for reasoning and deriving new knowledge
+    readonly: bool = Field(default=True) # if readonly, the axiom cannot be archived and is always used for reasoning and deriving new knowledge
     createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
     archivedAt: Optional[int] = None # timestamp of archiving (if archived, the axiom is not used for reasoning and deriving new knowledge)
     trusted: float = Field(default=1)

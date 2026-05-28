@@ -68,7 +68,10 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity], 
     # entity op
     opString: str = ref.op.value if ref.op and ref.op != TKOperator.AND else ""
 
-    result = f"{opString} {marker} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
+    # entity aux
+    auxString: str = ref.aux.lemma if ref.aux else ""
+
+    result = f"{opString} {marker} {auxString.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
 

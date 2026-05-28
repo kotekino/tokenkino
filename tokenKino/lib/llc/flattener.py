@@ -36,9 +36,10 @@ def flattener_recurseReferenceProperties(ref: TKEntityReference, parentOffset: i
 # evaluate reference
 def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, isProperty = False) -> TKLLEntityReference:
     
-    # evaluate marker
+    # evaluate marker, op, aux
     marker = ref.marker
     op = ref.op
+    aux = ref.aux
 
     # recurse
     flattenedProperties = flattener_recurseReferenceProperties(ref, parentOffset, isProperty)
@@ -48,7 +49,7 @@ def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, 
         properties.append(TKLLEntityProperty(op=fp[0], reference=fp[1]))
     
     # return result
-    return TKLLEntityReference(id=ref.id + parentOffset, marker=marker, properties=properties, op=op)
+    return TKLLEntityReference(id=ref.id + parentOffset, marker=marker, properties=properties, op=op, aux=aux)
 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
 def flattener_parseMarker(marker: TKMarker) -> TKClauseType:

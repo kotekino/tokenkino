@@ -1,5 +1,7 @@
-from typing import Annotated, Literal # <--- Importante
-from bunnet import Document, Indexed
+from datetime import datetime, timezone
+from typing import Annotated, Literal, Optional # <--- Importante
+from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
+from pydantic import Field
 from lib.core.entities import MEMAxiom, MEMItem, MEMStakeholder, MEMTheorem, TKBase, TKDictionary, TKName, TKPlace
 
 _VECTOR_INDEX = "vector_index"
@@ -53,8 +55,17 @@ class TKTheoremDoc(MEMTheorem, Document):
 
 # items of the conversations
 class TKMemoryItemDoc(MEMItem, Document):
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: Optional[str] = None
+
     class Settings:
-        name = "memory_items"
+        name = "memory"
+        timeseries = TimeSeriesConfig(
+            time_field="timestamp",          
+            meta_field="metadata",           
+            granularity=Granularity.seconds,
+            expire_after_seconds=None       
+        )
 
 # entities involved in the conversations
 class TKMemoryStakeholdersDoc(MEMStakeholder, Document):

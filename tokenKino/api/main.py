@@ -8,11 +8,11 @@ from lib.llc.parser import parser, parser_diagram
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import get_stakeholder, get_tokeniko, init_io
-from lib.core.models import TKMemoryItemDoc
+from lib.core.models import TKAxiomDoc, TKMemoryItemDoc, TKTheoremDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
-from lib.core.entities import TKLLC, TKStatement
+from lib.core.entities import TKLLC, MEMChannels, TKStatement
 from lib.llc.flattener import flattener_flat
 from lib.core.constants import _ME_UID
 
@@ -50,13 +50,66 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # ------------------------
+# MAIN endpoints
+# ------------------------
+# store an axiom in memory, given a sentence
+@app.get("/api/v1/theorem")
+async def post_theorem(tokens: str):
+    try:
+        recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
+        recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
+        flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
+        theorem = None
+        status = "complete"
+
+        # store in memory
+        if flatResult:
+            theorem: TKTheoremDoc = TKTheoremDoc(
+                tkllc=flatResult,
+                sourceId=str(app.state.tokeniko.id),
+                targetId=str(app.state.tokeniko.id),
+                channel=MEMChannels.INTERNAL,
+                raw=tokens
+            )
+            theorem.insert()
+    except Exception as error:
+        theorem = repr(error)
+        status = "failed"
+    return {"status": status, "data": theorem}
+
+# store an axiom in memory, given a sentence
+@app.get("/api/v1/axiom")
+async def post_axiom(tokens: str):
+    try:
+        recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
+        recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
+        flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
+        axiom = None
+        status = "complete"
+
+        # store in memory
+        if flatResult:
+            axiom: TKAxiomDoc = TKAxiomDoc(
+                tkllc=flatResult,
+                sourceId=str(app.state.tokeniko.id),
+                targetId=str(app.state.tokeniko.id),
+                channel=MEMChannels.INTERNAL,
+                raw=tokens
+            )
+            axiom.insert()
+    except Exception as error:
+        axiom = repr(error)
+        status = "failed"
+    return {"status": status, "data": axiom}
+
+# ------------------------
 # TKLLC endpoints
 # ------------------------
 @app.get("/api/v1/tkllc")
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
     try:
         # get talker entity from memory, or create it if not exists
-        talkerEntity = get_stakeholder(talker)
+        talkerEntity = get_stakeholder(talker, channel=MEMChannels.API)
 
         # pipeline pre (if prepare), recursive, flat, raw, output (if output)
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
@@ -81,7 +134,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                 tkllc=flatResult,
                 sourceId=str(talkerEntity.id),
                 targetId=str(app.state.tokeniko.id),
-                channel="api",
+                channel=MEMChannels.API,
                 raw=tokens
             )
             memory_doc.insert()

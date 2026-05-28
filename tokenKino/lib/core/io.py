@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from bunnet import init_bunnet
 from lib.core.models import TKAxiomDoc, TKBaseDoc, TKDictionaryDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc, TKNameDoc, TKPlaceDoc, TKTheoremDoc
 from lib.core.constants import _ME_NAME, _ME_UID
+from lib.core.entities import MEMChannels
 
 def init_io(mongo_uri: str = None, mongo_db_name: str = None, mongo_db_name_memory: str = None, ollama_uri: str = None):
    
@@ -53,12 +54,12 @@ def get_tokeniko():
     tokeniko = TKMemoryStakeholdersDoc.find_one({"uid": _ME_UID}).run()
 
     if not tokeniko:
-        tokeniko = TKMemoryStakeholdersDoc(uid=_ME_UID, name=_ME_NAME, isMe=True, channel="internal").save()
+        tokeniko = TKMemoryStakeholdersDoc(uid=_ME_UID, name=_ME_NAME, isMe=True, channel=MEMChannels.INTERNAL).save()
 
     return tokeniko
 
 # try getting a stakeholder by uid
-def get_stakeholder(name: str, channel: str = "internal"):
+def get_stakeholder(name: str, channel: MEMChannels = MEMChannels.INTERNAL):
     
     stakeholder = TKMemoryStakeholdersDoc.find_one({"uid": name}).run()
 
