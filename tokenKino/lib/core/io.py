@@ -64,12 +64,6 @@ def get_stakeholder(name: str, channel: MEMChannels = MEMChannels.INTERNAL):
     stakeholder = TKMemoryStakeholdersDoc.find_one({"uid": name}).run()
 
     if not stakeholder:
-        uid: str = ""  # generate a unique uid for the stakeholder if name == "unknown", otherwise use the name as uid
-        if name == "unknown":
-            uid = f"unknown_{int(time.time())}"
-        else:
-            uid = name
-
-        stakeholder = TKMemoryStakeholdersDoc(uid=uid, name=uid, isMe=False, channel=channel).save()
+        stakeholder = TKMemoryStakeholdersDoc(uid=name, name=name, isMe=False, channel=channel).save()
 
     return stakeholder
