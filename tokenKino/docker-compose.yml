@@ -24,7 +24,7 @@ services:
       - ollama
     entrypoint: [ "sh", "-c", "sleep 5 && curl http://ollama:11434/api/pull -d '{\"name\": \"phi3\"}'" ]
 
-  # --- TUA API (TokenKino) ---
+  # --- TUA API (tokeniko) ---
   api:
     build: .
     ports:

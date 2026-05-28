@@ -2,8 +2,7 @@ import asyncio
 import logging
 import signal
 import sys
-
-from tokenKino.lib.core.io import init_io
+from lib.core.io import init_io
 
 # Configurazione del logging per vedere cosa succede in console
 logging.basicConfig(
@@ -11,14 +10,14 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-logger = logging.getLogger("tokenKino-Brain")
+logger = logging.getLogger("tokeniko-Brain")
 
 # main brain loop
 async def idle_thinking_loop():
     logger.info("🧠 Brain loop started")
     try:
         while True:
-            logger.info("🤖 tokenKino is thinking...")
+            logger.info("🤖 tokeniko is thinking...")
             
             await asyncio.sleep(30) 
     except asyncio.CancelledError:
@@ -47,7 +46,7 @@ async def discord_bot_task():
 
 # main / init
 async def main():
-    logger.info("🚀 Init tokenKino")
+    logger.info("🚀 Init tokeniko")
     
     # 1. Init
     db, db_memory, ai_client = init_io()
@@ -84,7 +83,7 @@ async def main():
     except* Exception as eg:
         logger.error(f"❌ Critical error: {eg}")
     finally:
-        logger.info("🛑 tokenKino is deep sleeping. See ya'll")
+        logger.info("🛑 tokeniko is deep sleeping. See ya'll")
 
 if __name__ == "__main__":
     # main start

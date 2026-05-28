@@ -40,7 +40,7 @@ nlp = spacy.load(_SPACY_MODEL)
 _context: MEMContext = None
 _ollamaClient: OllamaClient = None
 _talker: MEMStakeholder = None
-_tokenkino: MEMStakeholder = None
+_tokeniko: MEMStakeholder = None
 
 # get operator corresponding to cc
 def parser_ccToOperator(token: Token | str) -> TKOperator:
@@ -356,7 +356,7 @@ def parser_parseSentence(inputTokens: list[Token], clause_type: TKClause = TKCla
         tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=True, isTalking=False))
     else:
         tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=False, isTalking=True))
-        tkMain.create_entity(payload=TKMetaEntity(who=_tokenkino, isListening=True, isTalking=False))
+        tkMain.create_entity(payload=TKMetaEntity(who=_tokeniko, isListening=True, isTalking=False))
         
     tkMain.clause_type = clause_type
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
@@ -392,8 +392,8 @@ def parser_core(tokens: list[Token]) -> TKStatements:
 # --------------------------------------------------------------
 # (DONE) MAIN entry point to parse an input text
 # --------------------------------------------------------------
-def parser(tokens: str, talker: MEMStakeholder, tokenkino: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
-    global _context, _ollamaClient, _talker, _tokenkino
+def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
+    global _context, _ollamaClient, _talker, _tokeniko
 
     # prepare input
     tokens = util_removeSpace(tokens)
@@ -404,7 +404,7 @@ def parser(tokens: str, talker: MEMStakeholder, tokenkino: MEMStakeholder, conte
 
     # determine stakeholders
     _talker =talker
-    _tokenkino = tokenkino
+    _tokeniko = tokeniko
 
     # spacy parse
     doc = nlp_stanza(tokens)

@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+bunnet
+python-dotenv
+spacy
+numpy
+tqdm
+ollama

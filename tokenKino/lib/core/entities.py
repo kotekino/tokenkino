@@ -76,7 +76,7 @@ class TKNumber(BaseModel):
     value: float
     num_type: str
 
-# generic: can be used to get the definition and replace it with a statement, so tokenKino learns :)
+# generic: can be used to get the definition and replace it with a statement, so tokeniko learns :)
 class TKGeneric(BaseModel):
     entity_type: Literal["generic"] = Field(default="generic")
     token: str

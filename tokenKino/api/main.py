@@ -7,7 +7,7 @@ from pymongo import MongoClient
 from lib.llc.parser import parser, parser_diagram
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
-from lib.core.io import get_stakeholder, get_tokenkino, init_io
+from lib.core.io import get_stakeholder, get_tokeniko, init_io
 from lib.core.models import TKMemoryItemDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
@@ -29,13 +29,13 @@ async def lifespan(app: FastAPI):
     ollama_host = os.getenv("OLLAMA_HOST")
 
     db_client, db_memory_client, ai_client = init_io(uri, db_name, db_name_memory, ollama_host)
-    tokenkino = get_tokenkino()
+    tokeniko = get_tokeniko()
 
     # Salviamo nello stato
     app.state.db_client = db_client
     app.state.ai_client = ai_client
     app.state.db_memory_client = db_memory_client
-    app.state.tokenkino = tokenkino
+    app.state.tokeniko = tokeniko
 
     # init preparser
     await preparser_init(ai_client)
@@ -60,7 +60,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
 
         # pipeline pre (if prepare), recursive, flat, raw, output (if output)
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
-        recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokenkino, app.state.ai_client)
+        recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
         flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
         rawResult = decompiler_raw(flatResult) if flatResult else ''
@@ -80,7 +80,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
             memory_doc: TKMemoryItemDoc = TKMemoryItemDoc(
                 tkllc=flatResult,
                 sourceId=str(talkerEntity.id),
-                targetId=str(app.state.tokenkino.id),
+                targetId=str(app.state.tokeniko.id),
                 channel="api",
                 raw=tokens
             )

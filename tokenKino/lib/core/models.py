@@ -38,15 +38,15 @@ class TKPlaceDoc(TKPlace, Document):
         name = "places"
 
 # --------------------------------------------------------------
-# tokenkino memory
+# tokeniko memory
 # --------------------------------------------------------------
 
-# axioms: the truths that tokenKino holds about the world, that it will use as basis for reasoning and deriving new knowledge
+# axioms: the truths that tokeniko holds about the world, that it will use as basis for reasoning and deriving new knowledge
 class TKAxiomDoc(MEMAxiom, Document):
     class Settings:
         name = "axioms"
 
-# theorems: the truths that tokenKino has derived from the axioms, that it will use as basis for reasoning and deriving new knowledge
+# theorems: the truths that tokeniko has derived from the axioms, that it will use as basis for reasoning and deriving new knowledge
 class TKTheoremDoc(MEMTheorem, Document):
     class Settings:
         name = "theorems"
