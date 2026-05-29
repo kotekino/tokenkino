@@ -15,4 +15,7 @@ sentencepiece
 spacy_stanza
 symspellpy
 asyncio
-lingua
+lingua-language-detector
+taskipy
+word2number
+sacremoses

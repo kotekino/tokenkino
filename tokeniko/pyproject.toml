@@ -14,7 +14,10 @@ dependencies = [
     "spacy",
     "numpy",
     "tqdm",
-    "ollama"
+    "ollama",
+    "taskipy",
+    "word2number",
+    "sacremoses"
 ]
 
 [tool.taskipy.tasks]

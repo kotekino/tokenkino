@@ -2,7 +2,10 @@ import asyncio
 import logging
 import signal
 import sys
+from dotenv import load_dotenv
 from lib.core.io import init_io
+
+load_dotenv()
 
 # Configurazione del logging per vedere cosa succede in console
 logging.basicConfig(
@@ -10,7 +13,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     handlers=[logging.StreamHandler(sys.stdout)]
 )
-logger = logging.getLogger("tokeniko-Brain")
+logger = logging.getLogger("tokeniko-brain")
 
 # main brain loop
 async def idle_thinking_loop():

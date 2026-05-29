@@ -9,8 +9,8 @@
             "type": "debugpy",
             "request": "launch",
             "module": "uvicorn",
-            "cwd": "${workspaceFolder}/tokenKino", 
-            "envFile": "${workspaceFolder}/tokenKino/.env",
+            "cwd": "${workspaceFolder}/tokeniko", 
+            "envFile": "${workspaceFolder}/tokeniko/.env",
             "args": [
                 "api.main:app",
                 "--reload"
@@ -22,8 +22,8 @@
             "type": "debugpy",
             "request": "launch",
             "module": "brain.main",
-            "cwd": "${workspaceFolder}/tokenKino",
-            "envFile": "${workspaceFolder}/tokenKino/.env",
+            "cwd": "${workspaceFolder}/tokeniko",
+            "envFile": "${workspaceFolder}/tokeniko/.env",
             "console": "integratedTerminal"
         } 
     ]

@@ -32,15 +32,28 @@ torch.load = _patched_torch_load
 # --- FINE PATCH PYTORCH ---
 
 # load spacy model
-# nlp_stanza = spacy_stanza.load_pipeline("en", package="lines")
-nlp_stanza = spacy_stanza.load_pipeline("en")
-nlp = spacy.load(_SPACY_MODEL)
+nlp_stanza = None
+nlp = None
 
 # global variables
 _context: MEMContext = None
 _ollamaClient: OllamaClient = None
 _talker: MEMStakeholder = None
 _tokeniko: MEMStakeholder = None
+
+def parser_init():
+    global nlp_stanza, nlp
+    
+    if nlp_stanza is None:
+        nlp_stanza = spacy_stanza.load_pipeline(
+            "en",
+            device="mps",                  # silicon gpu acceleration (if available)
+            download_method="reuse_resources" # skip download if already present
+        )
+        
+        # spacy standard
+        nlp = spacy.load(_SPACY_MODEL)
+
 
 # get operator corresponding to cc
 def parser_ccToOperator(token: Token | str) -> TKOperator:

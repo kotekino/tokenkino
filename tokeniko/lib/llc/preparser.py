@@ -3,7 +3,7 @@ import json
 from lingua import LanguageDetectorBuilder
 import spacy
 from symspellpy import SymSpell
-import pkg_resources
+import importlib.resources
 from lib.core.entities import TKStatements
 from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _MIN_SIMILARITY, _OLLAMA_MODEL1, _OLLAMA_MODEL2, _OLLAMA_TRANS1, _OLLAMA_TRANS2, _PRE_SIMILARITY_THRESHOLD, _SPACY_MODEL
 from lib.llc.parser import parser_core
@@ -19,19 +19,19 @@ _required_models = [_OLLAMA_MODEL1, _OLLAMA_MODEL2, _OLLAMA_TRANS1, _OLLAMA_TRAN
 
 # sym spell
 sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
-dictionary_path = pkg_resources.resource_filename(
-    "symspellpy", "frequency_dictionary_en_82_765.txt"
+dictionary_path = str(
+    importlib.resources.files("symspellpy").joinpath("frequency_dictionary_en_82_765.txt")
 )
 sym_spell.load_dictionary(dictionary_path, term_index=0, count_index=1)
 
 # lingua
 _detector = LanguageDetectorBuilder.from_all_languages().build()
-_translator: TKTranslator = TKTranslator()
+_translator: TKTranslator = None
 _nlp = spacy.load(_SPACY_MODEL)
 
 # initializer
 async def preparser_init(ollamaClient: OllamaClient = None):
-    global _init, _ollamaClient
+    global _init, _ollamaClient, _translator
     
     if not ollamaClient: 
         _init = False
@@ -47,6 +47,9 @@ async def preparser_init(ollamaClient: OllamaClient = None):
     for model in _required_models:
         if model not in available_names:
             await _ollamaClient.pull(model)
+
+    # init translator
+    _translator = TKTranslator()
 
     # if all good
     _init = True

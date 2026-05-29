@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
-from lib.llc.parser import parser, parser_diagram
+from lib.llc.parser import parser, parser_diagram, parser_init
 from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import get_stakeholder, get_tokeniko, init_io
@@ -38,6 +38,7 @@ async def lifespan(app: FastAPI):
     app.state.tokeniko = tokeniko
 
     # init preparser
+    parser_init()
     await preparser_init(ai_client)
     await decompiler_init(ai_client)
     
@@ -45,6 +46,7 @@ async def lifespan(app: FastAPI):
     
     # shutdown logic
     db_client.close()
+    db_memory_client.close()
 
 # init fastapi app
 app = FastAPI(lifespan=lifespan)
