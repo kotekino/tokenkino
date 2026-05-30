@@ -276,7 +276,7 @@ def flattener_modifyContent(content: LLCItemPayload, rep: tuple[TKOperator, int,
     return dupContentSub
 
 # multiply content 
-def flattener_multiplyContent(content: LLCItemPayload, replacements: list[tuple[TKOperator, int, TKEntityReference]]) -> list[TKLLCItem]:
+def flattener_multiplyContent(content: LLCItemPayload, dupContent: TKLLCContent, replacements: list[tuple[TKOperator, int, TKEntityReference]]) -> list[TKLLCItem]:
     
     # subresult
     subresult: list[TKLLCItem] = list()
@@ -284,7 +284,7 @@ def flattener_multiplyContent(content: LLCItemPayload, replacements: list[tuple[
    
     # reached content
     for rep in replacements:
-        dupContentSub: TKLLCContent = copy.deepcopy(content)
+        dupContentSub: TKLLCContent = copy.deepcopy(dupContent)
         newContent = flattener_modifyContent(dupContentSub, rep)
         subresult.append(TKLLCItem(op=rep[0], content=newContent))
 
@@ -296,8 +296,21 @@ def flattener_evaluateItem(statement: TKStatement, clauseType: TKClauseType, pro
     # get the content
     originalContent, additionalEntities = flattener_evaluateContent(statement, clauseType, properties, parentOffset) 
     
-    # start duplication stack
+    # main content
     mainContent = copy.deepcopy(originalContent)
+
+    # check original content is content or list of items (if there are subordinates)
+    if not isinstance(originalContent, TKLLCContent):
+        # if there are subordinates, we need to manage the content of the main sentence and the additional items 
+        originalSubject = originalContent[0].content.subject
+        originalDirect = originalContent[0].content.direct
+        originalIndirects = originalContent[0].content.indirects
+        dupContent = copy.deepcopy(originalContent[0].content)
+    else:
+        originalSubject = originalContent.subject
+        originalDirect = originalContent.direct
+        originalIndirects = originalContent.indirects
+        dupContent = copy.deepcopy(originalContent)
 
     # multiple subjects: duplicate sentences, with the conjunct subject
     if statement.subject and len(statement.subject.conjuncts) > 0:
@@ -305,20 +318,20 @@ def flattener_evaluateItem(statement: TKStatement, clauseType: TKClauseType, pro
         for c in list(statement.subject.conjuncts):
             # get properties and conjuncts of the replacing entity
             ef = flattener_evaluateReference(c, parentOffset, False)
-            replacements.append([c.op, originalContent.subject.id, ef])
+            replacements.append([c.op, originalSubject.id, ef])
 
         # replace content with list of items
-        mainContent = flattener_multiplyContent(mainContent, replacements)
+        mainContent = flattener_multiplyContent(mainContent, dupContent, replacements)
     
     # multiple direct: duplicate sentences, with the conjunct direct
     if statement.direct and len(statement.direct.conjuncts) > 0:
         replacements: list[tuple[TKOperator, int, int]] = list()
         for c in list(statement.direct.conjuncts):
             ef = flattener_evaluateReference(c, parentOffset, False)
-            replacements.append([c.op, originalContent.direct.id, ef])
+            replacements.append([c.op, originalDirect.id, ef])
 
         # replace content with list of items
-        mainContent = flattener_multiplyContent(mainContent, replacements)
+        mainContent = flattener_multiplyContent(mainContent, dupContent, replacements)
 
     # multiple indirect: duplicate sentences, with the conjunct direct
     idx: int = 0
@@ -326,13 +339,13 @@ def flattener_evaluateItem(statement: TKStatement, clauseType: TKClauseType, pro
         replacements: list[tuple[TKOperator, int, int]] = list()
         if len(ind.conjuncts) > 0:
             for c in list(ind.conjuncts):
-                originalIndirect = originalContent.indirects[idx]
+                originalIndirect = originalIndirects[idx]
                 ef = flattener_evaluateReference(c, parentOffset, False)
                 replacements.append([c.op, originalIndirect.id, ef])
         idx += 1
         if len(replacements) > 0:
             # replace content with list of items
-            mainContent = flattener_multiplyContent(mainContent, replacements)        
+            mainContent = flattener_multiplyContent(mainContent, dupContent, replacements)        
     
     # assign 
     mainContent = TKLLCItem(op=operator, content=mainContent)
