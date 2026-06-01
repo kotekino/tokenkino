@@ -126,16 +126,83 @@ def flattener_initializeEntities(ents: list[TKEntity], parentOffset: int = 0) ->
         if subent: result.append(subent) 
     return result
 
+# process subordinate
+def flattener_evaluateSubordinate(statement: TKEntityReference, subordinate: TKStatement, parentOffset: int = 0) -> tuple[list[TKLLCItem], list[TKLLEntity]]:
+    
+    entities: list[TKLLEntity] = list()
+    additionalItems: list[TKLLCItem] = list()
+    subordinateType = flattener_parseMarker(statement.marker)
+    
+    # analyze subordinate to flatten it with an operator and modify properties
+    operator: TKOperator = TKOperator.AND
+    subProperties = TKLLProperties() # all neutral
+    if subordinateType == TKClauseType.FINAL:
+        # finale (imply) -> subject implied to be explicited
+        # I do x to obtain y => [hope++] if I do this I obtain y => [hope++] I do this IMPLY I obtain y (same subject)
+        # I do x to have you doing y =>[hope++] if I do this you doing y => [hope++] I do this IMPLY you doing y (different subject)
+        operator = TKOperator.IMPLY
+        
+        # increase hope feeling (properties) of the main sentence
+        # subProperties.sentiment = sentiment_generate(sentiment=['hope', 'goal'])
+    elif subordinateType == TKClauseType.PARATAXIS:
+        # can be det, can be imply: todo
+        operator = TKOperator.THAT
+
+    elif subordinateType == TKClauseType.CAUSAL:
+        # causale (imply) -> simple obvious
+        # i do this because I done that => I do this CONV i done that                
+        operator = TKOperator.CONV
+
+    elif subordinateType == TKClauseType.HYPOTETIC:
+        # ipotetica (imply) -> simple, obvious
+        # I do this if you do that => you do that IMPLY (or EQ if only, only if) I do this
+        operator = TKOperator.CONV
+
+    elif subordinateType == TKClauseType.TEMPORAL:
+        # temporale (timespacemap, IMPLY) -> tricky can imply with a smooth degree
+        # I have done this when/after/before I was doing that => I do this T1 and I do this T2 = f(T1)
+        # I always do this when I do that => I do this -> I do that (always, often)                
+        operator = TKOperator.AND
+
+    elif subordinateType == TKClauseType.LOCATIVE:
+        # locativa (timespacemap) -> obvious
+        # I do x in S1 and I go to S2 => I do x S1 and I do go S2                
+        operator = TKOperator.AND
+
+    elif subordinateType == TKClauseType.CCOMP:
+        # explicit subject
+        operator = TKOperator.THAT
+
+    elif subordinateType == TKClauseType.ACL:
+        operator = TKOperator.THAT
+
+    elif subordinateType == TKClauseType.ACLRELCL:
+        operator = TKOperator.THAT
+
+    elif subordinateType == TKClauseType.ADVCL:
+        operator = TKOperator.THAT
+
+    elif subordinateType == TKClauseType.XCOMP:
+        # no subject: search it in the main statement
+        operator = TKOperator.THAT
+
+    else:
+        # other means it affects something else, but the operator is AND               
+        operator = TKOperator.AND
+
+    ai, ae = flattener_processStatement(subordinate, subordinateType, operator, subProperties, parentOffset)
+
+    # add properties
+    additionalItems.extend(ai)
+    entities.extend(ae)
+
+    return additionalItems, entities
+
 # create a TKLLCContent object from a TKStatement
 def flattener_evaluateContent(stat: TKStatement, clauseType: TKClauseType, properties: TKLLProperties, parentOffset: int = 0) -> tuple[LLCItemPayload, list[TKLLEntity]]:
 
     entities: list[TKLLEntity] = list()
     additionalItems: list[TKLLCItem] = list()
-
-    predEntity = next((e for e in stat.entities if stat.predicate and e.id == stat.predicate.id), None)
-    subjEntity = next((e for e in stat.entities if stat.subject and e.id == stat.subject.id), None)
-    dirEntity = next((e for e in stat.entities if stat.direct and e.id == stat.direct.id), None)
-    indEntities = [e for e in stat.entities if e.id in [i.id for i in stat.indirects]]
 
     predicate = None
     subject = None
@@ -145,105 +212,45 @@ def flattener_evaluateContent(stat: TKStatement, clauseType: TKClauseType, prope
     # ---------------------------------------------
     # predicate it cant be a statement
     # ---------------------------------------------
-    predicate = flattener_evaluateReference(stat.predicate, parentOffset) if predEntity else None
+    predicate = flattener_evaluateReference(stat.predicate, parentOffset) if stat.predicate else None
+    for p in stat.predicate.subordinates:
+        subordinate = next(i for i in stat.entities if p.id == i.id)
+        subItems, subEntities = flattener_evaluateSubordinate(p, subordinate.payload,max([e.id for e in stat.entities]) + parentOffset)
+        additionalItems.extend(subItems)
+        entities.extend(subEntities)
 
     # ---------------------------------------------
     # subject (manage statements)
     # ---------------------------------------------
-    if subjEntity: 
-        if subjEntity.payload.entity_type == "statement": 
-            # exclude statements: csubj -> find a way to manage it
-            parentOffset -= 1
-        else: 
-            subject = flattener_evaluateReference(stat.subject, parentOffset) if subjEntity else None
+    if stat.subject: 
+        subject = flattener_evaluateReference(stat.subject, parentOffset) if stat.subject else None
+        for p in stat.subject.subordinates:
+            subordinate = next(i for i in stat.entities if p.id == i.id)
+            subItems, subEntities = flattener_evaluateSubordinate(p, subordinate.payload, max([e.id for e in stat.entities]) + parentOffset)
+            additionalItems.extend(subItems)
+            entities.extend(subEntities)
 
     # ---------------------------------------------
     # direct (manage statements)
     # ---------------------------------------------
-    if dirEntity: 
-        if dirEntity.payload.entity_type == "statement": 
-            # exclude statements not affecting time and space
-            parentOffset -= 1
-        else: 
-            direct = flattener_evaluateReference(stat.direct, parentOffset) if dirEntity else None
+    if stat.direct: 
+        direct = flattener_evaluateReference(stat.direct, parentOffset) if stat.direct else None
+        for p in stat.direct.subordinates:
+            subordinate = next(i for i in stat.entities if p.id == i.id)
+            subItems, subEntities = flattener_evaluateSubordinate(p, subordinate.payload, max([e.id for e in stat.entities]) + parentOffset)
+            additionalItems.extend(subItems)
+            entities.extend(subEntities)
 
     # ---------------------------------------------
     # indirects (manage statements)
     # ---------------------------------------------
-    
     for indirectReference in stat.indirects:
-        indirectEntity = next(i for i in indEntities if i.id == indirectReference.id)
-        if indirectEntity.payload.entity_type == "statement": 
-
-            subordinate: TKStatement = indirectEntity.payload
-            subordinateType = flattener_parseMarker(indirectReference.marker)
-            
-            # analyze subordinate to flatten it with an operator and modify properties
-            operator: TKOperator = TKOperator.AND
-            subProperties = TKLLProperties() # all neutral
-            if subordinateType == TKClauseType.FINAL:
-                # finale (imply) -> subject implied to be explicited
-                # I do x to obtain y => [hope++] if I do this I obtain y => [hope++] I do this IMPLY I obtain y (same subject)
-                # I do x to have you doing y =>[hope++] if I do this you doing y => [hope++] I do this IMPLY you doing y (different subject)
-                operator = TKOperator.IMPLY
-                
-                # increase hope feeling (properties) of the main sentence
-                # subProperties.sentiment = sentiment_generate(sentiment=['hope', 'goal'])
-            elif subordinateType == TKClauseType.PARATAXIS:
-                # can be det, can be imply: todo
-                operator = TKOperator.THAT
-
-            elif subordinateType == TKClauseType.CAUSAL:
-                # causale (imply) -> simple obvious
-                # i do this because I done that => I do this CONV i done that                
-                operator = TKOperator.CONV
-
-            elif subordinateType == TKClauseType.HYPOTETIC:
-                # ipotetica (imply) -> simple, obvious
-                # I do this if you do that => you do that IMPLY (or EQ if only, only if) I do this
-                operator = TKOperator.CONV
-
-            elif subordinateType == TKClauseType.TEMPORAL:
-                # temporale (timespacemap, IMPLY) -> tricky can imply with a smooth degree
-                # I have done this when/after/before I was doing that => I do this T1 and I do this T2 = f(T1)
-                # I always do this when I do that => I do this -> I do that (always, often)                
-                operator = TKOperator.AND
-
-            elif subordinateType == TKClauseType.LOCATIVE:
-                # locativa (timespacemap) -> obvious
-                # I do x in S1 and I go to S2 => I do x S1 and I do go S2                
-                operator = TKOperator.AND
-
-            elif subordinateType == TKClauseType.CCOMP:
-                # explicit subject
-                operator = TKOperator.THAT
-
-            elif subordinateType == TKClauseType.ACL:
-                operator = TKOperator.THAT
-
-            elif subordinateType == TKClauseType.ACLRELCL:
-                operator = TKOperator.THAT
-
-            elif subordinateType == TKClauseType.ADVCL:
-                operator = TKOperator.THAT
-
-            elif subordinateType == TKClauseType.XCOMP:
-                # no subject: search it in the main statement
-                operator = TKOperator.THAT
-
-            else:
-                # other means it affects something else, but the operator is AND               
-                operator = TKOperator.AND
-
-            ai, ae = flattener_processStatement(subordinate, subordinateType, operator, subProperties, max([e.id for e in stat.entities]) + parentOffset)
-
-            # add properties
-            additionalItems.extend(ai)
-            entities.extend(ae)
-
-        else: 
-            indRef = next(i for i in stat.indirects if indirectReference.id == i.id)
-            indirects.append(flattener_evaluateReference(indRef, parentOffset))
+        indirects.append(flattener_evaluateReference(indirectReference, parentOffset))
+        for p in indirectReference.subordinates:
+            subordinate = next(i for i in stat.entities if p.id == i.id)
+            subItems, subEntities = flattener_evaluateSubordinate(p, subordinate.payload, max([e.id for e in stat.entities]) + parentOffset)
+            additionalItems.extend(subItems)
+            entities.extend(subEntities)
 
     # set content
     content = TKLLCContent(properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects, clause_type=clauseType)
