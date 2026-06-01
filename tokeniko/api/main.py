@@ -117,9 +117,9 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
-        rawResult = decompiler_raw(flatResult) if flatResult else ''
-        outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
+        flatResult: TKLLC = None # flattener_flat(recursiveResultCopy) 
+        rawResult = '' # decompiler_raw(flatResult) if flatResult else ''
+        outputResult = '' # await decompiler_decompile(rawResult) if output == 1 else ''
        
         res = {
             "original": tokens,

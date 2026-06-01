@@ -146,17 +146,12 @@ class TKStatement(BaseModel):
     predicate: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
     direct: Optional[TKEntityReference] = Field(default=None) # optional has semantic 2925 value
     indirects: list[TKEntityReference] = Field(default_factory=list) # optional has semantic 2925 value + semantic definition of marker
-    
+
     # entities
     entities: list[TKEntity] = Field(default_factory=list) # entities in the sentence (generic, no properties)
     
     # private fields
     _id_counter: int = PrivateAttr(default=1)
-
-    # properties
-    # @computed_field
-    # @property
-    # def test(self) -> list[TKEntity]:
 
     # factory for TKEntity
     def create_entity(self, **kwargs) -> TKEntity:
@@ -173,6 +168,7 @@ class TKStatement(BaseModel):
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
         if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
+        if len(fullEntity.subordinates) > 0: self.add_subordinates(fullEntity.subordinates, entity.id)
                 
         return entity.id
 
@@ -184,6 +180,7 @@ class TKStatement(BaseModel):
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
         if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
+        if len(fullEntity.subordinates) > 0: self.add_subordinates(fullEntity.subordinates, entity.id)
                 
         return entity.id
 
@@ -195,6 +192,7 @@ class TKStatement(BaseModel):
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
         if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
+        if len(fullEntity.subordinates) > 0: self.add_subordinates(fullEntity.subordinates, entity.id)
                 
         return entity.id
 
@@ -206,7 +204,8 @@ class TKStatement(BaseModel):
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
         if len(fullEntity.conjuncts) > 0: self.add_conjuncts(fullEntity.conjuncts, entity.id)
-                
+        if len(fullEntity.subordinates) > 0: self.add_subordinates(fullEntity.subordinates, entity.id)
+
         return entity.id
 
     # recursively search properties
@@ -218,13 +217,19 @@ class TKStatement(BaseModel):
         if len(ref.properties):
             for p in ref.properties:
                 result.append(p)
-                result.extend(self.search_childrenEntities(p)) # recursive part (properties and conjuncts)
+                result.extend(self.search_childrenEntities(p)) # recursive part (properties)
         
         # if conjuncts
         if len(ref.conjuncts):
             for c in ref.conjuncts:
                 result.append(c)
-                result.extend(self.search_childrenEntities(c)) # recursive part (properties)
+                result.extend(self.search_childrenEntities(c)) # recursive part (conjuncts)
+
+        # if subordinates
+        if len(ref.subordinates):
+            for c in ref.subordinates:
+                result.append(c)
+                result.extend(self.search_childrenEntities(c)) # recursive part (subordinates)
 
         return result        
 
@@ -261,6 +266,7 @@ class TKStatement(BaseModel):
                 # recurse properties and conjuncts of conjuncts (recursive)
                 if len(p.properties) > 0: self.add_properties(p.properties, entity.id)
                 if len(p.conjuncts) > 0: self.add_conjuncts(p.conjuncts, entity.id)
+                if len(p.subordinates) > 0: self.add_subordinates(p.subordinates, entity.id)
         else:
             wrong = True 
 
@@ -297,8 +303,47 @@ class TKStatement(BaseModel):
                 # recurse properties and conjuncts of conjuncts (recursive)
                 if len(c.properties) > 0: self.add_properties(c.properties, entity.id)
                 if len(c.conjuncts) > 0: self.add_conjuncts(c.conjuncts, entity.id)
+                if len(c.subordinates) > 0: self.add_subordinates(c.subordinates, entity.id)
         else:
             wrong = True
+
+    # add conjunct to subject, predicate, object, indirect
+    def add_subordinates(self, subordinates: list[TKFullEntity], target: int):
+        
+        # search target
+        reference: TKEntityReference = None
+        references: list[TKEntityReference] = list()
+
+        # add object to search into
+        if self.subject: references.append(self.subject)
+        if self.predicate: references.append(self.predicate)
+        if self.direct: references.append(self.direct)
+        for i in self.indirects: references.append(i)
+        
+        # put everything in the possible references (1 level)
+        children: list[TKEntityReference] = list()
+        for r in references: children.extend(self.search_childrenEntities(r))
+        references.extend(children)
+
+        # get reference (fields or properties)
+        reference: TKEntityReference = next((t for t in references if t.id == target), None)           
+
+         # target found, add properties
+        if reference:
+            for c in subordinates:
+                
+                # cereate property reference
+                entity = self.create_entity(payload=c.entity)
+                e = TKEntityReference(op=c.op, id=entity.id, marker=c.marker, aux=c.aux)
+                reference.subordinates.append(e)
+
+                # recurse properties and conjuncts of conjuncts (recursive)
+                if len(c.properties) > 0: self.add_properties(c.properties, entity.id)
+                if len(c.conjuncts) > 0: self.add_conjuncts(c.conjuncts, entity.id)
+                if len(c.subordinates) > 0: self.add_subordinates(c.subordinates, entity.id)
+        else:
+            wrong = True
+
 
 # entities involved in statements
 EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement, TKPronoun, TKNumber]
@@ -321,8 +366,11 @@ class TKFullEntity(BaseModel):
     # specific semantic value
     aux: Optional[TKAux] = None
 
-    # conjuect
+    # conjuncts
     conjuncts: list[TKFullEntity] = Field(default_factory=list)
+
+    # subordinates
+    subordinates: list[TKFullEntity] = Field(default_factory=list)
 
     # properties (list of semantic values)
     properties: list[TKFullEntity] = Field(default_factory=list)    
@@ -341,8 +389,11 @@ class TKEntityReference(BaseModel):
     # specific semantic value
     aux: Optional[TKAux] = None
 
-    # conjuect
+    # conjuncts
     conjuncts: list[TKEntityReference] = Field(default_factory=list)  
+
+    # subordinates
+    subordinates: list[TKEntityReference] = Field(default_factory=list)
 
     # properties (list of semantic values)
     properties: list[TKEntityReference] = Field(default=[])

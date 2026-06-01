@@ -11,7 +11,6 @@ import copy
 import spacy
 from lib.core.entities import TKLLC, LLCItemPayload, TKClauseType, TKEntity, TKEntityReference, TKLLCContent, TKLLCItem, TKLLEntity, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetime, TKLLSpacetimeMap, TKLLUniqueEntity, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.llc.constants import _PRONOUNS_BASE_ANCHORS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
-from lib.llc.parser import parser_getFullEntity
 from lib.llc.constants import _LISTENER_ID, _TALKER_ID
 
 nlp = spacy.load(_SPACY_MODEL)
