@@ -1,29 +1,26 @@
 # ------------------------------------------------------------------------------------------------
 # PARSER V2: transform a token list into a list of TKStatements (using spacy for the first ingestion)
 # ------------------------------------------------------------------------------------------------
-
-from typing import Any
-from unittest import result
-import copy
 from ollama import Client as OllamaClient
 import spacy
 from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.entities import TKLLC, EntityPayload, MEMContext, MEMStakeholder, TKAux, TKClause, TKEntityReference, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStatement, TKStatements
+from lib.core.tk import EntityPayload, TKAux, TKClause, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStatement, TKStatements
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
+from lib.core.tkllc import TKLLC
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
-from lib.llc.decompiler import decompiler_raw
 from lib.core.utilities import util_removeSpace
-from lib.core.constants import _ME_NAME
 from functools import cmp_to_key
 import textacy
 from word2number import w2n
+from lib.core.memory import MEMContext, MEMStakeholder
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
+
 _original_torch_load = torch.load
 def _patched_torch_load(*args, **kwargs):
     kwargs['weights_only'] = False
@@ -297,7 +294,7 @@ def parser_getIndirects(tokens: list[Token], quotes: list[tuple[list[Token], lis
         indirectEntity = None
 
         # indirect objects
-        if t.dep_ in ["obl", "obl:tmod", "iobj"]:
+        if t.dep_ in ["obl", "obl:tmod", "iobj", "obl:agent"]:
             indirectEntity = parser_getFullEntity(t, quotes)
 
         # if found 

@@ -1,7 +1,8 @@
 import asyncio
 from collections import Counter
 import json
-from lib.core.entities import TKLLC, LLCItemPayload, TKLLCContent, TKLLEntity, TKLLEntityReference, TKLLUniqueEntity, TKOperator
+from lib.core.tk import TKOperator
+from lib.core.tkllc import TKLLC, TKLLCContent, TKLLEntity, TKLLEntityReference, TKLLUniqueEntity, LLCItemPayload
 from ollama import AsyncClient as OllamaClient
 from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _OLLAMA_MODEL1, _OLLAMA_MODEL2
 

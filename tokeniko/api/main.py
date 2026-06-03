@@ -5,16 +5,16 @@ from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
 from pymongo import MongoClient
 from lib.llc.parser import parser, parser_diagram, parser_init
-from lib.tagger.functions import tagger
 from dotenv import load_dotenv
 from lib.core.io import get_stakeholder, get_tokeniko, init_io
 from lib.core.models import TKAxiomDoc, TKMemoryItemDoc, TKTheoremDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
-from lib.core.entities import TKLLC, MEMChannels, TKStatement
+from lib.core.tk import TKStatement
+from lib.core.tkllc import TKLLC
+from lib.core.memory import MEMChannels
 from lib.llc.flattener import flattener_flat
-from lib.core.constants import _ME_UID
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()

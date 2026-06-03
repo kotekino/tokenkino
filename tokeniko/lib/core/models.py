@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
-from typing import Annotated, Literal, Optional # <--- Importante
+from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
-from lib.core.entities import MEMAxiom, MEMItem, MEMStakeholder, MEMTheorem, TKBase, TKDictionary, TKName, TKPlace
+from lib.core.tk import TKBase, TKDictionary, TKName, TKPlace
+from lib.core.memory import MEMAxiom, MEMTheorem, MEMItem, MEMStakeholder
 
 _VECTOR_INDEX = "vector_index"
 

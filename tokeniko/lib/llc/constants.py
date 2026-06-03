@@ -1,5 +1,5 @@
 # define constants
-from lib.core.entities import TKClauseType, TKOperator
+from lib.core.tk import TKClauseType, TKOperator
 
 # errors
 _ERRORS_UNABLE_TO_PROCESS: str = "Unable to process the sentence"
@@ -27,7 +27,8 @@ _SUBORDINATE_TYPE_BASE_ANCHORS = {
     "from": TKClauseType.LOCATIVE, 
     "in": TKClauseType.LOCATIVE, 
     "when": TKClauseType.TEMPORAL,
-    "that": TKClauseType.CCOMP
+    "that": TKClauseType.CCOMP,
+    "to": TKClauseType.FINAL,
     }
 _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD: float = 0.6
 

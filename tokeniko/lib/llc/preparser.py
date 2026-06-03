@@ -4,7 +4,7 @@ from lingua import LanguageDetectorBuilder
 import spacy
 from symspellpy import SymSpell
 import importlib.resources
-from lib.core.entities import TKStatements
+from lib.core.tk import TKStatements
 from lib.llc.constants import _ERRORS_UNABLE_TO_PROCESS, _MIN_SIMILARITY, _OLLAMA_MODEL1, _OLLAMA_MODEL2, _OLLAMA_TRANS1, _OLLAMA_TRANS2, _PRE_SIMILARITY_THRESHOLD, _SPACY_MODEL
 from lib.llc.parser import parser_core
 from ollama import AsyncClient as OllamaClient

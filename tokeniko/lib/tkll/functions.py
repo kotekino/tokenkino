@@ -2,10 +2,12 @@ from lib.core.models import TKDictionaryDoc
 from lib.core.models import _VECTOR_INDEX
 
 def tkll_searchSimilarTokens(token: str, limit: int = 10):
-    doc = TKDictionaryDoc.find_one(TKDictionaryDoc.word == token).run()
-    returnResults = []
-    word = ''
-    if doc:
+    result = []
+
+    docs = TKDictionaryDoc.find_many(TKDictionaryDoc.word == token).run()
+    for doc in docs:
+        returnResults = []
+        word = ''
         pipeline = [
             {
                 "$vectorSearch": {
@@ -44,8 +46,9 @@ def tkll_searchSimilarTokens(token: str, limit: int = 10):
             "sense": doc.sense,
             "definition": doc.definition
         }
+        result.append({
+            "word": word,
+            "similar": returnResults
+        })
 
-    return {
-        "word": word,
-        "similar": returnResults
-    }
+    return result

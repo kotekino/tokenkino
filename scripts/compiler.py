@@ -1,7 +1,6 @@
 import spacy
 from spacy import displacy
-
-from tokenKino.lib.core.entities import TKStatement
+from lib.core.tk import TKStatement
 
 # example
 s1_it = "Siccome il cane bianco e nero che sono andato a prendere ieri si è rivelato essere un cane molto simpatico e intelligente, e mia moglie mari lo ha adorato dal primo momento che lo ha visto, pensiamo che adottarlo sia la prossima mossa"

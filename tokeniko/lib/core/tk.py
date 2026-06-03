@@ -1,10 +1,10 @@
 from __future__ import annotations
 import copy
 import time
-from typing import List, Optional, Union, Literal
+from typing import Any, List, Optional, Union, Literal
 from enum import Enum
 from bson import ObjectId
-from pydantic import BaseModel, Field, PrivateAttr, RootModel, computed_field
+from pydantic import BaseModel, Field, PrivateAttr
 
 # --------------------------------------------------
 # mongo knowledgebase
@@ -87,7 +87,7 @@ class TKGeneric(BaseModel):
 # a meta entity referencing a stakeholder
 class TKMetaEntity(BaseModel):
     entity_type: Literal["meta"] = Field(default="meta")
-    who: MEMStakeholder
+    who: Any
     isTalking: bool = Field(default=True)
     isListening: bool = Field(default=False)
 
@@ -401,134 +401,9 @@ class TKEntityReference(BaseModel):
 # alias for statement
 TKStatements = list[TKStatement]
 
-# --------------------------------------------------
-# flat llc
-# --------------------------------------------------
-# spacetime representation for an entity (in the relative space of the context of the statement, not absolute spacetime)
-class TKLLSpacetime(BaseModel):
-    size: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the size of the entity in spacetime
-    position: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the center of the entity in spacetime
-    velocity: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the velocity of the entity in spacetime
-
-# the map of the relative spacetime in the context of the statement
-class TKLLSpacetimeMap(BaseModel):
-    tbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-    xbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-    ybounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-    zbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-
-#  property related the sentence by the talker point of view
-class TKLLProperties(BaseModel):
-    ironic: float = Field(default=0.5) # literal 0 / neutral 0.5 / ironic 1
-    dubitative: float = Field(default=0.5) # statement 0 / question 1
-    imperative: float = Field(default=0.5) # neutral 0 / order 1
-    sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925)) # related to one or more base words
-
-# entity: can have different semantic vectors
-class TKLLEntity(BaseModel):
-    id: int
-    referenceId: int
-    token: str
-    entity_type: str = Field(default='generic')
-    semantic_vector: list[float] = Field(default_factory=list)
-    spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime)
-
-# unique entity in a sentence
-class TKLLUniqueEntity(BaseModel):
-    id: int
-    references: list[int] = Field(default_factory=list())
-    token: str
-
-# entity property
-class TKLLEntityProperty(BaseModel):
-    op: TKOperator
-    reference: TKLLEntityReference
-
-# entity reference for the content
-class TKLLEntityReference(BaseModel):
-    id: int
-    op: TKOperator = Field(default=TKOperator.AND)
-    aux: Optional[TKAux] = None
-    marker: Optional[TKMarker] = None
-    properties: list[TKLLEntityProperty] = Field(default_factory=list)
-
-# llc content: can be a content or another llcitem (recursive)
-class TKLLCContent(BaseModel):
-    clause_type: TKClauseType = Field(default=TKClauseType.MAIN)
-    properties: TKLLProperties
-    subject: Optional[TKLLEntityReference] = Field(default=None)
-    predicate: Optional[TKLLEntityReference] = Field(default=None) 
-    direct: Optional[TKLLEntityReference] = Field(default=None) 
-    indirects: list[TKLLEntityReference] = Field(default_factory=list)
-
-# llc item: can be a statement or an llcitem (recursive)
-class TKLLCItem(BaseModel):
-    op: TKOperator = Field(default=TKOperator.AND)
-    content: Optional[LLCItemPayload] = None 
-
-# llc 
-class TKLLC(BaseModel):
-    map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
-    items: list[TKLLCItem] = Field(default_factory=list)
-    entities: list[TKLLEntity] = Field(default_factory=list)
-    uniqueEntities: list[TKLLUniqueEntity] = Field(default_factory=list())
-
-# payload for item
-LLCItemPayload = Union[list[TKLLCItem], TKLLCContent]
-
-# --------------------------------------------------
-# memory
-# --------------------------------------------------
-# channel where a memory is originated
-class MEMChannels(str, Enum):
-    INTERNAL = "internal"
-    API = "api"
-    DISCORD = "discord"
-    ATPROTO = "atproto"
-
-# known talking entities
-class MEMStakeholder(BaseModel):
-    name: str
-    uid: str
-    channel: MEMChannels = Field(default=MEMChannels.INTERNAL)
-    isMe: bool = Field(default=False)
-    createdAt: int = Field(default_factory=lambda: int(time.time()))
-
-# mem item properties
-class MEMItemProperties(BaseModel):
-    trusted: float = Field(default=0.5) # 0 not trusted, 1 fully trusted
-
-# memory item
-class MEMItem(BaseModel):
-    tkllc: TKLLC
-    sourceId: str # unique stakeholder objectId of the source (talker)
-    targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
-    channel: Optional[str] = None # channel of the message (e.g. "discord", "atproto", "internal")
-    raw: Optional[str] = None # raw message (optional, for debugging and learning purposes)
-
-# alias for list of memory items
-MEMContext = list[MEMItem]
-
-# axiom
-class MEMAxiom(MEMItem, MEMItemProperties):
-    archived: bool = Field(default=False) # if archived, the axiom is not used for reasoning and deriving new knowledge
-    readonly: bool = Field(default=True) # if readonly, the axiom cannot be archived and is always used for reasoning and deriving new knowledge
-    createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
-    archivedAt: Optional[int] = None # timestamp of archiving (if archived, the axiom is not used for reasoning and deriving new knowledge)
-    trusted: float = Field(default=1)
-
-# theorem
-class MEMTheorem(MEMItem, MEMItemProperties):
-    archived: bool = Field(default=True) # if archived, the theorem is not used for reasoning and deriving new knowledge
-    createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
-    archivedAt: Optional[int] = None # timestamp of archiving (if archived, the theorem is not used for reasoning and deriving new knowledge)
-    trusted: float = Field(default=0.9)
-
-
 # rebuild models (important to do after editing the models, to update the internal pydantic model)
 TKMetaEntity.model_rebuild()
 TKStatement.model_rebuild()
 TKEntityReference.model_rebuild()
 TKEntity.model_rebuild()
 TKFullEntity.model_rebuild()
-TKLLCItem.model_rebuild()

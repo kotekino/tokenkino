@@ -5,7 +5,7 @@ from pymongo import MongoClient
 from bunnet import init_bunnet
 from lib.core.models import TKAxiomDoc, TKBaseDoc, TKDictionaryDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc, TKNameDoc, TKPlaceDoc, TKTheoremDoc
 from lib.core.constants import _ME_NAME, _ME_UID
-from lib.core.entities import MEMChannels
+from lib.core.memory import MEMChannels
 
 def init_io(mongo_uri: str = None, mongo_db_name: str = None, mongo_db_name_memory: str = None, ollama_uri: str = None):
    
