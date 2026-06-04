@@ -6,6 +6,7 @@ from typing import Optional, Union
 from pydantic import BaseModel, Field
 from lib.core.tk import TKAux, TKClauseType, TKMarker, TKOperator
 
+# spacetime
 class TKLLSpacetime(BaseModel):
     size: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the size of the entity in spacetime
     position: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the center of the entity in spacetime

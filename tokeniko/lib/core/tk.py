@@ -344,7 +344,6 @@ class TKStatement(BaseModel):
         else:
             wrong = True
 
-
 # entities involved in statements
 EntityPayload = Union[TKName, TKDictionary, TKPlace, TKGeneric, TKMetaEntity, TKStatement, TKPronoun, TKNumber]
 class TKEntity(BaseModel):

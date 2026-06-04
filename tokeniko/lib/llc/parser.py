@@ -310,7 +310,7 @@ def parser_getIndirects(tokens: list[Token], quotes: list[tuple[list[Token], lis
 
 # parse sentence (recurively called))
 def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = TKClause.MAIN, subject: Token = None) -> TKStatement: 
-    global _talker
+    global _talker, _tokeniko
 
     # rebuild doc for quotations
     subStatement = " ".join([t.text for t in tokens])
@@ -400,7 +400,7 @@ def parser_core(tokens: list[Token]) -> TKStatements:
 # --------------------------------------------------------------
 # MAIN entry point to parse an input text
 # --------------------------------------------------------------
-def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> dict[str, TKLLC | TKStatements]:
+def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> TKStatements:
     global _context, _ollamaClient, _talker, _tokeniko
 
     # prepare input
