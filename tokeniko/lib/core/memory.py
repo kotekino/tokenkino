@@ -6,7 +6,7 @@ from enum import Enum
 import time
 from typing import Optional
 from pydantic import BaseModel, Field
-from lib.core.tkllcV2 import TKLLC
+from lib.core.tkllc import TKLLC
 
 class MEMChannels(str, Enum):
     INTERNAL = "internal"

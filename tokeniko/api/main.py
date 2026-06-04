@@ -12,9 +12,8 @@ from lib.llc.preparser import preparser_init, preparser_prepare, preparser_trans
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.tk import TKStatement, TKStatements
-from lib.core.tkllcV2 import TKLLC
+from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
-from lib.llc.flattener import flattener_flat
 from lib.llc.compiler import compiler_compile
 
 # env load (MONGO_URI, ecc.)
@@ -61,7 +60,7 @@ async def post_theorem(tokens: str):
     try:
         recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
+        flatResult: TKLLC = compiler_compile(recursiveResultCopy) 
         theorem = None
         status = "complete"
 
@@ -86,7 +85,7 @@ async def post_axiom(tokens: str):
     try:
         recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = flattener_flat(recursiveResultCopy) 
+        flatResult: TKLLC = compiler_compile(recursiveResultCopy) 
         axiom = None
         status = "complete"
 
@@ -119,8 +118,8 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
         flatResult: TKLLC = compiler_compile(recursiveResultCopy) # flattener_flat(recursiveResultCopy) 
-        rawResult = '' # decompiler_raw(flatResult) if flatResult else ''
-        outputResult = '' # await decompiler_decompile(rawResult) if output == 1 else ''
+        rawResult = decompiler_raw(flatResult) if flatResult else ''
+        outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
        
         res = {
             "original": tokens,
