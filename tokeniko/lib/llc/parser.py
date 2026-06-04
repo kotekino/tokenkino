@@ -105,7 +105,7 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
         sentence = parser_parseSentence(token, subtree, clause_type=TKClause.COORDINATE, subject=forcedSubject)
         entity = TKFullEntity(entity=sentence, aux=None, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
     else:
-        entity = parser_getFullEntity(token, quotes)
+        entity = parser_getFullEntity(token, quotes, operator)
     
     # no entity found
     return entity
@@ -230,10 +230,7 @@ def parser_getMeaning(token: Token, pos: str) -> tuple[TKMarker, EntityPayload]:
     return tkMarker, tkMeaning
 
 # get seamntic value from dictionary + properties
-def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = []) -> TKFullEntity:
-
-    # set operator
-    op = TKOperator.AND
+def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND) -> TKFullEntity:
 
     # related tokens to the entity
     conjuncts = list(token.conjuncts)

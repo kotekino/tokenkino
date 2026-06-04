@@ -57,14 +57,11 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
     # marker only for complements
     marker = ''
     if ref.marker: marker: str = ref.marker.lemma if not ref.marker.connect_clause else ""
-    
-    # entity op
-    opString: str = ref.op.value if ref.op and ref.op != TKOperator.AND else ""
 
     # entity aux
     auxString: str = ref.aux.lemma if ref.aux else ""
 
-    result = f"{opString} {marker} {auxString.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
+    result = f"{marker} {auxString.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
 
     return result
 

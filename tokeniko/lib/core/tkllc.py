@@ -41,7 +41,6 @@ class TKLLEntityMapReference(BaseModel):
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
-    op: TKOperator = Field(default=TKOperator.AND)
     aux: Optional[TKAux] = None
     marker: Optional[TKMarker] = None
     properties: list[TKLLEntityProperty] = Field(default_factory=list)

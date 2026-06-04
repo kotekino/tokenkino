@@ -149,7 +149,6 @@ def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statem
 
     # evaluate marker, op, aux
     marker = ref.marker
-    op = ref.op
     aux = ref.aux
 
     # get properties
@@ -157,7 +156,7 @@ def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statem
 
     # return result
     map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=ref.id)
-    return TKLLEntityReference(id=compiler_getEntityIdByMap(map), marker=marker, properties=properties, op=op, aux=aux)
+    return TKLLEntityReference(id=compiler_getEntityIdByMap(map), marker=marker, properties=properties, aux=aux)
 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
 def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
@@ -300,7 +299,7 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     indirects: list[TKLLEntityReference] = list()
 
     # ---------------------------------------------
-    # predicate it cant be a statement
+    # predicate
     # ---------------------------------------------
     predicate = compiler_evaluateReference(statement.predicate, statementIdx, statementId) if statement.predicate else None
     if statement.subject: 
@@ -315,6 +314,22 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
 
     # append main content and build item
     mainContent = TKLLCContent(clause_type=clauseType, properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
+
+    # ---------------------------------------------
+    # predicate (manage statements)
+    # ---------------------------------------------
+    if statement.predicate:
+        # subordinates
+        for subReference in statement.predicate.subordinates:
+            subordinate = next(i for i in statement.entities if subReference.id == i.id)
+            subItems = compiler_evaluateSubordinate(subReference, subordinate.payload, statementIdx)
+            result.extend(subItems)
+        # coordinates
+        replacements=[]
+        for coordReference in statement.predicate.conjuncts:
+            ef = compiler_evaluateReference(coordReference, statementIdx, statementId)
+            replacements.append([coordReference.op, predicate.id, ef])
+            mainContent = compiler_evaluateCoordinate(mainContent, replacements)
 
     # ---------------------------------------------
     # subject (manage statements)
@@ -345,12 +360,13 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
         replacements=[]
         for coordReference in statement.direct.conjuncts:
             ef = compiler_evaluateReference(coordReference, statementIdx, statementId)
-            replacements.append([coordReference.op, subject.id, ef])
+            replacements.append([coordReference.op, direct.id, ef])
             mainContent = compiler_evaluateCoordinate(mainContent, replacements)
 
     # ---------------------------------------------
     # indirects (manage statements)
     # ---------------------------------------------
+    idx: int = 0
     for indirectReference in statement.indirects:
         # subordinates
         for subReference in indirectReference.subordinates:
@@ -361,7 +377,7 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
         replacements=[]
         for coordReference in indirectReference.conjuncts:
             ef = compiler_evaluateReference(coordReference, statementIdx, statementId)
-            replacements.append([coordReference.op, subject.id, ef])
+            replacements.append([coordReference.op, indirectReference.id, ef])
             mainContent = compiler_evaluateCoordinate(mainContent, replacements)
 
     result.insert(0, TKLLCItem(op=operator,content=mainContent))
