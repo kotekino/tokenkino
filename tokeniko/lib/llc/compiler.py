@@ -49,35 +49,30 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
 
     return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type)
 
-# append entity if new, or update reference if already present
-def compiler_appendEntity(ent: TKLLEntity, inputEntRef: list[TKLLEntityMapReference], ents: list[TKLLEntityMap]):
-    if len([e for e in ents if e.entity.token == ent.token and e.entity.entity_type == ent.entity_type]) == 0:
-        ents.append(TKLLEntityMap(entity=ent, ref=inputEntRef))
-    else:
-        # update the reference
-        refEnt = next((e for e in ents if e.entity.token == ent.token and e.entity.entity_type == ent.entity_type))
-        refEnt.ref.extend(inputEntRef)
-
 # get all the entities
-def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: int = 0, offset: int = 0) -> list[TKLLEntityMap]:
-    entities: list[TKLLEntityMap] = [] 
+def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: int = 0) -> list[TKLLEntityMap]:
+    global _entities
 
     for e in statement.entities:
         if e.payload.entity_type == 'statement':
-            newEnts = compiler_getEntities(e.payload, statementIdx, e.id, offset=len(entities))
-            for ne in newEnts:
-                compiler_appendEntity(ent=ne.entity, inputEntRef=ne.ref, ents=entities)
+            compiler_getEntities(e.payload, statementIdx, e.id)
         else:
-            id = len(entities) + offset + 1
+            id = len(_entities) + 1
+            
             # get referenced entity
             refEntity = e
             if e.referenceId > 0:
                 refEntity = next(en for en in statement.entities if en.id == e.referenceId)
-                
             entity = compiler_getEntity(ent=refEntity, id=id)
-            compiler_appendEntity(ent=entity, inputEntRef=[TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=e.id)], ents=entities)
-
-    return entities
+            
+            # if not present, append
+            inputEntRef = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=e.id)
+            if len([e for e in _entities if e.entity.token == entity.token and e.entity.entity_type == entity.entity_type]) == 0:
+                _entities.append(TKLLEntityMap(entity=entity, ref=[inputEntRef]))
+            else:
+                # update the reference
+                refEnt = next((e for e in _entities if e.entity.token == entity.token and e.entity.entity_type == entity.entity_type))
+                refEnt.ref.append(inputEntRef)
 
 # search entities references by pronoun
 def compiler_getEntitiesByPronoun(lemma: str) -> int:
@@ -109,7 +104,7 @@ def compiler_resolvePronouns(stat: TKStatement) -> TKStatement:
 
 # normalize and reslve all entities
 def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]: 
-    entities: list[TKLLEntityMap] = []
+    global _entities
     
     # collect all the entities in the statements, and assign them a unique id
     idx = 1
@@ -118,14 +113,8 @@ def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
         compiler_resolvePronouns(tks)
 
         # resolve entities
-        ents = compiler_getEntities(statement=tks, statementIdx=idx)
-        for ne in ents:
-            compiler_appendEntity(ent=ne.entity, inputEntRef=ne.ref, ents=entities)
+        compiler_getEntities(statement=tks, statementIdx=idx)
         idx +=1
-
-    # clean entities unused
-    
-    return entities
 
 # ------------------------------------------------------------------------------------------------
 # STATEMENTS
@@ -144,6 +133,25 @@ def compiler_getEntityIdByMap(map: TKLLEntityMapReference) -> int | None:
 
     return None
 
+# recurse properties of properties and conjunct of properties
+def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: int, statementId: int, isProperty = False) -> list[TKLLEntityReference]:
+    
+    # init
+    flattenedProperties: list[TKLLEntityReference] = list()
+
+    for p in ref.properties:
+        map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=p.id)
+        flattenedProperties.append([p.op, TKLLEntityReference(id=compiler_getEntityIdByMap(map), marker=None, properties=list())])
+        flattenedProperties.extend(compiler_recurseReferenceProperties(p, statementIdx, statementId, True))
+
+    if isProperty:
+        for c in ref.conjuncts:
+            map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=c.id)
+            flattenedProperties.append([c.op, TKLLEntityReference(id=compiler_getEntityIdByMap(map), marker=None, properties=list())])
+            flattenedProperties.extend(compiler_recurseReferenceProperties(c, statementIdx, statementId, True))
+    
+    return flattenedProperties
+
 # evaluate reference
 def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: int, isProperty = False) -> TKLLEntityReference:
 
@@ -152,7 +160,11 @@ def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statem
     aux = ref.aux
 
     # get properties
+    flattenedProperties = compiler_recurseReferenceProperties(ref, statementIdx, statementId, isProperty)
     properties: list[TKLLEntityProperty] = list()
+
+    for fp in flattenedProperties:
+        properties.append(TKLLEntityProperty(op=fp[0], reference=fp[1]))
 
     # return result
     map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=ref.id)
@@ -401,10 +413,9 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
 # ------------------------------------------------------------------------------------------------
 def compiler_compile(tkStatements: TKStatements) -> TKLLC | None:
     global _entities, _statements
-    result = None
     
     # build new entities
-    _entities = compiler_resolveEntities(tkStatements)
+    compiler_resolveEntities(tkStatements)
     _statements = compiler_resolveStatements(tkStatements)
     
     return TKLLC(items=_statements, entities=[e.entity for e in _entities])
