@@ -44,8 +44,8 @@ def parser_init():
     if nlp_stanza is None:
         nlp_stanza = spacy_stanza.load_pipeline(
             "en",
-            device="mps",                  # silicon gpu acceleration (if available)
-            download_method="reuse_resources" # skip download if already present
+            device="mps",                       # silicon gpu acceleration (if available)
+            download_method="reuse_resources"   # skip download if already present
         )
         
         # spacy standard
@@ -143,11 +143,11 @@ def parser_parseSubordinate(token: Token, quotes: list[tuple[list[Token], list[T
     # get indirect marker 
     marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
-        tkMarker = TKMarker(marker_type=marker.dep_, lemma=marker.lemma_, vector=marker.vector, connect_clause=token.dep_)    
+        tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector, parent_dep=token.dep_)    
 
     # update marker
     if marker == None: 
-        tkMarker = TKMarker(connect_clause=token.dep_)
+        tkMarker = TKMarker(parent_dep=token.dep_)
 
     tokenSubtree = [t for t in token.subtree if t != marker]
 
@@ -174,12 +174,12 @@ def parser_getMeaning(token: Token, pos: str) -> tuple[TKMarker, EntityPayload]:
     tkMarker: TKMarker = None
     marker = next((s for s in token.children if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
-        tkMarker = TKMarker(marker_type=marker.dep_, lemma=marker.lemma_, vector=marker.vector)
+        tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector)
     
     # not found, but it is an indirect object, assign "to" as marker
     if tkMarker == None and token.dep_ == "iobj":
         newMarker = nlp.tokenizer("to")
-        tkMarker = TKMarker(lemma="to", vector=newMarker.vector if newMarker.has_vector else [])
+        tkMarker = TKMarker(word="to", vector=newMarker.vector if newMarker.has_vector else [])
 
     # should be in the dictionary (exclude auxiliaries, pronouns)
     doc_result: TKDictionary = None

@@ -14,7 +14,7 @@ from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler
 from lib.core.tk import TKStatement, TKStatements
 from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
-from lib.llc.compiler import compiler_compile
+from lib.llc.compiler import compiler_compile, compiler_getBaseMarker
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -161,6 +161,11 @@ async def search(token: str, prepare: int = 0):
     doc = tkll_searchSimilarTokens(preparsedTokens)
 
     return doc
+
+@app.get("/api/v1/tkll/markers")
+async def search(token: str):
+    result = compiler_getBaseMarker(token)
+    return result
 
 # ------------------------
 # PRE endpoints

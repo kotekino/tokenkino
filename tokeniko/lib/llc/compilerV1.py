@@ -54,18 +54,18 @@ def flattener_evaluateReference(ref: TKEntityReference,  parentOffset: int = 0, 
 def flattener_parseMarker(marker: TKMarker) -> TKClauseType:
 
     # if no lemma, return other
-    if not marker.lemma: 
-        if marker.connect_clause: 
-            return marker.connect_clause
+    if not marker.word: 
+        if marker.parent_dep: 
+            return marker.parent_dep
         else:
             return TKClauseType.OTHER
 
     # 0. get doc
-    newDoc = nlp.tokenizer(marker.lemma)
+    newDoc = nlp.tokenizer(marker.word)
 
     # 1. simple case
-    if marker.lemma in _SUBORDINATE_TYPE_BASE_ANCHORS:
-        return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.lemma]
+    if marker.word in _SUBORDINATE_TYPE_BASE_ANCHORS:
+        return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.word]
 
     # 2. vector space on the marker
     best_type = TKClauseType.OTHER  
@@ -81,7 +81,7 @@ def flattener_parseMarker(marker: TKMarker) -> TKClauseType:
         return best_type
 
     # 3. parse marker on lemma, then connect_clause then fallback other
-    if marker.connect_clause: return marker.connect_clause
+    if marker.parent_dep: return marker.parent_dep
     
     # 4. fallback
     return TKClauseType.OTHER

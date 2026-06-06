@@ -12,7 +12,8 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
-from lib.llc.constants import _PRONOUNS_BASE_ANCHORS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.core.models import _VECTOR_INDEX, TKMarkerDoc
 
 # globals
 _entities: list[TKLLEntityMap] = []
@@ -22,6 +23,65 @@ nlp = spacy.load(_SPACY_MODEL)
 # ------------------------------------------------------------------------------------------------
 # ENTITIES
 # ------------------------------------------------------------------------------------------------
+def compiler_getBaseMarker(token: str) -> TKMarker:
+    lemma = str(token).lower()
+    exact_match = TKMarkerDoc.find_one(TKMarkerDoc.word == lemma).run()
+    
+    if exact_match:
+        runtime_marker = TKMarker(**exact_match.model_dump())
+        return runtime_marker
+
+    new_doc = nlp(lemma)
+    new_vector = new_doc[0].vector.tolist() if len(new_doc) > 0 else []
+
+
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": _VECTOR_INDEX,
+                "path": "vector",
+                "queryVector": new_vector,
+                "numCandidates": 50, 
+                "limit": 1           
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "word": 1,
+                "vector": 1,
+                "definition": 1,
+                "score": { "$meta": "vectorSearchScore" }
+            }
+        }
+    ]
+
+    search_results = list(TKMarkerDoc.aggregate(pipeline).run())
+
+    if search_results:
+        best_match = search_results[0]
+        mongo_score = best_match.get("score", 0.0)
+        
+        # Convertiamo il punteggio di Mongo (0.0 -> 1.0) in pura Cosine Similarity (-1.0 -> 1.0)
+        # Formula inversa: Cosine = (Mongo Score - 0.5) * 2
+        pure_cosine_sim = (mongo_score - 0.5) * 2
+        
+        # 5. THRESHOLD CHECK (Sostituzione)
+        if pure_cosine_sim >= _MARKER_SIMILARITY_THRESHOLD:
+            # Rimuoviamo lo 'score' dal dict prima di passarlo al modello Pydantic
+            best_match.pop("score", None)
+            runtime_marker = TKMarker(**best_match)
+            return runtime_marker
+    
+    new_marker_doc = TKMarkerDoc(
+        word=lemma,
+        vector=new_vector,
+        definition="" 
+    )
+    new_marker_doc.insert()
+    runtime_marker = TKMarker(**new_marker_doc.model_dump())
+        
+    return runtime_marker
 
 # get a single entity from the tk entity, and convert it to a TKLLEntity
 def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
@@ -174,18 +234,18 @@ def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statem
 def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
 
     # if no lemma, return other
-    if not marker or not marker.lemma:
-        if marker and marker.connect_clause: 
-            return marker.connect_clause
+    if not marker or not marker.word:
+        if marker and marker.parent_dep: 
+            return marker.parent_dep
         else:
             return TKClauseType.OTHER
 
     # 0. get doc
-    newDoc = nlp.tokenizer(marker.lemma)
+    newDoc = nlp.tokenizer(marker.word)
 
     # 1. simple case
-    if marker.lemma in _SUBORDINATE_TYPE_BASE_ANCHORS:
-        return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.lemma]
+    if marker.word in _SUBORDINATE_TYPE_BASE_ANCHORS:
+        return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.word]
 
     # 2. vector space on the marker
     best_type = TKClauseType.OTHER  
@@ -201,7 +261,7 @@ def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
         return best_type
 
     # 3. parse marker on lemma, then connect_clause then fallback other
-    if marker.connect_clause: return marker.connect_clause
+    if marker.parent_dep: return marker.parent_dep
     
     # 4. fallback
     return TKClauseType.OTHER
