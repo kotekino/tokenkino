@@ -30,7 +30,7 @@ class TKZipItem(BaseModel):
     content: TKZipItemPayload = None 
 
 # llc 
-class TKLLC(BaseModel):
+class TKZip(BaseModel):
     map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
     items: TKZipItem = Field(default_factory=TKZipItem)
 

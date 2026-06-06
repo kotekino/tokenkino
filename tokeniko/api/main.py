@@ -15,6 +15,7 @@ from lib.core.tk import TKStatement, TKStatements
 from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
 from lib.llc.compiler import compiler_compile, compiler_getBaseMarker
+from lib.core.tkzip import TKZip
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -117,15 +118,16 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = compiler_compile(recursiveResultCopy) # flattener_flat(recursiveResultCopy) 
-        rawResult = decompiler_raw(flatResult) if flatResult else ''
+        flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy) # flattener_flat(recursiveResultCopy) 
+        rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
        
         res = {
             "original": tokens,
             "raw output": rawResult,
             "polished output": outputResult,
-            "llc flat": flatResult,
+            "llc zip": flatResult[1],
+            "llc flat": flatResult[0],
             "llc recursive": recursiveResult,
         }
         status = "complete"
@@ -133,7 +135,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # store in memory
         if flatResult:
             memory_doc: TKMemoryItemDoc = TKMemoryItemDoc(
-                tkllc=flatResult,
+                tkllc=flatResult[0],
                 sourceId=str(talkerEntity.id),
                 targetId=str(app.state.tokeniko.id),
                 channel=MEMChannels.API,

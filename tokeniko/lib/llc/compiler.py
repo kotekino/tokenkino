@@ -14,6 +14,7 @@ from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKO
 from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
 from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.core.models import _VECTOR_INDEX, TKMarkerDoc
+from lib.core.tkzip import TKZip
 
 # globals
 _entities: list[TKLLEntityMap] = []
@@ -469,13 +470,21 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
     return result
 
 # ------------------------------------------------------------------------------------------------
+# ZIP
+# ------------------------------------------------------------------------------------------------
+def compiler_zip():
+    global _statements, _entities
+    return None
+
+# ------------------------------------------------------------------------------------------------
 # MAIN METHOD
 # ------------------------------------------------------------------------------------------------
-def compiler_compile(tkStatements: TKStatements) -> TKLLC | None:
+def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip] | None:
     global _entities, _statements
     
     # build new entities
     compiler_resolveEntities(tkStatements)
     _statements = compiler_resolveStatements(tkStatements)
+    zip: TKZip = compiler_zip()
     
-    return TKLLC(items=_statements, entities=[e.entity for e in _entities])
+    return TKLLC(items=_statements, entities=[e.entity for e in _entities]), zip
