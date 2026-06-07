@@ -25,7 +25,6 @@ class TKLLEntity(BaseModel):
     token: str
     entity_type: str = Field(default='generic')
     semantic_vector: list[float] = Field(default_factory=list)
-    spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime)
 
 # map from tkentity and tkllentity
 class TKLLEntityMap(BaseModel):
@@ -43,6 +42,7 @@ class TKLLEntityReference(BaseModel):
     id: int
     aux: Optional[TKAux] = None
     marker: Optional[TKMarker] = None
+    spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime)
     properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
 # entity property

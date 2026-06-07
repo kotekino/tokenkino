@@ -1,24 +1,25 @@
 # ------------------------------------------------------------------------------------------------
 # FLAT compiler V2
-# properties
-# conjunct management
-# subordinates management
+# conjunct management refine
+# subordinates management refine
+# subject infer (xcomp and other cases)
+# zip include properties of entities in calculation of the vector
+# zip manage vectorless entitites
 # ------------------------------------------------------------------------------------------------
 
 # main flat function
 import copy
-
+import numpy as np
 import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
-from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
+from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
 from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.core.models import _VECTOR_INDEX, TKMarkerDoc
-from lib.core.tkzip import TKZip
+from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
 # globals
 _entities: list[TKLLEntityMap] = []
-_statements: list[TKLLCContent] = []
 nlp = spacy.load(_SPACY_MODEL)
 
 # ------------------------------------------------------------------------------------------------
@@ -34,7 +35,6 @@ def compiler_getBaseMarker(token: str) -> TKMarker:
 
     new_doc = nlp(lemma)
     new_vector = new_doc[0].vector.tolist() if len(new_doc) > 0 else []
-
 
     pipeline = [
         {
@@ -170,6 +170,7 @@ def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
     # collect all the entities in the statements, and assign them a unique id
     idx = 1
     for tks in tkStatements:
+
         # resolve pronouns
         compiler_resolvePronouns(tks)
 
@@ -464,27 +465,148 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
 
     idx = 1
     for tks in tkStatements:
-        items = compiler_evaluateStatement(statement=tks, statementIdx=idx)
-        result.extend(items)
 
+        # evaluate statements
+        items = compiler_evaluateStatement(statement=tks, statementIdx=idx)
+
+        # append items to result
+        result.extend(items)
+    
     return result
+
+# ------------------------------------------------------------------------------------------------
+# SPACETIME
+# ------------------------------------------------------------------------------------------------
+def compiler_spacetimeCollectReferences(statements: list[TKLLCItem]) -> list[TKLLEntityReference]:
+    ents: list[TKEntity] = []
+
+    for stat in statements:
+        if isinstance(stat.content, TKLLCContent):
+            if stat.content.subject: ents.append(stat.content.subject) 
+            if stat.content.direct: ents.append(stat.content.direct) 
+            if stat.content.predicate: ents.append(stat.content.predicate) 
+            if stat.content.indirects: ents.extend(stat.content.indirects) 
+        else:
+            ents.extend(compiler_spacetimeCollectReferences(stat.content))
+
+    return ents
+
+# build spacetime map from entities and normalize the spacetime of the entities in the map (-1, 1)
+def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap:
+
+    # collect all entities
+    references = compiler_spacetimeCollectReferences(statements)
+
+    spacetimeMap: TKLLSpacetimeMap = TKLLSpacetimeMap()
+
+    # get bounds
+    minT = min(e.spacetime.position[0] - e.spacetime.size[0] / 2 for e in references) if len(references) > 0 else 0
+    maxT = max(e.spacetime.position[0] + e.spacetime.size[0] / 2 for e in references) if len(references) > 0 else 0
+    minX = min(e.spacetime.position[1] - e.spacetime.size[1] / 2 for e in references) if len(references) > 0 else 0
+    maxX = max(e.spacetime.position[1] + e.spacetime.size[1] / 2 for e in references) if len(references) > 0 else 0
+    minY = min(e.spacetime.position[2] - e.spacetime.size[2] / 2 for e in references) if len(references) > 0 else 0
+    maxY = max(e.spacetime.position[2] + e.spacetime.size[2] / 2 for e in references) if len(references) > 0 else 0
+    minZ = min(e.spacetime.position[3] - e.spacetime.size[3] / 2 for e in references) if len(references) > 0 else 0
+    maxZ = max(e.spacetime.position[3] + e.spacetime.size[3] / 2 for e in references) if len(references) > 0 else 0
+
+    # same scale for x, y, z
+    minSpace = min(minX, minY, minZ)
+    maxSpace = max(maxX, maxY, maxZ)
+
+    # normalize function (from - x to x => from -1 to 1)
+    def normalize(value: float, min: float, max: float) -> float:
+        if max - min == 0: return 0
+        return (value - min) / (max - min) * 2 - 1
+
+    spacetimeMap.tbounds = [normalize(minT, minT, maxT), normalize(maxT, minT, maxT)]
+    spacetimeMap.xbounds = [normalize(minX, minSpace, maxSpace), normalize(maxX, minSpace, maxSpace)]
+    spacetimeMap.ybounds = [normalize(minY, minSpace, maxSpace), normalize(maxY, minSpace, maxSpace)]
+    spacetimeMap.zbounds = [normalize(minZ, minSpace, maxSpace), normalize(maxZ, minSpace, maxSpace)]
+
+    # recalculate the spacetime of the entities in the map
+    for e in references:
+        e.spacetime.position[0] = normalize(e.spacetime.position[0], minT, maxT)
+        e.spacetime.position[1] = normalize(e.spacetime.position[1], minSpace, maxSpace)
+        e.spacetime.position[2] = normalize(e.spacetime.position[2], minSpace, maxSpace)
+        e.spacetime.position[3] = normalize(e.spacetime.position[3], minSpace, maxSpace)
+        e.spacetime.size[0] = normalize(e.spacetime.size[0], minT, maxT)
+        e.spacetime.size[1] = normalize(e.spacetime.size[1], minSpace, maxSpace)
+        e.spacetime.size[2] = normalize(e.spacetime.size[2], minSpace, maxSpace)
+        e.spacetime.size[3] = normalize(e.spacetime.size[3], minSpace, maxSpace)
+
+    return spacetimeMap
 
 # ------------------------------------------------------------------------------------------------
 # ZIP
 # ------------------------------------------------------------------------------------------------
-def compiler_zip():
-    global _statements, _entities
-    return None
+# get vector from an entity
+def compiler_zipGetEntityVector(ref, entity, properties) -> list[float]:
+    result: list[float] = entity.entity.semantic_vector if len(entity.entity.semantic_vector) > 0 else np.zeros(2925).tolist()
+
+    # merge properties
+
+    return result
+
+# get base marker vector
+def compiler_zipGetMarker(word: str) -> list[float]:
+    baseMarker = compiler_getBaseMarker(word)
+    return baseMarker.vector if baseMarker else np.zeros(300).tolist()
+
+# get vector from a reference
+def compiler_zipGetVector(ref: TKLLEntityReference) -> list[float]:
+    global _entities
+    vector: list[float] = []
+    
+    # empty reference
+    if ref == None: 
+        return np.zeros(3237).tolist()
+    
+    entity = next(e for e in _entities if ref.id == e.entity.id)
+    marker: list[float] = compiler_zipGetMarker(ref.marker.word) if ref.marker else np.zeros(300).tolist()
+    semantic: list[float] = compiler_zipGetEntityVector(ref, entity, ref.properties)
+    spacetime: list[float] = ref.spacetime.size + ref.spacetime.position + ref.spacetime.velocity
+    vector = marker + semantic + spacetime
+
+    return vector
+
+# calculate final vector for the content
+def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
+    ironic = content.properties.ironic
+    dubitative = content.properties.dubitative
+    imperative = content.properties.imperative
+    sentiment = content.properties.sentiment
+    subject = compiler_zipGetVector(content.subject)
+    direct = compiler_zipGetVector(content.direct)
+    predicate = compiler_zipGetVector(content.predicate)
+    indirects: list[list[float]] = []
+    for i in content.indirects:
+        indirects.append(compiler_zipGetVector(i))
+
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+
+# calculate final vectors for the statements
+def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:
+    result: list[TKZipItem] = []
+    for item in items:
+        if isinstance(item.content, TKLLCContent):
+            result.append(TKZipItem(op=item.op, content=compiler_zipContent(item.content)))
+        else: 
+            result.append(TKZipItem(op=item.op, content=compiler_zip(item.content)))
+    return result
 
 # ------------------------------------------------------------------------------------------------
 # MAIN METHOD
 # ------------------------------------------------------------------------------------------------
-def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip] | None:
-    global _entities, _statements
+def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
+    global _entities
     
-    # build new entities
+    # tkllc
     compiler_resolveEntities(tkStatements)
-    _statements = compiler_resolveStatements(tkStatements)
-    zip: TKZip = compiler_zip()
-    
-    return TKLLC(items=_statements, entities=[e.entity for e in _entities]), zip
+    statements: list[TKLLCItem] = compiler_resolveStatements(tkStatements)
+    map = compiler_spacetimeNormalize(statements)
+    tkllc = TKLLC(map=map, items=statements, entities=[e.entity for e in _entities])
+
+    # tkzip
+    tkzip: TKZip = TKZip(map=tkllc.map, items=TKZipItem(op=TKOperator.AND, content=compiler_zip(tkllc.items)))
+
+    return tkllc, tkzip

@@ -45,6 +45,7 @@ _TALKER_ID = 1
 _LISTENER_ID = 2
 _PRONOUNS_BASE_ANCHORS = {
     "i": _TALKER_ID,
+    "me": _TALKER_ID,
     "you": _LISTENER_ID
 }
 
