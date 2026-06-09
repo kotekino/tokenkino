@@ -5,7 +5,6 @@
 from typing import Optional, Union
 from pydantic import BaseModel, Field
 from lib.core.tk import TKOperator
-from lib.core.tkllc import TKLLSpacetimeMap
 
 # zip content: can be a content or another llcitem (recursive)
 class TKZipContent(BaseModel):
@@ -27,7 +26,7 @@ class TKZipItem(BaseModel):
 
 # zip 
 class TKZip(BaseModel):
-    map: TKLLSpacetimeMap = Field(default_factory=TKLLSpacetimeMap)
+    map: list[float] = Field(decimal_factory=list, min_length=8, max_length=8)
     items: TKZipItem = Field(default_factory=TKZipItem)
 
 # payload for item

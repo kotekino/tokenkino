@@ -7,7 +7,7 @@ from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.tk import EntityPayload, TKAux, TKClause, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStatement, TKStatements
+from lib.core.tk import EntityPayload, TKAux, TKClause, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStatement, TKStatements
 from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
@@ -111,10 +111,10 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
     return entity
 
 # get properties
-def parser_getProperties(tokens: list[Token], quotes: list[tuple[list[Token], list[Token], Span]] = []) -> list[TKFullEntity]:
+def parser_getProperties(tokens: list[Token]) -> list[TKFullProperty]:
 
-    doc_properties: list[TKFullEntity] = []
-    property: TKFullEntity
+    doc_properties: list[TKFullProperty] = []
+    property: TKFullProperty
 
     for t in tokens:
         property = None
@@ -125,12 +125,41 @@ def parser_getProperties(tokens: list[Token], quotes: list[tuple[list[Token], li
         or t.dep_ == "compound" \
         or t.dep_ == "nmod:poss" \
         or t.dep_ == "det":
-            property = parser_getFullEntity(t, quotes)
+            property = parser_getFullProperty(t)
 
         if property: 
             doc_properties.append(property)
 
+            # ----------------------------------------
+            # coordinated entities (conjuncts)
+            # ----------------------------------------   
+            for c in [cc for cc in t.conjuncts if cc.head == t]:
+                doc_properties.append(parser_getFullProperty(c))
+
     return doc_properties
+
+# get full entity as property
+def parser_getFullProperty(token: Token) -> TKFullProperty:
+    # related tokens to the entity
+    conjuncts = list(token.conjuncts)
+    children = list(token.children)
+
+    # get wn pos
+    pos = TKPosMapper.get_wn_pos(token.pos_)
+
+    # try finding the meaning (in our dictionary)
+    doc_properties: list[TKFullProperty] = []
+
+    # get single entity or statement
+    tkMeaning = parser_getPropertyMeaning(token, pos)
+
+    # get properties (for each token directly bound to the result)
+    doc_properties = parser_getProperties(children)
+
+    # primary entity (from token)
+    primaryEntity: TKFullProperty = TKFullProperty(entity=tkMeaning, token=token.text, properties=doc_properties)
+
+    return primaryEntity
 
 # parse a subordinate clause
 def parser_parseSubordinate(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = []) -> TKFullEntity:
@@ -165,6 +194,59 @@ def parser_parseSubordinate(token: Token, quotes: list[tuple[list[Token], list[T
 # search for separate statements in the token list, and parse them recursively
 def parser_isStatement(token: Token) -> bool:
     return token.dep_ in ["xcomp", "ccomp", "csubj", "advcl", "acl", "acl:relcl", "parataxis"]
+
+# get from dictionary, names, number, pronouns, generic (fallback) meaning
+def parser_getPropertyMeaning(token: Token, pos: str) -> EntityPayload:
+    
+    tkMeaning = None
+
+    # should be in the dictionary (exclude auxiliaries, pronouns)
+    doc_result: TKDictionary = None
+    if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != "AUX" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
+        # search in dictionary
+        for p in pos:           
+            doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
+            if doc_result: break
+                
+        # semantic fallback
+        for p in pos:
+            if not doc_result:
+                newDoc = nlp.tokenizer(token.lemma_)
+                if newDoc and len(list(newDoc)) > 0:
+                    query_vector = np.asarray([newDoc[0].vector])
+                    most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SPACY_MAX_SIMILAR_RESULTS)
+                    similar_keys = most_similar[0][0]
+                    for key in similar_keys:
+                        fallback_lemma = nlp.vocab.strings[key].lower()
+                        doc_result = TKDictionaryDoc.find_one({"word": fallback_lemma, "pos": p}).run()
+                        if doc_result:
+                            break
+
+        # assign result
+        if doc_result: tkMeaning = TKDictionary(**doc_result.model_dump(exclude={"id"}))
+    else: 
+        # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
+        if token.pos_ == "PROPN":
+            tkMeaning = TKName(name=token.lemma_)
+        if token.pos_ == "NUM":
+            clean_text = token.text.replace(',', '').strip()
+            numValue = 0
+            try:
+                numValue = float(clean_text)
+            except ValueError:
+                numValue = float(w2n.word_to_num(clean_text))
+            
+            tkMeaning = TKNumber(value=numValue, num_type=token.ent_type_, text=token.lemma_)
+        elif token.pos_ == "PRON":
+            vector: list[int] = token.vector if token.has_vector else []
+            tkMeaning = TKPronoun(lemma=token.lemma_, vector=vector)
+
+    # if still no result, generic (it is used to manage unknown semantics)
+    knownPos = pos[0] if len(pos) > 0 else ""
+    if not tkMeaning and not doc_result: 
+        tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
+
+    return tkMeaning
 
 # get from dictionary, names, number, pronouns, generic (fallback) meaning
 def parser_getMeaning(token: Token, pos: str) -> tuple[TKMarker, EntityPayload]:
@@ -248,7 +330,7 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     tkMarker, tkMeaning = parser_getMeaning(token, pos)
 
     # get properties (for each token directly bound to the result)
-    doc_properties = parser_getProperties(children, quotes)
+    doc_properties = parser_getProperties(children)
 
     # get auxiliary
     aux = next((s for s in children if s.pos_ == "AUX"), None)

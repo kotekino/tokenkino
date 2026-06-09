@@ -1,9 +1,13 @@
 # ------------------------------------------------------------------------------------------------
 # FLAT compiler V2
+# compiler
+# ---
 # conjunct management refine
 # subordinates management refine
-# subject infer (xcomp and other cases)
-# zip include properties of entities in calculation of the vector
+# subject infer (implicit, xcomp, pronouns and other cases) compiler_getEntitiesByPronoun
+# zipper
+# ---
+# zip refine properties (no operator NOT or AND but multiplier determined by adjective / adverb)
 # zip manage vectorless entitites
 # ------------------------------------------------------------------------------------------------
 
@@ -25,64 +29,6 @@ nlp = spacy.load(_SPACY_MODEL)
 # ------------------------------------------------------------------------------------------------
 # ENTITIES
 # ------------------------------------------------------------------------------------------------
-def compiler_getBaseMarker(token: str) -> TKMarker:
-    lemma = str(token).lower()
-    exact_match = TKMarkerDoc.find_one(TKMarkerDoc.word == lemma).run()
-    
-    if exact_match:
-        runtime_marker = TKMarker(**exact_match.model_dump())
-        return runtime_marker
-
-    new_doc = nlp(lemma)
-    new_vector = new_doc[0].vector.tolist() if len(new_doc) > 0 else []
-
-    pipeline = [
-        {
-            "$vectorSearch": {
-                "index": _VECTOR_INDEX,
-                "path": "vector",
-                "queryVector": new_vector,
-                "numCandidates": 50, 
-                "limit": 1           
-            }
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "word": 1,
-                "vector": 1,
-                "definition": 1,
-                "score": { "$meta": "vectorSearchScore" }
-            }
-        }
-    ]
-
-    search_results = list(TKMarkerDoc.aggregate(pipeline).run())
-
-    if search_results:
-        best_match = search_results[0]
-        mongo_score = best_match.get("score", 0.0)
-        
-        # Convertiamo il punteggio di Mongo (0.0 -> 1.0) in pura Cosine Similarity (-1.0 -> 1.0)
-        # Formula inversa: Cosine = (Mongo Score - 0.5) * 2
-        pure_cosine_sim = (mongo_score - 0.5) * 2
-        
-        # 5. THRESHOLD CHECK (Sostituzione)
-        if pure_cosine_sim >= _MARKER_SIMILARITY_THRESHOLD:
-            # Rimuoviamo lo 'score' dal dict prima di passarlo al modello Pydantic
-            best_match.pop("score", None)
-            runtime_marker = TKMarker(**best_match)
-            return runtime_marker
-    
-    new_marker_doc = TKMarkerDoc(
-        word=lemma,
-        vector=new_vector,
-        definition="" 
-    )
-    new_marker_doc.insert()
-    runtime_marker = TKMarker(**new_marker_doc.model_dump())
-        
-    return runtime_marker
 
 # get a single entity from the tk entity, and convert it to a TKLLEntity
 def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
@@ -196,37 +142,27 @@ def compiler_getEntityIdByMap(map: TKLLEntityMapReference) -> int | None:
     return None
 
 # recurse properties of properties and conjunct of properties
-def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: int, statementId: int, isProperty = False) -> list[TKLLEntityReference]:
+def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: int, statementId: int) -> list[TKLLEntityProperty]:
     
     # init
-    flattenedProperties: list[TKLLEntityReference] = list()
+    propertyReferences: list[TKLLEntityReference] = list()
 
+    # get properties and sub properties recursively
     for p in ref.properties:
         map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=p.id)
-        flattenedProperties.append([p.op, TKLLEntityReference(id=compiler_getEntityIdByMap(map), marker=None, properties=list())])
-        flattenedProperties.extend(compiler_recurseReferenceProperties(p, statementIdx, statementId, True))
+        propertyReferences.append(TKLLEntityProperty(id=compiler_getEntityIdByMap(map), properties=compiler_recurseReferenceProperties(p, statementIdx, statementId)))
 
-    if isProperty:
-        for c in ref.conjuncts:
-            map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=c.id)
-            flattenedProperties.append([c.op, TKLLEntityReference(id=compiler_getEntityIdByMap(map), marker=None, properties=list())])
-            flattenedProperties.extend(compiler_recurseReferenceProperties(c, statementIdx, statementId, True))
-    
-    return flattenedProperties
+    return propertyReferences
 
 # evaluate reference
-def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: int, isProperty = False) -> TKLLEntityReference:
+def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: int) -> TKLLEntityReference:
 
     # evaluate marker, op, aux
     marker = ref.marker
     aux = ref.aux
 
     # get properties
-    flattenedProperties = compiler_recurseReferenceProperties(ref, statementIdx, statementId, isProperty)
-    properties: list[TKLLEntityProperty] = list()
-
-    for fp in flattenedProperties:
-        properties.append(TKLLEntityProperty(op=fp[0], reference=fp[1]))
+    properties: list[TKLLEntityProperty] = compiler_recurseReferenceProperties(ref, statementIdx, statementId)
 
     # return result
     map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=ref.id)
@@ -539,17 +475,114 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
 # ------------------------------------------------------------------------------------------------
 # ZIP
 # ------------------------------------------------------------------------------------------------
+
+# get base marker from marker
+def compiler_zipGetBaseMarker(token: str) -> TKMarker:
+    lemma = str(token).lower()
+    exact_match = TKMarkerDoc.find_one(TKMarkerDoc.word == lemma).run()
+    
+    if exact_match:
+        runtime_marker = TKMarker(**exact_match.model_dump())
+        return runtime_marker
+
+    new_doc = nlp(lemma)
+    new_vector = new_doc[0].vector.tolist() if len(new_doc) > 0 else []
+
+    pipeline = [
+        {
+            "$vectorSearch": {
+                "index": _VECTOR_INDEX,
+                "path": "vector",
+                "queryVector": new_vector,
+                "numCandidates": 50, 
+                "limit": 1           
+            }
+        },
+        {
+            "$project": {
+                "_id": 0,
+                "word": 1,
+                "vector": 1,
+                "definition": 1,
+                "score": { "$meta": "vectorSearchScore" }
+            }
+        }
+    ]
+
+    search_results = list(TKMarkerDoc.aggregate(pipeline).run())
+
+    if search_results:
+        best_match = search_results[0]
+        mongo_score = best_match.get("score", 0.0)
+        
+        # Convertiamo il punteggio di Mongo (0.0 -> 1.0) in pura Cosine Similarity (-1.0 -> 1.0)
+        # Formula inversa: Cosine = (Mongo Score - 0.5) * 2
+        pure_cosine_sim = (mongo_score - 0.5) * 2
+        
+        # 5. THRESHOLD CHECK (Sostituzione)
+        if pure_cosine_sim >= _MARKER_SIMILARITY_THRESHOLD:
+            # Rimuoviamo lo 'score' dal dict prima di passarlo al modello Pydantic
+            best_match.pop("score", None)
+            runtime_marker = TKMarker(**best_match)
+            return runtime_marker
+    
+    new_marker_doc = TKMarkerDoc(
+        word=lemma,
+        vector=new_vector,
+        definition="" 
+    )
+    new_marker_doc.insert()
+    runtime_marker = TKMarker(**new_marker_doc.model_dump())
+        
+    return runtime_marker
+
+# sum property
+def compiler_zipSumProperty(entVec: np.ndarray, propVec: np.ndarray) -> np.ndarray:
+
+    # if property
+    weightProp: float = 1
+    weightEnt: float = 1
+
+    # calculate weight
+
+
+    # combine array using weights
+    combined_vec: np.ndarray = (weightEnt * entVec) + (weightProp * propVec)
+    
+    # return normalized array
+    return combined_vec / np.linalg.norm(combined_vec)
+
 # get vector from an entity
-def compiler_zipGetEntityVector(ref, entity, properties) -> list[float]:
-    result: list[float] = entity.entity.semantic_vector if len(entity.entity.semantic_vector) > 0 else np.zeros(2925).tolist()
+def compiler_zipGetEntityVector(entity: TKLLEntityMap, properties: list[TKLLEntityProperty]) -> list[float]:
+
+    # default vector
+    entityVec = np.zeros(2925, dtype=np.float32)
+
+    # get semantic for entities
+    if entity.entity.entity_type == "dictionary":
+        # get base semantic of dictionary
+        if len(entity.entity.semantic_vector) > 0: entityVec = np.array(entity.entity.semantic_vector, dtype=np.float32)
+    # manage other types
+    # elif entity.entity.entity_type == "number":
+    # elif entity.entity.entity_type == "generic":
+    # else
 
     # merge properties
+    for p in properties:
+        propEnt = next(e for e in _entities if p.id == e.entity.id)
+        propVec = compiler_zipGetEntityVector(propEnt, p.properties)
 
-    return result
+        # blend vectors
+        entityVec = compiler_zipSumProperty(entityVec, propVec)
+
+    # normalize vector
+    result = entityVec / np.linalg.norm(entityVec)
+
+    return result.tolist()
 
 # get base marker vector
 def compiler_zipGetMarker(word: str) -> list[float]:
-    baseMarker = compiler_getBaseMarker(word)
+    baseMarker = compiler_zipGetBaseMarker(word)
     return baseMarker.vector if baseMarker else np.zeros(300).tolist()
 
 # get vector from a reference
@@ -563,7 +596,7 @@ def compiler_zipGetVector(ref: TKLLEntityReference) -> list[float]:
     
     entity = next(e for e in _entities if ref.id == e.entity.id)
     marker: list[float] = compiler_zipGetMarker(ref.marker.word) if ref.marker else np.zeros(300).tolist()
-    semantic: list[float] = compiler_zipGetEntityVector(ref, entity, ref.properties)
+    semantic: list[float] = compiler_zipGetEntityVector(entity, ref.properties)
     spacetime: list[float] = ref.spacetime.size + ref.spacetime.position + ref.spacetime.velocity
     vector = marker + semantic + spacetime
 
@@ -600,6 +633,9 @@ def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:
 def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     global _entities
     
+    # reset entities
+    _entities = []
+
     # tkllc
     compiler_resolveEntities(tkStatements)
     statements: list[TKLLCItem] = compiler_resolveStatements(tkStatements)
@@ -607,6 +643,7 @@ def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     tkllc = TKLLC(map=map, items=statements, entities=[e.entity for e in _entities])
 
     # tkzip
-    tkzip: TKZip = TKZip(map=tkllc.map, items=TKZipItem(op=TKOperator.AND, content=compiler_zip(tkllc.items)))
+    zipmap = map.tbounds + map.xbounds + map.ybounds + map.zbounds
+    tkzip: TKZip = TKZip(map=zipmap, items=TKZipItem(op=TKOperator.AND, content=compiler_zip(tkllc.items)))
 
     return tkllc, tkzip

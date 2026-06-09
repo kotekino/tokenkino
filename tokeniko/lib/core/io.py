@@ -3,7 +3,7 @@ import time
 import ollama
 from pymongo import MongoClient
 from bunnet import init_bunnet
-from lib.core.models import TKAxiomDoc, TKBaseDoc, TKDictionaryDoc, TKMarkerDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc, TKNameDoc, TKPlaceDoc, TKTheoremDoc
+from lib.core.models import TKAxiomDoc, TKBaseDoc, TKDictionaryDoc, TKMarkerDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc, TKNameDoc, TKPlaceDoc, TKPropertyDoc, TKTheoremDoc
 from lib.core.constants import _ME_NAME, _ME_UID
 from lib.core.memory import MEMChannels
 
@@ -25,7 +25,8 @@ def init_io(mongo_uri: str = None, mongo_db_name: str = None, mongo_db_name_memo
             TKDictionaryDoc,
             TKNameDoc,
             TKPlaceDoc,
-            TKMarkerDoc
+            TKMarkerDoc,
+            TKPropertyDoc
         ]
     )
 

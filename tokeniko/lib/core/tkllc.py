@@ -45,10 +45,10 @@ class TKLLEntityReference(BaseModel):
     spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime)
     properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
-# entity property
+# entity property: can have properties, reference an entity id
 class TKLLEntityProperty(BaseModel):
-    op: TKOperator
-    reference: TKLLEntityReference
+    id: int
+    properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
 #  property related the sentence by the talker point of view
 class TKLLProperties(BaseModel):

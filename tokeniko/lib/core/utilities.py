@@ -13,3 +13,7 @@ def util_removeSpace(tokens: str) -> str:
     # return result
     return result
 
+# --------------------------------------------------------------
+# VECTOR UTILITIES
+# --------------------------------------------------------------
+

@@ -49,14 +49,20 @@ class TKPlace(BaseModel):
     physical_features: Optional[list[str]] = None
     location: Optional[GeoPoint] = None
 
-# marker for indirect
+# marker for indirects
 class TKMarker(BaseModel):
-    entity_type: Literal["marker"] = Field(default="marker")
+    entity_type: Literal["marker"] = Field(default="marker", exclude=True)
     word: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
     definition: Optional[str] = None
     dep: str = Field(default="implicit", exclude=True)
     parent_dep: Optional[str] = Field(default=None, exclude=True)
+
+# property
+class TKProperty(BaseModel):
+    entity_type: Literal["property"] = Field(default="property", exclude=True)
+    word: Optional[str] = None
+    vector: list[float] = Field(default_factory=list)
 
 # auxiliaries
 class TKAux(BaseModel):
@@ -210,6 +216,19 @@ class TKStatement(BaseModel):
         return entity.id
 
     # recursively search properties
+    def search_childrenProperties(self, ref: TKPropertyReference) -> list[TKPropertyReference]:
+        
+        result: list[TKPropertyReference] = list()
+
+        # if properties
+        if len(ref.properties):
+            for p in ref.properties:
+                result.append(p)
+                result.extend(self.search_childrenProperties(p)) # recursive part (properties)
+
+        return result          
+
+    # recursively search children entities
     def search_childrenEntities(self, ref: TKEntityReference) -> list[TKEntityReference]:
         
         result: list[TKEntityReference] = list()
@@ -235,11 +254,11 @@ class TKStatement(BaseModel):
         return result        
 
     # add property to subject, predicate, object, indirect
-    def add_properties(self, properties: list[TKFullEntity], target: int): 
+    def add_properties(self, properties: list[TKFullProperty], target: int): 
         
         # search target
-        reference: TKEntityReference = None
-        references: list[TKEntityReference] = list()
+        reference: TKPropertyReference = None
+        references: list[TKPropertyReference] = list()
 
         # add object to search into
         if self.subject: references.append(self.subject)
@@ -248,12 +267,12 @@ class TKStatement(BaseModel):
         for i in self.indirects: references.append(i)
         
         # put everything in the possible references (1 level)
-        children: list[TKEntityReference] = list()
-        for r in references: children.extend(self.search_childrenEntities(r))
+        children: list[TKPropertyReference] = list()
+        for r in references: children.extend(self.search_childrenProperties(r))
         references.extend(children)
 
         # get reference (fields or properties)
-        reference: TKEntityReference = next((t for t in references if t.id == target), None)           
+        reference: TKPropertyReference = next((t for t in references if t.id == target), None)           
 
          # target found, add properties
         if reference:
@@ -261,15 +280,11 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=p.entity)
-                e = TKEntityReference(op=p.op, id=entity.id, marker=p.marker, aux=p.aux)
+                e = TKPropertyReference(id=entity.id)
                 reference.properties.append(e)
 
-                # recurse properties and conjuncts of conjuncts (recursive)
+                # recurse properties 
                 if len(p.properties) > 0: self.add_properties(p.properties, entity.id)
-                if len(p.conjuncts) > 0: self.add_conjuncts(p.conjuncts, entity.id)
-                if len(p.subordinates) > 0: self.add_subordinates(p.subordinates, entity.id)
-        else:
-            wrong = True 
 
     # add conjunct to subject, predicate, object, indirect
     def add_conjuncts(self, conjuncts: list[TKFullEntity], target: int):
@@ -373,7 +388,7 @@ class TKFullEntity(BaseModel):
     subordinates: list[TKFullEntity] = Field(default_factory=list)
 
     # properties (list of semantic values)
-    properties: list[TKFullEntity] = Field(default_factory=list)    
+    properties: list[TKFullProperty] = Field(default_factory=list)    
 
 # a reference to an entity (and its properties)
 class TKEntityReference(BaseModel):
@@ -396,7 +411,18 @@ class TKEntityReference(BaseModel):
     subordinates: list[TKEntityReference] = Field(default_factory=list)
 
     # properties (list of semantic values)
-    properties: list[TKEntityReference] = Field(default=[])
+    properties: list[TKPropertyReference] = Field(default=[])
+
+# the full property
+class TKFullProperty(BaseModel):
+    token: Optional[str] = None
+    entity: EntityPayload = Field(discriminator='entity_type')
+    properties: list[TKFullProperty] = Field(default_factory=list)    
+
+# a reference to a property (and its properties)
+class TKPropertyReference(BaseModel):
+    id: int
+    properties: list[TKPropertyReference] = Field(default=[])
 
 # alias for statement
 TKStatements = list[TKStatement]

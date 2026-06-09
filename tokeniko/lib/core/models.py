@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
-from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace
+from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
 from lib.core.memory import MEMAxiom, MEMTheorem, MEMItem, MEMStakeholder
 
 _VECTOR_INDEX = "vector_index"
@@ -46,6 +46,13 @@ class TKMarkerDoc(TKMarker, Document):
 
     class Settings:
         name = "markers"
+
+# document for properties
+class TKPropertyDoc(TKProperty, Document):
+    word: Annotated[str, Indexed(unique=True)]
+
+    class Settings:
+        name = "properties"
 
 # --------------------------------------------------------------
 # tokeniko memory

@@ -14,7 +14,7 @@ from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler
 from lib.core.tk import TKStatement, TKStatements
 from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
-from lib.llc.compiler import compiler_compile, compiler_getBaseMarker
+from lib.llc.compiler import compiler_compile, compiler_zipGetBaseMarker
 from lib.core.tkzip import TKZip
 
 # env load (MONGO_URI, ecc.)
@@ -118,7 +118,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
-        flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy) # flattener_flat(recursiveResultCopy) 
+        flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
         rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
        
@@ -126,7 +126,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
             "original": tokens,
             "raw output": rawResult,
             "polished output": outputResult,
-            "llc zip": flatResult[1],
+            "llc zip": '', #flatResult[1],
             "llc flat": flatResult[0],
             "llc recursive": recursiveResult,
         }
@@ -166,7 +166,7 @@ async def search(token: str, prepare: int = 0):
 
 @app.get("/api/v1/tkll/markers")
 async def search(token: str):
-    result = compiler_getBaseMarker(token)
+    result = compiler_zipGetBaseMarker(token)
     return result
 
 # ------------------------

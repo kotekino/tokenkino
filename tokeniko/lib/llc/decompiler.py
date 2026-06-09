@@ -37,22 +37,32 @@ async def decompiler_init(ollamaClient: OllamaClient = None):
     _init = True
     return
 
-# process single entity with properties and marker
-def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
-
+# process single property
+def decompiler_raw_property(ref: int, entities: list[TKLLEntity]) -> str:
     entity: str = next((e.token for e in entities if e.id == ref.id), "")
     
-    # property pre poned (not marker, first)
-    firstProp = next((p for p in ref.properties if not p.reference.marker), None)
-    preProperty: str = decompiler_raw_entity(firstProp.reference, entities) if firstProp else ''
+    # properties postponed
+    properties: str = ""
+    for pp in (p for p in ref.properties):
+        properties += f"{decompiler_raw_property(pp, entities)}, "
+
+    # format properties
+    properties = f"[{properties[:-2]}] " if properties else ""
+
+    result = f"{properties}{entity.strip()}"
+    return result
+
+# process single entity with properties and marker
+def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
+    entity: str = next((e.token for e in entities if e.id == ref.id), "")
     
     # properties postponed
-    i: int = 0
-    postProperties: str = ""
-    for pp in (p for p in ref.properties if p.reference.id != firstProp.reference.id):
-        op = pp.op.value if pp.op and (i > 0 or pp.op != TKOperator.AND) else ""
-        postProperties += op + " " + decompiler_raw_entity(pp.reference, entities)
-        i += 1
+    properties: str = ""
+    for pp in (p for p in ref.properties):
+        properties += f"{decompiler_raw_property(pp, entities)}, "
+
+    # format properties
+    properties = f"[{properties[:-2]}] " if properties else ""
 
     # marker only for complements
     marker = ''
@@ -61,7 +71,7 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
     # entity aux
     auxString: str = ref.aux.lemma if ref.aux else ""
 
-    result = f"{marker} {auxString.strip()} {preProperty.strip()} {entity.strip()} {postProperties.strip()}"
+    result = f"{marker} {auxString.strip()} {properties}{entity.strip()}"
 
     return result
 
