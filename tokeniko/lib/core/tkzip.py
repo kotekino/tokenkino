@@ -14,7 +14,7 @@ class TKZipContent(BaseModel):
     imperative: float = Field(default=0.5)
     sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925))
     # statement core elements
-    subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 100 (marker) + 2925 (semantic) + spacetime (12)
+    subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 300 (marker) + 2925 (semantic) + spacetime (12)
     predicate: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237)
     direct: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237)
     indirects: list[list[float]] = Field(default_factory=list) 
