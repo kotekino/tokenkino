@@ -103,7 +103,7 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
                 forcedSubject = q.speaker[0] if len(q.speaker) > 0 else None
             continue
         sentence = parser_parseSentence(token, subtree, clause_type=TKClause.COORDINATE, subject=forcedSubject)
-        entity = TKFullEntity(entity=sentence, aux=None, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
+        entity = TKFullEntity(entity=sentence, dep=token.dep_, aux=None, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
     else:
         entity = parser_getFullEntity(token, quotes, operator)
     
@@ -157,7 +157,7 @@ def parser_getFullProperty(token: Token) -> TKFullProperty:
     doc_properties = parser_getProperties(children)
 
     # primary entity (from token)
-    primaryEntity: TKFullProperty = TKFullProperty(entity=tkMeaning, token=token.text, properties=doc_properties)
+    primaryEntity: TKFullProperty = TKFullProperty(entity=tkMeaning, token=token.text, dep=token.dep_, properties=doc_properties)
 
     return primaryEntity
 
@@ -187,7 +187,7 @@ def parser_parseSubordinate(token: Token, quotes: list[tuple[list[Token], list[T
         continue
 
     tkStatement = parser_parseSentence(token, tokenSubtree, clause_type=TKClause.SUBORDINATE, subject=forcedSubject)
-    if tkStatement: result = TKFullEntity(entity=tkStatement, token=None, aux=None, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
+    if tkStatement: result = TKFullEntity(entity=tkStatement, token=None, dep=token.dep_, aux=None, marker=tkMarker, properties=[], conjuncts=[], op=TKOperator.AND)
     
     return result
 
@@ -355,7 +355,7 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
                 subordinates.append(subordinate)
 
     # primary entity (from token)
-    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, op=op, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties, subordinates=subordinates)
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, dep=token.dep_, op=op, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties, subordinates=subordinates)
 
     # ----------------------------------------
     # coordinated entities (conjuncts)

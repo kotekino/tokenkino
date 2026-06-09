@@ -170,7 +170,7 @@ class TKStatement(BaseModel):
     # create subject
     def create_subject(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.subject = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.subject = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -182,7 +182,7 @@ class TKStatement(BaseModel):
     # create direct
     def create_direct(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.direct = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.direct = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -194,7 +194,7 @@ class TKStatement(BaseModel):
     # add indirect
     def add_indirect(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.indirects.append(TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux))
+        self.indirects.append(TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux))
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -206,7 +206,7 @@ class TKStatement(BaseModel):
     # create predicate
     def create_predicate(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.predicate = TKEntityReference(id=entity.id, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.predicate = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -280,7 +280,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=p.entity)
-                e = TKPropertyReference(id=entity.id)
+                e = TKPropertyReference(id=entity.id, dep=p.dep)
                 reference.properties.append(e)
 
                 # recurse properties 
@@ -313,7 +313,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, id=entity.id, marker=c.marker, aux=c.aux)
+                e = TKEntityReference(op=c.op, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
                 reference.conjuncts.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -350,7 +350,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, id=entity.id, marker=c.marker, aux=c.aux)
+                e = TKEntityReference(op=c.op, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
                 reference.subordinates.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -369,11 +369,17 @@ class TKEntity(BaseModel):
 
 # the full entity
 class TKFullEntity(BaseModel):
+    # operator
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
 
+    # original token
     token: Optional[str] = None
 
+    # entity
     entity: EntityPayload = Field(discriminator='entity_type')
+
+    # dep
+    dep: str
 
     # spacy semantic value
     marker: Optional[TKMarker] = None
@@ -398,6 +404,9 @@ class TKEntityReference(BaseModel):
     # id
     id: int
 
+    # dep
+    dep: str
+
     # specific semantic value
     marker: Optional[TKMarker] = None
 
@@ -417,11 +426,13 @@ class TKEntityReference(BaseModel):
 class TKFullProperty(BaseModel):
     token: Optional[str] = None
     entity: EntityPayload = Field(discriminator='entity_type')
+    dep: str
     properties: list[TKFullProperty] = Field(default_factory=list)    
 
 # a reference to a property (and its properties)
 class TKPropertyReference(BaseModel):
     id: int
+    dep: str
     properties: list[TKPropertyReference] = Field(default=[])
 
 # alias for statement

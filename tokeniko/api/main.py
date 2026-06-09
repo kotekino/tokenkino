@@ -152,7 +152,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         status = "failed"
     return {"status": status, "data": res}
 
-@app.get("/api/v1/tkllc/render", response_class=HTMLResponse)
+@app.get("/api/v1/render", response_class=HTMLResponse)
 async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
     preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
     res = parser_diagram(preparsedTokens)
@@ -161,14 +161,14 @@ async def render(tokens: str = Query(..., min_length=3, description="Sentence to
 # ------------------------
 # TKLL endpoints
 # ------------------------
-@app.get("/api/v1/tkll/dict")
+@app.get("/api/v1/dict")
 async def search(token: str, prepare: int = 0):
     preparsedTokens = await preparser_prepare(token) if prepare == 1 else token
     doc = tkll_searchSimilarTokens(preparsedTokens)
 
     return doc
 
-@app.get("/api/v1/tkll/markers")
+@app.get("/api/v1/markers")
 async def search(token: str):
     result = compiler_zipGetBaseMarker(token)
     return result
@@ -195,6 +195,6 @@ async def prepare(tokens: str):
 # OUT endpoints
 # ------------------------
 @app.get("/api/v1/out")
-async def polish(tokens: str):
+async def out(tokens: str):
     res = await decompiler_decompile(tokens)
     return res

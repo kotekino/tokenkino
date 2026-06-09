@@ -40,6 +40,7 @@ class TKLLEntityMapReference(BaseModel):
 # entity reference for the content
 class TKLLEntityReference(BaseModel):
     id: int
+    dep: str
     aux: Optional[TKAux] = None
     marker: Optional[TKMarker] = None
     spacetime: TKLLSpacetime = Field(default_factory=TKLLSpacetime)
@@ -48,6 +49,7 @@ class TKLLEntityReference(BaseModel):
 # entity property: can have properties, reference an entity id
 class TKLLEntityProperty(BaseModel):
     id: int
+    dep: str
     properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
 #  property related the sentence by the talker point of view

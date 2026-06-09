@@ -50,7 +50,14 @@ _PRONOUNS_BASE_ANCHORS = {
 }
 
 # properties
-_PROP_SIMILARITY_THRESHOLD = 0.5
+_PROP_BASE_ADVMOD_ANCHORS = {
+    "not": -1,
+    "slightly": 0.3,
+    "passably": 0.5,
+    "very": 1.5,
+    "greatly": 2
+}
+_PROP_SIMILARITY_THRESHOLD = 0.85
 
 # markers
-_MARKER_SIMILARITY_THRESHOLD = 0.5
+_MARKER_SIMILARITY_THRESHOLD = 0.85
