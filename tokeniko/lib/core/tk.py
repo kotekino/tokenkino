@@ -51,12 +51,12 @@ class TKPlace(BaseModel):
 
 # marker for indirects
 class TKMarker(BaseModel):
-    entity_type: Literal["marker"] = Field(default="marker", exclude=True)
+    entity_type: Literal["marker"] = Field(default="marker")
     word: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
     definition: Optional[str] = None
-    dep: str = Field(default="implicit", exclude=True)
-    parent_dep: Optional[str] = Field(default=None, exclude=True)
+    dep: str = Field(default="implicit")
+    parent_dep: Optional[str] = Field(default=None)
 
 # property
 class TKProperty(BaseModel):

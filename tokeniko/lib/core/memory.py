@@ -7,6 +7,7 @@ import time
 from typing import Optional
 from pydantic import BaseModel, Field
 from lib.core.tkllc import TKLLC
+from lib.core.tkzip import TKZip
 
 class MEMChannels(str, Enum):
     INTERNAL = "internal"
@@ -28,11 +29,12 @@ class MEMItemProperties(BaseModel):
 
 # memory item
 class MEMItem(BaseModel):
-    tkllc: TKLLC
+    original: str
+    zip: TKZip = None # zipped message (optional, for debugging and learning purposes)
+    raw: Optional[str] = None # raw message (optional, for debugging and learning purposes)
     sourceId: str # unique stakeholder objectId of the source (talker)
     targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
     channel: Optional[str] = None # channel of the message (e.g. "discord", "atproto", "internal")
-    raw: Optional[str] = None # raw message (optional, for debugging and learning purposes)
 
 # alias for list of memory items
 MEMContext = list[MEMItem]

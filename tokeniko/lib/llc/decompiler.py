@@ -66,7 +66,7 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
 
     # marker only for complements
     marker = ''
-    if ref.marker: marker: str = ref.marker.word if not ref.marker.parent_dep else ""
+    if ref.marker: marker: str = ref.marker.word if not ref.marker.parent_dep or ref.marker.parent_dep in ["obl", "obl:tmod", "iobj", "obl:agent"] else ""
 
     # entity aux
     auxString: str = ref.aux.lemma if ref.aux else ""

@@ -61,18 +61,20 @@ async def post_theorem(tokens: str):
     try:
         recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = compiler_compile(recursiveResultCopy) 
+        flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
+        rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         theorem = None
         status = "complete"
 
         # store in memory
         if flatResult:
             theorem: TKTheoremDoc = TKTheoremDoc(
-                tkllc=flatResult,
+                original=tokens,
+                zip=flatResult[1],
+                raw=rawResult,
                 sourceId=str(app.state.tokeniko.id),
                 targetId=str(app.state.tokeniko.id),
-                channel=MEMChannels.INTERNAL,
-                raw=tokens
+                channel=MEMChannels.INTERNAL
             )
             theorem.insert()
     except Exception as error:
@@ -86,18 +88,20 @@ async def post_axiom(tokens: str):
     try:
         recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
-        flatResult: TKLLC = compiler_compile(recursiveResultCopy) 
+        flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
+        rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         axiom = None
         status = "complete"
 
         # store in memory
         if flatResult:
             axiom: TKAxiomDoc = TKAxiomDoc(
-                tkllc=flatResult,
+                original=tokens,
+                zip=flatResult[1],
+                raw=rawResult,
                 sourceId=str(app.state.tokeniko.id),
                 targetId=str(app.state.tokeniko.id),
-                channel=MEMChannels.INTERNAL,
-                raw=tokens
+                channel=MEMChannels.INTERNAL
             )
             axiom.insert()
     except Exception as error:
@@ -126,7 +130,6 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
             "original": tokens,
             "raw output": rawResult,
             "polished output": outputResult,
-            "llc zip": '', #flatResult[1],
             "llc flat": flatResult[0],
             "llc recursive": recursiveResult,
         }
@@ -135,11 +138,12 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # store in memory
         if flatResult:
             memory_doc: TKMemoryItemDoc = TKMemoryItemDoc(
-                tkllc=flatResult[0],
+                original=tokens,
+                zip=flatResult[1],
+                raw=rawResult,
                 sourceId=str(talkerEntity.id),
                 targetId=str(app.state.tokeniko.id),
-                channel=MEMChannels.API,
-                raw=tokens
+                channel=MEMChannels.API
             )
             memory_doc.insert()
 

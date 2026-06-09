@@ -172,7 +172,7 @@ def parser_parseSubordinate(token: Token, quotes: list[tuple[list[Token], list[T
     # get indirect marker 
     marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
     if marker and marker.has_vector: 
-        tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector, parent_dep=token.dep_)    
+        tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector, parent_dep=token.dep_)
 
     # update marker
     if marker == None: 
@@ -196,13 +196,13 @@ def parser_isStatement(token: Token) -> bool:
     return token.dep_ in ["xcomp", "ccomp", "csubj", "advcl", "acl", "acl:relcl", "parataxis"]
 
 # get from dictionary, names, number, pronouns, generic (fallback) meaning
-def parser_getPropertyMeaning(token: Token, pos: str) -> EntityPayload:
+def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
     
     tkMeaning = None
 
     # should be in the dictionary (exclude auxiliaries, pronouns)
     doc_result: TKDictionary = None
-    if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != "AUX" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
+    if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
         # search in dictionary
         for p in pos:           
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
@@ -249,23 +249,13 @@ def parser_getPropertyMeaning(token: Token, pos: str) -> EntityPayload:
     return tkMeaning
 
 # get from dictionary, names, number, pronouns, generic (fallback) meaning
-def parser_getMeaning(token: Token, pos: str) -> tuple[TKMarker, EntityPayload]:
-    
-    # get marker
+def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
+
     tkMeaning = None
-    tkMarker: TKMarker = None
-    marker = next((s for s in token.children if s.dep_ == "case" or s.dep_ == "mark"), None)
-    if marker and marker.has_vector: 
-        tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector)
-    
-    # not found, but it is an indirect object, assign "to" as marker
-    if tkMarker == None and token.dep_ == "iobj":
-        newMarker = nlp.tokenizer("to")
-        tkMarker = TKMarker(word="to", vector=newMarker.vector if newMarker.has_vector else [])
 
     # should be in the dictionary (exclude auxiliaries, pronouns)
     doc_result: TKDictionary = None
-    if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != "AUX" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
+    if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
         # search in dictionary
         for p in pos:           
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
@@ -309,7 +299,21 @@ def parser_getMeaning(token: Token, pos: str) -> tuple[TKMarker, EntityPayload]:
     if not tkMeaning and not doc_result: 
         tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
-    return tkMarker, tkMeaning
+    return tkMeaning
+
+# get marker
+def parser_getMarker(token: Token) -> TKMarker:
+    tkMarker: TKMarker = None
+    marker = next((s for s in token.children if s.dep_ == "case" or s.dep_ == "mark"), None)
+    if marker and marker.has_vector: 
+        tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector, parent_dep=token.dep_)
+    
+    # not found, but it is an indirect object, assign "to" as marker
+    if tkMarker == None and token.dep_ == "iobj":
+        newMarker = nlp.tokenizer("to")
+        tkMarker = TKMarker(word="to", dep="mark", vector=newMarker.vector if newMarker.has_vector else [], parent_dep=token.dep_)
+
+    return tkMarker
 
 # get seamntic value from dictionary + properties
 def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND) -> TKFullEntity:
@@ -327,15 +331,18 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     tkAux = None
 
     # get single entity or statement
-    tkMarker, tkMeaning = parser_getMeaning(token, pos)
+    tkMarker = parser_getMarker(token)
+    tkMeaning = parser_getMeaning(token, pos)
 
     # get properties (for each token directly bound to the result)
     doc_properties = parser_getProperties(children)
 
     # get auxiliary
-    aux = next((s for s in children if s.pos_ == "AUX"), None)
-    if aux and aux.has_vector:
-        tkAux = TKAux(lemma=aux.lemma_, vector=aux.vector)
+    aux = next((s for s in children if s.dep_ in ["cop","aux"]), None)
+    if aux:
+        posAux = TKPosMapper.get_wn_pos(aux.pos_)
+        dictAux = parser_getMeaning(aux, posAux)
+        tkAux = TKAux(lemma=aux.lemma_, vector=dictAux.vector)
 
     # ----------------------------------------
     # subordinates entities (search)
