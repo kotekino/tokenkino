@@ -1,6 +1,8 @@
 # ------------------------------------------------------------------------------------------------
 # PARSER V2: transform a token list into a list of TKStatements (using spacy for the first ingestion)
 # ------------------------------------------------------------------------------------------------
+# i'm bug in stanza spacy
+
 from ollama import Client as OllamaClient
 import spacy
 from spacy import displacy
@@ -86,7 +88,7 @@ def parser_ccToOperator(token: Token | str) -> TKOperator:
 # --------------------------------------------------------------
 # PARSING
 # --------------------------------------------------------------
-def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = []) -> TKFullEntity:
+def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], isPredicate = False) -> TKFullEntity:
     
     entity: TKFullEntity = None
 
@@ -95,7 +97,7 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
     operator: TKOperator = parser_ccToOperator(opToken) if opToken else TKOperator.AND
 
     # decide if its a conj single word or a sentence
-    if parser_isStatement(token):
+    if isPredicate:
         subtree = [t for t in token.subtree if t != opToken] # remove operator
         forcedSubject: Token = None
         for q in quotes: 
@@ -316,7 +318,7 @@ def parser_getMarker(token: Token) -> TKMarker:
     return tkMarker
 
 # get seamntic value from dictionary + properties
-def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND) -> TKFullEntity:
+def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND, isPredicate = False) -> TKFullEntity:
 
     # related tokens to the entity
     conjuncts = list(token.conjuncts)
@@ -361,7 +363,7 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     # coordinated entities (conjuncts)
     # ----------------------------------------   
     for c in [cc for cc in conjuncts if cc.head == token]:
-        relatedEntity = parser_getRelatedEntity(c, quotes)
+        relatedEntity = parser_getRelatedEntity(c, quotes, isPredicate)
         if relatedEntity: primaryEntity.conjuncts.append(relatedEntity)
 
     return primaryEntity
@@ -401,8 +403,6 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # rebuild doc for quotations
     subStatement = " ".join([t.text for t in tokens])
     doc = nlp_stanza(subStatement)
-    
-    # check for quotes
     quotes: list[tuple[list[Token], list[Token], Span]] = list(textacy.extract.triples.direct_quotations(doc))
 
     # all necessary trees
@@ -413,7 +413,7 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # root is predicate
     # ------------------------------
     # the root is a verb or an adjective, assign (auxiliaries are properties)
-    tkPredicate = parser_getFullEntity(root, quotes)
+    tkPredicate = parser_getFullEntity(root, quotes, TKOperator.AND, True)
     
     # ------------------------------
     # search subject (first csubj, then nsubj)

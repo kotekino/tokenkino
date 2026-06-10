@@ -237,7 +237,7 @@ class TKStatement(BaseModel):
         if len(ref.properties):
             for p in ref.properties:
                 result.append(p)
-                result.extend(self.search_childrenEntities(p)) # recursive part (properties)
+                result.extend(self.search_childrenProperties(p)) # recursive part (properties)
         
         # if conjuncts
         if len(ref.conjuncts):
