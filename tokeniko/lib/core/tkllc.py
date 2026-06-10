@@ -34,7 +34,7 @@ class TKLLEntityMap(BaseModel):
 # map reference for tkentities
 class TKLLEntityMapReference(BaseModel):
     inputStatementIdx: int = Field(default=1)
-    inputStatementId: int = Field(default=0)
+    inputStatementId: tuple[int, ...] = Field(default=())
     inputEntityId: int
 
 # entity reference for the content

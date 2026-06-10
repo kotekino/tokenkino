@@ -55,12 +55,12 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
     return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type)
 
 # get all the entities
-def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: int = 0) -> list[TKLLEntityMap]:
+def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = ()) -> list[TKLLEntityMap]:
     global _entities
 
     for e in statement.entities:
         if e.payload.entity_type == 'statement':
-            compiler_getEntities(e.payload, statementIdx, e.id)
+            compiler_getEntities(e.payload, statementIdx, statementId + (e.id,))
         else:
             id = len(_entities) + 1
             
@@ -140,7 +140,7 @@ def compiler_getEntityIdByMap(map: TKLLEntityMapReference) -> int | None:
     return None
 
 # recurse properties of properties and conjunct of properties
-def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: int, statementId: int) -> list[TKLLEntityProperty]:
+def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLEntityProperty]:
     
     # init
     propertyReferences: list[TKLLEntityReference] = list()
@@ -153,7 +153,7 @@ def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: in
     return propertyReferences
 
 # evaluate reference
-def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: int) -> TKLLEntityReference:
+def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: tuple[int, ...]) -> TKLLEntityReference:
 
     # evaluate marker, op, aux
     marker = ref.marker
@@ -203,7 +203,7 @@ def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
     return TKClauseType.OTHER
 
 # evaluate subordinate clause
-def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStatement, statementIdx: int) -> list[TKLLCItem]:
+def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStatement, statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLCItem]:
     subordinateType = compiler_parseMarker(reference.marker)
     
     # analyze subordinate to flatten it with an operator and modify properties
@@ -262,7 +262,7 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
         # other means it affects something else, but the operator is AND               
         operator = TKOperator.AND
 
-    result = compiler_evaluateStatement(statement, statementIdx, reference.id, subordinateType, operator)
+    result = compiler_evaluateStatement(statement, statementIdx, statementId + (reference.id,), subordinateType, operator)
 
     return result
 
@@ -275,7 +275,7 @@ def compiler_modifyContent(
         entities: list[TKEntity], 
         entityId: int, 
         statementIdx: int, 
-        statementId: int
+        statementId: tuple[int, ...]
         ) -> LLCItemPayload:
 
     # last level
@@ -291,12 +291,12 @@ def compiler_modifyContent(
     else:
         dupContentSub: list[TKLLCItem] = copy.deepcopy(content)
         for eidx in range(len(dupContentSub)):
-            dupContentSub[eidx].content = compiler_modifyContent(dupContentSub[eidx].content, rep, subs, conj)
+            dupContentSub[eidx].content = compiler_modifyContent(dupContentSub[eidx].content, rep, subs, conj, entities, entityId, statementIdx, statementId)
 
     # prepend main and return result
     result: list[TKLLCItem] = []
     if len(subs) > 0:
-        result.extend(compiler_evaluateSubordinates(subs, entities, statementIdx))
+        result.extend(compiler_evaluateSubordinates(subs, entities, statementIdx, statementId))
         result.insert(0, TKLLCItem(op=TKOperator.AND,content=dupContentSub))
     else:
         result = dupContentSub
@@ -305,61 +305,46 @@ def compiler_modifyContent(
 
     return result
 
-# evaluate coordinate clause
-def compiler_evaluateCoordinate(
-        content: LLCItemPayload, 
-        replacements: list[tuple[TKOperator, int, TKEntityReference]],
-        subs: list[TKEntityReference], 
-        conj: list[TKEntityReference], 
-        entities: list[TKEntity], 
-        entityId: int, 
-        statementIdx: int, 
-        statementId: int) -> LLCItemPayload:
-    
-    subresult: list[TKLLCItem] = list()
-    subresult.append(TKLLCItem(op=TKOperator.AND, content=content))
-    
-    # reached content
-    for rep in replacements:
-        dupContent = copy.deepcopy(content)
-        dupContent = compiler_modifyContent(dupContent, rep, subs, conj, entities, entityId, statementIdx, statementId)
-        subresult.append(TKLLCItem(op=rep[0], content=dupContent))
-
-    return subresult
-
 # evaluate subordinates for each statement element
-def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entities: list[TKEntity], statementIdx: int) -> list[TKLLCItem]:
+def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entities: list[TKEntity], statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLCItem]:
     result: list[TKLLCItem] = []
 
     # subordinates
     for subReference in subordinates:
         subordinate = next(i for i in entities if subReference.id == i.id)
-        subItems = compiler_evaluateSubordinate(subReference, subordinate.payload, statementIdx)
+        subItems = compiler_evaluateSubordinate(subReference, subordinate.payload, statementIdx, statementId)
         result.extend(subItems)
     
     return result
 
-# evaluate conjuncts
-def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent: LLCItemPayload, entityId: int, entities: list[TKEntity], statementIdx: int, statementId: int) -> LLCItemPayload:
+# evaluate conjuncts: return the head clause plus one item per coordinated sibling, as a
+# FLAT list. Returns None when there is nothing to coordinate, so the caller keeps the
+# plain (unwrapped) content instead of nesting it in a single-element list.
+def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent: LLCItemPayload, entityId: int, entities: list[TKEntity], statementIdx: int, statementId: tuple[int, ...]) -> LLCItemPayload | None:
     global _entities
-    replacements=[]
 
-    # conjuncts
-    mainItems: list[TKLLCItem] = [TKLLCItem(op=TKOperator.AND, content=mainContent)]
+    # nothing to coordinate -> let the caller keep mainContent as-is
+    if len(conjuncts) == 0:
+        return None
+
+    # head clause first, then exactly one item per conjunct
+    result: list[TKLLCItem] = [TKLLCItem(op=TKOperator.AND, content=mainContent)]
     for coordReference in conjuncts:
         refEntity = next(en for en in entities if en.id == coordReference.id)
         if refEntity.payload.entity_type == "statement":
-            mainItems.extend(compiler_evaluateStatement(refEntity.payload, 1, refEntity.id, refEntity.payload.clause_type, coordReference.op))
-            return mainItems
+            # a fully coordinated sub-statement (e.g. "... and to make ...")
+            result.extend(compiler_evaluateStatement(refEntity.payload, statementIdx, statementId + (refEntity.id,), refEntity.payload.clause_type, coordReference.op))
         else:
+            # a coordinated entity: clone the head clause and swap entityId -> this sibling
             ef = compiler_evaluateReference(coordReference, statementIdx, statementId)
-            subs = coordReference.subordinates
-            conj = coordReference.conjuncts
-            replacements.append([coordReference.op, entityId, ef])
-            return compiler_evaluateCoordinate(mainContent, replacements, subs, conj, entities, entityId, statementIdx, statementId)
+            rep = [coordReference.op, entityId, ef]
+            dupContent = compiler_modifyContent(copy.deepcopy(mainContent), rep, coordReference.subordinates, coordReference.conjuncts, entities, entityId, statementIdx, statementId)
+            result.append(TKLLCItem(op=coordReference.op, content=dupContent))
+
+    return result
 
 # evaluate single statement
-def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, statementId: int = 0, clauseType: TKClauseType = TKClauseType.MAIN, operator: TKOperator = TKOperator.AND) -> list[TKLLCItem]:
+def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = (), clauseType: TKClauseType = TKClauseType.MAIN, operator: TKOperator = TKOperator.AND) -> list[TKLLCItem]:
     result: list[TKLLCItem] = []
 
     predicate = None
@@ -388,7 +373,7 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # predicate (manage statements)
     # ---------------------------------------------
     if statement.predicate:
-        result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx))
+        result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx, statementId))
         newMain = compiler_evaluateCoordinates(statement.predicate.conjuncts, mainContent, predicate.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
@@ -396,7 +381,7 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # subject (manage statements)
     # ---------------------------------------------
     if statement.subject:
-        result.extend(compiler_evaluateSubordinates(statement.subject.subordinates, statement.entities, statementIdx))
+        result.extend(compiler_evaluateSubordinates(statement.subject.subordinates, statement.entities, statementIdx, statementId))
         newMain = compiler_evaluateCoordinates(statement.subject.conjuncts, mainContent, subject.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
@@ -404,7 +389,7 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # direct (manage statements)
     # ---------------------------------------------
     if statement.direct:
-        result.extend(compiler_evaluateSubordinates(statement.direct.subordinates, statement.entities, statementIdx))
+        result.extend(compiler_evaluateSubordinates(statement.direct.subordinates, statement.entities, statementIdx, statementId))
         newMain = compiler_evaluateCoordinates(statement.direct.conjuncts, mainContent, direct.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
@@ -413,7 +398,7 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # ---------------------------------------------
     idx: int = 0
     for indirectReference in statement.indirects:
-        result.extend(compiler_evaluateSubordinates(indirectReference.subordinates, statement.entities, statementIdx))
+        result.extend(compiler_evaluateSubordinates(indirectReference.subordinates, statement.entities, statementIdx, statementId))
         newMain = compiler_evaluateCoordinates(indirectReference.conjuncts, mainContent, indirectReference.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
