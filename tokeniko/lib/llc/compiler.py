@@ -5,7 +5,6 @@
 # subordinate management: operator THAT not viable (split sentence)
 # subject infer (implicit, xcomp, pronouns and other cases) compiler_getEntitiesByPronoun
 # ---
-# zip refine properties (no operator NOT or AND but multiplier determined by adjective / adverb)
 # zip manage vectorless entitites
 # ------------------------------------------------------------------------------------------------
 
