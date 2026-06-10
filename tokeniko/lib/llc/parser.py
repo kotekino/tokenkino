@@ -105,7 +105,7 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
                 forcedSubject = q.speaker[0] if len(q.speaker) > 0 else None
             continue
         sentence = parser_parseSentence(token, subtree, clause_type=TKClause.COORDINATE, subject=forcedSubject)
-        entity = TKFullEntity(entity=sentence, dep=token.dep_, aux=None, marker=None, token=None, properties=[], conjunct=None, op=operator) if sentence else None
+        entity = TKFullEntity(entity=sentence, dep=token.dep_, aux=None, marker=None, token=None, properties=[], conjuncts=[], op=operator) if sentence else None
     else:
         entity = parser_getFullEntity(token, quotes, operator)
     

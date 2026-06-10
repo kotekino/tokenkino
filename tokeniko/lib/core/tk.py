@@ -111,7 +111,7 @@ class TKOperator(str, Enum):
     IMPLY = "IMPLY"
     CONV = "CONV"
     EQ = "EQ"
-    THAT = "THAT",
+    THAT = "THAT"
     ANDNOT = "AND NOT"
     ORNOT = "OR NOT"
     NOTIMPLY = "NOT IMPLY"

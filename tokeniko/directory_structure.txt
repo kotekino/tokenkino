@@ -1,0 +1,87 @@
+.
+├── Dockerfile
+├── README.md
+├── api
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-314.pyc
+│   │   └── main.cpython-314.pyc
+│   └── main.py
+├── brain
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   ├── __init__.cpython-314.pyc
+│   │   └── main.cpython-314.pyc
+│   └── main.py
+├── directory_structure.txt
+├── docker-compose.yml
+├── lib
+│   ├── __init__.py
+│   ├── __pycache__
+│   │   └── __init__.cpython-314.pyc
+│   ├── core
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── constants.cpython-314.pyc
+│   │   │   ├── entities.cpython-314.pyc
+│   │   │   ├── io.cpython-314.pyc
+│   │   │   ├── llc.cpython-314.pyc
+│   │   │   ├── mappers.cpython-314.pyc
+│   │   │   ├── memory.cpython-314.pyc
+│   │   │   ├── models.cpython-314.pyc
+│   │   │   ├── tk.cpython-314.pyc
+│   │   │   ├── tkllc.cpython-314.pyc
+│   │   │   ├── tkllcV2.cpython-314.pyc
+│   │   │   ├── tkzip.cpython-314.pyc
+│   │   │   └── utilities.cpython-314.pyc
+│   │   ├── constants.py
+│   │   ├── io.py
+│   │   ├── mappers.py
+│   │   ├── memory.py
+│   │   ├── models.py
+│   │   ├── tk.py
+│   │   ├── tkllc.py
+│   │   ├── tkzip.py
+│   │   └── utilities.py
+│   ├── llc
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   ├── compiler.cpython-314.pyc
+│   │   │   ├── constants.cpython-314.pyc
+│   │   │   ├── decompiler.cpython-314.pyc
+│   │   │   ├── flattener.cpython-314.pyc
+│   │   │   ├── functions.cpython-314.pyc
+│   │   │   ├── parser.cpython-314.pyc
+│   │   │   ├── preparser.cpython-314.pyc
+│   │   │   └── translator.cpython-314.pyc
+│   │   ├── compiler.py
+│   │   ├── compilerV1.py
+│   │   ├── constants.py
+│   │   ├── decompiler.py
+│   │   ├── parser.py
+│   │   ├── preparser.py
+│   │   └── translator.py
+│   ├── tagger
+│   │   ├── __init__.py
+│   │   ├── __pycache__
+│   │   │   ├── __init__.cpython-314.pyc
+│   │   │   └── functions.cpython-314.pyc
+│   │   └── functions.py
+│   └── tkll
+│       ├── __init__.py
+│       ├── __pycache__
+│       │   ├── __init__.cpython-314.pyc
+│       │   └── functions.cpython-314.pyc
+│       └── functions.py
+├── pyproject.toml
+├── requirements.txt
+└── tokeniko.egg-info
+    ├── PKG-INFO
+    ├── SOURCES.txt
+    ├── dependency_links.txt
+    ├── requires.txt
+    └── top_level.txt
+
+16 directories, 69 files

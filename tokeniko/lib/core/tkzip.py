@@ -26,7 +26,7 @@ class TKZipItem(BaseModel):
 
 # zip 
 class TKZip(BaseModel):
-    map: list[float] = Field(decimal_factory=list, min_length=8, max_length=8)
+    map: list[float] = Field(default_factory=list, min_length=8, max_length=8)
     items: TKZipItem = Field(default_factory=TKZipItem)
 
 # payload for item

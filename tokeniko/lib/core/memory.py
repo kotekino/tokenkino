@@ -30,7 +30,7 @@ class MEMItemProperties(BaseModel):
 # memory item
 class MEMItem(BaseModel):
     original: str
-    zip: TKZip = None # zipped message (optional, for debugging and learning purposes)
+    zip: Optional[TKZip] = None # zipped message (optional, for debugging and learning purposes)
     raw: Optional[str] = None # raw message (optional, for debugging and learning purposes)
     sourceId: str # unique stakeholder objectId of the source (talker)
     targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
