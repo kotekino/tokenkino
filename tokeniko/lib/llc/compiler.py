@@ -15,7 +15,7 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -565,10 +565,11 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
 # ------------------------------------------------------------------------------------------------
 # SPACETIME
 # ------------------------------------------------------------------------------------------------
-# spacetime is resolved in two steps: (1) compiler_spacetimeResolveTime assigns each entity
-# reference a raw position on the time axis (position[0], in abstract days from the deictic now);
-# (2) compiler_spacetimeNormalize squashes all raw coords to [-1,1] and emits the scene map.
-# NB: only the TIME axis is implemented; space (x,y,z) and velocity are left at 0 for now.
+# spacetime is resolved in passes: (1) compiler_spacetimeResolveTime assigns each entity
+# reference a raw position on the time axis (position[0], abstract days from the deictic now);
+# (2) compiler_spacetimeResolveSpace assigns the space axes (position[1:4], relative place
+# coords); (3) compiler_spacetimeNormalize squashes all raw coords to [-1,1] and emits the map.
+# NB: velocity is still left at 0 (dedicated motion pass to come).
 
 # map of resolved (flat) llc entity id -> lowercased token
 def compiler_spacetimeTokens() -> dict[int, str]:
@@ -619,6 +620,49 @@ def compiler_spacetimeResolveTime(statements: list[TKLLCItem]) -> None:
         t = compiler_spacetimeClauseTime(content, cursor, tokens)
         for ref in compiler_spacetimeContentRefs(content):
             ref.spacetime.position[0] = t
+
+    for item in statements:
+        walk(item.content)
+
+# location (x,y,z) of a clause: a reference carrying a locative CASE marker (the copular
+# predicate of "I was in my room", or an obl indirect like "to the airport") places the clause
+# at that entity's coordinate and updates the cursor; otherwise the clause inherits the cursor.
+# gated on marker.dep == "case" so infinitival "to leave" (dep mark) is not read as a place.
+def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: dict, tokens: dict[int, str]) -> list[float]:
+    candidates: list[TKLLEntityReference] = []
+    if content.predicate: candidates.append(content.predicate)
+    candidates.extend(content.indirects)
+
+    for ref in candidates:
+        marker = ref.marker
+        if marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS:
+            token = tokens.get(ref.id, "")
+            # reuse a place's coordinate on recurrence; else assign a fresh relative one
+            if token not in places:
+                places[token] = [float(len(places) + 1), 0.0, 0.0]
+            cursor["xyz"] = places[token]
+            return cursor["xyz"]
+
+    return cursor["xyz"]
+
+# resolve the SPACE axis (position[1:4]) of every entity reference, in document order.
+# known geo places are not yet used: TKLLEntity does not carry GeoPoint, so all places get a
+# relative coordinate from the registry (distinct places -> distinct coords, stable on reuse).
+def compiler_spacetimeResolveSpace(statements: list[TKLLCItem]) -> None:
+    tokens = compiler_spacetimeTokens()
+    places: dict[str, list[float]] = {}
+    cursor = {"xyz": [0.0, 0.0, 0.0]}  # deictic origin: 'here'
+
+    def walk(content: LLCItemPayload) -> None:
+        if isinstance(content, list):
+            for item in content:
+                walk(item.content)
+            return
+        xyz = compiler_spacetimeClausePlace(content, cursor, places, tokens)
+        for ref in compiler_spacetimeContentRefs(content):
+            ref.spacetime.position[1] = xyz[0]
+            ref.spacetime.position[2] = xyz[1]
+            ref.spacetime.position[3] = xyz[2]
 
     for item in statements:
         walk(item.content)
@@ -892,6 +936,7 @@ def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     compiler_resolveEntities(tkStatements)
     statements: list[TKLLCItem] = compiler_resolveStatements(tkStatements)
     compiler_spacetimeResolveTime(statements)
+    compiler_spacetimeResolveSpace(statements)
     map = compiler_spacetimeNormalize(statements)
     tkllc = TKLLC(map=map, items=statements, entities=[e.entity for e in _entities])
 

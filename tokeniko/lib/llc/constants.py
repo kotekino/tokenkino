@@ -98,3 +98,15 @@ _SEQUENCE_ANCHORS = {
     "before": -0.1, "previously": -0.1, "earlier": -0.1,
     "meanwhile": 0.0, "simultaneously": 0.0,
 }
+
+# spacetime — SPACE axis
+# locative case markers -> spatial relation. for now only used to detect that a reference is a
+# place (so the clause is located there); the relation value (contain/dest/origin/near/far) is
+# kept for the later velocity/displacement pass.
+_SPATIAL_RELATION_ANCHORS = {
+    "in": "contain", "at": "contain", "on": "contain", "inside": "contain", "within": "contain",
+    "to": "dest", "into": "dest", "toward": "dest", "towards": "dest", "onto": "dest",
+    "from": "origin", "out": "origin",
+    "near": "near", "by": "near", "beside": "near", "close": "near",
+    "far": "far", "behind": "far", "beyond": "far", "over": "far", "under": "far",
+}
