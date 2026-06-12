@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 import copy
 import os
-import time
 from typing import Optional
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import HTMLResponse
@@ -15,11 +14,12 @@ from lib.core.models import TKAxiomDoc, TKMemoryItemDoc, TKTheoremDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.tkll.functions import tkll_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
-from lib.core.tk import TKStatement, TKStatements
+from lib.core.tk import TKStatements
 from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
 from lib.llc.compiler import compiler_compile, compiler_zipGetBaseMarker
 from lib.core.tkzip import TKZip
+from api.services import AxiomService, AxiomNotFoundError, InvalidAxiomIdError
 
 # env load (MONGO_URI, ecc.)
 load_dotenv()
@@ -41,6 +41,9 @@ async def lifespan(app: FastAPI):
     app.state.ai_client = ai_client
     app.state.db_memory_client = db_memory_client
     app.state.tokeniko = tokeniko
+
+    # service layer (business logic + mongo ops)
+    app.state.axiom_service = AxiomService(tokeniko, ai_client)
 
     # init preparser
     parser_init()
@@ -89,7 +92,7 @@ async def post_theorem(tokens: str):
 # ------------------------
 # AXIOMS resource (/api/v1/axioms)
 # ------------------------
-# request bodies
+# request bodies (validazione API; la business logic vive in api/services.py)
 class AxiomIn(BaseModel):
     tokens: str  # sentence to compile and store as an axiom
 
@@ -119,54 +122,32 @@ class AxiomSummary(BaseModel):
     channel: Optional[str] = None
     createdAt: int
 
-# parse + compile a sentence into the fields stored on an axiom
-def _compile_axiom_fields(tokens: str) -> dict:
-    recursiveResult = parser(tokens, app.state.tokeniko, app.state.tokeniko, app.state.ai_client)
-    recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
-    flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
-    if not flatResult:
-        raise ValueError("compilation produced no result")
-    rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
-    return {"original": tokens, "zip": flatResult[1], "raw": rawResult}
-
-# fetch an axiom by id or raise 404 (also validates the object id -> 400)
-def _get_axiom_or_404(object_id: str) -> TKAxiomDoc:
+# traduce gli errori di dominio del service in risposte HTTP
+def _axiom_or_http(action):
     try:
-        oid = PydanticObjectId(object_id)
-    except Exception:
+        return action()
+    except InvalidAxiomIdError:
         raise HTTPException(status_code=400, detail="invalid object id")
-    axiom = TKAxiomDoc.get(oid)
-    if axiom is None:
+    except AxiomNotFoundError:
         raise HTTPException(status_code=404, detail="axiom not found")
-    return axiom
 
 # list axioms (summary view, no zip); optional filter by archived
 @app.get("/api/v1/axioms")
 async def list_axioms(archived: Optional[bool] = None):
-    query = {} if archived is None else {"archived": archived}
-    axioms = TKAxiomDoc.find(query).project(AxiomSummary).to_list()
+    axioms = app.state.axiom_service.list(archived=archived, projection=AxiomSummary)
     return {"status": "complete", "data": axioms}
 
 # get a single axiom (full document, including zip)
 @app.get("/api/v1/axioms/{object_id}")
 async def get_axiom(object_id: str):
-    axiom = _get_axiom_or_404(object_id)
+    axiom = _axiom_or_http(lambda: app.state.axiom_service.get(object_id))
     return {"status": "complete", "data": axiom}
 
 # insert a new axiom, given a sentence (was GET /api/v1/axiom)
 @app.post("/api/v1/axioms")
 async def create_axiom(payload: AxiomIn):
     try:
-        fields = _compile_axiom_fields(payload.tokens)
-        axiom: TKAxiomDoc = TKAxiomDoc(
-            original=fields["original"],
-            zip=fields["zip"],
-            raw=fields["raw"],
-            sourceId=str(app.state.tokeniko.id),
-            targetId=str(app.state.tokeniko.id),
-            channel=MEMChannels.INTERNAL
-        )
-        axiom.insert()
+        axiom = app.state.axiom_service.create(payload.tokens)
         return {"status": "complete", "data": axiom}
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
@@ -174,47 +155,30 @@ async def create_axiom(payload: AxiomIn):
 # partial update: only the provided fields change (recompiles if 'tokens' given)
 @app.patch("/api/v1/axioms/{object_id}")
 async def patch_axiom(object_id: str, payload: AxiomPatch):
-    axiom = _get_axiom_or_404(object_id)
+    updates = payload.model_dump(exclude_unset=True)
     try:
-        updates = payload.model_dump(exclude_unset=True)
-        if "tokens" in updates:
-            fields = _compile_axiom_fields(updates.pop("tokens"))
-            axiom.original = fields["original"]
-            axiom.zip = fields["zip"]
-            axiom.raw = fields["raw"]
-        for key, value in updates.items():
-            setattr(axiom, key, value)
-        # mantieni coerente il timestamp di archiviazione
-        if "archived" in updates:
-            axiom.archivedAt = int(time.time()) if axiom.archived else None
-        axiom.save()
+        axiom = _axiom_or_http(lambda: app.state.axiom_service.patch(object_id, updates))
         return {"status": "complete", "data": axiom}
+    except HTTPException:
+        raise
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 
 # replacement update: recompiles the sentence and resets flags to the body
 @app.put("/api/v1/axioms/{object_id}")
 async def put_axiom(object_id: str, payload: AxiomReplace):
-    axiom = _get_axiom_or_404(object_id)
     try:
-        fields = _compile_axiom_fields(payload.tokens)
-        axiom.original = fields["original"]
-        axiom.zip = fields["zip"]
-        axiom.raw = fields["raw"]
-        axiom.trusted = payload.trusted
-        axiom.archived = payload.archived
-        axiom.readonly = payload.readonly
-        axiom.archivedAt = int(time.time()) if payload.archived else None
-        axiom.save()
+        axiom = _axiom_or_http(lambda: app.state.axiom_service.replace(object_id, **payload.model_dump()))
         return {"status": "complete", "data": axiom}
+    except HTTPException:
+        raise
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 
 # delete an axiom
 @app.delete("/api/v1/axioms/{object_id}")
 async def delete_axiom(object_id: str):
-    axiom = _get_axiom_or_404(object_id)
-    axiom.delete()
+    _axiom_or_http(lambda: app.state.axiom_service.delete(object_id))
     return {"status": "complete", "data": {"deleted": object_id}}
 
 # ------------------------
