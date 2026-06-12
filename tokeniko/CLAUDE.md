@@ -57,6 +57,29 @@ These magic numbers are enforced by Pydantic `min_length`/`max_length` constrain
 
 Changing a dimension means updating the constraints in `lib/core/tk.py`, `tkllc.py`, `tkzip.py` *and* the data already stored in MongoDB.
 
+## API layer (`api/`)
+
+`api/main.py` defines the FastAPI app — routing plus the request/response Pydantic models — and is kept thin. Business logic (sentence compilation + Mongo CRUD) lives in `api/services/`: `axiom_service.py` holds `AxiomService`, and `api/services/__init__.py` re-exports `AxiomService`, `AxiomNotFoundError`, `InvalidAxiomIdError` so callers can `from api.services import AxiomService`. The service is built once in the lifespan (`app.state.axiom_service = AxiomService(tokeniko, ai_client)`) and reused per request; it is framework-agnostic (no FastAPI imports).
+
+Routes (all under `/api/v1`):
+
+- **Axioms — full REST resource** (delegates to `AxiomService`):
+  - `POST /axioms` — compile a sentence (`{"tokens": "..."}`) and store it as an axiom
+  - `GET /axioms` — list (summary projection, no `zip`; optional `?archived=` filter)
+  - `GET /axioms/{id}` — single (full document, `zip` included)
+  - `PATCH /axioms/{id}` — partial update (recompiles if `tokens` is supplied)
+  - `PUT /axioms/{id}` — replacement update (recompile + reset flags)
+  - `DELETE /axioms/{id}` — delete
+  - Domain errors map to HTTP in `main.py`: `InvalidAxiomIdError` -> 400, `AxiomNotFoundError` -> 404.
+- `GET /theorem?tokens=` — compile + store a theorem (still a single GET, not yet a REST resource).
+- `GET /tkllc?tokens=&output=&prepare=&talker=` — run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item.
+- `GET /render?tokens=` — HTML dependency diagram of the parse.
+- `GET /dict?token=`, `GET /markers?token=` — dictionary / base-marker lookups.
+- `GET /pre/polish|prepare|translate?tokens=` — individual preparser stages.
+- `GET /out?tokens=` — polish a raw LLC string into natural language.
+
+Bunnet gotcha (bit us here): `Document.get(id)` and `find_one(...)` return *query* objects — call `.run()` to execute (`.to_list()` for `find(...)`). `AxiomService._resolve` does `TKAxiomDoc.get(oid).run()`; forgetting `.run()` yields a query object that is never `None` and has no `.save()`/`.delete()`.
+
 ## Data model layers (`lib/core/`)
 
 The type system is layered — understand which layer you're editing:

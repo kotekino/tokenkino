@@ -1,7 +1,7 @@
 # --------------------------------------------------------------
-# services: business logic per le risorse dell'API.
-# Tiene main.py snello (solo routing/validazione); qui vivono la
-# compilazione frase -> assioma e le operazioni Mongo (CRUD).
+# services: business logic for the API resources.
+# Keeps main.py thin (routing/validation only); the sentence -> axiom
+# compilation and the Mongo operations (CRUD) live here.
 # --------------------------------------------------------------
 import copy
 import time
@@ -19,27 +19,27 @@ from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
 
 
-# --- errori di dominio (mappati dal layer API su codici HTTP) ---
+# --- domain errors (mapped by the API layer onto HTTP codes) ---
 class InvalidAxiomIdError(Exception):
-    """L'object id fornito non è un ObjectId valido."""
+    """The provided object id is not a valid ObjectId."""
 
 class AxiomNotFoundError(Exception):
-    """Nessun assioma trovato per l'object id dato."""
+    """No axiom found for the given object id."""
 
 
 class AxiomService:
-    """CRUD + compilazione per gli assiomi (collezione 'axioms').
+    """CRUD + compilation for axioms (the 'axioms' collection).
 
-    Riceve le dipendenze del pipeline (lo stakeholder `tokeniko` e il client
-    Ollama) così da restare indipendente da FastAPI: il layer API costruisce
-    una sola istanza all'avvio e la riusa per ogni richiesta.
+    Receives the pipeline dependencies (the `tokeniko` stakeholder and the
+    Ollama client) so it stays independent of FastAPI: the API layer builds
+    a single instance at startup and reuses it for every request.
     """
 
     def __init__(self, tokeniko, ai_client):
         self._tokeniko = tokeniko
         self._ai_client = ai_client
 
-    # parse + compile di una frase nei campi salvati su un assioma
+    # parse + compile a sentence into the fields stored on an axiom
     def compile_fields(self, tokens: str) -> dict:
         recursiveResult = parser(tokens, self._tokeniko, self._tokeniko, self._ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
@@ -49,18 +49,18 @@ class AxiomService:
         rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         return {"original": tokens, "zip": flatResult[1], "raw": rawResult}
 
-    # recupera un assioma per id, o solleva errori di dominio
+    # fetch an axiom by id, or raise a domain error
     def _resolve(self, object_id: str) -> TKAxiomDoc:
         try:
             oid = PydanticObjectId(object_id)
         except Exception as error:
             raise InvalidAxiomIdError(object_id) from error
-        axiom = TKAxiomDoc.get(oid).run()  # bunnet: get() restituisce una query, va eseguita con run()
+        axiom = TKAxiomDoc.get(oid).run()  # bunnet: get() returns a query, must be executed with run()
         if axiom is None:
             raise AxiomNotFoundError(object_id)
         return axiom
 
-    # lista assiomi; filtro opzionale per `archived` e proiezione opzionale
+    # list axioms; optional `archived` filter and optional projection
     def list(self, archived: Optional[bool] = None, projection=None):
         query = {} if archived is None else {"archived": archived}
         cursor = TKAxiomDoc.find(query)
@@ -68,11 +68,11 @@ class AxiomService:
             cursor = cursor.project(projection)
         return cursor.to_list()
 
-    # singolo assioma (documento completo, zip incluso)
+    # single axiom (full document, zip included)
     def get(self, object_id: str) -> TKAxiomDoc:
         return self._resolve(object_id)
 
-    # inserisce un nuovo assioma a partire da una frase
+    # insert a new axiom from a sentence
     def create(self, tokens: str) -> TKAxiomDoc:
         fields = self.compile_fields(tokens)
         axiom = TKAxiomDoc(
@@ -86,7 +86,7 @@ class AxiomService:
         axiom.insert()
         return axiom
 
-    # update parziale: cambiano solo i campi presenti (ricompila se c'è 'tokens')
+    # partial update: only the provided fields change (recompiles if 'tokens' is present)
     def patch(self, object_id: str, updates: dict) -> TKAxiomDoc:
         axiom = self._resolve(object_id)
         if "tokens" in updates:
@@ -96,13 +96,13 @@ class AxiomService:
             axiom.raw = fields["raw"]
         for key, value in updates.items():
             setattr(axiom, key, value)
-        # mantieni coerente il timestamp di archiviazione
+        # keep the archive timestamp consistent
         if "archived" in updates:
             axiom.archivedAt = int(time.time()) if axiom.archived else None
         axiom.save()
         return axiom
 
-    # replacement update: ricompila la frase e resetta i flag
+    # replacement update: recompile the sentence and reset the flags
     def replace(self, object_id: str, tokens: str, trusted: float, archived: bool, readonly: bool) -> TKAxiomDoc:
         axiom = self._resolve(object_id)
         fields = self.compile_fields(tokens)
@@ -116,7 +116,7 @@ class AxiomService:
         axiom.save()
         return axiom
 
-    # elimina un assioma
+    # delete an axiom
     def delete(self, object_id: str) -> None:
         axiom = self._resolve(object_id)
         axiom.delete()
