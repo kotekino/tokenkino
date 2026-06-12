@@ -3,3 +3,5 @@
 /dump
 /atlas
 /doc/~$notes.xlsx
+__pycache__/
+*.pyc
