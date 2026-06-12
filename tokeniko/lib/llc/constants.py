@@ -49,6 +49,14 @@ _PRONOUNS_BASE_ANCHORS = {
     "you": _LISTENER_ID
 }
 
+# subordinate subject resolution
+# relative pronouns: subject (or object) of a relative clause refers back to the modified noun
+_RELATIVE_PRONOUNS = {"who", "whom", "which", "that", "whose"}
+# third-person personal pronouns eligible for anaphora resolution to a matrix antecedent
+_ANAPHORIC_PRONOUNS = {"he", "she", "it", "they", "him", "her", "them"}
+# entity types that can act as an antecedent (lexical, not meta/pronoun/statement)
+_ANTECEDENT_TYPES = ("name", "dictionary", "place")
+
 # properties
 _PROP_BASE_ADVMOD_ANCHORS = {
     "not": -1,

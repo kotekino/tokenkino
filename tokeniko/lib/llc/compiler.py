@@ -15,7 +15,7 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -107,9 +107,9 @@ def compiler_resolvePronouns(stat: TKStatement) -> TKStatement:
     return stat
 
 # normalize and reslve all entities
-def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]: 
+def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
     global _entities
-    
+
     # collect all the entities in the statements, and assign them a unique id
     idx = 1
     for tks in tkStatements:
@@ -120,6 +120,98 @@ def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
         # resolve entities
         compiler_getEntities(statement=tks, statementIdx=idx)
         idx +=1
+
+# ------------------------------------------------------------------------------------------------
+# SUBORDINATE SUBJECT RESOLUTION
+# the parser keeps subordinate clauses faithful (relative/anaphoric/implicit subjects untouched);
+# here we resolve them so the flattened LLC repeats the real entity, e.g.
+#   "I love the cat who is sitting on the chair" -> "... THAT the cat is sitting on the chair"
+#   "I love Mari because she is perfect"         -> "... CONV Mari is perfect"
+# resolution substitutes the pronoun entity's payload with a deep copy of the antecedent payload
+# (the entity dedup in compiler_getEntities then merges them), mirroring compiler_resolvePronouns
+# but working across the statement boundary (the antecedent lives in the matrix statement).
+# ------------------------------------------------------------------------------------------------
+
+# get an entity of a statement by its local id
+def compiler_entityById(statement: TKStatement, entityId: int) -> TKEntity | None:
+    return next((e for e in statement.entities if e.id == entityId), None)
+
+# the field references of a statement (subject, predicate, direct, indirects)
+def compiler_statementReferences(statement: TKStatement) -> list[TKEntityReference]:
+    refs: list[TKEntityReference] = []
+    if statement.subject: refs.append(statement.subject)
+    if statement.predicate: refs.append(statement.predicate)
+    if statement.direct: refs.append(statement.direct)
+    refs.extend(statement.indirects)
+    return refs
+
+# candidate antecedents of a matrix statement, by salience (direct, then subject, then indirects).
+# conjuncts are included so coordinated antecedents (e.g. "Mari and Luca") are seen as ambiguous.
+def compiler_antecedentCandidates(statement: TKStatement) -> list[TKEntity]:
+    order: list[TKEntityReference] = []
+    if statement.direct: order.append(statement.direct)
+    if statement.subject: order.append(statement.subject)
+    order.extend(statement.indirects)
+
+    candidates: list[TKEntity] = []
+    for ref in order:
+        for r in [ref, *ref.conjuncts]:
+            ent = compiler_entityById(statement, r.id)
+            if ent and ent.payload.entity_type in _ANTECEDENT_TYPES:
+                candidates.append(ent)
+    return candidates
+
+# relative clause: replace the relative pronoun (subject or object) with the modified entity
+def compiler_resolveRelative(subStatement: TKStatement, ownerEntity: TKEntity | None) -> None:
+    if not ownerEntity or ownerEntity.payload.entity_type == "statement":
+        return
+    for e in subStatement.entities:
+        if e.payload.entity_type == "pronoun" and (e.payload.lemma or "").lower() in _RELATIVE_PRONOUNS:
+            e.payload = copy.deepcopy(ownerEntity.payload)
+
+# anaphora: resolve a 3rd-person pronoun subject to a matrix antecedent, only when unambiguous
+def compiler_resolveAnaphora(subStatement: TKStatement, matrixStatement: TKStatement) -> None:
+    if not subStatement.subject:
+        return
+    subject = compiler_entityById(subStatement, subStatement.subject.id)
+    if not subject or subject.payload.entity_type != "pronoun":
+        return
+    if (subject.payload.lemma or "").lower() not in _ANAPHORIC_PRONOUNS:
+        return
+
+    # only substitute when there is exactly one plausible antecedent (avoid wrong guesses)
+    candidates = compiler_antecedentCandidates(matrixStatement)
+    if len(candidates) == 1:
+        subject.payload = copy.deepcopy(candidates[0].payload)
+
+# resolve the subordinate clauses hanging off a reference (and its conjuncts), recursively
+def compiler_resolveReferenceSubordinates(reference: TKEntityReference, matrixStatement: TKStatement) -> None:
+    ownerEntity = compiler_entityById(matrixStatement, reference.id)
+
+    for subReference in reference.subordinates:
+        subEntity = compiler_entityById(matrixStatement, subReference.id)
+        if not subEntity or subEntity.payload.entity_type != "statement":
+            continue
+        subStatement: TKStatement = subEntity.payload
+
+        # relative clause -> owner antecedent; anything else -> matrix anaphora
+        clauseType = compiler_parseMarker(subReference.marker)
+        if clauseType == TKClauseType.ACLRELCL:
+            compiler_resolveRelative(subStatement, ownerEntity)
+        else:
+            compiler_resolveAnaphora(subStatement, matrixStatement)
+
+        # the subordinate is itself a matrix for its own nested subordinates
+        compiler_resolveSubordinateSubjects(subStatement)
+
+    # conjuncts can carry their own subordinate clauses
+    for conjReference in reference.conjuncts:
+        compiler_resolveReferenceSubordinates(conjReference, matrixStatement)
+
+# resolve relative / anaphoric / implicit subjects of all subordinate clauses of a statement
+def compiler_resolveSubordinateSubjects(statement: TKStatement) -> None:
+    for reference in compiler_statementReferences(statement):
+        compiler_resolveReferenceSubordinates(reference, statement)
 
 # ------------------------------------------------------------------------------------------------
 # STATEMENTS
@@ -675,6 +767,10 @@ def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     
     # reset entities
     _entities = []
+
+    # resolve relative / anaphoric / implicit subordinate subjects before flattening
+    for tks in tkStatements:
+        compiler_resolveSubordinateSubjects(tks)
 
     # tkllc
     compiler_resolveEntities(tkStatements)
