@@ -55,7 +55,7 @@ class AxiomService:
             oid = PydanticObjectId(object_id)
         except Exception as error:
             raise InvalidAxiomIdError(object_id) from error
-        axiom = TKAxiomDoc.get(oid)
+        axiom = TKAxiomDoc.get(oid).run()  # bunnet: get() restituisce una query, va eseguita con run()
         if axiom is None:
             raise AxiomNotFoundError(object_id)
         return axiom
