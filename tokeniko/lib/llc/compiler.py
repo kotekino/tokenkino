@@ -568,8 +568,9 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
 # spacetime is resolved in passes: (1) compiler_spacetimeResolveTime assigns each entity
 # reference a raw position on the time axis (position[0], abstract days from the deictic now);
 # (2) compiler_spacetimeResolveSpace assigns the space axes (position[1:4], relative place
-# coords); (3) compiler_spacetimeNormalize squashes all raw coords to [-1,1] and emits the map.
-# NB: velocity is still left at 0 (dedicated motion pass to come).
+# coords); (3) compiler_spacetimeNormalize squashes all raw coords to [-1,1] and emits the map;
+# (4) compiler_spacetimeResolveVelocity derives velocity[1:4] as the slope of the normalized
+# trajectory (Δposition/Δtime per entity across clauses).
 
 # map of resolved (flat) llc entity id -> lowercased token
 def compiler_spacetimeTokens() -> dict[int, str]:
@@ -728,12 +729,43 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
         e.spacetime.size[1] = normalizeDelta(e.spacetime.size[1], minSpace, maxSpace)
         e.spacetime.size[2] = normalizeDelta(e.spacetime.size[2], minSpace, maxSpace)
         e.spacetime.size[3] = normalizeDelta(e.spacetime.size[3], minSpace, maxSpace)
-        e.spacetime.velocity[0] = normalizeDelta(e.spacetime.velocity[0], minT, maxT)
-        e.spacetime.velocity[1] = normalizeDelta(e.spacetime.velocity[1], minSpace, maxSpace)
-        e.spacetime.velocity[2] = normalizeDelta(e.spacetime.velocity[2], minSpace, maxSpace)
-        e.spacetime.velocity[3] = normalizeDelta(e.spacetime.velocity[3], minSpace, maxSpace)
+        # NB: velocity is resolved AFTER normalization (compiler_spacetimeResolveVelocity),
+        # as the slope of the already-normalized trajectory, so it is not rescaled here.
 
     return spacetimeMap
+
+# resolve VELOCITY (velocity[1:4]) as the derivative of each entity's normalized trajectory.
+# an entity referenced across clauses has several references at different (t, x, y, z); velocity
+# of a reference = (next position - this position) / (next time - this time). only entities that
+# recur over time get a non-zero velocity. velocity[0] (time component) is left 0 (degenerate).
+# must run AFTER compiler_spacetimeNormalize so positions are already in comparable [-1,1] units.
+def compiler_spacetimeResolveVelocity(statements: list[TKLLCItem]) -> None:
+    references = compiler_spacetimeCollectReferences(statements)
+
+    # group references by entity id
+    byId: dict[int, list[TKLLEntityReference]] = {}
+    for ref in references:
+        byId.setdefault(ref.id, []).append(ref)
+
+    # per entity: order by time, set each reference's velocity toward its next occurrence
+    maxAbs = 0.0
+    for group in byId.values():
+        group.sort(key=lambda r: r.spacetime.position[0])
+        for a, b in zip(group, group[1:]):
+            dt = b.spacetime.position[0] - a.spacetime.position[0]
+            if dt == 0:
+                continue
+            for axis in (1, 2, 3):
+                v = (b.spacetime.position[axis] - a.spacetime.position[axis]) / dt
+                a.spacetime.velocity[axis] = v
+                maxAbs = max(maxAbs, abs(v))
+
+    # scene-relative scaling into [-1,1] (preserve zero and sign), like the position map
+    if maxAbs > 1.0:
+        for group in byId.values():
+            for ref in group:
+                for axis in (1, 2, 3):
+                    ref.spacetime.velocity[axis] /= maxAbs
 
 # ------------------------------------------------------------------------------------------------
 # ZIP
@@ -938,6 +970,7 @@ def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     compiler_spacetimeResolveTime(statements)
     compiler_spacetimeResolveSpace(statements)
     map = compiler_spacetimeNormalize(statements)
+    compiler_spacetimeResolveVelocity(statements)
     tkllc = TKLLC(map=map, items=statements, entities=[e.entity for e in _entities])
 
     # tkzip
