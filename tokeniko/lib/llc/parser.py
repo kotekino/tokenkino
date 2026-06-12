@@ -14,7 +14,7 @@ from lib.core.models import TKDictionaryDoc
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
-from lib.core.utilities import util_removeSpace
+from lib.core.utilities import util_expandContractions, util_removeSpace
 from functools import cmp_to_key
 import textacy
 from word2number import w2n
@@ -491,6 +491,7 @@ def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, contex
 
     # prepare input
     tokens = util_removeSpace(tokens)
+    tokens = util_expandContractions(tokens) # stanza tokenizer mis-merges some contractions (e.g. "I'm")
 
     # assign variables
     _context = context
