@@ -68,8 +68,8 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
     marker = ''
     if ref.marker: marker: str = ref.marker.word if not ref.marker.parent_dep or ref.marker.parent_dep in ["obl", "obl:tmod", "iobj", "obl:agent"] else ""
 
-    # entity aux
-    auxString: str = ref.aux.lemma if ref.aux else ""
+    # entity aux (lemma may be None: a TKAux can carry only a tense baseline)
+    auxString: str = (ref.aux.lemma or "") if ref.aux else ""
 
     result = f"{marker} {auxString.strip()} {properties}{entity.strip()}"
 
