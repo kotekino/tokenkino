@@ -14,8 +14,8 @@ _OPERATORS_BASE_ANCHORS = {
     "or": TKOperator.OR, 
     "not": TKOperator.NOT,
     ",": TKOperator.AND,
-    ":": TKOperator.THAT,
-    "so": TKOperator.THAT,
+    ":": TKOperator.AND,      # elaboration: co-asserted
+    "so": TKOperator.IMPLY,   # result: "A so B" => A IMPLY B
     "but": TKOperator.NOTIMPLY
     }
 _OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 

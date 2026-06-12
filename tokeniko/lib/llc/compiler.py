@@ -125,7 +125,7 @@ def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
 # SUBORDINATE SUBJECT RESOLUTION
 # the parser keeps subordinate clauses faithful (relative/anaphoric/implicit subjects untouched);
 # here we resolve them so the flattened LLC repeats the real entity, e.g.
-#   "I love the cat who is sitting on the chair" -> "... THAT the cat is sitting on the chair"
+#   "I love the cat who is sitting on the chair" -> "... AND the cat is sitting on the chair"
 #   "I love Mari because she is perfect"         -> "... CONV Mari is perfect"
 #   "I want to leave"                            -> "... I leave" (xcomp implicit subject)
 # resolution substitutes the pronoun entity's payload with a deep copy of the antecedent payload
@@ -352,8 +352,8 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
         # increase hope feeling (properties) of the main sentence
         # subProperties.sentiment = sentiment_generate(sentiment=['hope', 'goal'])
     elif subordinateType == TKClauseType.PARATAXIS:
-        # can be det, can be imply: todo
-        operator = TKOperator.THAT
+        # loose juxtaposition: not a propositional complement -> co-assert with AND
+        operator = TKOperator.AND
 
     elif subordinateType == TKClauseType.CAUSAL:
         # causale (imply) -> simple obvious
@@ -377,21 +377,26 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
         operator = TKOperator.AND
 
     elif subordinateType == TKClauseType.CCOMP:
-        # explicit subject
+        # clausal complement of an attitude/utterance verb ("I assume THAT you are fine"):
+        # the only genuine propositional-attitude case -> keep THAT (to be mapped by the
+        # matrix predicate's attitude class: factive/doxastic/desiderative/reportative)
         operator = TKOperator.THAT
 
     elif subordinateType == TKClauseType.ACL:
-        operator = TKOperator.THAT
+        # adnominal clause (participial/infinitival noun modifier): intersective -> AND
+        operator = TKOperator.AND
 
     elif subordinateType == TKClauseType.ACLRELCL:
-        operator = TKOperator.THAT
+        # relative clause: intersective modification on the (now shared) referent -> AND
+        operator = TKOperator.AND
 
     elif subordinateType == TKClauseType.ADVCL:
-        operator = TKOperator.THAT
+        # adverbial adjunct clause: co-asserted related event -> AND
+        operator = TKOperator.AND
 
     elif subordinateType == TKClauseType.XCOMP:
-        # no subject: search it in the main statement
-        operator = TKOperator.THAT
+        # open complement (subject shared, predicational): not a that-clause -> AND
+        operator = TKOperator.AND
 
     else:
         # other means it affects something else, but the operator is AND               
