@@ -746,10 +746,15 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
         if max - min == 0: return 0
         return value / (max - min) * 2
 
-    spacetimeMap.tbounds = [normalize(minT, minT, maxT), normalize(maxT, minT, maxT)]
-    spacetimeMap.xbounds = [normalize(minX, minSpace, maxSpace), normalize(maxX, minSpace, maxSpace)]
-    spacetimeMap.ybounds = [normalize(minY, minSpace, maxSpace), normalize(maxY, minSpace, maxSpace)]
-    spacetimeMap.zbounds = [normalize(minZ, minSpace, maxSpace), normalize(maxZ, minSpace, maxSpace)]
+    # the map stores the RAW bounds actually used for normalization (the absolute scene frame),
+    # NOT the trivially-normalized [-1,1]. entity coords are normalized within these bounds, so
+    # the map is the de-normalization key: it preserves the absolute anchor (a lone "the dog ran"
+    # keeps tbounds=[-0.5,-0.5], distinct from "will run" -> [0.5,0.5]) and lets two memories be
+    # compared on an absolute frame. space axes share the isotropic [minSpace, maxSpace] scale.
+    spacetimeMap.tbounds = [minT, maxT]
+    spacetimeMap.xbounds = [minSpace, maxSpace]
+    spacetimeMap.ybounds = [minSpace, maxSpace]
+    spacetimeMap.zbounds = [minSpace, maxSpace]
 
     # recalculate the spacetime of the entities in the map
     for e in references:

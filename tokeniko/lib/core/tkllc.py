@@ -12,12 +12,15 @@ class TKLLSpacetime(BaseModel):
     position: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the center of the entity in spacetime
     velocity: list[float] = Field(default=[0,0,0,0], min_length=4, max_length=4) # [t, x, y, z], represent the velocity of the entity in spacetime
 
-# the map of the relative spacetime in the context of the statement
+# the absolute scene frame: the RAW [min, max] bounds used to normalize entity coords to [-1,1].
+# entity spacetime is normalized within these, so the map is the de-normalization key and
+# preserves the absolute anchor (time/space) that normalization would otherwise discard.
+# the spatial axes share the isotropic [minSpace, maxSpace] scale (xbounds == ybounds == zbounds).
 class TKLLSpacetimeMap(BaseModel):
-    tbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-    xbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-    ybounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
-    zbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # [min, max]
+    tbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # raw [min, max] time
+    xbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # raw [min, max] space
+    ybounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # raw [min, max] space
+    zbounds: list[float] = Field(default=[-1,1], min_length=2, max_length=2) # raw [min, max] space
 
 # entity: can have different semantic vectors
 class TKLLEntity(BaseModel):
