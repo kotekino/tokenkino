@@ -121,6 +121,17 @@ _SEQUENCE_ANCHORS = {
 # clause has no explicit temporal anchor or sequence cue. weaker than the day-level anchors.
 _TENSE_ANCHORS = {"past": -0.5, "pres": 0.0, "fut": 0.5}
 
+# time-unit nouns -> length in abstract days. a quantified phrase whose object is one of these
+# ("in 11 hours", "for 3 days") is temporal, not spatial, regardless of the (shared) preposition.
+_TIME_UNITS = {
+    "second": 1 / 86400, "minute": 1 / 1440, "hour": 1 / 24, "day": 1.0,
+    "week": 7.0, "month": 30.0, "year": 365.0,
+}
+# how the preposition places a temporal quantity: future/past offset from now, or a duration
+_TEMPORAL_PREP_FUTURE = {"in", "after", "within"}
+_TEMPORAL_PREP_PAST = {"before", "ago"}
+_TEMPORAL_PREP_DURATION = {"for", "during"}
+
 # NER entity labels treated as resolvable real places (looked up in the places knowledge base)
 _GEO_NER_LABELS = {"GPE", "LOC", "FAC"}
 

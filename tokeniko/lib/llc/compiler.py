@@ -12,7 +12,7 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS, _TENSE_ANCHORS
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS, _TEMPORAL_PREP_DURATION, _TEMPORAL_PREP_FUTURE, _TEMPORAL_PREP_PAST, _TENSE_ANCHORS, _TIME_UNITS
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -574,7 +574,11 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
 
         # append items to result
         result.extend(items)
-    
+
+        # next statement: keep statementIdx aligned with compiler_resolveEntities, so
+        # references/properties of later sentences resolve against the right entity map
+        idx += 1
+
     return result
 
 # ------------------------------------------------------------------------------------------------
@@ -606,10 +610,52 @@ def compiler_spacetimeContentRefs(content: TKLLCContent) -> list[TKLLEntityRefer
     refs.extend(content.indirects)
     return refs
 
-# time (abstract days) of a clause: an explicit temporal anchor among the indirects (obl:tmod
-# words like yesterday/today) wins and resets the cursor; else a sequence advmod on the predicate
-# (then/later/before/finally) advances it; else the clause inherits the running cursor.
+# a temporal-quantity phrase ("in 11 hours", "for 3 days") detected by its object being a
+# time-unit noun. returns ("offset", days) for in/after/within (future) and before/ago (past),
+# ("duration", days) for for/during, or None. the (shared) preposition only sets direction.
+def compiler_spacetimeTemporalRef(ref: TKLLEntityReference, tokens: dict[int, str]) -> tuple[str, float] | None:
+    unit = _TIME_UNITS.get(tokens.get(ref.id, ""))
+    if unit is None:
+        return None
+
+    # count from a nummod number property (default 1)
+    count = 1.0
+    for prop in ref.properties:
+        if prop.dep == "nummod":
+            try:
+                count = float(tokens.get(prop.id, "1"))
+            except ValueError:
+                pass
+    days = count * unit
+
+    prep = (ref.marker.word or "").lower() if ref.marker else ""
+    if prep in _TEMPORAL_PREP_PAST:
+        return ("offset", -days)
+    if prep in _TEMPORAL_PREP_DURATION:
+        return ("duration", days)
+    # in / after / within (and bare) -> future offset
+    return ("offset", days)
+
+# duration (abstract days) of a clause from a "for/during X units" phrase, else 0
+def compiler_spacetimeClauseDuration(content: TKLLCContent, tokens: dict[int, str]) -> float:
+    for indirect in content.indirects:
+        temporal = compiler_spacetimeTemporalRef(indirect, tokens)
+        if temporal and temporal[0] == "duration":
+            return temporal[1]
+    return 0.0
+
+# time (abstract days) of a clause: a temporal-quantity phrase ("in 11 hours") or an explicit
+# anchor (yesterday/today) sets it absolutely; else a sequence advmod (then/later) advances the
+# cursor; else the tense baseline; else the clause inherits the running cursor.
 def compiler_spacetimeClauseTime(content: TKLLCContent, cursor: dict, tokens: dict[int, str]) -> float:
+    # temporal-quantity phrase: offset from now (e.g. "in 11 hours" -> +11/24 days)
+    for indirect in content.indirects:
+        temporal = compiler_spacetimeTemporalRef(indirect, tokens)
+        if temporal and temporal[0] == "offset":
+            cursor["t"] = temporal[1]
+            cursor["anchored"] = True
+            return cursor["t"]
+
     # explicit temporal anchor (obl:tmod date words)
     for indirect in content.indirects:
         word = tokens.get(indirect.id, "")
@@ -648,8 +694,10 @@ def compiler_spacetimeResolveTime(statements: list[TKLLCItem]) -> None:
                 walk(item.content)
             return
         t = compiler_spacetimeClauseTime(content, cursor, tokens)
+        duration = compiler_spacetimeClauseDuration(content, tokens)
         for ref in compiler_spacetimeContentRefs(content):
             ref.spacetime.position[0] = t
+            ref.spacetime.size[0] = duration
 
     for item in statements:
         walk(item.content)
@@ -674,6 +722,10 @@ def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: d
 
     for ref in candidates:
         marker = ref.marker
+        # a temporal-quantity phrase ("in 11 hours") shares the preposition "in" but is NOT a
+        # place -> skip it here (it is handled on the time axis)
+        if compiler_spacetimeTemporalRef(ref, tokens):
+            continue
         if marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS:
             key = compiler_spacetimePlaceKey(ref, tokens)
             # reuse a place's coordinate on recurrence; else a known place uses its real geo
