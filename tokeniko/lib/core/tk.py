@@ -267,8 +267,11 @@ class TKStatement(BaseModel):
         for i in self.indirects: references.append(i)
         
         # put everything in the possible references (1 level)
+        # NB: search_childrenEntities (not search_childrenProperties) so that
+        # properties of conjuncts/subordinates (e.g. "other" in "... and other cats")
+        # can be located as targets, not just properties hanging off the main fields
         children: list[TKPropertyReference] = list()
-        for r in references: children.extend(self.search_childrenProperties(r))
+        for r in references: children.extend(self.search_childrenEntities(r))
         references.extend(children)
 
         # get reference (fields or properties)
