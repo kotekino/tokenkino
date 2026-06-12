@@ -44,10 +44,21 @@ _MIN_SIMILARITY = 0.9
 _TALKER_ID = 1
 _LISTENER_ID = 2
 _PRONOUNS_BASE_ANCHORS = {
+    # 1st person singular + possessives/reflexive -> talker
     "i": _TALKER_ID,
     "me": _TALKER_ID,
-    "you": _LISTENER_ID
+    "my": _TALKER_ID,
+    "mine": _TALKER_ID,
+    "myself": _TALKER_ID,
+    # 2nd person + possessives/reflexives -> listener
+    "you": _LISTENER_ID,
+    "your": _LISTENER_ID,
+    "yours": _LISTENER_ID,
+    "yourself": _LISTENER_ID,
+    "yourselves": _LISTENER_ID,
 }
+# NB: 1st-person plural (we/us/our/ours/ourselves) intentionally NOT mapped -- would collapse
+# "we" to the single talker. 3rd-person (he/she/it/they) excluded -- handled by anaphora.
 
 # subordinate subject resolution
 # relative pronouns: subject (or object) of a relative clause refers back to the modified noun
@@ -56,6 +67,8 @@ _RELATIVE_PRONOUNS = {"who", "whom", "which", "that", "whose"}
 _ANAPHORIC_PRONOUNS = {"he", "she", "it", "they", "him", "her", "them"}
 # entity types that can act as an antecedent (lexical, not meta/pronoun/statement)
 _ANTECEDENT_TYPES = ("name", "dictionary", "place")
+# verbs that keep subject control even with an object present ("I promised her to go" -> I go)
+_SUBJECT_CONTROL_VERBS = {"promise", "vow", "swear", "pledge", "guarantee", "threaten"}
 
 # properties
 _PROP_BASE_ADVMOD_ANCHORS = {

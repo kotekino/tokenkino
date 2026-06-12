@@ -15,7 +15,7 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SPACY_MODEL, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SPACY_MODEL, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -137,6 +137,17 @@ def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
 def compiler_entityById(statement: TKStatement, entityId: int) -> TKEntity | None:
     return next((e for e in statement.entities if e.id == entityId), None)
 
+# lemma of a statement's predicate (lowercased), or "" when there is none / it is a sub-statement
+def compiler_predicateLemma(statement: TKStatement) -> str:
+    if not statement.predicate:
+        return ""
+    entity = compiler_entityById(statement, statement.predicate.id)
+    if not entity:
+        return ""
+    payload = entity.payload
+    lemma = getattr(payload, "word", None) or getattr(payload, "lemma", None) or getattr(payload, "token", None)
+    return (lemma or "").lower()
+
 # the field references of a statement (subject, predicate, direct, indirects)
 def compiler_statementReferences(statement: TKStatement) -> list[TKEntityReference]:
     refs: list[TKEntityReference] = []
@@ -193,10 +204,13 @@ def compiler_resolveImplicitSubject(subStatement: TKStatement, matrixStatement: 
     if subStatement.subject:
         return
 
-    # controller: direct object, else first indirect object, else the matrix subject
-    controllerRef = matrixStatement.direct
-    if not controllerRef and matrixStatement.indirects:
-        controllerRef = matrixStatement.indirects[0]
+    # controller: object control (direct, else first indirect) unless the matrix verb is a
+    # subject-control verb (e.g. "promise"), which keeps the matrix subject even with an object
+    controllerRef = None
+    if compiler_predicateLemma(matrixStatement) not in _SUBJECT_CONTROL_VERBS:
+        controllerRef = matrixStatement.direct
+        if not controllerRef and matrixStatement.indirects:
+            controllerRef = matrixStatement.indirects[0]
     if not controllerRef:
         controllerRef = matrixStatement.subject
     if not controllerRef:
