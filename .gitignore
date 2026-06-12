@@ -5,3 +5,4 @@
 /doc/~$notes.xlsx
 __pycache__/
 *.pyc
+.claude/
