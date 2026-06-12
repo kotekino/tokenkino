@@ -127,6 +127,7 @@ def compiler_resolveEntities(tkStatements: TKStatements) -> list[TKLLEntityMap]:
 # here we resolve them so the flattened LLC repeats the real entity, e.g.
 #   "I love the cat who is sitting on the chair" -> "... THAT the cat is sitting on the chair"
 #   "I love Mari because she is perfect"         -> "... CONV Mari is perfect"
+#   "I want to leave"                            -> "... I leave" (xcomp implicit subject)
 # resolution substitutes the pronoun entity's payload with a deep copy of the antecedent payload
 # (the entity dedup in compiler_getEntities then merges them), mirroring compiler_resolvePronouns
 # but working across the statement boundary (the antecedent lives in the matrix statement).
@@ -184,6 +185,32 @@ def compiler_resolveAnaphora(subStatement: TKStatement, matrixStatement: TKState
     if len(candidates) == 1:
         subject.payload = copy.deepcopy(candidates[0].payload)
 
+# implicit subject (xcomp / subjectless clause): inject the controller as the clause subject.
+# object control when the matrix has an object ("I told her to go" -> her), else subject control
+# ("I want to leave" -> I). the injected pronoun (e.g. "I") is later mapped by resolvePronouns.
+def compiler_resolveImplicitSubject(subStatement: TKStatement, matrixStatement: TKStatement) -> None:
+    # only when the clause carries no subject of its own
+    if subStatement.subject:
+        return
+
+    # controller: direct object, else first indirect object, else the matrix subject
+    controllerRef = matrixStatement.direct
+    if not controllerRef and matrixStatement.indirects:
+        controllerRef = matrixStatement.indirects[0]
+    if not controllerRef:
+        controllerRef = matrixStatement.subject
+    if not controllerRef:
+        return
+
+    controller = compiler_entityById(matrixStatement, controllerRef.id)
+    if not controller or controller.payload.entity_type == "statement":
+        return
+
+    # inject a fresh subject entity carrying a copy of the controller payload
+    newId = max((e.id for e in subStatement.entities), default=0) + 1
+    subStatement.entities.append(TKEntity(id=newId, payload=copy.deepcopy(controller.payload)))
+    subStatement.subject = TKEntityReference(id=newId, dep="nsubj")
+
 # resolve the subordinate clauses hanging off a reference (and its conjuncts), recursively
 def compiler_resolveReferenceSubordinates(reference: TKEntityReference, matrixStatement: TKStatement) -> None:
     ownerEntity = compiler_entityById(matrixStatement, reference.id)
@@ -194,10 +221,13 @@ def compiler_resolveReferenceSubordinates(reference: TKEntityReference, matrixSt
             continue
         subStatement: TKStatement = subEntity.payload
 
-        # relative clause -> owner antecedent; anything else -> matrix anaphora
+        # relative clause -> owner antecedent; subjectless clause (xcomp) -> implicit
+        # controller; explicit pronoun subject -> matrix anaphora
         clauseType = compiler_parseMarker(subReference.marker)
         if clauseType == TKClauseType.ACLRELCL:
             compiler_resolveRelative(subStatement, ownerEntity)
+        elif not subStatement.subject:
+            compiler_resolveImplicitSubject(subStatement, matrixStatement)
         else:
             compiler_resolveAnaphora(subStatement, matrixStatement)
 
