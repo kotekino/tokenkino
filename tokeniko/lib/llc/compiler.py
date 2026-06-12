@@ -1,10 +1,7 @@
 # ------------------------------------------------------------------------------------------------
 # FLAT compiler V2
 # compiler
-# ---
-# subordinate management: operator THAT not viable (split sentence)
-# subject infer (implicit, xcomp, pronouns and other cases) compiler_getEntitiesByPronoun
-# ---
+# 
 # zip manage vectorless entitites
 # ------------------------------------------------------------------------------------------------
 
@@ -32,15 +29,19 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
 
     token = ''
     semantic: list[float] = list()
+    geo: list[float] | None = None
     entity_type = ent.payload.entity_type
 
-    if ent.payload.entity_type == "dictionary": 
+    if ent.payload.entity_type == "dictionary":
         token = ent.payload.word
         semantic: list[float] = ent.payload.vector
-    elif ent.payload.entity_type == "name": 
+    elif ent.payload.entity_type == "name":
         token = ent.payload.name
-    elif ent.payload.entity_type == "place": 
+    elif ent.payload.entity_type == "place":
         token = ent.payload.name
+        # carry the place's coordinates ([lon, lat]) into the flat entity for the space axis
+        if ent.payload.location and ent.payload.location.coordinates:
+            geo = ent.payload.location.coordinates
     elif ent.payload.entity_type == "meta":
         token = ent.payload.who.name
     elif ent.payload.entity_type == "num":
@@ -48,10 +49,10 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
     elif ent.payload.entity_type == "pronoun":
         token = ent.payload.lemma
         semantic: list[float] = ent.payload.vector
-    elif ent.payload.entity_type == "generic": 
+    elif ent.payload.entity_type == "generic":
         token = ent.payload.token
 
-    return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type)
+    return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type, geo=geo)
 
 # get all the entities
 def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = ()) -> list[TKLLEntityMap]:
@@ -591,6 +592,11 @@ def compiler_spacetimeTokens() -> dict[int, str]:
     global _entities
     return {m.entity.id: (m.entity.token or "").lower() for m in _entities}
 
+# map of resolved (flat) llc entity id -> geo coordinates ([lon, lat(, alt)]) for known places
+def compiler_spacetimeGeo() -> dict[int, list[float]]:
+    global _entities
+    return {m.entity.id: m.entity.geo for m in _entities if m.entity.geo}
+
 # entity references that participate in a clause content (subject/predicate/direct/indirects)
 def compiler_spacetimeContentRefs(content: TKLLCContent) -> list[TKLLEntityReference]:
     refs: list[TKLLEntityReference] = []
@@ -661,7 +667,7 @@ def compiler_spacetimePlaceKey(ref: TKLLEntityReference, tokens: dict[int, str])
 # predicate of "I was in my room", or an obl indirect like "to the airport") places the clause
 # at that entity's coordinate and updates the cursor; otherwise the clause inherits the cursor.
 # gated on marker.dep == "case" so infinitival "to leave" (dep mark) is not read as a place.
-def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: dict, tokens: dict[int, str]) -> list[float]:
+def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: dict, tokens: dict[int, str], geo: dict[int, list[float]]) -> list[float]:
     candidates: list[TKLLEntityReference] = []
     if content.predicate: candidates.append(content.predicate)
     candidates.extend(content.indirects)
@@ -670,19 +676,26 @@ def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: d
         marker = ref.marker
         if marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS:
             key = compiler_spacetimePlaceKey(ref, tokens)
-            # reuse a place's coordinate on recurrence; else assign a fresh relative one
+            # reuse a place's coordinate on recurrence; else a known place uses its real geo
+            # ([lon, lat, alt]), and an abstract place a fresh relative coordinate
             if key not in places:
-                places[key] = [float(len(places) + 1), 0.0, 0.0]
+                coords = geo.get(ref.id)
+                if coords and len(coords) >= 2:
+                    places[key] = [coords[0], coords[1], coords[2] if len(coords) > 2 else 0.0]
+                else:
+                    places[key] = [float(len(places) + 1), 0.0, 0.0]
             cursor["xyz"] = places[key]
             return cursor["xyz"]
 
     return cursor["xyz"]
 
 # resolve the SPACE axis (position[1:4]) of every entity reference, in document order.
-# known geo places are not yet used: TKLLEntity does not carry GeoPoint, so all places get a
-# relative coordinate from the registry (distinct places -> distinct coords, stable on reuse).
+# known places (resolved to TKPlace) use their real [lon, lat] coordinates; abstract places get
+# a relative coordinate from the registry. NB: mixing real geo and relative coords in one scene
+# is approximate (different scales), but normalization keeps the layout scene-relative.
 def compiler_spacetimeResolveSpace(statements: list[TKLLCItem]) -> None:
     tokens = compiler_spacetimeTokens()
+    geo = compiler_spacetimeGeo()
     places: dict[str, list[float]] = {}
     cursor = {"xyz": [0.0, 0.0, 0.0]}  # deictic origin: 'here'
 
@@ -691,7 +704,7 @@ def compiler_spacetimeResolveSpace(statements: list[TKLLCItem]) -> None:
             for item in content:
                 walk(item.content)
             return
-        xyz = compiler_spacetimeClausePlace(content, cursor, places, tokens)
+        xyz = compiler_spacetimeClausePlace(content, cursor, places, tokens, geo)
         for ref in compiler_spacetimeContentRefs(content):
             ref.spacetime.position[1] = xyz[0]
             ref.spacetime.position[2] = xyz[1]

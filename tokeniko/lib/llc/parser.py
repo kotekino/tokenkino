@@ -8,11 +8,11 @@ from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.tk import EntityPayload, TKAux, TKClause, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPronoun, TKStatement, TKStatements
-from lib.core.models import TKDictionaryDoc
+from lib.core.tk import EntityPayload, TKAux, TKClause, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements
+from lib.core.models import TKDictionaryDoc, TKPlaceDoc
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
-from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD
+from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS
 from lib.core.utilities import util_expandContractions, util_removeSpace
 from functools import cmp_to_key
 import textacy
@@ -197,8 +197,18 @@ def parser_isStatement(token: Token) -> bool:
     return token.dep_ in ["xcomp", "ccomp", "csubj", "advcl", "acl", "acl:relcl", "parataxis"]
 
 # get from dictionary, names, number, pronouns, generic (fallback) meaning
+# resolve a geo-NER proper noun (GPE/LOC/FAC) to a known place with coordinates, else None.
+# NB: name lookup is not disambiguated by prominence, so homonyms resolve to whichever the
+# places knowledge base returns first (e.g. "Paris" may be Paris, Ontario).
+def parser_getPlace(token: Token) -> TKPlace | None:
+    if token.ent_type_ not in _GEO_NER_LABELS:
+        return None
+    # place names are stored lowercased in the knowledge base
+    doc = TKPlaceDoc.find_one({"name": token.text.lower()}).run()
+    return TKPlace(**doc.model_dump(exclude={"id"})) if doc else None
+
 def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
-    
+
     tkMeaning = None
 
     # should be in the dictionary (exclude auxiliaries, pronouns)
@@ -228,7 +238,9 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
     else: 
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
         if token.pos_ == "PROPN":
-            tkMeaning = TKName(name=token.lemma_)
+            # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
+            # its coordinates) from the places knowledge base; otherwise it is a plain name
+            tkMeaning = parser_getPlace(token) or TKName(name=token.lemma_)
         if token.pos_ == "NUM":
             clean_text = token.text.replace(',', '').strip()
             numValue = 0
@@ -281,7 +293,9 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
     else: 
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
         if token.pos_ == "PROPN":
-            tkMeaning = TKName(name=token.lemma_)
+            # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
+            # its coordinates) from the places knowledge base; otherwise it is a plain name
+            tkMeaning = parser_getPlace(token) or TKName(name=token.lemma_)
         if token.pos_ == "NUM":
             clean_text = token.text.replace(',', '').strip()
             numValue = 0

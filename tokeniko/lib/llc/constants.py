@@ -121,6 +121,9 @@ _SEQUENCE_ANCHORS = {
 # clause has no explicit temporal anchor or sequence cue. weaker than the day-level anchors.
 _TENSE_ANCHORS = {"past": -0.5, "pres": 0.0, "fut": 0.5}
 
+# NER entity labels treated as resolvable real places (looked up in the places knowledge base)
+_GEO_NER_LABELS = {"GPE", "LOC", "FAC"}
+
 # spacetime — SPACE axis
 # locative case markers -> spatial relation. for now only used to detect that a reference is a
 # place (so the clause is located there); the relation value (contain/dest/origin/near/far) is

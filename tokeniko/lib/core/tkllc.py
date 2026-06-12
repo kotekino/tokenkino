@@ -28,6 +28,7 @@ class TKLLEntity(BaseModel):
     token: str
     entity_type: str = Field(default='generic')
     semantic_vector: list[float] = Field(default_factory=list)
+    geo: Optional[list[float]] = None  # [lon, lat(, alt)] for known places, used by the space axis
 
 # map from tkentity and tkllentity
 class TKLLEntityMap(BaseModel):
