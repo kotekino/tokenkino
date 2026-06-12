@@ -68,9 +68,21 @@ class TKLLCContent(BaseModel):
     direct: Optional[TKLLEntityReference] = Field(default=None) 
     indirects: list[TKLLEntityReference] = Field(default_factory=list)
 
+# attitude of a propositional complement bound by THAT: how the matrix predicate holds X.
+# factive (know/realize) presupposes X is true; doxastic (believe/think/assume) is belief held
+# at confidence < 1; desiderative (want/hope) is an irrealis goal (X not asserted as true);
+# reportative (say/claim) attributes X to a source with truth uncommitted. `confidence` is the
+# world-truth projection of X in [0,1] - a tunable default; the fuzzy projection of X into the
+# zip math is left to the semantic-calculation layer.
+class TKLLAttitude(BaseModel):
+    verb: Optional[str] = None  # the embedding predicate lemma ("assume")
+    klass: str = "doxastic"     # factive | doxastic | desiderative | reportative
+    confidence: float = 0.5
+
 class TKLLCItem(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND)
-    content: Optional[LLCItemPayload] = None 
+    attitude: Optional[TKLLAttitude] = None  # set on THAT items: the reified complement X
+    content: Optional[LLCItemPayload] = None
 
 # llc 
 class TKLLC(BaseModel):

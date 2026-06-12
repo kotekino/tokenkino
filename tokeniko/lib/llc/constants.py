@@ -83,6 +83,25 @@ _PROP_SIMILARITY_THRESHOLD = 0.85
 # markers
 _MARKER_SIMILARITY_THRESHOLD = 0.85
 
+# propositional-attitude verbs (ccomp / THAT): embedding verb lemma -> (attitude class,
+# world-truth confidence of the complement X in [0,1]). confidence is a tunable default for the
+# semantic-calculation layer, not final fuzzy math. unknown verbs fall back to neutral doxastic.
+_ATTITUDE_ANCHORS = {
+    # factive: complement presupposed true
+    "know": ("factive", 1.0), "realize": ("factive", 1.0), "regret": ("factive", 1.0),
+    "remember": ("factive", 0.9), "notice": ("factive", 0.95), "see": ("factive", 0.9),
+    # doxastic: belief held at confidence < 1
+    "believe": ("doxastic", 0.7), "think": ("doxastic", 0.6), "assume": ("doxastic", 0.6),
+    "suppose": ("doxastic", 0.55), "suspect": ("doxastic", 0.5), "expect": ("doxastic", 0.6),
+    "guess": ("doxastic", 0.4), "doubt": ("doxastic", 0.2),
+    # desiderative: irrealis goal (X not asserted as true)
+    "want": ("desiderative", 0.0), "hope": ("desiderative", 0.0), "wish": ("desiderative", 0.0),
+    # reportative: attributed to a source, truth uncommitted
+    "say": ("reportative", 0.5), "claim": ("reportative", 0.4), "tell": ("reportative", 0.5),
+    "report": ("reportative", 0.6), "argue": ("reportative", 0.4),
+}
+_ATTITUDE_DEFAULT = ("doxastic", 0.5)
+
 # spacetime — TIME axis
 # explicit temporal anchors -> absolute position on the time axis, in abstract "days" from now
 # (deictic origin: utterance now = 0). past < 0, future > 0.

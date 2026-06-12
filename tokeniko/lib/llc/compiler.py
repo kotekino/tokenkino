@@ -14,8 +14,8 @@ import numpy as np
 import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
-from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS
+from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -337,8 +337,14 @@ def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
     # 4. fallback
     return TKClauseType.OTHER
 
+# classify a propositional-attitude verb (the matrix predicate of a THAT/ccomp) into its
+# attitude class + default world-truth confidence of the complement X
+def compiler_classifyAttitude(verb: str) -> TKLLAttitude:
+    klass, confidence = _ATTITUDE_ANCHORS.get((verb or "").lower(), _ATTITUDE_DEFAULT)
+    return TKLLAttitude(verb=verb or None, klass=klass, confidence=confidence)
+
 # evaluate subordinate clause
-def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStatement, statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLCItem]:
+def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStatement, statementIdx: int, statementId: tuple[int, ...], matrixVerb: str = "") -> list[TKLLCItem]:
     subordinateType = compiler_parseMarker(reference.marker)
     
     # analyze subordinate to flatten it with an operator and modify properties
@@ -404,6 +410,11 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
 
     result = compiler_evaluateStatement(statement, statementIdx, statementId + (reference.id,), subordinateType, operator)
 
+    # ccomp is the propositional complement X bound by THAT: tag it with the matrix predicate's
+    # attitude class (factive/doxastic/desiderative/reportative) so the semantic layer can project
+    if subordinateType == TKClauseType.CCOMP and result:
+        result[0].attitude = compiler_classifyAttitude(matrixVerb)
+
     return result
 
 # modify content
@@ -445,16 +456,17 @@ def compiler_modifyContent(
 
     return result
 
-# evaluate subordinates for each statement element
-def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entities: list[TKEntity], statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLCItem]:
+# evaluate subordinates for each statement element. matrixVerb is the embedding predicate lemma,
+# used only to classify the attitude of a ccomp (propositional complement)
+def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entities: list[TKEntity], statementIdx: int, statementId: tuple[int, ...], matrixVerb: str = "") -> list[TKLLCItem]:
     result: list[TKLLCItem] = []
 
     # subordinates
     for subReference in subordinates:
         subordinate = next(i for i in entities if subReference.id == i.id)
-        subItems = compiler_evaluateSubordinate(subReference, subordinate.payload, statementIdx, statementId)
+        subItems = compiler_evaluateSubordinate(subReference, subordinate.payload, statementIdx, statementId, matrixVerb)
         result.extend(subItems)
-    
+
     return result
 
 # evaluate conjuncts: return the head clause plus one item per coordinated sibling, as a
@@ -513,7 +525,9 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # predicate (manage statements)
     # ---------------------------------------------
     if statement.predicate:
-        result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx, statementId))
+        # the embedding verb classifies the attitude of any ccomp hanging off the predicate
+        matrixVerb = compiler_predicateLemma(statement)
+        result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx, statementId, matrixVerb))
         newMain = compiler_evaluateCoordinates(statement.predicate.conjuncts, mainContent, predicate.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
@@ -946,9 +960,9 @@ def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:
     result: list[TKZipItem] = []
     for item in items:
         if isinstance(item.content, TKLLCContent):
-            result.append(TKZipItem(op=item.op, content=compiler_zipContent(item.content)))
-        else: 
-            result.append(TKZipItem(op=item.op, content=compiler_zip(item.content)))
+            result.append(TKZipItem(op=item.op, attitude=item.attitude, content=compiler_zipContent(item.content)))
+        else:
+            result.append(TKZipItem(op=item.op, attitude=item.attitude, content=compiler_zip(item.content)))
     return result
 
 # ------------------------------------------------------------------------------------------------

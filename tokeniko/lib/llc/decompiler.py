@@ -76,8 +76,15 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
     return result
 
 # recurse content to output raw sentences
+# render an item operator, annotating THAT with its attitude (klass:confidence) when present
+def decompiler_raw_op(item) -> str:
+    label = item.op.value
+    if getattr(item, "attitude", None):
+        label = f"{label}[{item.attitude.klass}:{item.attitude.confidence}]"
+    return label
+
 def decompiler_raw_recursive(content: LLCItemPayload, entities: list[TKLLEntity]) -> str:
-    
+
     result: str = ""
     if isinstance(content, TKLLCContent):
         subject = decompiler_raw_entity(content.subject, entities) if content.subject else ''
@@ -88,7 +95,7 @@ def decompiler_raw_recursive(content: LLCItemPayload, entities: list[TKLLEntity]
     elif isinstance(content, list):
         i: int = 0
         for item in content:
-            op = item.op.value if i > 0 or item.op.value != TKOperator.AND else ''
+            op = decompiler_raw_op(item) if i > 0 or item.op.value != TKOperator.AND else ''
             result += f" {op} ({decompiler_raw_recursive(item.content, entities)})"
             i += 1
 
@@ -100,7 +107,7 @@ def decompiler_raw(tkLLC: TKLLC) -> str:
     result: str = ""
     i: int = 0
     for item in tkLLC.items:
-        op = item.op if i > 0 or item.op != TKOperator.AND else ''
+        op = decompiler_raw_op(item) if i > 0 or item.op != TKOperator.AND else ''
         result += op + ' (' + decompiler_raw_recursive(item.content, tkLLC.entities) + ') '
         i += 1
 

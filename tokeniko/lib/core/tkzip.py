@@ -5,6 +5,7 @@
 from typing import Optional, Union
 from pydantic import BaseModel, Field
 from lib.core.tk import TKOperator
+from lib.core.tkllc import TKLLAttitude
 
 # zip content: can be a content or another llcitem (recursive)
 class TKZipContent(BaseModel):
@@ -22,7 +23,8 @@ class TKZipContent(BaseModel):
 # zip item: can be a statement or an llcitem (recursive)
 class TKZipItem(BaseModel):
     op: TKOperator = Field(default=TKOperator.AND)
-    content: TKZipItemPayload = None 
+    attitude: Optional[TKLLAttitude] = None  # carried from the LLC THAT item (propositional X)
+    content: TKZipItemPayload = None
 
 # zip 
 class TKZip(BaseModel):
