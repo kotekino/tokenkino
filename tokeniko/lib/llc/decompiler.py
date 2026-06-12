@@ -52,10 +52,29 @@ def decompiler_raw_property(ref: int, entities: list[TKLLEntity]) -> str:
     result = f"{properties}{entity.strip()}"
     return result
 
+# compact spacetime annotation, e.g. "[t-1 @-0.33,0,0 ->0.56,0,0]". the symbol-led convention
+# distinguishes it from the word-filled property brackets: t = time, @ = position (x,y,z),
+# -> = velocity (x,y,z). only the non-zero components are shown; an all-zero spacetime is omitted.
+def decompiler_raw_spacetime(ref: TKLLEntityReference) -> str:
+    def fmt(value: float) -> str:
+        return f"{round(value, 2):g}"
+
+    st = ref.spacetime
+    t = st.position[0]
+    position = st.position[1:4]
+    velocity = st.velocity[1:4]
+
+    parts: list[str] = []
+    if t: parts.append(f"t{fmt(t)}")
+    if any(position): parts.append("@" + ",".join(fmt(c) for c in position))
+    if any(velocity): parts.append("->" + ",".join(fmt(c) for c in velocity))
+
+    return f" [{' '.join(parts)}]" if parts else ""
+
 # process single entity with properties and marker
 def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) -> str:
     entity: str = next((e.token for e in entities if e.id == ref.id), "")
-    
+
     # properties postponed
     properties: str = ""
     for pp in (p for p in ref.properties):
@@ -71,7 +90,7 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
     # entity aux (lemma may be None: a TKAux can carry only a tense baseline)
     auxString: str = (ref.aux.lemma or "") if ref.aux else ""
 
-    result = f"{marker} {auxString.strip()} {properties}{entity.strip()}"
+    result = f"{marker} {auxString.strip()} {properties}{entity.strip()}{decompiler_raw_spacetime(ref)}"
 
     return result
 
