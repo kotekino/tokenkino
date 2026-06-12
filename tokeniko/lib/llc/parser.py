@@ -316,6 +316,15 @@ def parser_getMarker(token: Token) -> TKMarker:
 
     return tkMarker
 
+# clause tense from the finite element: modal will/shall -> future; else the Tense morph of the
+# auxiliary if present, else the predicate verb itself. returns "past" | "pres" | "fut" | None.
+def parser_getTense(predicateToken: Token, auxToken: Token | None) -> str | None:
+    if auxToken is not None and auxToken.lemma_.lower() in ("will", "shall"):
+        return "fut"
+    source = auxToken if auxToken is not None else predicateToken
+    tense = source.morph.get("Tense")
+    return tense[0].lower() if tense else None
+
 # get seamntic value from dictionary + properties
 def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND, isPredicate = False) -> TKFullEntity:
 
@@ -340,10 +349,14 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
 
     # get auxiliary
     aux = next((s for s in children if s.dep_ in ["cop","aux"]), None)
+    tense = parser_getTense(token, aux) if isPredicate else None
     if aux:
         posAux = TKPosMapper.get_wn_pos(aux.pos_)
         dictAux = parser_getMeaning(aux, posAux)
-        tkAux = TKAux(lemma=aux.lemma_, vector=dictAux.vector)
+        tkAux = TKAux(lemma=aux.lemma_, vector=dictAux.vector, tense=tense)
+    elif tense:
+        # no auxiliary, but stash the predicate verb's own tense for the spacetime time axis
+        tkAux = TKAux(tense=tense)
 
     # ----------------------------------------
     # subordinates entities (search)

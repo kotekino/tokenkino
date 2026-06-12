@@ -15,7 +15,7 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SPATIAL_RELATION_ANCHORS, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS, _TENSE_ANCHORS
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -609,6 +609,7 @@ def compiler_spacetimeClauseTime(content: TKLLCContent, cursor: dict, tokens: di
         word = tokens.get(indirect.id, "")
         if word in _TEMPORAL_ANCHORS:
             cursor["t"] = _TEMPORAL_ANCHORS[word]
+            cursor["anchored"] = True
             return cursor["t"]
 
     # sequence advmod on the predicate
@@ -620,12 +621,20 @@ def compiler_spacetimeClauseTime(content: TKLLCContent, cursor: dict, tokens: di
                     cursor["t"] += _SEQUENCE_ANCHORS[word]
                     return cursor["t"]
 
+    # tense baseline (coarse past/present/future): weakest fallback, only while no explicit
+    # anchor has been seen, so it does not override a discourse time already established
+    if not cursor["anchored"] and content.predicate and content.predicate.aux and content.predicate.aux.tense:
+        offset = _TENSE_ANCHORS.get(content.predicate.aux.tense)
+        if offset is not None:
+            cursor["t"] = offset
+            return cursor["t"]
+
     return cursor["t"]
 
 # resolve the TIME axis (position[0]) of every entity reference, walking clauses in document order
 def compiler_spacetimeResolveTime(statements: list[TKLLCItem]) -> None:
     tokens = compiler_spacetimeTokens()
-    cursor = {"t": 0.0}  # deictic origin: utterance now
+    cursor = {"t": 0.0, "anchored": False}  # deictic origin: utterance now
 
     def walk(content: LLCItemPayload) -> None:
         if isinstance(content, list):

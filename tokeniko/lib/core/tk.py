@@ -69,6 +69,7 @@ class TKAux(BaseModel):
     entity_type: Literal["aux"] = Field(default="aux")
     lemma: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
+    tense: Optional[str] = None  # clause tense for the spacetime time axis: past | pres | fut
 
 # pronoun
 class TKPronoun(BaseModel):

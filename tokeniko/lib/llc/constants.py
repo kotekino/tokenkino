@@ -117,6 +117,9 @@ _SEQUENCE_ANCHORS = {
     "before": -0.1, "previously": -0.1, "earlier": -0.1,
     "meanwhile": 0.0, "simultaneously": 0.0,
 }
+# coarse tense baseline on the time axis (in abstract days), used as the weakest fallback when a
+# clause has no explicit temporal anchor or sequence cue. weaker than the day-level anchors.
+_TENSE_ANCHORS = {"past": -0.5, "pres": 0.0, "fut": 0.5}
 
 # spacetime — SPACE axis
 # locative case markers -> spatial relation. for now only used to detect that a reference is a
