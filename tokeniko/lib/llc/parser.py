@@ -1,7 +1,6 @@
 # ------------------------------------------------------------------------------------------------
 # PARSER V2: transform a token list into a list of TKStatements (using spacy for the first ingestion)
 # ------------------------------------------------------------------------------------------------
-# i'm bug in stanza spacy
 
 from ollama import Client as OllamaClient
 import spacy
