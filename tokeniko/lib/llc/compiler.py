@@ -639,6 +639,15 @@ def compiler_spacetimeResolveTime(statements: list[TKLLCItem]) -> None:
     for item in statements:
         walk(item.content)
 
+# place identity key: the entity token plus its distinguishing modifiers, so place instances
+# that share a head but differ in modifiers ("my room" vs "the living room") get distinct keys,
+# while a repeated mention ("the room" ... "the room") stays the same place. Needed because the
+# flat entities dedup by head token, collapsing distinct place instances onto one id.
+def compiler_spacetimePlaceKey(ref: TKLLEntityReference, tokens: dict[int, str]) -> str:
+    base = tokens.get(ref.id, "")
+    mods = sorted(tokens.get(p.id, "") for p in ref.properties)
+    return "|".join([base, *mods])
+
 # location (x,y,z) of a clause: a reference carrying a locative CASE marker (the copular
 # predicate of "I was in my room", or an obl indirect like "to the airport") places the clause
 # at that entity's coordinate and updates the cursor; otherwise the clause inherits the cursor.
@@ -651,11 +660,11 @@ def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: d
     for ref in candidates:
         marker = ref.marker
         if marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS:
-            token = tokens.get(ref.id, "")
+            key = compiler_spacetimePlaceKey(ref, tokens)
             # reuse a place's coordinate on recurrence; else assign a fresh relative one
-            if token not in places:
-                places[token] = [float(len(places) + 1), 0.0, 0.0]
-            cursor["xyz"] = places[token]
+            if key not in places:
+                places[key] = [float(len(places) + 1), 0.0, 0.0]
+            cursor["xyz"] = places[key]
             return cursor["xyz"]
 
     return cursor["xyz"]
@@ -748,13 +757,21 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
 
     return spacetimeMap
 
+# a reference is a locative ground (the place a clause happens at) when it carries a locative
+# case marker. such references are the static frame, not movers, so they are excluded from the
+# velocity derivative (otherwise distinct place instances sharing one entity id - "my room" vs
+# "the living room" - would be read as one room that moved).
+def compiler_spacetimeIsGround(ref: TKLLEntityReference) -> bool:
+    marker = ref.marker
+    return bool(marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS)
+
 # resolve VELOCITY (velocity[1:4]) as the derivative of each entity's normalized trajectory.
 # an entity referenced across clauses has several references at different (t, x, y, z); velocity
 # of a reference = (next position - this position) / (next time - this time). only entities that
 # recur over time get a non-zero velocity. velocity[0] (time component) is left 0 (degenerate).
 # must run AFTER compiler_spacetimeNormalize so positions are already in comparable [-1,1] units.
 def compiler_spacetimeResolveVelocity(statements: list[TKLLCItem]) -> None:
-    references = compiler_spacetimeCollectReferences(statements)
+    references = [r for r in compiler_spacetimeCollectReferences(statements) if not compiler_spacetimeIsGround(r)]
 
     # group references by entity id
     byId: dict[int, list[TKLLEntityReference]] = {}
