@@ -711,40 +711,42 @@ def compiler_spacetimePlaceKey(ref: TKLLEntityReference, tokens: dict[int, str])
     mods = sorted(tokens.get(p.id, "") for p in ref.properties)
     return "|".join([base, *mods])
 
-# location (x,y,z) of a clause: a reference carrying a locative CASE marker (the copular
-# predicate of "I was in my room", or an obl indirect like "to the airport") places the clause
-# at that entity's coordinate and updates the cursor; otherwise the clause inherits the cursor.
-# gated on marker.dep == "case" so infinitival "to leave" (dep mark) is not read as a place.
-def compiler_spacetimeClausePlace(content: TKLLCContent, cursor: dict, places: dict, tokens: dict[int, str], geo: dict[int, list[float]]) -> list[float]:
+# coordinate of a place reference: a known place uses its real geo ([lon, lat, alt]); an abstract
+# place a fresh relative coordinate. coordinates are cached per place key (reused on recurrence).
+def compiler_spacetimePlaceCoord(ref: TKLLEntityReference, places: dict, tokens: dict[int, str], geo: dict[int, list[float]]) -> list[float]:
+    key = compiler_spacetimePlaceKey(ref, tokens)
+    if key not in places:
+        coords = geo.get(ref.id)
+        if coords and len(coords) >= 2:
+            places[key] = [coords[0], coords[1], coords[2] if len(coords) > 2 else 0.0]
+        else:
+            places[key] = [float(len(places) + 1), 0.0, 0.0]
+    return places[key]
+
+# the locative references of a clause as (ref, relation) pairs (origin/dest/contain/near/far),
+# gated on marker.dep == "case" (so infinitival "to leave" is not a place) and excluding temporal
+# phrases ("in 11 hours"). the copular predicate of "I was in my room" is locative too.
+def compiler_spacetimeClauseLocatives(content: TKLLCContent, tokens: dict[int, str]) -> list[tuple[TKLLEntityReference, str]]:
     candidates: list[TKLLEntityReference] = []
     if content.predicate: candidates.append(content.predicate)
     candidates.extend(content.indirects)
 
+    locatives: list[tuple[TKLLEntityReference, str]] = []
     for ref in candidates:
-        marker = ref.marker
-        # a temporal-quantity phrase ("in 11 hours") shares the preposition "in" but is NOT a
-        # place -> skip it here (it is handled on the time axis)
         if compiler_spacetimeTemporalRef(ref, tokens):
             continue
-        if marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS:
-            key = compiler_spacetimePlaceKey(ref, tokens)
-            # reuse a place's coordinate on recurrence; else a known place uses its real geo
-            # ([lon, lat, alt]), and an abstract place a fresh relative coordinate
-            if key not in places:
-                coords = geo.get(ref.id)
-                if coords and len(coords) >= 2:
-                    places[key] = [coords[0], coords[1], coords[2] if len(coords) > 2 else 0.0]
-                else:
-                    places[key] = [float(len(places) + 1), 0.0, 0.0]
-            cursor["xyz"] = places[key]
-            return cursor["xyz"]
+        marker = ref.marker
+        if marker and marker.dep == "case":
+            relation = _SPATIAL_RELATION_ANCHORS.get((marker.word or "").lower())
+            if relation:
+                locatives.append((ref, relation))
+    return locatives
 
-    return cursor["xyz"]
-
-# resolve the SPACE axis (position[1:4]) of every entity reference, in document order.
-# known places (resolved to TKPlace) use their real [lon, lat] coordinates; abstract places get
-# a relative coordinate from the registry. NB: mixing real geo and relative coords in one scene
-# is approximate (different scales), but normalization keeps the layout scene-relative.
+# resolve the SPACE axis (position[1:4]) of every entity reference, in document order. each
+# locative gets its OWN coordinate (so "from Osaka to Rome" places both, not one); non-locative
+# refs (subject/predicate) get the clause's agent location = destination > static > origin >
+# cursor, which also advances the cursor. known places use real geo, abstract ones relative coords
+# (mixing the two in a scene is approximate, but normalization keeps the layout scene-relative).
 def compiler_spacetimeResolveSpace(statements: list[TKLLCItem]) -> None:
     tokens = compiler_spacetimeTokens()
     geo = compiler_spacetimeGeo()
@@ -756,8 +758,19 @@ def compiler_spacetimeResolveSpace(statements: list[TKLLCItem]) -> None:
             for item in content:
                 walk(item.content)
             return
-        xyz = compiler_spacetimeClausePlace(content, cursor, places, tokens, geo)
+
+        # each locative -> its own coordinate
+        locatives = compiler_spacetimeClauseLocatives(content, tokens)
+        coords = {id(ref): compiler_spacetimePlaceCoord(ref, places, tokens, geo) for ref, _ in locatives}
+        byRelation = {relation: coords[id(ref)] for ref, relation in locatives}
+
+        # agent location for non-locative refs: destination > static > origin > current cursor
+        static = byRelation.get("contain") or byRelation.get("near") or byRelation.get("far")
+        agent = byRelation.get("dest") or static or byRelation.get("origin") or cursor["xyz"]
+        cursor["xyz"] = agent
+
         for ref in compiler_spacetimeContentRefs(content):
+            xyz = coords.get(id(ref), agent)
             ref.spacetime.position[1] = xyz[0]
             ref.spacetime.position[2] = xyz[1]
             ref.spacetime.position[3] = xyz[2]
@@ -844,24 +857,49 @@ def compiler_spacetimeIsGround(ref: TKLLEntityReference) -> bool:
     marker = ref.marker
     return bool(marker and marker.dep == "case" and (marker.word or "").lower() in _SPATIAL_RELATION_ANCHORS)
 
-# resolve VELOCITY (velocity[1:4]) as the derivative of each entity's normalized trajectory.
-# an entity referenced across clauses has several references at different (t, x, y, z); velocity
-# of a reference = (next position - this position) / (next time - this time). only entities that
-# recur over time get a non-zero velocity. velocity[0] (time component) is left 0 (degenerate).
-# must run AFTER compiler_spacetimeNormalize so positions are already in comparable [-1,1] units.
+# resolve VELOCITY (velocity[1:4]) from two sources, both AFTER normalization (positions in
+# comparable [-1,1] units): (1) intra-clause motion - a clause with an explicit origin (from) and
+# destination (to) gives its subject a displacement velocity dest - origin; (2) cross-clause
+# trajectory - for entities recurring over time, (next position - this) / (next time - this).
+# velocity[0] (time component) is left 0 (degenerate).
 def compiler_spacetimeResolveVelocity(statements: list[TKLLCItem]) -> None:
-    references = [r for r in compiler_spacetimeCollectReferences(statements) if not compiler_spacetimeIsGround(r)]
+    tokens = compiler_spacetimeTokens()
+    motionRefs: set[int] = set()
+    maxAbs = 0.0
 
-    # group references by entity id
+    # (1) intra-clause motion: subject velocity = destination - origin
+    def walkMotion(content: LLCItemPayload) -> None:
+        nonlocal maxAbs
+        if isinstance(content, list):
+            for item in content:
+                walkMotion(item.content)
+            return
+        if not content.subject:
+            return
+        byRelation: dict[str, TKLLEntityReference] = {}
+        for ref, relation in compiler_spacetimeClauseLocatives(content, tokens):
+            byRelation.setdefault(relation, ref)
+        origin, dest = byRelation.get("origin"), byRelation.get("dest")
+        if origin and dest:
+            for axis in (1, 2, 3):
+                v = dest.spacetime.position[axis] - origin.spacetime.position[axis]
+                content.subject.spacetime.velocity[axis] = v
+                maxAbs = max(maxAbs, abs(v))
+            motionRefs.add(id(content.subject))
+
+    for item in statements:
+        walkMotion(item.content)
+
+    # (2) cross-clause trajectory (grounds excluded; motion refs keep their intra-clause velocity)
+    references = [r for r in compiler_spacetimeCollectReferences(statements) if not compiler_spacetimeIsGround(r)]
     byId: dict[int, list[TKLLEntityReference]] = {}
     for ref in references:
         byId.setdefault(ref.id, []).append(ref)
-
-    # per entity: order by time, set each reference's velocity toward its next occurrence
-    maxAbs = 0.0
     for group in byId.values():
         group.sort(key=lambda r: r.spacetime.position[0])
         for a, b in zip(group, group[1:]):
+            if id(a) in motionRefs:
+                continue
             dt = b.spacetime.position[0] - a.spacetime.position[0]
             if dt == 0:
                 continue
@@ -870,12 +908,11 @@ def compiler_spacetimeResolveVelocity(statements: list[TKLLCItem]) -> None:
                 a.spacetime.velocity[axis] = v
                 maxAbs = max(maxAbs, abs(v))
 
-    # scene-relative scaling into [-1,1] (preserve zero and sign), like the position map
+    # (3) scene-relative scaling into [-1,1] (preserve zero and sign), like the position map
     if maxAbs > 1.0:
-        for group in byId.values():
-            for ref in group:
-                for axis in (1, 2, 3):
-                    ref.spacetime.velocity[axis] /= maxAbs
+        for ref in compiler_spacetimeCollectReferences(statements):
+            for axis in (1, 2, 3):
+                ref.spacetime.velocity[axis] /= maxAbs
 
 # ------------------------------------------------------------------------------------------------
 # ZIP
