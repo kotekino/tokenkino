@@ -82,3 +82,19 @@ _PROP_SIMILARITY_THRESHOLD = 0.85
 
 # markers
 _MARKER_SIMILARITY_THRESHOLD = 0.85
+
+# spacetime — TIME axis
+# explicit temporal anchors -> absolute position on the time axis, in abstract "days" from now
+# (deictic origin: utterance now = 0). past < 0, future > 0.
+_TEMPORAL_ANCHORS = {
+    "now": 0.0, "today": 0.0, "tonight": 0.0,
+    "yesterday": -1.0, "tomorrow": 1.0,
+}
+# discourse/sequence advmods -> relative advance of the time cursor (sub-day steps), used when
+# no explicit anchor is present, to keep clause ordering visible after normalization
+_SEQUENCE_ANCHORS = {
+    "then": 0.1, "after": 0.1, "afterward": 0.1, "afterwards": 0.1, "later": 0.1,
+    "next": 0.1, "subsequently": 0.1, "finally": 0.2,
+    "before": -0.1, "previously": -0.1, "earlier": -0.1,
+    "meanwhile": 0.0, "simultaneously": 0.0,
+}

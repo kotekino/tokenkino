@@ -15,7 +15,7 @@ import spacy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLEntity, TKLLEntityMap, TKLLEntityMapReference, TKLLC, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties, TKLLSpacetimeMap
-from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SPACY_MODEL, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.constants import _ANAPHORIC_PRONOUNS, _ANTECEDENT_TYPES, _MARKER_SIMILARITY_THRESHOLD, _PRONOUNS_BASE_ANCHORS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD, _RELATIVE_PRONOUNS, _SEQUENCE_ANCHORS, _SPACY_MODEL, _SUBJECT_CONTROL_VERBS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD, _TEMPORAL_ANCHORS
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
@@ -565,6 +565,64 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
 # ------------------------------------------------------------------------------------------------
 # SPACETIME
 # ------------------------------------------------------------------------------------------------
+# spacetime is resolved in two steps: (1) compiler_spacetimeResolveTime assigns each entity
+# reference a raw position on the time axis (position[0], in abstract days from the deictic now);
+# (2) compiler_spacetimeNormalize squashes all raw coords to [-1,1] and emits the scene map.
+# NB: only the TIME axis is implemented; space (x,y,z) and velocity are left at 0 for now.
+
+# map of resolved (flat) llc entity id -> lowercased token
+def compiler_spacetimeTokens() -> dict[int, str]:
+    global _entities
+    return {m.entity.id: (m.entity.token or "").lower() for m in _entities}
+
+# entity references that participate in a clause content (subject/predicate/direct/indirects)
+def compiler_spacetimeContentRefs(content: TKLLCContent) -> list[TKLLEntityReference]:
+    refs: list[TKLLEntityReference] = []
+    if content.subject: refs.append(content.subject)
+    if content.predicate: refs.append(content.predicate)
+    if content.direct: refs.append(content.direct)
+    refs.extend(content.indirects)
+    return refs
+
+# time (abstract days) of a clause: an explicit temporal anchor among the indirects (obl:tmod
+# words like yesterday/today) wins and resets the cursor; else a sequence advmod on the predicate
+# (then/later/before/finally) advances it; else the clause inherits the running cursor.
+def compiler_spacetimeClauseTime(content: TKLLCContent, cursor: dict, tokens: dict[int, str]) -> float:
+    # explicit temporal anchor (obl:tmod date words)
+    for indirect in content.indirects:
+        word = tokens.get(indirect.id, "")
+        if word in _TEMPORAL_ANCHORS:
+            cursor["t"] = _TEMPORAL_ANCHORS[word]
+            return cursor["t"]
+
+    # sequence advmod on the predicate
+    if content.predicate:
+        for prop in content.predicate.properties:
+            if prop.dep == "advmod":
+                word = tokens.get(prop.id, "")
+                if word in _SEQUENCE_ANCHORS:
+                    cursor["t"] += _SEQUENCE_ANCHORS[word]
+                    return cursor["t"]
+
+    return cursor["t"]
+
+# resolve the TIME axis (position[0]) of every entity reference, walking clauses in document order
+def compiler_spacetimeResolveTime(statements: list[TKLLCItem]) -> None:
+    tokens = compiler_spacetimeTokens()
+    cursor = {"t": 0.0}  # deictic origin: utterance now
+
+    def walk(content: LLCItemPayload) -> None:
+        if isinstance(content, list):
+            for item in content:
+                walk(item.content)
+            return
+        t = compiler_spacetimeClauseTime(content, cursor, tokens)
+        for ref in compiler_spacetimeContentRefs(content):
+            ref.spacetime.position[0] = t
+
+    for item in statements:
+        walk(item.content)
+
 def compiler_spacetimeCollectReferences(statements: list[TKLLCItem]) -> list[TKLLEntityReference]:
     ents: list[TKEntity] = []
 
@@ -601,10 +659,15 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
     minSpace = min(minX, minY, minZ)
     maxSpace = max(maxX, maxY, maxZ)
 
-    # normalize function (from - x to x => from -1 to 1)
+    # position is an absolute coordinate -> map [min,max] onto [-1,1] (offset + scale)
     def normalize(value: float, min: float, max: float) -> float:
         if max - min == 0: return 0
         return (value - min) / (max - min) * 2 - 1
+
+    # size (extent) and velocity (rate) are deltas -> scale only, so 0 stays 0
+    def normalizeDelta(value: float, min: float, max: float) -> float:
+        if max - min == 0: return 0
+        return value / (max - min) * 2
 
     spacetimeMap.tbounds = [normalize(minT, minT, maxT), normalize(maxT, minT, maxT)]
     spacetimeMap.xbounds = [normalize(minX, minSpace, maxSpace), normalize(maxX, minSpace, maxSpace)]
@@ -617,10 +680,14 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
         e.spacetime.position[1] = normalize(e.spacetime.position[1], minSpace, maxSpace)
         e.spacetime.position[2] = normalize(e.spacetime.position[2], minSpace, maxSpace)
         e.spacetime.position[3] = normalize(e.spacetime.position[3], minSpace, maxSpace)
-        e.spacetime.size[0] = normalize(e.spacetime.size[0], minT, maxT)
-        e.spacetime.size[1] = normalize(e.spacetime.size[1], minSpace, maxSpace)
-        e.spacetime.size[2] = normalize(e.spacetime.size[2], minSpace, maxSpace)
-        e.spacetime.size[3] = normalize(e.spacetime.size[3], minSpace, maxSpace)
+        e.spacetime.size[0] = normalizeDelta(e.spacetime.size[0], minT, maxT)
+        e.spacetime.size[1] = normalizeDelta(e.spacetime.size[1], minSpace, maxSpace)
+        e.spacetime.size[2] = normalizeDelta(e.spacetime.size[2], minSpace, maxSpace)
+        e.spacetime.size[3] = normalizeDelta(e.spacetime.size[3], minSpace, maxSpace)
+        e.spacetime.velocity[0] = normalizeDelta(e.spacetime.velocity[0], minT, maxT)
+        e.spacetime.velocity[1] = normalizeDelta(e.spacetime.velocity[1], minSpace, maxSpace)
+        e.spacetime.velocity[2] = normalizeDelta(e.spacetime.velocity[2], minSpace, maxSpace)
+        e.spacetime.velocity[3] = normalizeDelta(e.spacetime.velocity[3], minSpace, maxSpace)
 
     return spacetimeMap
 
@@ -824,6 +891,7 @@ def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     # tkllc
     compiler_resolveEntities(tkStatements)
     statements: list[TKLLCItem] = compiler_resolveStatements(tkStatements)
+    compiler_spacetimeResolveTime(statements)
     map = compiler_spacetimeNormalize(statements)
     tkllc = TKLLC(map=map, items=statements, entities=[e.entity for e in _entities])
 
