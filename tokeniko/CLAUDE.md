@@ -102,3 +102,16 @@ The recursive models use forward references and **discriminated unions** (`Field
 - Versioned modules: older implementations are kept alongside (`compilerV1.py`, `markersV1/V2/V3.py`, `scripts/legacy scripts/`). The live "V2" compiler is now the `compiler/` package (was `compiler.py`); `parser.py` (internally "V2") is the live parser.
 - `lib/llc/` = the language-compilation pipeline; `lib/core/` = data models & IO; `lib/tkll/` = dictionary/token similarity search; `lib/tagger/` = tagging helpers.
 - `parser.py` monkey-patches `torch.load` (`weights_only=False`) to load Stanza models — keep that patch when touching parser imports.
+
+## Roadmap (where the team is heading)
+
+The current focus is the **evaluator / math phase** (`lib/llc/evaluator.py`, `lib/llc/operators.py`) — geometric comparison of compiled meaning. Done so far: `evaluator_compareContent` (per-role cosine), `evaluator_compareItem`/`evaluator_compareZip` (tree comparison with derived behavioral operator similarity and type-routed indirects via the marker gate).
+
+Next, in rough order (the lead is preparing a fuller plan covering the first two):
+
+1. **Vectorless entities** — `TKName` (and other non-`dictionary` payloads) carry no 2925-dim semantic vector, so distinct named entities are geometrically identical (e.g. `Mari` vs `Luca`, `Osaka` vs `Rome` when one lacks geo). The evaluator is only as discriminative as the vectors; needs a way to tell named entities apart (give names a vector, or a token-identity fallback for vectorless entities).
+2. **Compare a new statement against memory** — use the evaluator to find the most similar axiom/memory item to an incoming statement (the core "queryable, geometrically-comparable memory" goal).
+3. **Confirm the operator formulas** — the `[-1,1]` fuzzy definitions in `operators.py` (Gödel `IMPLY`, `EQ`, `NOT = -x`, …) are working defaults from the README; the operator similarity matrix recomputes once they're finalized.
+4. **Spacetime refinements still open** — directional operators in the evaluator (IMPLY/CONV currently order-independent / bag-matched), and the single-axis normalization display artifact.
+
+Keep this list current as items land or priorities shift.
