@@ -5,5 +5,20 @@ from api.services.axiom_service import (
     AxiomNotFoundError,
     InvalidAxiomIdError,
 )
+from api.services.definition_service import (
+    DefinitionService,
+    DefinitionNotFoundError,
+    InvalidDefinitionIdError,
+    NotASingleClauseError,
+)
+from api.services.theorem_service import (
+    TheoremService,
+    TheoremNotFoundError,
+    InvalidTheoremIdError,
+)
 
-__all__ = ["AxiomService", "AxiomNotFoundError", "InvalidAxiomIdError"]
+__all__ = [
+    "AxiomService", "AxiomNotFoundError", "InvalidAxiomIdError",
+    "DefinitionService", "DefinitionNotFoundError", "InvalidDefinitionIdError", "NotASingleClauseError",
+    "TheoremService", "TheoremNotFoundError", "InvalidTheoremIdError",
+]
