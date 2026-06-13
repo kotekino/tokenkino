@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMTheorem, MEMItem, MEMStakeholder
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder
 
 _VECTOR_INDEX = "vector_index"
 
@@ -67,6 +67,11 @@ class TKAxiomDoc(MEMAxiom, Document):
 class TKTheoremDoc(MEMTheorem, Document):
     class Settings:
         name = "theorems"
+
+# definitions: single-sentence semantic statements defining tokeniko's vocabulary/rules
+class TKDefinitionDoc(MEMDefinition, Document):
+    class Settings:
+        name = "definitions"
 
 # items of the conversations
 class TKMemoryItemDoc(MEMItem, Document):

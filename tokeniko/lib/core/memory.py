@@ -7,7 +7,7 @@ import time
 from typing import Optional
 from pydantic import BaseModel, Field
 from lib.core.tkllc import TKLLC
-from lib.core.tkzip import TKZip
+from lib.core.tkzip import TKZip, TKZipContent
 
 class MEMChannels(str, Enum):
     INTERNAL = "internal"
@@ -53,3 +53,19 @@ class MEMTheorem(MEMItem, MEMItemProperties):
     createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
     archivedAt: Optional[int] = None # timestamp of archiving (if archived, the theorem is not used for reasoning and deriving new knowledge)
     trusted: float = Field(default=0.9)
+
+# definition: a single-sentence, purely semantic statement defining tokeniko's vocabulary/rules
+# ("a thing is equal to itself"). no operators / relations -> its meaning is a single TKZipContent
+# (not a full TKZip). like axioms, definitions are trusted ground truths and need no demonstration.
+class MEMDefinition(MEMItemProperties):
+    original: str
+    content: Optional[TKZipContent] = None # the single semantic clause (one TKZipContent)
+    raw: Optional[str] = None # raw rendering (optional, for debugging)
+    sourceId: str # unique stakeholder objectId of the source (talker)
+    targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
+    channel: Optional[str] = None # channel of origin (e.g. "internal")
+    archived: bool = Field(default=False) # if archived, the definition is not used for reasoning
+    readonly: bool = Field(default=True) # if readonly, the definition cannot be archived
+    createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
+    archivedAt: Optional[int] = None # timestamp of archiving
+    trusted: float = Field(default=1)
