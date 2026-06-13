@@ -5,6 +5,7 @@
 # ------------------------------------------------------------------------------------------------
 import numpy as np
 
+from lib.core.tk import TKOperator
 from lib.core.tkllc import TKLLAttitude
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from .operators import operator_similarity
@@ -12,6 +13,17 @@ from .operators import operator_similarity
 # the marker (complement-type) segment of a role/indirect vector is the first 300 dims;
 # the rest (300:3237) is semantic + spacetime (the "who/what/where" content).
 _MARKER_SEGMENT = 300
+
+# directional operators: the implication family, where operand ORDER encodes the relation
+# ("A IMPLY B" != "B IMPLY A"). The operator sits on the consequent item, so its position in the
+# sibling list carries direction. Symmetric connectives (AND/OR/EQ/XOR/XNOR/NOTEQ, THAT) are
+# order-independent and stay bag-matched. Used to switch sibling-list comparison to order-aware.
+_DIRECTIONAL_OPERATORS = {
+    TKOperator.IMPLY,
+    TKOperator.CONV,
+    TKOperator.NOTIMPLY,
+    TKOperator.NOTCONV,
+}
 
 # how the per-role similarities combine into the content score. tunable: the relation (predicate)
 # and the agent (subject) carry the most meaning; sentiment/modality are minor. set a weight to 0
@@ -158,15 +170,37 @@ def _compare_payload(ca, cb) -> float:
         return 0.0
     return 2.0 * precision * recall / (precision + recall)
 
-# similarity of two (variable-length, order-independent) sibling lists. same soft bipartite
-# matching as indirects (BERTScore-style F1) but over full item similarities, so items are aligned
-# by combined operator + attitude + content. NB: bag-based, so argument order is not used yet -
-# directional operators (IMPLY/CONV) would need an order-aware variant.
+# does any item in a sibling list carry a directional operator (implication family)? if so the
+# list's operand ORDER is meaningful (the operator sits on the consequent) and the two lists must
+# be compared positionally, not as a bag.
+def _has_directional(items: list[TKZipItem]) -> bool:
+    return any(it.op in _DIRECTIONAL_OPERATORS for it in items)
+
+# ORDER-AWARE comparison of two sibling lists: align item i of A with item i of B (positional),
+# so "A IMPLY B" no longer matches "B IMPLY A" (the operator-bearing consequent lands in a
+# different slot). Extra items on either side are unmatched (scored 0), penalizing length
+# mismatch the same way the bag F1 does. Used only when a directional operator is present.
+def _compare_item_list_ordered(la: list[TKZipItem], lb: list[TKZipItem]) -> float:
+    n = max(len(la), len(lb))
+    if n == 0:
+        return 1.0
+    sims = [evaluator_compareItem(la[i], lb[i]) if i < len(la) and i < len(lb) else 0.0 for i in range(n)]
+    return sum(sims) / n
+
+# similarity of two (variable-length) sibling lists. When EITHER list carries a directional
+# operator (IMPLY/CONV/NOTIMPLY/NOTCONV), operand order encodes direction, so they are compared
+# positionally (_compare_item_list_ordered) — "A IMPLY B" then scores below "B IMPLY A".
+# Otherwise (purely symmetric connectives: AND/OR/EQ/...) order is irrelevant, so the lists are
+# bag-matched by soft bipartite F1 (BERTScore-style) over full item similarities, aligning items
+# by combined operator + attitude + content regardless of position.
 def _compare_item_list(la: list[TKZipItem], lb: list[TKZipItem]) -> float:
     if not la and not lb:
         return 1.0
     if not la or not lb:
         return 0.0
+
+    if _has_directional(la) or _has_directional(lb):
+        return _compare_item_list_ordered(la, lb)
 
     matrix = np.array([[evaluator_compareItem(ai, bj) for bj in lb] for ai in la], dtype=np.float32)
     recall = float(matrix.max(axis=1).mean())
