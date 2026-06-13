@@ -1,13 +1,13 @@
 # ------------------------------------------------------------------------------------------------
-# EVALUATOR
-# geometric comparison of compiled meaning. the first building block compares two TKZipContent
-# (one flat clause each) and returns a fuzzy similarity in [0, 1].
+# EVALUATOR — geometric comparison
+# compares compiled meaning: two TKZipContent (a clause) or two TKZipItem trees, returning a fuzzy
+# similarity in [0, 1] (cosine rescaled: opposite -> 0, orthogonal -> 0.5, identical -> 1).
 # ------------------------------------------------------------------------------------------------
 import numpy as np
 
 from lib.core.tkllc import TKLLAttitude
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
-from lib.llc.operators import operator_similarity
+from .operators import operator_similarity
 
 # the marker (complement-type) segment of a role/indirect vector is the first 300 dims;
 # the rest (300:3237) is semantic + spacetime (the "who/what/where" content).
