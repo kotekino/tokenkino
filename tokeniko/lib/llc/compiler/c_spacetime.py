@@ -234,9 +234,19 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
     minSpace = min(minX, minY, minZ)
     maxSpace = max(maxX, maxY, maxZ)
 
-    # position is an absolute coordinate -> map [min,max] onto [-1,1] (offset + scale)
-    def normalize(value: float, min: float, max: float) -> float:
-        if max - min == 0: return 0
+    # a space axis is DEGENERATE when its own raw coords never vary (e.g. a scene that only moves
+    # along x leaves y,z flat). Such an axis carries no position information, but normalizing its
+    # constant raw value against the shared [minSpace,maxSpace] frame would map it to -1 (a spurious
+    # "leftmost" reading, the @x,-1,-1 display artifact). Flag it so it normalizes to 0 (centered /
+    # absent) instead, while populated axes keep the shared isotropic frame untouched.
+    xDegenerate = maxX - minX == 0
+    yDegenerate = maxY - minY == 0
+    zDegenerate = maxZ - minZ == 0
+
+    # position is an absolute coordinate -> map [min,max] onto [-1,1] (offset + scale). a degenerate
+    # axis (no spatial variation) is centered at 0 rather than pinned to the shared-frame edge.
+    def normalize(value: float, min: float, max: float, degenerate: bool = False) -> float:
+        if degenerate or max - min == 0: return 0
         return (value - min) / (max - min) * 2 - 1
 
     # size (extent) and velocity (rate) are deltas -> scale only, so 0 stays 0
@@ -257,9 +267,9 @@ def compiler_spacetimeNormalize(statements: list[TKLLCItem]) -> TKLLSpacetimeMap
     # recalculate the spacetime of the entities in the map
     for e in references:
         e.spacetime.position[0] = normalize(e.spacetime.position[0], minT, maxT)
-        e.spacetime.position[1] = normalize(e.spacetime.position[1], minSpace, maxSpace)
-        e.spacetime.position[2] = normalize(e.spacetime.position[2], minSpace, maxSpace)
-        e.spacetime.position[3] = normalize(e.spacetime.position[3], minSpace, maxSpace)
+        e.spacetime.position[1] = normalize(e.spacetime.position[1], minSpace, maxSpace, xDegenerate)
+        e.spacetime.position[2] = normalize(e.spacetime.position[2], minSpace, maxSpace, yDegenerate)
+        e.spacetime.position[3] = normalize(e.spacetime.position[3], minSpace, maxSpace, zDegenerate)
         e.spacetime.size[0] = normalizeDelta(e.spacetime.size[0], minT, maxT)
         e.spacetime.size[1] = normalizeDelta(e.spacetime.size[1], minSpace, maxSpace)
         e.spacetime.size[2] = normalizeDelta(e.spacetime.size[2], minSpace, maxSpace)
