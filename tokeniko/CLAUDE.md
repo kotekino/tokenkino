@@ -127,7 +127,9 @@ indirects via the marker gate), `e_truth.py` (`evaluator_groundContent`: a claus
 `[0,1]` vs the definitions), `e_statement.py` (`evaluator_evaluateStatement`: ground clauses +
 geometrically match axioms/theorems → `EvaluatorResult`). The evaluator is DB-agnostic — the caller
 injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
-`lib/core/evaluation.py`.
+`lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most
+representative dictionary word to a statement — a noun-weighted semantic centroid of the role
+vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`.
 
 Next, in rough order:
 
@@ -145,7 +147,8 @@ Next, in rough order:
    `NOT = -x`, …) are working defaults from the README; the similarity matrix recomputes once final.
 4. **Wire evaluation into an endpoint** — compare a new statement against memory (find the most
    similar axiom/memory item) once the engine is ready.
-5. **Spacetime refinements still open** — directional operators in the evaluator (IMPLY/CONV
-   currently order-independent / bag-matched), and the single-axis normalization display artifact.
+5. ~~Spacetime refinements~~ — **done**: directional operators in the evaluator are now order-aware
+   (IMPLY/CONV/NOTIMPLY/NOTCONV compared positionally; symmetric ops stay bag-matched), and
+   degenerate (all-zero) space axes normalize to 0 (no more `@x,-1,-1` display artifact).
 
 Keep this list current as items land or priorities shift.
