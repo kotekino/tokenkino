@@ -20,6 +20,14 @@ from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc
 _SEMANTIC_START = 300
 _SEMANTIC_END = 3225  # 300 + 2925
 
+# NOUN-weighted blend: the topic/entities (subject, direct, indirects) drive the label, while the
+# predicate (verb) is strongly down-weighted so it only nudges. With an equal-weight average a
+# sentence like "the dog runs" leans toward the verb ("steeplechaser"); weighting the nouns high
+# (1.0 each) and the predicate low (0.25) makes it lean toward the noun ("dog") instead. The
+# predicate is not fully excluded so the action still influences ties.
+_WEIGHT_NOUN = 1.0
+_WEIGHT_PREDICATE = 0.25
+
 # the result of assigning a word: the nearest dictionary word + its vectorSearch score.
 class TKWordLabel(BaseModel):
     word: str
@@ -37,20 +45,25 @@ def _semantic_segment(vector: Optional[list[float]]) -> Optional[np.ndarray]:
         return None
     return seg
 
-# collect the semantic segments of every present role of one clause (subject/predicate/direct +
-# each indirect) into the accumulator.
-def _collectContent(content: TKZipContent, acc: list[np.ndarray]) -> None:
-    for role in (content.subject, content.predicate, content.direct):
-        seg = _semantic_segment(role)
-        if seg is not None:
-            acc.append(seg)
+# collect the semantic segments of every present role of one clause into the accumulator, each
+# tagged with its blend weight: noun roles (subject/direct/indirects) high, predicate low.
+def _collectContent(content: TKZipContent, acc: list[tuple[np.ndarray, float]]) -> None:
+    seg = _semantic_segment(content.subject)
+    if seg is not None:
+        acc.append((seg, _WEIGHT_NOUN))
+    seg = _semantic_segment(content.predicate)
+    if seg is not None:
+        acc.append((seg, _WEIGHT_PREDICATE))
+    seg = _semantic_segment(content.direct)
+    if seg is not None:
+        acc.append((seg, _WEIGHT_NOUN))
     for indirect in content.indirects:
         seg = _semantic_segment(indirect)
         if seg is not None:
-            acc.append(seg)
+            acc.append((seg, _WEIGHT_NOUN))
 
-# recursively walk the TKZipItem tree, collecting the semantic segments of every leaf clause.
-def _collectItem(item: TKZipItem, acc: list[np.ndarray]) -> None:
+# recursively walk the TKZipItem tree, collecting the weighted semantic segments of every leaf clause.
+def _collectItem(item: TKZipItem, acc: list[tuple[np.ndarray, float]]) -> None:
     content = item.content
     if isinstance(content, TKZipContent):
         _collectContent(content, acc)
@@ -89,16 +102,19 @@ def _nearestWord(centroid: np.ndarray) -> Optional[TKWordLabel]:
 # assign the single most representative dictionary word to a compiled statement.
 # blends the SEMANTIC segments [300:3225] of all present role vectors of every leaf clause into one
 # 2925-dim centroid (the statement's "meaning"), then returns the nearest dictionary word + score.
-# returns None if the statement has no semantic content or no nearest word is found.
+# the blend is NOUN-weighted (see _WEIGHT_NOUN / _WEIGHT_PREDICATE): topic/entities dominate, the
+# verb only nudges. returns None if the statement has no semantic content or no nearest word.
 def evaluator_assignWord(statement: TKZip) -> Optional[TKWordLabel]:
-    segments: list[np.ndarray] = []
+    segments: list[tuple[np.ndarray, float]] = []
     _collectItem(statement.items, segments)
 
     if not segments:
         return None
 
-    # average the non-zero role segments into one centroid
-    centroid = np.mean(np.stack(segments, axis=0), axis=0)
+    # weighted average of the non-zero role segments into one centroid
+    vectors = np.stack([seg for seg, _ in segments], axis=0)
+    weights = np.asarray([w for _, w in segments], dtype=np.float32)
+    centroid = np.average(vectors, axis=0, weights=weights)
     if not np.any(centroid):
         return None
 
