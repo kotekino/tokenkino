@@ -105,13 +105,47 @@ The recursive models use forward references and **discriminated unions** (`Field
 
 ## Roadmap (where the team is heading)
 
-The current focus is the **evaluator / math phase** (`lib/llc/evaluator.py`, `lib/llc/operators.py`) — geometric comparison of compiled meaning. Done so far: `evaluator_compareContent` (per-role cosine), `evaluator_compareItem`/`evaluator_compareZip` (tree comparison with derived behavioral operator similarity and type-routed indirects via the marker gate).
+**Memory model — three epistemic tiers** (see `memory.py` / `models.py`):
+- **definitions** (`MEMDefinition` → `definitions` collection) — single-sentence, purely *semantic*
+  statements defining tokeniko's vocabulary/rules ("a thing is equal to itself"). No operators; a
+  definition's meaning is a single `TKZipContent`. Trusted ground truths, no demonstration.
+- **axioms** (`TKZip`) — relations between definitions/vocabulary via operators ("I think because I
+  am"). Trusted, no demonstration. *(NB: the current `axioms` collection predates this model and is
+  "wrong" — a cleanup is parked until after the evaluator coding.)*
+- **theorems** (`TKZip`) — knowledge demonstrated from definitions + axioms + the hardwired operator
+  math.
+- **memory** — the time-series log of inputs/outputs.
 
-Next, in rough order (the lead is preparing a fuller plan covering the first two):
+All three resources (axioms/definitions/theorems) are full REST resources backed by a `*Service`
+in `api/services/`; request/response models + domain-error→HTTP mapping live in `api/schemas.py`
+(`main.py` is just lifespan + endpoints).
 
-1. **Vectorless entities** — `TKName` (and other non-`dictionary` payloads) carry no 2925-dim semantic vector, so distinct named entities are geometrically identical (e.g. `Mari` vs `Luca`, `Osaka` vs `Rome` when one lacks geo). The evaluator is only as discriminative as the vectors; needs a way to tell named entities apart (give names a vector, or a token-identity fallback for vectorless entities).
-2. **Compare a new statement against memory** — use the evaluator to find the most similar axiom/memory item to an incoming statement (the core "queryable, geometrically-comparable memory" goal).
-3. **Confirm the operator formulas** — the `[-1,1]` fuzzy definitions in `operators.py` (Gödel `IMPLY`, `EQ`, `NOT = -x`, …) are working defaults from the README; the operator similarity matrix recomputes once they're finalized.
-4. **Spacetime refinements still open** — directional operators in the evaluator (IMPLY/CONV currently order-independent / bag-matched), and the single-axis normalization display artifact.
+**Evaluator / math phase** — the `lib/llc/evaluator/` package: `operators.py` (fuzzy operator
+truth functions + behavioral operator similarity), `e_compare.py` (geometric comparison:
+`evaluator_compareContent` / `evaluator_compareItem` / `evaluator_compareZip`, type-routed
+indirects via the marker gate), `e_truth.py` (`evaluator_groundContent`: a clause's truth in
+`[0,1]` vs the definitions), `e_statement.py` (`evaluator_evaluateStatement`: ground clauses +
+geometrically match axioms/theorems → `EvaluatorResult`). The evaluator is DB-agnostic — the caller
+injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
+`lib/core/evaluation.py`.
+
+Next, in rough order:
+
+1. **Reasoning engine — the `INCONSISTENT` path (deferred, scaffolded).** Grow
+   `e_statement.evaluator_evaluateStatement` from the geometric skeleton (RESOLVED/INSUFFICIENT)
+   into the full structured evaluation: apply the operator math in `operators.py` to detect
+   logic-rule violations (e.g. `(A eq B) IMPLY (B noteq A)`), produce `EvaluatorResult.inconsistency`
+   (+ where), and track the missing "variables".
+2. **Vectorless entities / antonym representation.** `TKName` and other non-`dictionary` payloads
+   carry no 2925-dim semantic vector, so distinct named entities are geometrically identical (Mari
+   vs Luca). Related: antonyms aren't opposite vectors — truth-grounding "a thing is *different*
+   from itself" reads ~0.79, not a contradiction. The evaluator is only as discriminative as the
+   vectors.
+3. **Confirm the operator formulas** — the `[-1,1]` defs in `operators.py` (Gödel `IMPLY`, `EQ`,
+   `NOT = -x`, …) are working defaults from the README; the similarity matrix recomputes once final.
+4. **Wire evaluation into an endpoint** — compare a new statement against memory (find the most
+   similar axiom/memory item) once the engine is ready.
+5. **Spacetime refinements still open** — directional operators in the evaluator (IMPLY/CONV
+   currently order-independent / bag-matched), and the single-axis normalization display artifact.
 
 Keep this list current as items land or priorities shift.
