@@ -38,7 +38,7 @@ Config is read from `.env` via `python-dotenv`. `HF_HUB_OFFLINE` / `TRANSFORMERS
 
 ## Architecture: the compilation pipeline
 
-A sentence flows through a multi-stage pipeline. The two main API entry points (`api/main.py`) — `/api/v1/tkllc` and the axiom/theorem endpoints — chain these stages:
+A sentence flows through a multi-stage pipeline. The main API entry points (`api/main.py`) — `/api/v1/input`, the axiom/definition/theorem resources, and `/api/v1/evaluate` — chain these stages:
 
 1. **Preparser** (`lib/llc/preparser.py`, optional, `prepare=1`): typo correction (SymSpell), language detection (lingua), and translation to English (MarianMT via `lib/llc/translator.py`) before parsing. LLM-assisted via Ollama.
 2. **Parser** (`lib/llc/parser.py`): `parser()` is the entry point. Uses spaCy+Stanza to dependency-parse, then builds a **recursive AST of `TKStatement` objects** (`TKStatements = list[TKStatement]`). Resolves word meanings against the MongoDB dictionary, attaches markers/operators, and produces the nested grammatical structure (subject / predicate / direct / indirects, with conjuncts, subordinates, and properties).
@@ -59,7 +59,7 @@ Changing a dimension means updating the constraints in `lib/core/tk.py`, `tkllc.
 
 ## API layer (`api/`)
 
-`api/main.py` defines the FastAPI app — only the lifespan and the thin endpoint handlers. Each handler delegates to a `*Service` and wraps the result in `{"status": "complete", "data": ...}` (and `{"status": "failed", "data": repr(error)}` on a write error). Business logic (sentence compilation + Mongo CRUD) lives in `api/services/` (one `*_service.py` per resource: `axiom_service.py`, `definition_service.py`, `theorem_service.py`, `stakeholder_service.py`, `memory_service.py`), re-exported from `api/services/__init__.py` so callers can `from api.services import AxiomService`. Request/response (in/out) Pydantic models and the domain-error→HTTP mapping (`_or_http` + per-resource `*_or_http` helpers) live in `api/schemas.py`. Each service is built once in the lifespan (e.g. `app.state.axiom_service = AxiomService(tokeniko, ai_client)`, `app.state.stakeholder_service = StakeholderService()`, `app.state.memory_service = MemoryService()`) and reused per request; services are framework-agnostic (no FastAPI imports).
+`api/main.py` defines the FastAPI app — only the lifespan and the thin endpoint handlers. Each handler delegates to a `*Service` and wraps the result in `{"status": "complete", "data": ...}` (and `{"status": "failed", "data": repr(error)}` on a write error). Business logic (sentence compilation + Mongo CRUD) lives in `api/services/` (one `*_service.py` per resource: `axiom_service.py`, `definition_service.py`, `theorem_service.py`, `stakeholder_service.py`, `memory_service.py`, `evaluation_service.py`), re-exported from `api/services/__init__.py` so callers can `from api.services import AxiomService`. Request/response (in/out) Pydantic models and the domain-error→HTTP mapping (`_or_http` + per-resource `*_or_http` helpers) live in `api/schemas.py`. Each service is built once in the lifespan (e.g. `app.state.axiom_service = AxiomService(tokeniko, ai_client)`, `app.state.stakeholder_service = StakeholderService()`, `app.state.memory_service = MemoryService()`) and reused per request; services are framework-agnostic (no FastAPI imports).
 
 Routes (all under `/api/v1`):
 
