@@ -83,6 +83,7 @@ Routes (all under `/api/v1`):
   - `GET /memory/{id}` — single (full document)
   - `POST /memory` — append a log entry (`original`, `sourceId`, optional `targetId`/`channel`/`metadata`)
 - Domain errors map to HTTP in `main.py` via the `*_or_http` helpers: invalid-id → 400, not-found → 404.
+- **Evaluate — action, not a resource** (`EvaluationService`): `POST /evaluate` (`{"tokens": "..."}`) — compile a sentence and evaluate its truth against tokeniko's knowledge. Grounds each flat clause against the definitions, **folds the clause truths through the operator tree** (fuzzy `[0,1]`, via `operator_truth`), and geometrically matches the whole statement against the active axioms/theorems. Returns an `EvaluatorResult` (`truth`, `status` = resolved/insufficient/inconsistent, `groundings`, `missing`, `relationMatch`, `matchedKind`/`matchedIndex`) plus the resolved `matchedId`/`matchedOriginal`. **Pure — stores nothing.** Loads only active knowledge (`archived=False`; NB theorems default `archived=True`, so the theorem pool is empty until one is promoted).
 - **Utils** (debugging; may be removed later): `GET /utils/dict?token=` (similar-token dictionary lookup), `GET /utils/markers?token=` (base-marker lookup), `GET /utils/polish?tokens=` (typo correction), `GET /utils/prepare?tokens=` (full preparse), `GET /utils/translate?tokens=` (translation), `GET /utils/render?tokens=` (HTML dependency diagram).
 - **Compiler**: `GET /input?tokens=&output=&prepare=&talker=` — run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item. `GET /output?tokens=` — polish a raw LLC string into natural language.
 
@@ -129,32 +130,40 @@ in `api/services/`; request/response models + domain-error→HTTP mapping live i
 (`main.py` is just lifespan + endpoints).
 
 **Evaluator / math phase** — the `lib/llc/evaluator/` package: `operators.py` (fuzzy operator
-truth functions + behavioral operator similarity), `e_compare.py` (geometric comparison:
-`evaluator_compareContent` / `evaluator_compareItem` / `evaluator_compareZip`, type-routed
-indirects via the marker gate), `e_truth.py` (`evaluator_groundContent`: a clause's truth in
-`[0,1]` vs the definitions), `e_statement.py` (`evaluator_evaluateStatement`: ground clauses +
-geometrically match axioms/theorems → `EvaluatorResult`). The evaluator is DB-agnostic — the caller
-injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
+truth functions on **`[0,1]`** + `operator_truth(op, a, b)` to combine clause truths + behavioral
+operator similarity), `e_compare.py` (geometric comparison: `evaluator_compareContent` /
+`evaluator_compareItem` / `evaluator_compareZip`, type-routed indirects via the marker gate),
+`e_truth.py` (`evaluator_groundContent`: a clause's truth in `[0,1]` vs the definitions),
+`e_statement.py` (`evaluator_evaluateStatement`: ground each clause, then **fold the clause truths
+through the operator tree** with `operator_truth` — `A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`
+— and geometrically match axioms/theorems → `EvaluatorResult`). The evaluator is DB-agnostic — the
+caller injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
 `lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most
 representative dictionary word to a statement — a noun-weighted semantic centroid of the role
-vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`.
+vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`. The HTTP entry point is
+`EvaluationService` (`api/services/evaluation_service.py`) behind `POST /api/v1/evaluate` — the
+DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id.
 
 Next, in rough order:
 
-1. **Reasoning engine — the `INCONSISTENT` path (deferred, scaffolded).** Grow
-   `e_statement.evaluator_evaluateStatement` from the geometric skeleton (RESOLVED/INSUFFICIENT)
-   into the full structured evaluation: apply the operator math in `operators.py` to detect
-   logic-rule violations (e.g. `(A eq B) IMPLY (B noteq A)`), produce `EvaluatorResult.inconsistency`
-   (+ where), and track the missing "variables".
+1. **Reasoning engine — the `INCONSISTENT` path (deferred, scaffolded).** The truth-folding slice
+   has **landed**: `e_statement.evaluator_evaluateStatement` now folds the grounded clause truths
+   through the input's operator tree (`operator_truth`) to produce the RESOLVED truth. Still to do:
+   grow it to detect logic-rule violations (e.g. `(A eq B) IMPLY (B noteq A)`), produce
+   `EvaluatorResult.inconsistency` (+ where), and track the missing "variables".
 2. **Vectorless entities / antonym representation.** `TKName` and other non-`dictionary` payloads
    carry no 2925-dim semantic vector, so distinct named entities are geometrically identical (Mari
    vs Luca). Related: antonyms aren't opposite vectors — truth-grounding "a thing is *different*
    from itself" reads ~0.79, not a contradiction. The evaluator is only as discriminative as the
    vectors.
-3. **Confirm the operator formulas** — the `[-1,1]` defs in `operators.py` (Gödel `IMPLY`, `EQ`,
-   `NOT = -x`, …) are working defaults from the README; the similarity matrix recomputes once final.
-4. **Wire evaluation into an endpoint** — compare a new statement against memory (find the most
-   similar axiom/memory item) once the engine is ready.
+3. ~~Confirm the operator formulas~~ — **done**: the operators in `operators.py` are now defined on
+   fuzzy **`[0,1]`** per the confirmed table (AND=min, OR=max, NOT=1−a, fuzzy XOR/XNOR, Gödel
+   `IMPLY`/`CONV`, `EQ=min(imply,conv)`); `operator_truth` applies them to clause truths and the
+   behavioral similarity matrix is recomputed on the `[0,1]²` grid.
+4. ~~Wire evaluation into an endpoint~~ — **done**: `POST /api/v1/evaluate` (`EvaluationService`)
+   compiles a sentence, evaluates it against the active definitions/axioms/theorems, and returns the
+   `EvaluatorResult` + the most similar axiom/theorem (id + score). Still open: include the nearest
+   *memory item* in the match, and surface the `INCONSISTENT` verdict once #1 lands.
 5. ~~Spacetime refinements~~ — **done**: directional operators in the evaluator are now order-aware
    (IMPLY/CONV/NOTIMPLY/NOTCONV compared positionally; symmetric ops stay bag-matched), and
    degenerate (all-zero) space axes normalize to 0 (no more `@x,-1,-1` display artifact).

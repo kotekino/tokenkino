@@ -15,11 +15,12 @@ from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
 from lib.llc.compiler import compiler_compile, compiler_zipGetBaseMarker
 from lib.core.tkzip import TKZip
-from api.services import AxiomService, DefinitionService, TheoremService, StakeholderService, MemoryService
+from api.services import AxiomService, DefinitionService, TheoremService, StakeholderService, MemoryService, EvaluationService
 from api.schemas import (
     AxiomIn, AxiomPatch, AxiomReplace, AxiomSummary, axiom_or_http,
     DefinitionIn, DefinitionPatch, DefinitionReplace, DefinitionSummary, definition_or_http,
     TheoremIn, TheoremPatch, TheoremReplace, TheoremSummary, theorem_or_http,
+    EvaluateIn,
     StakeholderSummary, stakeholder_or_http,
     MemoryIn, MemorySummary, memory_or_http,
 )
@@ -51,6 +52,7 @@ async def lifespan(app: FastAPI):
     app.state.theorem_service = TheoremService(tokeniko, ai_client)
     app.state.stakeholder_service = StakeholderService()
     app.state.memory_service = MemoryService()
+    app.state.evaluation_service = EvaluationService(tokeniko, ai_client)
 
     # init preparser
     parser_init()
@@ -284,6 +286,18 @@ async def create_memory(payload: MemoryIn):
             metadata=payload.metadata,
         )
         return {"status": "complete", "data": item}
+    except Exception as error:
+        return {"status": "failed", "data": repr(error)}
+
+# ---------------------------------
+# EVALUATE action (/api/v1/evaluate) — compile a sentence and evaluate its truth against tokeniko's
+# knowledge (definitions + axioms + theorems). Pure: stores nothing.
+# ---------------------------------
+@app.post("/api/v1/evaluate")
+async def evaluate(payload: EvaluateIn):
+    try:
+        result = app.state.evaluation_service.evaluate(payload.tokens)
+        return {"status": "complete", "data": result}
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 

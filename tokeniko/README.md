@@ -122,6 +122,21 @@ plain log append (no compilation).
 | `GET` | `/api/v1/memory/{id}` | fetch a single memory item (full document) |
 | `POST` | `/api/v1/memory` | append a log entry (`original`, `sourceId`, optional `targetId`/`channel`/`metadata`) |
 
+### Evaluate — truth evaluation (action; stores nothing)
+
+Compile a sentence and evaluate its truth against tokeniko's knowledge: each flat clause is grounded
+against the **definitions** (a fuzzy `[0,1]` truth), those clause truths are **folded through the
+operator tree** (`IMPLY`/`AND`/… applied on the truths, not the vectors), and the whole statement is
+geometrically matched against the active **axioms/theorems**.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/evaluate` | `{"tokens":"..."}` → `EvaluatorResult` (`truth`, `status`, `groundings`, `missing`, `relationMatch`, `matchedKind`/`matchedIndex`) + the resolved `matchedId`/`matchedOriginal` of the closest known statement |
+
+`status` is `resolved` (grounded + a known relation matches → `truth` is the folded value),
+`insufficient_knowledge` (an ungrounded clause or no matching relation → `truth` 0.5), or
+`inconsistent` (reserved for the logic-rule engine, not yet produced).
+
 ### Utils (debugging; may be removed later)
 
 | Method | Path | Purpose |

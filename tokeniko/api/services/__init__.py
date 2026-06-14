@@ -26,6 +26,9 @@ from api.services.memory_service import (
     MemoryNotFoundError,
     InvalidMemoryIdError,
 )
+from api.services.evaluation_service import (
+    EvaluationService,
+)
 
 __all__ = [
     "AxiomService", "AxiomNotFoundError", "InvalidAxiomIdError",
@@ -33,4 +36,5 @@ __all__ = [
     "TheoremService", "TheoremNotFoundError", "InvalidTheoremIdError",
     "StakeholderService", "StakeholderNotFoundError", "InvalidStakeholderIdError",
     "MemoryService", "MemoryNotFoundError", "InvalidMemoryIdError",
+    "EvaluationService",
 ]
