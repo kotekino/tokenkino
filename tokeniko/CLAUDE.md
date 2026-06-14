@@ -59,24 +59,32 @@ Changing a dimension means updating the constraints in `lib/core/tk.py`, `tkllc.
 
 ## API layer (`api/`)
 
-`api/main.py` defines the FastAPI app — routing plus the request/response Pydantic models — and is kept thin. Business logic (sentence compilation + Mongo CRUD) lives in `api/services/`: `axiom_service.py` holds `AxiomService`, and `api/services/__init__.py` re-exports `AxiomService`, `AxiomNotFoundError`, `InvalidAxiomIdError` so callers can `from api.services import AxiomService`. The service is built once in the lifespan (`app.state.axiom_service = AxiomService(tokeniko, ai_client)`) and reused per request; it is framework-agnostic (no FastAPI imports).
+`api/main.py` defines the FastAPI app — only the lifespan and the thin endpoint handlers. Each handler delegates to a `*Service` and wraps the result in `{"status": "complete", "data": ...}` (and `{"status": "failed", "data": repr(error)}` on a write error). Business logic (sentence compilation + Mongo CRUD) lives in `api/services/` (one `*_service.py` per resource: `axiom_service.py`, `definition_service.py`, `theorem_service.py`, `stakeholder_service.py`, `memory_service.py`), re-exported from `api/services/__init__.py` so callers can `from api.services import AxiomService`. Request/response (in/out) Pydantic models and the domain-error→HTTP mapping (`_or_http` + per-resource `*_or_http` helpers) live in `api/schemas.py`. Each service is built once in the lifespan (e.g. `app.state.axiom_service = AxiomService(tokeniko, ai_client)`, `app.state.stakeholder_service = StakeholderService()`, `app.state.memory_service = MemoryService()`) and reused per request; services are framework-agnostic (no FastAPI imports).
 
 Routes (all under `/api/v1`):
 
-- **Axioms — full REST resource** (delegates to `AxiomService`):
+- **Axioms — full REST resource** (`AxiomService`):
   - `POST /axioms` — compile a sentence (`{"tokens": "..."}`) and store it as an axiom
   - `GET /axioms` — list (summary projection, no `zip`; optional `?archived=` filter)
   - `GET /axioms/{id}` — single (full document, `zip` included)
   - `PATCH /axioms/{id}` — partial update (recompiles if `tokens` is supplied)
   - `PUT /axioms/{id}` — replacement update (recompile + reset flags)
   - `DELETE /axioms/{id}` — delete
-  - Domain errors map to HTTP in `main.py`: `InvalidAxiomIdError` -> 400, `AxiomNotFoundError` -> 404.
-- `GET /theorem?tokens=` — compile + store a theorem (still a single GET, not yet a REST resource).
-- `GET /tkllc?tokens=&output=&prepare=&talker=` — run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item.
-- `GET /render?tokens=` — HTML dependency diagram of the parse.
-- `GET /dict?token=`, `GET /markers?token=` — dictionary / base-marker lookups.
-- `GET /pre/polish|prepare|translate?tokens=` — individual preparser stages.
-- `GET /out?tokens=` — polish a raw LLC string into natural language.
+- **Definitions — full REST resource** (`DefinitionService`): same shape as axioms, but each definition is a single-clause semantic statement (`TKZipContent`, not a full `TKZip`); a non-single-clause input raises `NotASingleClauseError`.
+  - `POST /definitions`, `GET /definitions` (summary, optional `?archived=`), `GET /definitions/{id}`, `PATCH /definitions/{id}`, `PUT /definitions/{id}`, `DELETE /definitions/{id}`
+- **Theorems — full REST resource** (`TheoremService`): derived knowledge (full `TKZip`); no `readonly` flag.
+  - `POST /theorems`, `GET /theorems` (summary, optional `?archived=`), `GET /theorems/{id}`, `PATCH /theorems/{id}`, `PUT /theorems/{id}`, `DELETE /theorems/{id}`
+- **Stakeholders — list/get only** (`StakeholderService`, read-only):
+  - `GET /stakeholders` — list (summary projection)
+  - `GET /stakeholders/{id}` — single (full document)
+- **Memory — list/get/search/insert, NO update** (`MemoryService`). The `memory` collection is a Mongo **timeseries**, which forbids in-place updates — hence no PATCH/PUT/DELETE; insert is a plain log append (no compilation).
+  - `GET /memory` — recent items, newest first (summary projection, no `zip`); optional `?limit=` (default 100)
+  - `GET /memory/search` — filter the log (declared before `/memory/{id}` so `search` isn't read as an id): `?from=&to=` (epoch **seconds**, converted to UTC datetimes on `timestamp`; `from` is aliased, the keyword), `?source=` (`sourceId`), `?target=` (`targetId`), `?channel=`, `?limit=` — only the supplied filters apply; newest first
+  - `GET /memory/{id}` — single (full document)
+  - `POST /memory` — append a log entry (`original`, `sourceId`, optional `targetId`/`channel`/`metadata`)
+- Domain errors map to HTTP in `main.py` via the `*_or_http` helpers: invalid-id → 400, not-found → 404.
+- **Utils** (debugging; may be removed later): `GET /utils/dict?token=` (similar-token dictionary lookup), `GET /utils/markers?token=` (base-marker lookup), `GET /utils/polish?tokens=` (typo correction), `GET /utils/prepare?tokens=` (full preparse), `GET /utils/translate?tokens=` (translation), `GET /utils/render?tokens=` (HTML dependency diagram).
+- **Compiler**: `GET /input?tokens=&output=&prepare=&talker=` — run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item. `GET /output?tokens=` — polish a raw LLC string into natural language.
 
 Bunnet gotcha (bit us here): `Document.get(id)` and `find_one(...)` return *query* objects — call `.run()` to execute (`.to_list()` for `find(...)`). `AxiomService._resolve` does `TKAxiomDoc.get(oid).run()`; forgetting `.run()` yields a query object that is never `None` and has no `.save()`/`.delete()`.
 

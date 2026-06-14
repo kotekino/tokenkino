@@ -56,7 +56,14 @@ is why first/second-person pronouns ("I", "you") resolve to *tokeniko*.
 
 Run the server with `task api` (FastAPI on port `8000`). All routes are under `/api/v1`.
 
+The route handlers in `api/main.py` are thin controllers: each delegates to a `*Service`
+in `api/services/` (compilation + Mongo CRUD) and wraps the result in
+`{"status": "complete"/"failed", "data": ...}`. Request/response models and the
+domain-error→HTTP mapping live in `api/schemas.py`.
+
 ### Axioms — REST resource
+
+Trusted ground truths (full `TKZip`).
 
 | Method | Path | Purpose |
 |---|---|---|
@@ -67,22 +74,71 @@ Run the server with `task api` (FastAPI on port `8000`). All routes are under `/
 | `PUT` | `/api/v1/axioms/{id}` | replacement update (recompile from `tokens` + reset flags) |
 | `DELETE` | `/api/v1/axioms/{id}` | delete an axiom |
 
-The business logic (compilation + Mongo CRUD) lives in `api/services.py` (`AxiomService`);
-the route handlers in `api/main.py` are thin controllers.
+### Definitions — REST resource
 
-### Other endpoints
+Single-clause semantic statements (`TKZipContent`, not a full `TKZip`). Same shape as axioms.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/v1/theorem?tokens=` | compile a sentence and store it as a theorem |
-| `GET` | `/api/v1/tkllc?tokens=&output=&prepare=&talker=` | run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item |
-| `GET` | `/api/v1/render?tokens=&prepare=` | HTML dependency diagram of the parse |
-| `GET` | `/api/v1/dict?token=` | look up similar tokens in the dictionary |
-| `GET` | `/api/v1/markers?token=` | base marker vector for a token |
-| `GET` | `/api/v1/pre/polish?tokens=` | typo correction only |
-| `GET` | `/api/v1/pre/prepare?tokens=` | full preparse (typos + language detection + translation) |
-| `GET` | `/api/v1/pre/translate?tokens=` | translate to English |
-| `GET` | `/api/v1/out?tokens=` | polish a raw LLC string into natural language |
+| `POST` | `/api/v1/definitions` | compile a single-clause sentence and store it as a definition |
+| `GET` | `/api/v1/definitions` | list definitions (summary view, no `content`; `?archived=` filter) |
+| `GET` | `/api/v1/definitions/{id}` | fetch a single definition (full document, including `content`) |
+| `PATCH` | `/api/v1/definitions/{id}` | partial update (recompiles if `tokens` is supplied) |
+| `PUT` | `/api/v1/definitions/{id}` | replacement update (recompile + reset flags) |
+| `DELETE` | `/api/v1/definitions/{id}` | delete a definition |
+
+### Theorems — REST resource
+
+Derived knowledge (full `TKZip`); no `readonly` flag.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/theorems` | compile a sentence and store it as a theorem |
+| `GET` | `/api/v1/theorems` | list theorems (summary view, no `zip`; `?archived=` filter) |
+| `GET` | `/api/v1/theorems/{id}` | fetch a single theorem (full document, including `zip`) |
+| `PATCH` | `/api/v1/theorems/{id}` | partial update (recompiles if `tokens` is supplied) |
+| `PUT` | `/api/v1/theorems/{id}` | replacement update (recompile + reset flags) |
+| `DELETE` | `/api/v1/theorems/{id}` | delete a theorem |
+
+### Stakeholders — list / get (read-only)
+
+The known talking entities.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/stakeholders` | list stakeholders (summary view) |
+| `GET` | `/api/v1/stakeholders/{id}` | fetch a single stakeholder (full document) |
+
+### Memory — list / get / search / insert (no update)
+
+The time-series log of conversation inputs/outputs. The `memory` collection is a Mongo
+**timeseries**, which forbids in-place updates — so there is no PATCH/PUT/DELETE; insert is a
+plain log append (no compilation).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/memory` | recent items, newest first (summary view, no `zip`); `?limit=` (default 100) |
+| `GET` | `/api/v1/memory/search` | filter the log: `?from=&to=` (epoch **seconds** → UTC on `timestamp`; `from` is aliased), `?source=`/`?target=`/`?channel=`, `?limit=` |
+| `GET` | `/api/v1/memory/{id}` | fetch a single memory item (full document) |
+| `POST` | `/api/v1/memory` | append a log entry (`original`, `sourceId`, optional `targetId`/`channel`/`metadata`) |
+
+### Utils (debugging; may be removed later)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/utils/dict?token=` | look up similar tokens in the dictionary |
+| `GET` | `/api/v1/utils/markers?token=` | base marker vector for a token |
+| `GET` | `/api/v1/utils/polish?tokens=` | typo correction only |
+| `GET` | `/api/v1/utils/prepare?tokens=` | full preparse (typos + language detection + translation) |
+| `GET` | `/api/v1/utils/translate?tokens=` | translate to English |
+| `GET` | `/api/v1/utils/render?tokens=&prepare=` | HTML dependency diagram of the parse |
+
+### Compiler
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/input?tokens=&output=&prepare=&talker=` | run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item |
+| `GET` | `/api/v1/output?tokens=` | polish a raw LLC string into natural language |
 
 ## Running locally
 

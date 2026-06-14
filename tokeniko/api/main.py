@@ -15,11 +15,13 @@ from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels
 from lib.llc.compiler import compiler_compile, compiler_zipGetBaseMarker
 from lib.core.tkzip import TKZip
-from api.services import AxiomService, DefinitionService, TheoremService
+from api.services import AxiomService, DefinitionService, TheoremService, StakeholderService, MemoryService
 from api.schemas import (
     AxiomIn, AxiomPatch, AxiomReplace, AxiomSummary, axiom_or_http,
     DefinitionIn, DefinitionPatch, DefinitionReplace, DefinitionSummary, definition_or_http,
     TheoremIn, TheoremPatch, TheoremReplace, TheoremSummary, theorem_or_http,
+    StakeholderSummary, stakeholder_or_http,
+    MemoryIn, MemorySummary, memory_or_http,
 )
 
 # env load (MONGO_URI, ecc.)
@@ -47,6 +49,8 @@ async def lifespan(app: FastAPI):
     app.state.axiom_service = AxiomService(tokeniko, ai_client)
     app.state.definition_service = DefinitionService(tokeniko, ai_client)
     app.state.theorem_service = TheoremService(tokeniko, ai_client)
+    app.state.stakeholder_service = StakeholderService()
+    app.state.memory_service = MemoryService()
 
     # init preparser
     parser_init()
@@ -221,10 +225,108 @@ async def delete_theorem(object_id: str):
     theorem_or_http(lambda: app.state.theorem_service.delete(object_id))
     return {"status": "complete", "data": {"deleted": object_id}}
 
+# ---------------------------------
+# STAKEHOLDERS resource (/api/v1/stakeholders) (LIST, GET) — read-only
+# ---------------------------------
+# list stakeholders (summary view)
+@app.get("/api/v1/stakeholders")
+async def list_stakeholders():
+    stakeholders = app.state.stakeholder_service.list(projection=StakeholderSummary)
+    return {"status": "complete", "data": stakeholders}
+
+# get a single stakeholder (full document)
+@app.get("/api/v1/stakeholders/{object_id}")
+async def get_stakeholder_resource(object_id: str):
+    stakeholder = stakeholder_or_http(lambda: app.state.stakeholder_service.get(object_id))
+    return {"status": "complete", "data": stakeholder}
+
+# ---------------------------------
+# MEMORY resource (/api/v1/memory) (CREATE, LIST, GET, SEARCH) — timeseries log, no update
+# ---------------------------------
+# list recent memory items (summary view, no zip); optional limit
+@app.get("/api/v1/memory")
+async def list_memory(limit: int = 100):
+    items = app.state.memory_service.list(projection=MemorySummary, limit=limit)
+    return {"status": "complete", "data": items}
+
+# search the memory log by timeframe / source / target / channel.
+# NOTE: declared BEFORE /memory/{object_id} so "search" isn't captured as an id.
+# `from`/`to` are epoch SECONDS (int); `from` is aliased since it is a Python keyword.
+@app.get("/api/v1/memory/search")
+async def search_memory(
+    frm: Optional[int] = Query(None, alias="from"),
+    to: Optional[int] = None,
+    source: Optional[str] = None,
+    target: Optional[str] = None,
+    channel: Optional[str] = None,
+    limit: int = 100,
+):
+    items = app.state.memory_service.search(
+        frm=frm, to=to, source=source, target=target, channel=channel, limit=limit
+    )
+    return {"status": "complete", "data": items}
+
+# get a single memory item (full document)
+@app.get("/api/v1/memory/{object_id}")
+async def get_memory(object_id: str):
+    item = memory_or_http(lambda: app.state.memory_service.get(object_id))
+    return {"status": "complete", "data": item}
+
+# append a new memory item (plain log entry; no compilation)
+@app.post("/api/v1/memory")
+async def create_memory(payload: MemoryIn):
+    try:
+        item = app.state.memory_service.create(
+            original=payload.original,
+            sourceId=payload.sourceId,
+            targetId=payload.targetId,
+            channel=payload.channel,
+            metadata=payload.metadata,
+        )
+        return {"status": "complete", "data": item}
+    except Exception as error:
+        return {"status": "failed", "data": repr(error)}
+
 # ------------------------
-# TKLLC endpoints
+# UTILS endpoints (debugging; may be removed later)
 # ------------------------
-@app.get("/api/v1/tkllc")
+@app.get("/api/v1/utils/dict")
+async def search(token: str, prepare: int = 0):
+    preparsedTokens = await preparser_prepare(token) if prepare == 1 else token
+    doc = tkll_searchSimilarTokens(preparsedTokens)
+
+    return doc
+
+@app.get("/api/v1/utils/markers")
+async def search(token: str):
+    result = compiler_zipGetBaseMarker(token)
+    return result
+
+@app.get("/api/v1/utils/polish")
+async def polish(tokens: str):
+    res = await preparser_typos(tokens)
+    return res
+
+@app.get("/api/v1/utils/prepare")
+async def prepare(tokens: str):
+    res = await preparser_prepare(tokens)
+    return res
+
+@app.get("/api/v1/utils/translate")
+async def prepare(tokens: str):
+    res = await preparser_translate(tokens)
+    return res
+
+@app.get("/api/v1/utils/render", response_class=HTMLResponse)
+async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
+    preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
+    res = parser_diagram(preparsedTokens)
+    return res
+
+# ------------------------
+# COMPILER endpoints
+# ------------------------
+@app.get("/api/v1/input")
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
     try:
         # get talker entity from memory, or create it if not exists
@@ -264,49 +366,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         status = "failed"
     return {"status": status, "data": res}
 
-@app.get("/api/v1/render", response_class=HTMLResponse)
-async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
-    preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
-    res = parser_diagram(preparsedTokens)
-    return res
-
-# ------------------------
-# TKLL endpoints
-# ------------------------
-@app.get("/api/v1/dict")
-async def search(token: str, prepare: int = 0):
-    preparsedTokens = await preparser_prepare(token) if prepare == 1 else token
-    doc = tkll_searchSimilarTokens(preparsedTokens)
-
-    return doc
-
-@app.get("/api/v1/markers")
-async def search(token: str):
-    result = compiler_zipGetBaseMarker(token)
-    return result
-
-# ------------------------
-# PRE endpoints
-# ------------------------
-@app.get("/api/v1/pre/polish")
-async def polish(tokens: str):
-    res = await preparser_typos(tokens)
-    return res
-
-@app.get("/api/v1/pre/prepare")
-async def prepare(tokens: str):
-    res = await preparser_prepare(tokens)
-    return res
-
-@app.get("/api/v1/pre/translate")
-async def prepare(tokens: str):
-    res = await preparser_translate(tokens)
-    return res
-
-# ------------------------
-# OUT endpoints
-# ------------------------
-@app.get("/api/v1/out")
+@app.get("/api/v1/output")
 async def out(tokens: str):
     res = await decompiler_decompile(tokens)
     return res

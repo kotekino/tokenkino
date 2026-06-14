@@ -3,6 +3,7 @@
 # The in/out request/response models and the domain-error -> HTTP translation, kept out of
 # main.py so it holds only the lifespan and the endpoint handlers.
 # --------------------------------------------------------------
+from datetime import datetime
 from typing import Optional
 from fastapi import HTTPException
 from pydantic import BaseModel, Field
@@ -12,6 +13,8 @@ from api.services import (
     AxiomNotFoundError, InvalidAxiomIdError,
     DefinitionNotFoundError, InvalidDefinitionIdError,
     TheoremNotFoundError, InvalidTheoremIdError,
+    StakeholderNotFoundError, InvalidStakeholderIdError,
+    MemoryNotFoundError, InvalidMemoryIdError,
 )
 
 # ------------------------------ axioms ------------------------------
@@ -92,6 +95,31 @@ class TheoremSummary(BaseModel):  # listing view (no zip)
     channel: Optional[str] = None
     createdAt: int
 
+# ------------------------------ stakeholders (read-only) ------------------------------
+class StakeholderSummary(BaseModel):  # listing view
+    id: PydanticObjectId = Field(alias="_id")
+    name: str
+    uid: str
+    channel: Optional[str] = None
+    isMe: bool
+    createdAt: int
+
+# ------------------------------ memory (timeseries log; no update) ------------------------------
+class MemoryIn(BaseModel):
+    original: str                       # the log text
+    sourceId: str                       # stakeholder objectId of the source (talker)
+    targetId: Optional[str] = None      # stakeholder objectId of the target (listener)
+    channel: Optional[str] = None       # channel of origin (e.g. "api", "internal")
+    metadata: Optional[str] = None      # timeseries meta field
+
+class MemorySummary(BaseModel):  # listing view (no big zip)
+    id: PydanticObjectId = Field(alias="_id")
+    original: str
+    sourceId: str
+    targetId: Optional[str] = None
+    channel: Optional[str] = None
+    timestamp: datetime
+
 # ------------------------------ domain-error -> HTTP mapping ------------------------------
 # run a service action, translating its (invalid-id, not-found) domain errors to 400/404
 def _or_http(action, invalid_exc, not_found_exc, name: str):
@@ -110,3 +138,9 @@ def definition_or_http(action):
 
 def theorem_or_http(action):
     return _or_http(action, InvalidTheoremIdError, TheoremNotFoundError, "theorem")
+
+def stakeholder_or_http(action):
+    return _or_http(action, InvalidStakeholderIdError, StakeholderNotFoundError, "stakeholder")
+
+def memory_or_http(action):
+    return _or_http(action, InvalidMemoryIdError, MemoryNotFoundError, "memory item")

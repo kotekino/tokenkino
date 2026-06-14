@@ -16,9 +16,21 @@ from api.services.theorem_service import (
     TheoremNotFoundError,
     InvalidTheoremIdError,
 )
+from api.services.stakeholder_service import (
+    StakeholderService,
+    StakeholderNotFoundError,
+    InvalidStakeholderIdError,
+)
+from api.services.memory_service import (
+    MemoryService,
+    MemoryNotFoundError,
+    InvalidMemoryIdError,
+)
 
 __all__ = [
     "AxiomService", "AxiomNotFoundError", "InvalidAxiomIdError",
     "DefinitionService", "DefinitionNotFoundError", "InvalidDefinitionIdError", "NotASingleClauseError",
     "TheoremService", "TheoremNotFoundError", "InvalidTheoremIdError",
+    "StakeholderService", "StakeholderNotFoundError", "InvalidStakeholderIdError",
+    "MemoryService", "MemoryNotFoundError", "InvalidMemoryIdError",
 ]
