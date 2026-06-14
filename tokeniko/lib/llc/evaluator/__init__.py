@@ -5,7 +5,7 @@ from .e_compare import evaluator_compareContent, evaluator_compareItem, evaluato
 from .e_truth import evaluator_groundContent
 from .e_statement import evaluator_evaluateStatement
 from .e_label import evaluator_assignWord, TKWordLabel
-from .operators import operator_similarity
+from .operators import operator_similarity, operator_truth
 
 __all__ = [
     "evaluator_compareContent",
@@ -16,4 +16,5 @@ __all__ = [
     "evaluator_assignWord",
     "TKWordLabel",
     "operator_similarity",
+    "operator_truth",
 ]
