@@ -19,3 +19,8 @@ class EvaluatorResult(BaseModel):
     groundings: list[float] = Field(default_factory=list)  # per-content truth vs definitions
     missing: list[str] = Field(default_factory=list)       # what knowledge is missing (INSUFFICIENT)
     inconsistency: Optional[str] = None                    # which rule/where (INCONSISTENT; future)
+    # the closest known relation (set whenever axioms/theorems were provided, even if INSUFFICIENT);
+    # the caller (service) maps matchedKind + matchedIndex back to the concrete document id.
+    relationMatch: Optional[float] = None                  # best zip similarity to a known statement
+    matchedKind: Optional[str] = None                      # "axiom" | "theorem"
+    matchedIndex: Optional[int] = None                     # position within that kind's injected list
