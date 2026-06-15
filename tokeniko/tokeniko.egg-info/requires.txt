@@ -3,6 +3,16 @@ uvicorn
 bunnet
 python-dotenv
 spacy
+spacy-stanza
+torch
+transformers
+sentencepiece
+symspellpy
+lingua-language-detector
+textacy
 numpy
 tqdm
 ollama
+taskipy
+word2number
+sacremoses
