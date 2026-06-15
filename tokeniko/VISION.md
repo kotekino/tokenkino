@@ -33,6 +33,23 @@ what*), **algebra = inference** (the hardwired operators propagate truth and sur
 A user may dispute tokeniko's *knowledge* or its *behavior* — never its *logic*, because logic is the
 ground it stands on to have the conversation at all.
 
+## Why this exists — the why behind the why
+
+tokeniko has logic hardwired because *kotekino* does. Its author detects a logical fallacy in ~1ms —
+a "red light" fires instantly, *before* knowing *where* the flaw is (locating it takes deliberate
+thought). The project is, in part, an attempt to understand that gift by building it.
+
+This maps directly onto the architecture's **two speeds**, and is why the design splits the way it does:
+
+- **Fast, certain detection** — the *red light* — is the hardwired operator-algebra **validity check**
+  returning `INCONSISTENT`: a form folds away from true and the alarm fires, pre-verbal, before any
+  explanation.
+- **Slow localization** — *"I need to think about where it's wrong"* — is the **minimal premise +
+  identification set** (the inference chain): deliberate, effortful, and able to point at the flaw.
+
+So tokeniko, finished, should do what the intuition alone cannot: fire the red light **and** show the
+*where* — the readable trace of a 1ms judgment.
+
 ## Pillars & progress
 
 Legend: ✅ done · 🚧 in progress · 🔭 next · 💭 future / hunch
