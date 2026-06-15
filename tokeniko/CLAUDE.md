@@ -4,6 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
+> **Read `VISION.md` first.** It is the north star — the end goal and *why* tokeniko exists (a single,
+> persistent, logic-first thinking entity; a digital twin of its author; logic hardwired as the first
+> axiom, all knowledge and behavior in memory). When a design decision is unclear, `VISION.md` is the
+> tie-breaker; this file and the roadmap below are the tactical *how*.
+
 Tokeniko is a **neuro-symbolic NLP engine** that compiles a natural-language sentence into a fixed-size mathematical representation ("the zip") that can be stored in MongoDB as permanent, queryable, geometrically-comparable memory. It combines symbolic parsing (POS tagging, dependency parsing, formal logical operators) with sub-symbolic fuzzy-logic vector fusion (NumPy). See `README.md` for the conceptual overview of the compilation flow.
 
 Note: the git repository root is the **parent** directory (`../`), which also holds `scripts/` (one-off data-ingestion scripts), `atlas/` (local MongoDB data volumes), `data/`, and `doc/`. This directory (`tokeniko/`) is the installable Python package and the FastAPI app.
@@ -150,7 +155,9 @@ Next, in rough order:
    has **landed**: `e_statement.evaluator_evaluateStatement` now folds the grounded clause truths
    through the input's operator tree (`operator_truth`) to produce the RESOLVED truth. Still to do:
    grow it to detect logic-rule violations (e.g. `(A eq B) IMPLY (B noteq A)`), produce
-   `EvaluatorResult.inconsistency` (+ where), and track the missing "variables".
+   `EvaluatorResult.inconsistency` (+ where), and track the missing "variables". **Design direction:
+   see `doc/reasoning-engine-brainstorm.md`** (geometry = soft unification / algebra = inference;
+   validity check; minimal premise+identification set; intra- then inter-statement staging).
 2. **Vectorless entities / antonym representation.** `TKName` and other non-`dictionary` payloads
    carry no 2925-dim semantic vector, so distinct named entities are geometrically identical (Mari
    vs Luca). Related: antonyms aren't opposite vectors — truth-grounding "a thing is *different*
