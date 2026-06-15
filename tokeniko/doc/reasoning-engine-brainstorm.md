@@ -1,9 +1,8 @@
 # Reasoning engine — brainstorm summary (roadmap #1: the INCONSISTENT path)
 
-> **Status: brainstorm, not a committed plan.** This captures the design conversation so we have a
-> shared, written context to build on. The strategy is still being formed. See `VISION.md` for the
-> north star and `CLAUDE.md` for the tactical roadmap. The terse version lives in Claude memory as
-> `reasoning-engine-architecture`.
+> **Status: design & findings (empirically verified this session).** Captures the design conversation
+> and the live test results that grounded it. The phased **execution plan is in `doc/plan.md`**; the
+> concise tactical roadmap is in `CLAUDE.md`; the north star is `VISION.md`.
 
 ## The starting question
 
@@ -67,6 +66,59 @@ behind a contradiction, so disagreement is *locatable*: shared premises → genu
 inconsistency; rejected premise → just divergent knowledge. Reliability is bounded by the *matching*
 layer (its confidence travels with the verdict), never by the logic (always sound).
 
+## Empirical findings (verified live this session)
+
+- **The dictionary is an explicit, interpretable semantic** (not a black-box embedding): `TKBaseDoc`
+  = 2925 Oxford-3000 axes (`scripts/base.py`); `TKDictionaryDoc` = Moby Word List projected **per
+  sense** through WordNet against those axes (`scripts/dictionary.py`, ~197k sense-vectors). All
+  meaning comes from the WordNet projection; Moby supplies only the token list. See memory
+  `dictionary-semantics` for the full provenance.
+- **Pairwise cosine encodes relatedness, not opposition.** Measured: antonyms are NOT opposite —
+  love/hate +0.86, rich/poor +0.76, good/bad +0.41, the rest ~0; synonyms are weak too (big/large
+  0.17). The space is sparse/near-orthogonal. → semantic antonymy is **knowledge**, not geometry; this
+  is the root of "different from itself ≈ 0.79".
+- **BUT antonymy IS recoverable as a primitive — the `−1` is buried, not lost.** `antonyms(W) =
+  { X : base[X][idx(W)] < 0 }` — read the negative entries of W's column (equivalently: search base
+  with a vector that is 0 except `−1` on W's own axis). Verified clean: love→hate,
+  good→{bad,badly,worse,ill,worst}, hot→cold, open→{shut,closed,…}, same→different, buy→sell,
+  strong→weak. **Sense-scoped.** Limit: only WordNet-curated pairs (sparse); everything else stays
+  memory-knowledge.
+- **Word-sense disambiguation by context centroid works for the coarse cut.** POS prunes first, then
+  the sense closest to the sentence's content-word centroid wins. Verified: animal-context → cat.n.01
+  (+0.29, wide margin); person-context → guy.n.01 (+0.79). BUT near-synonymous senses tie (guy.n.01
+  0.79 vs cat.n.03 gossip 0.76). → layered WSD: **POS-prune → centroid (picks the family) → gloss/Lesk
+  overlap (break near-ties; glosses are stored) → ask on low margin (`[tokeniko:ask]`)**. Today the
+  pipeline does only POS + most-frequent sense (`parser.py` `find_one`, no context) — that's the upgrade.
+- **Gloss-derived definitions compile cleanly when sentence-shaped.** `"a cat is a feline mammal"` →
+  `([a] cat be [a,feline] mammal)` (clean, 1 clause); `"a carnivore is an animal that feeds on flesh"`
+  → 2 clauses (`is-a animal` + `feeds-on flesh`); a raw gloss *fragment* mangles (`no ability to roar`
+  → garbage). → normalize glosses to `"a ⟨word⟩ is ⟨gloss⟩"` before compiling; relative-clause /
+  infinitive / fragment handling is the Phase-0 parser review.
+
+## Knowledge bootstrap — the inference substrate (kotekino)
+
+The inference engine's bottleneck is *connecting clauses through the KB*. WordNet is a ready-made,
+curated, humongous source of exactly that, with **two complementary layers**:
+
+1. **Structured relations → atomic triples, no NL parsing (the reliable skeleton).** `hypernyms()`
+   (is-a: `cat → feline → carnivore → mammal → animal → organism`), `meronyms()` (part-of),
+   `lemma.antonyms()` (the column-read), `entailments()`, `attributes()`. Harvest directly into atomic
+   facts per sense — zero parser noise, sense-scoped. Gives **branch-disjointness** for free:
+   `cat→animal` vs `lettuce→plant` are separate branches under "organism", so "X is a plant" ⊥ "X is an
+   animal" is derivable from the tree (heuristic — WordNet allows multiple inheritance, so a
+   high-confidence default an explicit axiom can override).
+2. **Glosses → atomic property facts via the compiler (the flesh).** The properties the taxonomy
+   misses ("carnivore *eats* flesh", "cat *has* fur"). Decompose each gloss into **atomic single-clause
+   facts** by taking the compiled gloss's **leaf clauses** — needs the parser's **subject re-binding**
+   (each clause's subject → the headword), the Phase-0 review's crux.
+
+Both **decomposed to atomic single-clause facts, deduped into a shared graph** (thousands of senses
+share "is a mammal"/"is an animal" — that convergence is what makes chains connect). **Routing:**
+1-clause → `definitions`; multi-clause → `axioms`. Negative atoms ("cat lacks roar") are first-class
+(contrapositive: *roars ⇒ not a cat*). **Scale:** millions of atoms → start from a **core vocabulary
+subset** (the 2925 base + immediate neighborhood) and grow. **Re-compilable:** every parser refinement
+upgrades the whole KB by re-ingesting.
+
 ## The boundary principle (the "first axiom")
 
 - **Hardwired = logic.** The operator truth-functions + the procedure that applies them (ground →
@@ -106,7 +158,12 @@ lives in memory. This is the seam where the future volitional / emotive-intuitiv
   never emits them; "equal"/"different" compile as predicate words. To make the eq/noteq algebra fire,
   comparison/identity clauses likely need to become `EQ`/`NOTEQ` **operators** with **intrinsic
   grounding** (`compare(operands)` / `1 − compare`), instead of definition-matched declaratives.
+- **Negation representation** — observed negation is inconsistent: "do not jump" got absorbed into the
+  clause vector (no `NOT` op), "no ability" became a `[no]` property. The reasoning engine needs
+  negation to be **recoverable** (a polarity flag / `NOT` op / the antonym primitive), or `noteq = 1−eq`
+  can't fire. This is the **linchpin of the Phase-0 parser/compiler review**.
 - **Quantifiers** — "*all* felines", "*only* lettuce" are not truth-functional connectives; they need
   binding/scoping. "only" is load-bearing in the cat example.
-- **Build order** — prototype the intra-statement kernel first, or whiteboard the full inference
-  engine (unification + chaining + unsat-core) before any code.
+- **Build order** — resolved: see the phased plan in `doc/plan.md` (Phase 0 parser/compiler review →
+  Phase 1 knowledge bootstrap → Phase 2 WSD → Phase 3 intra-statement kernel → Phase 4 inter-statement
+  inference → Phase 5 reflective behavior).

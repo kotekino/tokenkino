@@ -149,30 +149,38 @@ vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`. The HTTP entry p
 `EvaluationService` (`api/services/evaluation_service.py`) behind `POST /api/v1/evaluate` — the
 DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id.
 
-Next, in rough order:
+The full design + the empirical findings that grounded it are in `doc/reasoning-engine-brainstorm.md`;
+the phased **execution plan is in `doc/plan.md`**. Concise status below.
 
-1. **Reasoning engine — the `INCONSISTENT` path (deferred, scaffolded).** The truth-folding slice
-   has **landed**: `e_statement.evaluator_evaluateStatement` now folds the grounded clause truths
-   through the input's operator tree (`operator_truth`) to produce the RESOLVED truth. Still to do:
-   grow it to detect logic-rule violations (e.g. `(A eq B) IMPLY (B noteq A)`), produce
-   `EvaluatorResult.inconsistency` (+ where), and track the missing "variables". **Design direction:
-   see `doc/reasoning-engine-brainstorm.md`** (geometry = soft unification / algebra = inference;
-   validity check; minimal premise+identification set; intra- then inter-statement staging).
-2. **Vectorless entities / antonym representation.** `TKName` and other non-`dictionary` payloads
-   carry no 2925-dim semantic vector, so distinct named entities are geometrically identical (Mari
-   vs Luca). Related: antonyms aren't opposite vectors — truth-grounding "a thing is *different*
-   from itself" reads ~0.79, not a contradiction. The evaluator is only as discriminative as the
-   vectors.
-3. ~~Confirm the operator formulas~~ — **done**: the operators in `operators.py` are now defined on
-   fuzzy **`[0,1]`** per the confirmed table (AND=min, OR=max, NOT=1−a, fuzzy XOR/XNOR, Gödel
-   `IMPLY`/`CONV`, `EQ=min(imply,conv)`); `operator_truth` applies them to clause truths and the
-   behavioral similarity matrix is recomputed on the `[0,1]²` grid.
-4. ~~Wire evaluation into an endpoint~~ — **done**: `POST /api/v1/evaluate` (`EvaluationService`)
-   compiles a sentence, evaluates it against the active definitions/axioms/theorems, and returns the
-   `EvaluatorResult` + the most similar axiom/theorem (id + score). Still open: include the nearest
-   *memory item* in the match, and surface the `INCONSISTENT` verdict once #1 lands.
-5. ~~Spacetime refinements~~ — **done**: directional operators in the evaluator are now order-aware
-   (IMPLY/CONV/NOTIMPLY/NOTCONV compared positionally; symmetric ops stay bag-matched), and
-   degenerate (all-zero) space axes normalize to 0 (no more `@x,-1,-1` display artifact).
+**Landed:** fuzzy `[0,1]` operators + `operator_truth`; truth-folding in `e_statement` (RESOLVED truth
+via the operator tree); `POST /api/v1/evaluate`; order-aware directional operators + degenerate-axis
+normalization; the **antonym column-read** primitive — `antonyms(W) = { X : base[X][idx(W)] < 0 }`,
+sense-scoped, verified (this was roadmap #2's antonym half; semantic antonymy is otherwise
+**memory-knowledge**, not geometry — the dictionary's pairwise cosine encodes relatedness, not
+opposition; see memory `dictionary-semantics`).
+
+**Next — phased (see `doc/plan.md`):**
+
+0. **Parser / compiler review & hardening** *(prerequisite).* Fix the quirks the brainstorm exposed —
+   above all a **recoverable negation representation** (today "do not" / "no" vanish into the clause
+   vector), then comparison → `EQ`/`NOTEQ` operators with intrinsic grounding, subject re-binding in
+   clause splitting, and gloss/fragment normalization.
+1. **Knowledge bootstrap.** Seed memory from WordNet — structured relations → atomic is-a/part-of
+   triples (no NL), glosses → atomic property facts via the compiler; decompose to single-clause
+   atoms, dedup into a shared graph, route 1-clause → `definitions` / multi → `axioms`. The inference
+   substrate.
+2. **Word-sense disambiguation.** POS-prune → context centroid (sense family) → gloss/Lesk tiebreak →
+   ask on low margin. (Today: POS + most-frequent only.)
+3. **Reasoning engine — intra-statement kernel.** Validity / self-contradiction on the input's own
+   folded form (`X∧¬X`, `X→¬X`, eq/noteq); the validity check (an axiom/theorem must fold `≡ 1`);
+   produce `INCONSISTENT` + `EvaluatorResult.inconsistency` (where).
+4. **Reasoning engine — inter-statement inference.** Soft-unification + forward-chaining over the
+   bootstrapped KB; minimal premise + identification (unsat-core) output; quantifiers + termination.
+5. **Reflective behavior layer (later).** `[eval:*] IMPLY [tokeniko:*]` memory rules; `imperative`
+   activation + action allowlist + the `brain` loop. The seam to the volitional/emotive layer — after
+   the logical brain is whole.
+
+**Parked:** individual-entity identity (Mari ≠ Luca; #2 remainder — limits Phase-4 coreference);
+`axioms`-collection cleanup (Phase 1 largely repopulates it); the t-norm/implication choice.
 
 Keep this list current as items land or priorities shift.
