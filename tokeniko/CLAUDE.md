@@ -157,18 +157,23 @@ via the operator tree); `POST /api/v1/evaluate`; order-aware directional operato
 normalization; the **antonym column-read** primitive — `antonyms(W) = { X : base[X][idx(W)] < 0 }`,
 sense-scoped, verified (this was roadmap #2's antonym half; semantic antonymy is otherwise
 **memory-knowledge**, not geometry — the dictionary's pairwise cosine encodes relatedness, not
-opposition; see memory `dictionary-semantics`).
+opposition; see memory `dictionary-semantics`). **Phase 0** (parser/compiler hardening): negation is
+now a discrete `TKZipContent.negated` flag (set by the compiler, applied in `evaluator_groundContent`
+→ a negated input evaluates false end-to-end), comparison polarity via the `tkll_antonyms` column-read,
+and noun-complement infinitive binding. **Phase 1a**: `scripts/relations.py` harvested **150,529**
+atomic WordNet triples (`is_a`/`part_of`/`antonym`/…) into the `relations` collection — the inference
+chaining backbone.
 
 **Next — phased (see `doc/plan.md`):**
 
-0. **Parser / compiler review & hardening** *(prerequisite).* Fix the quirks the brainstorm exposed —
-   above all a **recoverable negation representation** (today "do not" / "no" vanish into the clause
-   vector), then comparison → `EQ`/`NOTEQ` operators with intrinsic grounding, subject re-binding in
-   clause splitting, and gloss/fragment normalization.
-1. **Knowledge bootstrap.** Seed memory from WordNet — structured relations → atomic is-a/part-of
-   triples (no NL), glosses → atomic property facts via the compiler; decompose to single-clause
-   atoms, dedup into a shared graph, route 1-clause → `definitions` / multi → `axioms`. The inference
-   substrate.
+0. ~~Parser / compiler review & hardening~~ — **done**: D1 negation flag, D2 comparison-polarity via
+   the antonym primitive, D3b noun-complement infinitive binding. **Deferred** to a later parser-level
+   pass: D3a relative-clause matrix subject + purpose-infinitive binding (see
+   `doc/parser-compiler-review.md`).
+1. **Knowledge bootstrap.** **1a done** — WordNet structured relations → `relations` (150k triples,
+   `scripts/relations.py`). **1b next:** glosses → atomic property facts via the (now-hardened)
+   compiler + `util_normalizeGloss`; decompose to single-clause atoms, dedup into a shared graph,
+   route 1-clause → `definitions` / multi → `axioms`.
 2. **Word-sense disambiguation.** POS-prune → context centroid (sense family) → gloss/Lesk tiebreak →
    ask on low margin. (Today: POS + most-frequent only.)
 3. **Reasoning engine — intra-statement kernel.** Validity / self-contradiction on the input's own

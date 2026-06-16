@@ -16,7 +16,17 @@ hardwired first axiom, knowledge + behavior = memory.**
 
 ---
 
-## Phase 0 — Parser / compiler review & hardening  *(prerequisite for everything)*
+## Phase 0 — Parser / compiler review & hardening  ✅ DONE *(prerequisite for everything)*
+
+> **Landed** (merged to main): D1 negation as a discrete `TKZipContent.negated` flag (set by the
+> compiler from not/no/never/negative-quantifier markers, applied in `evaluator_groundContent` →
+> `truth → 1−truth`; verified end-to-end — "I do not think" evaluates false via `/evaluate`); D2
+> comparison polarity via the `tkll_antonyms` column-read primitive ("different"→negated, "same/equal"
+> →affirmative); D3b noun-complement infinitive binding ("ability to roar" → "cat roar"); plus the
+> `util_normalizeGloss` helper. **Deferred to a later parser-level pass:** D3a relative-clause matrix
+> subject ("the man who loves Mary runs") and purpose-infinitive binding ("...to fly" → "airport fly")
+> — both originate in the Stanza parse / `parser.py` root+nsubj selection. Full write-up:
+> `doc/parser-compiler-review.md`. The items below are the original spec, kept for reference.
 
 A focused review session on the quirks the brainstorm tests exposed. Goal: make a compiled clause a
 **faithful, reasoning-ready** unit. Prioritised by downstream need:
@@ -48,12 +58,15 @@ the negation cases) and confirm clean, recoverable structure.
 Seed memory from WordNet so the inference engine has edges to chain over. Two complementary harvesters
 (see brainstorm "Knowledge bootstrap"):
 
-- **1a — Structured relations → atomic triples (no NL).** New script (sibling of `base.py`/
-  `dictionary.py`): per sense, emit `hypernyms` (is-a), `meronyms` (part-of), `entailments`,
-  `attributes`, `antonyms` as **atomic single-clause facts**. The reliable taxonomic skeleton; gives
-  branch-disjointness for free.
-- **1b — Glosses → atomic property facts.** Normalize each gloss to a sentence, compile, **explode
-  into leaf-clause atoms** (relies on Phase-0 subject re-binding). The properties the taxonomy misses.
+- **1a — Structured relations → atomic triples (no NL). ✅ DONE.** `scripts/relations.py` harvested
+  **150,529** sense-scoped triples (`is_a`, `part_of`, `antonym`, `entails`, `attribute`, `similar_to`)
+  over all 117,659 WordNet synsets into the `relations` collection (app KB `:27018`). Direct edges
+  only; transitive closure (is_a chains, branch-disjointness) computed at query time. Verified:
+  `cat → … → animal` vs `lettuce → … → plant` diverge under `organism` (disjointness derivable). The
+  reliable taxonomic skeleton, parser-free.
+- **1b — Glosses → atomic property facts. ⬅ NEXT.** Normalize each gloss (`util_normalizeGloss`) to a
+  sentence, compile with the now-hardened parser, **explode into leaf-clause atoms**. The properties
+  the taxonomy misses.
 - **Dedup into a shared graph; route** 1-clause → `definitions`, multi-clause → `axioms`; preserve
   negative atoms. Start from a **core vocabulary subset** (2925 base + immediate neighborhood), grow.
   Re-ingestable as the parser improves.
