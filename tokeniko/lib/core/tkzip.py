@@ -13,6 +13,10 @@ class TKZipContent(BaseModel):
     ironic: float = Field(default=0.5)
     dubitative: float = Field(default=0.5)
     imperative: float = Field(default=0.5)
+    # clause-level negation: the clause asserts ¬P (verbal/copular "not", determiner "no", "never").
+    # kept as a DISCRETE recoverable signal because negation otherwise vanishes into the role vectors
+    # (cos("I am happy", "I am not happy") == 1.0). the evaluator flips the grounded truth on this.
+    negated: bool = Field(default=False)
     sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925))
     # statement core elements
     subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 300 (marker) + 2925 (semantic) + spacetime (12)

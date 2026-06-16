@@ -9,7 +9,7 @@ from lib.core.tk import TKMarker
 from lib.core.tkllc import TKLLCContent, TKLLCItem, TKLLEntityMap, TKLLEntityProperty, TKLLEntityReference
 from lib.core.tkzip import TKZipContent, TKZipItem
 from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
-from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD
+from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _NEGATION_MARKERS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD
 
 from .c_state import _entities, nlp
 
@@ -138,6 +138,11 @@ def compiler_zipGetEntityVector(entity: TKLLEntityMap, properties: list[TKLLEnti
     # merge properties
     for p in properties:
         propEnt = next(e for e in _entities if p.id == e.entity.id)
+        # negation markers ("not"/"no"/"never") are captured as the discrete TKZipContent.negated
+        # flag (Decision 1), NOT folded into the geometry -- skip them so the role vector stays the
+        # affirmative meaning (and the legacy advmod "-1" flip can't double-apply).
+        if (propEnt.entity.token or "").lower() in _NEGATION_MARKERS:
+            continue
         propVec = compiler_zipGetEntityVector(propEnt, p.properties)
         # blend vectors (linear accumulation)
         entityVec = compiler_zipSumProperty(p.dep, entityVec, propVec)
@@ -180,7 +185,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     for i in content.indirects:
         indirects.append(compiler_zipGetVector(i))
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:

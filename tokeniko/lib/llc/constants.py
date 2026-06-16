@@ -80,6 +80,20 @@ _PROP_BASE_ADVMOD_ANCHORS = {
 }
 _PROP_SIMILARITY_THRESHOLD = 0.85
 
+# clause-level negation markers (lemmas). "not" (verbal/copular, incl. do-support & contractions
+# expanded upstream), "no" (determiner: "no money"/"no ability"), "never" (temporal negation),
+# plus "n't" defensively in case a contraction survives expansion. detected on any role's
+# properties and surfaced as the DISCRETE TKZipContent.negated flag (geometry alone loses it).
+_NEGATION_MARKERS = {"not", "no", "never", "n't", "nor", "neither"}
+# negative quantifier subjects: "nobody runs" -> generic person/thing + negated clause.
+# best-effort (Phase-0): the subject is left as the quantifier token; the clause is flagged negated.
+_NEGATIVE_QUANTIFIERS = {"nobody", "no one", "no-one", "noone", "nothing", "none"}
+
+# comparison predicates: AFFIRMATIVE forms assert sameness/equality between subject and the indirect
+# operand; their ANTONYMS (different/unlike/...) assert non-equality and are flagged negated via the
+# antonym primitive (Decision 2). the affirmative anchors below seed the antonym column read.
+_COMPARISON_AFFIRMATIVE = {"equal", "same", "alike", "identical", "similar"}
+
 # markers
 _MARKER_SIMILARITY_THRESHOLD = 0.85
 

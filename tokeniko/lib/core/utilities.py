@@ -58,6 +58,29 @@ def util_expandContractions(tokens: str) -> str:
     return _CONTRACTIONS_RE.sub(_replace, text)
 
 # --------------------------------------------------------------
+# GLOSS / FRAGMENT NORMALIZATION (Phase-1 ingestion helper)
+# --------------------------------------------------------------
+# a bare dictionary gloss is a sentence FRAGMENT ("a feline mammal", "having no ability to roar")
+# and the parser mangles fragments (no root verb / no subject). wrap it into a full predicative
+# sentence "a <word> is <gloss>" so it parses as a clean defining clause, e.g.
+#   normalize("cat", "a feline mammal")            -> "a cat is a feline mammal"
+#   normalize("carnivore", "an animal that ...")   -> "a carnivore is an animal that ..."
+# only assembles the string -- ingestion (compile + route to definitions/axioms) is Phase 1.
+# the article is chosen by a coarse vowel-sound heuristic (a / an); a leading article already on
+# the word is stripped so we don't double it ("a cat" -> "a cat", not "a a cat").
+_LEADING_ARTICLE_RE = re.compile(r"^\s*(a|an|the)\s+", re.IGNORECASE)
+
+def util_indefiniteArticle(word: str) -> str:
+    return "an" if word[:1].lower() in "aeiou" else "a"
+
+def util_normalizeGloss(word: str, gloss: str) -> str:
+    word = util_removeSpace(_LEADING_ARTICLE_RE.sub("", word or ""))
+    gloss = util_removeSpace(gloss or "")
+    if not word or not gloss:
+        return ""
+    return f"{util_indefiniteArticle(word)} {word} is {gloss}"
+
+# --------------------------------------------------------------
 # VECTOR UTILITIES
 # --------------------------------------------------------------
 

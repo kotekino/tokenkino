@@ -17,4 +17,11 @@ def evaluator_groundContent(content: TKZipContent, definitions: list[TKZipConten
     if not definitions:
         return 0.5
     sims = [evaluator_compareContent(content, d) for d in definitions]
-    return max(sims, key=lambda s: abs(s - 0.5))
+    truth = max(sims, key=lambda s: abs(s - 0.5))
+    # clause-level negation (Decision 1): the clause asserts ¬P, so its truth is the complement of
+    # the positive grounding. negation is a DISCRETE flag (the geometry compares the affirmative
+    # meaning); flipping it here lets the truth-fold in e_statement propagate it for free.
+    # NB the definitions themselves are affirmative single-clause semantic facts; a negated
+    # definition is out of scope. geometric (evaluator_compareContent) negation-awareness is a
+    # documented follow-up (Phase 3) and intentionally NOT handled here.
+    return 1.0 - truth if content.negated else truth
