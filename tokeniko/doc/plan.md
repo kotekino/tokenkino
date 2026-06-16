@@ -64,12 +64,17 @@ Seed memory from WordNet so the inference engine has edges to chain over. Two co
   only; transitive closure (is_a chains, branch-disjointness) computed at query time. Verified:
   `cat → … → animal` vs `lettuce → … → plant` diverge under `organism` (disjointness derivable). The
   reliable taxonomic skeleton, parser-free.
-- **1b — Glosses → atomic property facts. ⬅ NEXT.** Normalize each gloss (`util_normalizeGloss`) to a
-  sentence, compile with the now-hardened parser, **explode into leaf-clause atoms**. The properties
-  the taxonomy misses.
-- **Dedup into a shared graph; route** 1-clause → `definitions`, multi-clause → `axioms`; preserve
-  negative atoms. Start from a **core vocabulary subset** (2925 base + immediate neighborhood), grow.
-  Re-ingestable as the parser improves.
+- **1b — Glosses → atomic property facts. ✅ NOUNS DONE / verbs+adj deferred.** `scripts/glosses.py`
+  (strict/academic: function-word + informal filtered, gloss-cleaned, POS-framed, routed by clause
+  count) ingested **~928 definitions + ~1,140 axioms** from the base-word **noun** senses (7 edge-case
+  compiler errors skipped, ~0.34%). **Verbs/adjectives deferred:** the "to X is to …" / "X means …"
+  frames drop the headword — gated on the parser's infinitive-subject binding (the deferred D3a class;
+  also test kotekino's quotes-around-the-headword hunch there). Neighborhood expansion still pending.
+- **Routing** 1-clause → `definitions`, multi-clause → `axioms`; preserve negative atoms.
+- **The KB is re-compilable.** Every stored item keeps its `original` sentence, so any future
+  parser/compiler change just re-runs parse+compile over the stored originals — **no NLTK/WordNet, very
+  fast**. Worth a small `recompile` utility (read `original` → recompile → update `zip`/`content`/`raw`)
+  when the parser next changes materially.
 
 **Verify:** the cat/lettuce chain exists in memory (`cat is-a animal`, `lettuce is-a plant`,
 `carnivore eats flesh`), deduped; `/evaluate` grounds far more, fewer spurious INSUFFICIENTs.

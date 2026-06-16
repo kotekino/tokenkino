@@ -171,9 +171,12 @@ chaining backbone.
    pass: D3a relative-clause matrix subject + purpose-infinitive binding (see
    `doc/parser-compiler-review.md`).
 1. **Knowledge bootstrap.** **1a done** — WordNet structured relations → `relations` (150k triples,
-   `scripts/relations.py`). **1b next:** glosses → atomic property facts via the (now-hardened)
-   compiler + `util_normalizeGloss`; decompose to single-clause atoms, dedup into a shared graph,
-   route 1-clause → `definitions` / multi → `axioms`.
+   `scripts/relations.py`). **1b nouns done** — `scripts/glosses.py` ingested ~928 definitions +
+   ~1,140 axioms from the base-word **noun** glosses (strict/academic: function-word + informal
+   filtered, gloss-cleaned, POS-framed, routed by clause count). **1b verbs/adjectives deferred** —
+   gated on the parser's infinitive-subject binding (the deferred D3a class; verb/adj framing drops
+   the headword). NB the KB is **re-compilable**: every stored item keeps its `original`, so a future
+   parser/compiler change just re-runs parse+compile over the originals (no NLTK/WordNet) — fast.
 2. **Word-sense disambiguation.** POS-prune → context centroid (sense family) → gloss/Lesk tiebreak →
    ask on low margin. (Today: POS + most-frequent only.)
 3. **Reasoning engine — intra-statement kernel.** Validity / self-contradiction on the input's own
