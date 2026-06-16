@@ -67,6 +67,9 @@ class TKLLProperties(BaseModel):
 class TKLLCContent(BaseModel):
     clause_type: TKClauseType = Field(default=TKClauseType.MAIN)
     properties: TKLLProperties
+    # clause-level negation: the clause asserts ¬P. set when a role carries a negation marker
+    # ("not"/"no"/"never"); a discrete, recoverable signal carried through to the TKZipContent.
+    negated: bool = Field(default=False)
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 

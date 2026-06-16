@@ -7,10 +7,76 @@ import copy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntityMapReference, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
-from lib.llc.constants import _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.constants import _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _COMPARISON_AFFIRMATIVE, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.tkll.functions import tkll_antonyms
 
 from .c_state import _entities, nlp
 from .c_entities import compiler_predicateLemma
+
+# ------------------------------------------------------------------------------------------------
+# COMPARISON POLARITY (Decision 2)
+# a comparison predicate asserts a relation between the subject and an indirect operand. the
+# AFFIRMATIVE forms (equal/same/...) assert sameness; their ANTONYMS (different/unlike/...) assert
+# non-equality and are treated as NEGATED comparisons (reusing the Decision-1 flag, no new operator).
+# polarity is decided via the antonym column-read primitive (tkll_antonyms), not a hardcoded list:
+# a predicate is a negative comparison iff it is an antonym of an affirmative comparison anchor.
+# the antonym columns of the (few) affirmative anchors are precomputed once and cached.
+# intrinsic grounding -- compare(subject, indirect) -- is the reasoning engine's job (Phase 3); we
+# only set polarity here. NB the operands stay subject + indirect (the parser already does this).
+# ------------------------------------------------------------------------------------------------
+_COMPARISON_NEGATIVE_CACHE: set[str] | None = None
+
+# union of the antonym columns of every affirmative comparison anchor -> the negative-comparison
+# predicate set (different/unlike/...). computed lazily once per process (the base matrix is static).
+def compiler_negativeComparisonWords() -> set[str]:
+    global _COMPARISON_NEGATIVE_CACHE
+    if _COMPARISON_NEGATIVE_CACHE is None:
+        negatives: set[str] = set()
+        for anchor in _COMPARISON_AFFIRMATIVE:
+            negatives |= tkll_antonyms(anchor)
+        # an affirmative anchor must never count as its own negation
+        _COMPARISON_NEGATIVE_CACHE = negatives - _COMPARISON_AFFIRMATIVE
+    return _COMPARISON_NEGATIVE_CACHE
+
+# is the clause a NEGATIVE comparison? true when its predicate token is an antonym of an affirmative
+# comparison anchor (different/unlike vs same/equal). affirmative comparisons stay non-negated.
+def compiler_isNegativeComparison(content: TKLLCContent) -> bool:
+    if not content.predicate:
+        return False
+    predicateToken = compiler_entityToken(content.predicate.id)
+    if not predicateToken or predicateToken in _COMPARISON_AFFIRMATIVE:
+        return False
+    return predicateToken in compiler_negativeComparisonWords()
+
+# token (lemma/text) of a flat entity by its id, lowercased; "" if unknown.
+def compiler_entityToken(entityId: int | None) -> str:
+    if entityId is None:
+        return ""
+    ent = next((e for e in _entities if e.entity.id == entityId), None)
+    return (ent.entity.token or "").lower() if ent else ""
+
+# does a property (or any of its nested properties) carry a negation marker ("not"/"no"/"never")?
+def compiler_propertyIsNegation(prop: TKLLEntityProperty) -> bool:
+    if compiler_entityToken(prop.id) in _NEGATION_MARKERS:
+        return True
+    return any(compiler_propertyIsNegation(p) for p in prop.properties)
+
+# clause-level negation: a role (subject/predicate/direct/indirect) carries a negation marker as
+# one of its properties. "not"/"never" attach to the predicate (verb/copula) as advmod; "no"
+# attaches to the negated noun (object) as det -- so we scan EVERY role, not just the predicate.
+def compiler_contentIsNegated(content: TKLLCContent) -> bool:
+    roles = [content.subject, content.predicate, content.direct, *content.indirects]
+    for role in roles:
+        if role and any(compiler_propertyIsNegation(p) for p in role.properties):
+            return True
+    # negative quantifier subject ("nobody runs" / "nothing happens"): the subject token IS the
+    # negation. best-effort (Phase-0) -- flag the clause negated; the subject is left as the
+    # quantifier token (a proper generic person/thing entity is a TODO).
+    # TODO Phase-0 gap: rewrite "nobody" -> generic "person" + negated so the grounding geometry
+    # matches the affirmative ("a person runs") rather than the bare quantifier.
+    if content.subject and compiler_entityToken(content.subject.id) in _NEGATIVE_QUANTIFIERS:
+        return True
+    return False
 
 def compiler_getEntityIdByMap(map: TKLLEntityMapReference) -> int | None:
     for entity_map in _entities:
@@ -268,6 +334,11 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
 
     # append main content and build item
     mainContent = TKLLCContent(clause_type=clauseType, properties=properties, subject=subject, predicate=predicate, direct=direct, indirects=indirects)
+
+    # clause-level negation: flag when a role carries a "not"/"no"/"never" marker (Decision 1),
+    # OR the predicate is a negative comparison ("different"/"unlike", Decision 2). discrete &
+    # recoverable -- the geometry alone loses it (cos("happy", "not happy") == 1.0).
+    mainContent.negated = compiler_contentIsNegated(mainContent) or compiler_isNegativeComparison(mainContent)
 
     # ---------------------------------------------
     # predicate (manage statements)
