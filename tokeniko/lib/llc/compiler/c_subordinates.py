@@ -59,9 +59,29 @@ def compiler_resolveAnaphora(subStatement: TKStatement, matrixStatement: TKState
 # implicit subject (xcomp / subjectless clause): inject the controller as the clause subject.
 # object control when the matrix has an object ("I told her to go" -> her), else subject control
 # ("I want to leave" -> I). the injected pronoun (e.g. "I") is later mapped by resolvePronouns.
-def compiler_resolveImplicitSubject(subStatement: TKStatement, matrixStatement: TKStatement) -> None:
+# `ownerRef` is the matrix reference the subordinate hangs off (its governor): when that governor is
+# a NOUN complement (the matrix object/indirect, not the predicate) -- e.g. "the cat has no ability
+# to roar" -- the infinitive is ADNOMINAL, so its implicit subject is the clause BEARER (the matrix
+# subject: the cat), NOT the governing noun ("ability"). verb-control infinitives (the subordinate
+# governed by the predicate, "I want to run" -> I) keep the standard subject/object control below.
+def compiler_resolveImplicitSubject(subStatement: TKStatement, matrixStatement: TKStatement, ownerRef: TKEntityReference | None = None) -> None:
     # only when the clause carries no subject of its own
     if subStatement.subject:
+        return
+
+    # noun-complement infinitive: the subordinate is governed by a noun (not the matrix predicate),
+    # i.e. it modifies the matrix object/indirect -> the bearer is the matrix subject, not the noun.
+    isPredicateGoverned = bool(matrixStatement.predicate and ownerRef and ownerRef.id == matrixStatement.predicate.id)
+    if ownerRef is not None and not isPredicateGoverned:
+        controllerRef = matrixStatement.subject
+        if not controllerRef:
+            return
+        controller = compiler_entityById(matrixStatement, controllerRef.id)
+        if not controller or controller.payload.entity_type == "statement":
+            return
+        newId = max((e.id for e in subStatement.entities), default=0) + 1
+        subStatement.entities.append(TKEntity(id=newId, payload=copy.deepcopy(controller.payload)))
+        subStatement.subject = TKEntityReference(id=newId, dep="nsubj")
         return
 
     # controller: object control (direct, else first indirect) unless the matrix verb is a
@@ -101,7 +121,9 @@ def compiler_resolveReferenceSubordinates(reference: TKEntityReference, matrixSt
         if clauseType == TKClauseType.ACLRELCL:
             compiler_resolveRelative(subStatement, ownerEntity)
         elif not subStatement.subject:
-            compiler_resolveImplicitSubject(subStatement, matrixStatement)
+            # pass the governing reference so a noun-complement infinitive (governed by a matrix
+            # object/indirect noun) binds the bearer (matrix subject), not the governing noun
+            compiler_resolveImplicitSubject(subStatement, matrixStatement, ownerRef=reference)
         else:
             compiler_resolveAnaphora(subStatement, matrixStatement)
 
