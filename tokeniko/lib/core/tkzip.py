@@ -17,6 +17,10 @@ class TKZipContent(BaseModel):
     # kept as a DISCRETE recoverable signal because negation otherwise vanishes into the role vectors
     # (cos("I am happy", "I am not happy") == 1.0). the evaluator flips the grounded truth on this.
     negated: bool = Field(default=False)
+    # the clause's core arguments are all UNKNOWN vocabulary (generic fallback, no dictionary sense):
+    # there is nothing to ground against, so a contentless clause must NOT score a spurious match
+    # ("a wug is a blicket" -> 0.885). the evaluator returns neutral 0.5 (-> INSUFFICIENT / ask) on this.
+    unknown: bool = Field(default=False)
     sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925))
     # statement core elements
     subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 300 (marker) + 2925 (semantic) + spacetime (12)

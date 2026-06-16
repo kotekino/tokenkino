@@ -16,6 +16,11 @@ from .e_compare import evaluator_compareContent
 def evaluator_groundContent(content: TKZipContent, definitions: list[TKZipContent]) -> float:
     if not definitions:
         return 0.5
+    # the clause's core arguments are all unknown vocabulary (generic, no semantic anchor): there is
+    # nothing to ground, so a contentless clause must stay NEUTRAL rather than spuriously matching any
+    # "X is Y" definition ("a wug is a blicket" -> 0.885). 0.5 -> INSUFFICIENT (and the ask reflex).
+    if content.unknown:
+        return 0.5
     sims = [evaluator_compareContent(content, d) for d in definitions]
     truth = max(sims, key=lambda s: abs(s - 0.5))
     # clause-level negation (Decision 1): the clause asserts ¬P, so its truth is the complement of

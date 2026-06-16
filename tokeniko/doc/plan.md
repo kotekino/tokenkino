@@ -114,6 +114,17 @@ Behavior as memory rules over reserved tokens (`[eval:inconsistent] IMPLY [token
 **allowlist**, conflict resolution, and the `brain` perceive → evaluate → act loop. This is where the
 emotive/intuitive layer plugs in — only after the logical brain (Phases 0–4) is whole.
 
+**The unknown → ask → learn loop (the KB becomes living).** Unknown lemmas are inevitable forever, so
+the honest state is neutral, not a guess — `TKZipContent.unknown` → grounding `0.5` → `INSUFFICIENT`
+("unknown vocabulary"), already in place (`e_truth`/`e_statement`). The reflective rule
+`[eval:unknown] IMPLY [tokeniko:ask]` then asks a source for the meaning, compiles the answer into a
+statement, and **stores it at that source's trust level** — the existing `trusted` field is the
+gradient: bulk WordNet ingest = `trusted=1.0` ("school"), a user-taught meaning = lower ("life
+experience"). So the KB grows through interaction, not just ingestion (cf. `TKGeneric`'s own comment:
+"get the definition and replace it with a statement, so tokeniko learns"). Follow-ons: **trust-weighted
+grounding** (a `1.0` definition decides more than a user-taught one) and **conflict arbitration** when
+a low-trust learned meaning clashes with a trusted one (trust + recency).
+
 ---
 
 ## Parked / cross-cutting

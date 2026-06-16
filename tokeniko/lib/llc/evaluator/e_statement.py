@@ -123,7 +123,14 @@ def evaluator_evaluateStatement(
     folded = _fold_statement(statement.items, lambda c: truth_by_id.get(id(c), 0.5))
 
     missing: list[str] = []
-    ungrounded = sum(1 for g in groundings if abs(g - 0.5) < _GROUNDING_MARGIN)
+    # clauses whose core arguments are unknown vocabulary (generic, no dictionary sense): a distinct,
+    # actionable INSUFFICIENT reason — tokeniko doesn't know the word(s), the seam for an ask-and-learn.
+    unknown = sum(1 for c in contents if getattr(c, "unknown", False))
+    if unknown:
+        missing.append(f"{unknown} clause(s) reference unknown vocabulary")
+    # clauses that are known but no definition decides them (truth sits in the neutral band)
+    ungrounded = sum(1 for c, g in zip(contents, groundings)
+                     if not getattr(c, "unknown", False) and abs(g - 0.5) < _GROUNDING_MARGIN)
     if ungrounded:
         missing.append(f"{ungrounded} clause(s) not grounded by any definition")
 

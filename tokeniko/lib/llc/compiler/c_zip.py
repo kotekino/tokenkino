@@ -172,6 +172,21 @@ def compiler_zipGetVector(ref: TKLLEntityReference) -> list[float]:
 
     return vector
 
+# does a reference resolve to a GENERIC (unknown-word fallback) entity? generic entities carry no
+# dictionary sense / semantic vector, so they are not groundable.
+def compiler_zipRefIsGeneric(ref: TKLLEntityReference) -> bool:
+    if ref is None:
+        return False
+    entity = next((e for e in _entities if ref.id == e.entity.id), None)
+    return entity is not None and entity.entity.entity_type == "generic"
+
+# a clause is UNKNOWN (ungroundable) when it has core arguments but ALL of them are generic/unknown —
+# i.e. tokeniko knows none of the "who/what" the clause is about (the copula/predicate alone is not
+# enough). a clause with at least one known core argument, or none at all, is left groundable.
+def compiler_zipContentUnknown(content: TKLLCContent) -> bool:
+    core = [r for r in ([content.subject, content.direct] + content.indirects) if r is not None]
+    return bool(core) and all(compiler_zipRefIsGeneric(r) for r in core)
+
 # calculate final vector for the content
 def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     ironic = content.properties.ironic
@@ -185,7 +200,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     for i in content.indirects:
         indirects.append(compiler_zipGetVector(i))
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, unknown=compiler_zipContentUnknown(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:
