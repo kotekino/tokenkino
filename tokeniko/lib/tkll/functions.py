@@ -1,5 +1,59 @@
-from lib.core.models import TKDictionaryDoc
+from lib.core.models import TKDictionaryDoc, TKBaseDoc
 from lib.core.models import _VECTOR_INDEX
+
+# ------------------------------------------------------------------------------------------------
+# ANTONYM PRIMITIVE (the "column read")
+# the 2925 base words form a square-ish co-occurrence/semantic matrix: base[X].vector[idx(W)] is the
+# signed relation of base word X to base word W on W's own axis. a NEGATIVE value means X sits on the
+# opposite pole of W -> X is an antonym of W. so antonyms(W) is the column read:
+#     antonyms(W) = { X : base[X][idx(W)] < 0 }
+# it is sense/word-scoped (keyed on the base word W's axis) and returns the SET of opposite base
+# words. verified: love->{hate,...}, good->{bad,...}, same->{different,...}. used by the compiler to
+# decide comparison-predicate polarity (Decision 2) and reusable wherever opposition is needed.
+# NB this is geometric OPPOSITION (a different axis), NOT the dictionary's pairwise cosine
+# relatedness -- semantic antonymy is otherwise memory-knowledge (see memory `dictionary-semantics`).
+# ------------------------------------------------------------------------------------------------
+
+# antonyms of a single base word via the column read. returns the set of base words on W's opposite
+# pole (base[X][idx(W)] < 0), excluding W itself. empty set when W is not a base word.
+def tkll_antonyms(word: str) -> set[str]:
+    word = (word or "").strip().lower()
+    if not word:
+        return set()
+
+    # locate W's axis (its column index in the 2925-dim base space)
+    target = TKBaseDoc.find_one(TKBaseDoc.word == word).run()
+    if target is None:
+        return set()
+    idx = target.index
+
+    # column read: every base word X whose value on W's axis is negative is an antonym of W.
+    # project only word + the single axis component (vector.idx) so we don't pull 2925-dim rows.
+    result: set[str] = set()
+    pipeline = [
+        {"$match": {f"vector.{idx}": {"$lt": 0}}},
+        {"$project": {"_id": 0, "word": 1}},
+    ]
+    for res in TKBaseDoc.aggregate(pipeline).run():
+        candidate = res.get("word")
+        if candidate and candidate != word:
+            result.add(candidate)
+    return result
+
+# is `word` an antonym of any of the affirmative `anchors`? used to detect negative-comparison
+# predicates ("different"/"unlike" are antonyms of "same"/"equal" -> the comparison is negated).
+# True iff `word` appears in the antonym column of at least one anchor, OR an anchor appears in the
+# antonym column of `word` (the relation is read symmetrically to tolerate sparse columns).
+def tkll_isAntonymOf(word: str, anchors: set[str]) -> bool:
+    word = (word or "").strip().lower()
+    if not word:
+        return False
+    for anchor in anchors:
+        if word in tkll_antonyms(anchor):
+            return True
+    # symmetric fallback: anchors found in word's own antonym column
+    wordAntonyms = tkll_antonyms(word)
+    return any(a in wordAntonyms for a in anchors)
 
 # search semantically similar entities
 def tkll_searchSimilarTokens(token: str, limit: int = 10):
