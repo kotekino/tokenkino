@@ -104,18 +104,26 @@ def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: in
     return propertyReferences
 
 # evaluate reference
-def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: tuple[int, ...]) -> TKLLEntityReference:
+def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statementId: tuple[int, ...]) -> TKLLEntityReference | None:
 
     # evaluate marker, op, aux
     marker = ref.marker
     aux = ref.aux
 
+    # resolve the entity id first; if it cannot be resolved — e.g. a clausal subject ("to accept is
+    # to consider...") or an otherwise unmappable reference — skip this reference GRACEFULLY (return
+    # None) instead of constructing an invalid TKLLEntityReference (id must be an int). Callers treat
+    # a None role as absent. This is the fix for the parse crashes (the Phase-1b "None id" skips).
+    map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=ref.id)
+    eid = compiler_getEntityIdByMap(map)
+    if eid is None:
+        return None
+
     # get properties
     properties: list[TKLLEntityProperty] = compiler_recurseReferenceProperties(ref, statementIdx, statementId)
 
     # return result
-    map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=ref.id)
-    return TKLLEntityReference(id=compiler_getEntityIdByMap(map), dep=ref.dep, marker=marker, properties=properties, aux=aux)
+    return TKLLEntityReference(id=eid, dep=ref.dep, marker=marker, properties=properties, aux=aux)
 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
 def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
@@ -303,6 +311,8 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
         else:
             # a coordinated entity: clone the head clause and swap entityId -> this sibling
             ef = compiler_evaluateReference(coordReference, statementIdx, statementId)
+            if ef is None:
+                continue  # unresolvable coordinate — skip rather than clone with a None reference
             rep = [coordReference.op, entityId, ef]
             dupContent = compiler_modifyContent(copy.deepcopy(mainContent), rep, coordReference.subordinates, coordReference.conjuncts, entities, entityId, statementIdx, statementId)
             result.append(TKLLCItem(op=coordReference.op, content=dupContent))
@@ -327,7 +337,9 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     if statement.direct:
         direct = compiler_evaluateReference(statement.direct, statementIdx, statementId) if statement.direct else None
     for indirectReference in statement.indirects:
-        indirects.append(compiler_evaluateReference(indirectReference, statementIdx, statementId))
+        indirectRef = compiler_evaluateReference(indirectReference, statementIdx, statementId)
+        if indirectRef is not None:
+            indirects.append(indirectRef)
 
     # get properties
     properties: TKLLProperties = TKLLProperties()

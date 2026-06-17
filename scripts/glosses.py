@@ -46,10 +46,11 @@ _STOP = set(stopwords.words("english"))
 _INFORMAL = ("informal", "slang", "vulgar", "offensive", "colloquial", "derogatory",
              "disparaging", "ethnic slur", "obscene", "taboo")
 _CONTENT_POS = {"n", "v", "a", "s"}  # noun / verb / adjective / adjective-satellite (skip 'r' adverbs)
-# FIRST PASS: nouns only. Verb/adjective definitional framing is bottlenecked on the parser's
-# infinitive-subject binding (the deferred Phase-0 D3a class) — "to accept is to..." drops "accept".
-# Widen this set in a later pass once that lands (and re-ingest — the whole KB is re-compilable).
-_INGEST_POS = {"n"}
+# This pass: nouns (already done) + adjectives (incl. satellite 's'). Adverbs ('r') skipped. VERBS
+# deferred — the "X means <gloss>" frame captures the verb but drags in "means" (a spurious predicate
+# / THAT attitude), below the clean-core bar; revisit with a cleaner verb frame. Framing uses NOMINAL
+# subjects (see `frame`) to avoid the clausal-subject construction the parser can't bind.
+_INGEST_POS = {"n", "a", "s"}
 _PAREN_RE = re.compile(r"\([^)]*\)")
 
 
@@ -77,11 +78,11 @@ def frame(word: str, pos: str, gloss: str):
     if not gloss:
         return None
     if pos == "n":
-        return f"{util_indefiniteArticle(word)} {word} is {gloss}"
+        return f"{util_indefiniteArticle(word)} {word} is {gloss}"   # "a cat is a feline mammal"
     if pos == "v":
-        return f"to {word} is to {gloss}"
+        return f"{word} means {gloss}"                               # "accept means consider or hold..."
     if pos in ("a", "s"):
-        return f"{word} means {gloss}"
+        return f"something {word} is {gloss}"                        # "something able is having skill..."
     return None
 
 
