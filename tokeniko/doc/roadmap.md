@@ -38,18 +38,21 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     **compiler None-id guard** (`compiler_evaluateReference` returns None instead of an invalid
     reference) lets clausal subjects degrade gracefully — also retroactively fixing the ~7 Phase-1b
     crash skips. **KB now: 1,352 definitions + 1,885 axioms.** *(Verbs deferred — see Parked.)*
+12. **Word-sense disambiguation (Phase 2)** — `parser_getMeaning` now picks the dictionary sense by
+    context (`parser_disambiguateSense`): **Lesk-first** (gloss-overlap with the sentence's content
+    words — reliable on the sparse vectors; a raw cosine confidently mis-ranks) → context-**centroid**
+    fallback → most-frequent default (Phase-5 ask TODO). Verified: cat→animal next to "mammal", the
+    finance vs river sense of "bank". *(Properties still first-sense — a follow-up.)*
 
 ## 🔭 Next (ordered)
 
-1. **Word-sense disambiguation** — POS-prune → context centroid (sense family) → gloss/Lesk tiebreak →
-   ask on low margin. (Today: POS + most-frequent only.)
-2. **Reasoning engine — intra-statement kernel** — validity / self-contradiction on the input's own
+1. **Reasoning engine — intra-statement kernel** — validity / self-contradiction on the input's own
    folded form (`X∧¬X`, `X→¬X`, eq/noteq); the **validity check** (an axiom/theorem must fold `≡ 1`);
    produce `INCONSISTENT` + `EvaluatorResult.inconsistency` (where).
-3. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
+2. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
    forward-chaining over the `relations` graph + KB; **minimal premise + identification set**
    (unsat-core) output; quantifiers ("all"/"only"); chaining termination/cycles.
-4. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
+3. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
