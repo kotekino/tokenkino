@@ -113,12 +113,20 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      below), **actions** (carries them out) — and the external connectors moved to the **`senses/`**
      subproject (Discord + ATProto/Bluesky, the actions' I/O). The loops are stubs awaiting the
      reasoning engine + the ideas-repository below.
-   - **First-draft orchestration design → `brain/README.md`** — the three loops
-     (Thinking / Priorities / Actions), dynamic queue-priority routing, the thinking↔wondering
-     re-evaluation of memory as the KB grows, atomic queue transitions + a `brain_state` singleton for
-     continuity across restarts. Its cognition hooks = the reasoning engine; its idea→action mapping =
-     the reserved-token behavior rules. **A draft to be reconciled** (its feasibility-score vs the urge
-     gradient above; and thinking should also emit theorems/inconsistency-findings, not only ideas).
+   - **Orchestration design → `brain/README.md`** — the three loops (Thinking / Priorities / Actions),
+     dynamic queue-priority routing, and the thinking↔wondering re-evaluation of memory as the KB grows
+     (tokeniko growing wiser). It now encodes the agreed model: Thinking writes **theorems → the KB**
+     (necessary truths, don't fade) *and* **urges → the Ideas queue** (the "maybe", can fade), with a
+     theorem taking a direct vs idea→action path by **cost**; Priorities weighs **urge** (the
+     act-threshold / conflict key) against **feasibility** (a separate can-do gate); the idea→action
+     mapping = the reserved-token behavior rules; and a **governor** (urge + decay) keeps internal
+     reflection from running away. Engineering: atomic queue transitions + a `brain_state` singleton for
+     continuity across restarts. Cognition hooks = the reasoning engine. (Still future — the loops are
+     stubs; scoring/governor to tune.)
+   - **I/O membrane → `senses/README.md`** — the connectors daemon (Discord, bidirectional;
+     ATProto/Bluesky, inbound awareness). The boundary: **brain decides, `senses` does the I/O** — an
+     action names a `channel`, `senses` owns the channel and performs the send/post. Currently
+     scaffolding / stubs.
    - **Ideas repository (`TKIdeaDoc`)** — the concrete structure behind `[tokeniko:<action>]`: axioms/
      theorems that instil ideas/urges in tokeniko's mind. Each idea carries a `TKZip`/`TKZipContent`
      payload plus: (1) an **urge level** — `idea 0.1 · wish 0.5 · urge 0.7 · need 1.0` — which doubles
