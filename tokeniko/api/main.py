@@ -8,7 +8,7 @@ from lib.llc.parser import parser, parser_diagram, parser_init
 from lib.core.io import get_stakeholder, get_tokeniko, init_io
 from lib.core.models import TKMemoryItemDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
-from lib.tkll.functions import tkll_searchDissimilarTokens, tkll_searchSimilarTokens
+from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.tk import TKStatements
 from lib.core.tkllc import TKLLC
@@ -308,9 +308,9 @@ async def evaluate(payload: EvaluateIn):
 async def search(token: str, prepare: int = 0, opposite: int = 0):
     preparsedTokens = await preparser_prepare(token) if prepare == 1 else token
     if opposite == 0:
-        doc = tkll_searchSimilarTokens(preparsedTokens) 
+        doc = utils_searchSimilarTokens(preparsedTokens) 
     else:
-        doc = tkll_searchDissimilarTokens(preparsedTokens) 
+        doc = utils_searchDissimilarTokens(preparsedTokens) 
 
     return doc
 

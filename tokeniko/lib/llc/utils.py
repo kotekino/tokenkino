@@ -16,7 +16,7 @@ from lib.core.models import _VECTOR_INDEX
 
 # antonyms of a single base word via the column read. returns the set of base words on W's opposite
 # pole (base[X][idx(W)] < 0), excluding W itself. empty set when W is not a base word.
-def tkll_antonyms(word: str) -> set[str]:
+def utils_antonyms(word: str) -> set[str]:
     word = (word or "").strip().lower()
     if not word:
         return set()
@@ -44,19 +44,19 @@ def tkll_antonyms(word: str) -> set[str]:
 # predicates ("different"/"unlike" are antonyms of "same"/"equal" -> the comparison is negated).
 # True iff `word` appears in the antonym column of at least one anchor, OR an anchor appears in the
 # antonym column of `word` (the relation is read symmetrically to tolerate sparse columns).
-def tkll_isAntonymOf(word: str, anchors: set[str]) -> bool:
+def utils_isAntonymOf(word: str, anchors: set[str]) -> bool:
     word = (word or "").strip().lower()
     if not word:
         return False
     for anchor in anchors:
-        if word in tkll_antonyms(anchor):
+        if word in utils_antonyms(anchor):
             return True
     # symmetric fallback: anchors found in word's own antonym column
-    wordAntonyms = tkll_antonyms(word)
+    wordAntonyms = utils_antonyms(word)
     return any(a in wordAntonyms for a in anchors)
 
 # search semantically similar entities
-def tkll_searchSimilarTokens(token: str, limit: int = 10):
+def utils_searchSimilarTokens(token: str, limit: int = 10):
     result = []
 
     docs = TKDictionaryDoc.find_many(TKDictionaryDoc.word == token).run()
@@ -109,7 +109,7 @@ def tkll_searchSimilarTokens(token: str, limit: int = 10):
     return result
 
 # search semantically opposite entities
-def tkll_searchDissimilarTokens(token: str, limit: int = 10):
+def utils_searchDissimilarTokens(token: str, limit: int = 10):
     result = []
 
     docs = TKDictionaryDoc.find_many(TKDictionaryDoc.word == token).run()

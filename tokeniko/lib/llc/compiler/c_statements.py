@@ -8,7 +8,7 @@ import copy
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntityMapReference, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
 from lib.llc.constants import _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _COMPARISON_AFFIRMATIVE, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
-from lib.tkll.functions import tkll_antonyms
+from lib.llc.utils import utils_antonyms
 
 from .c_state import _entities, nlp
 from .c_entities import compiler_predicateLemma
@@ -33,7 +33,7 @@ def compiler_negativeComparisonWords() -> set[str]:
     if _COMPARISON_NEGATIVE_CACHE is None:
         negatives: set[str] = set()
         for anchor in _COMPARISON_AFFIRMATIVE:
-            negatives |= tkll_antonyms(anchor)
+            negatives |= utils_antonyms(anchor)
         # an affirmative anchor must never count as its own negation
         _COMPARISON_NEGATIVE_CACHE = negatives - _COMPARISON_AFFIRMATIVE
     return _COMPARISON_NEGATIVE_CACHE

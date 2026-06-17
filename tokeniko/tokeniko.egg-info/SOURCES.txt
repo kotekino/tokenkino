@@ -28,6 +28,7 @@ lib/llc/decompiler.py
 lib/llc/parser.py
 lib/llc/preparser.py
 lib/llc/translator.py
+lib/llc/utils.py
 lib/llc/compiler/__init__.py
 lib/llc/compiler/c_entities.py
 lib/llc/compiler/c_main.py
@@ -42,10 +43,6 @@ lib/llc/evaluator/e_label.py
 lib/llc/evaluator/e_statement.py
 lib/llc/evaluator/e_truth.py
 lib/llc/evaluator/operators.py
-lib/tagger/__init__.py
-lib/tagger/functions.py
-lib/tkll/__init__.py
-lib/tkll/functions.py
 tokeniko.egg-info/PKG-INFO
 tokeniko.egg-info/SOURCES.txt
 tokeniko.egg-info/dependency_links.txt
