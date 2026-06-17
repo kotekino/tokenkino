@@ -207,6 +207,79 @@ def parser_getPlace(token: Token) -> TKPlace | None:
     doc = TKPlaceDoc.find_one({"name": token.text.lower()}).run()
     return TKPlace(**doc.model_dump(exclude={"id"})) if doc else None
 
+# --------------------------------------------------------------
+# WORD-SENSE DISAMBIGUATION (Phase 2)
+# pick the dictionary sense that best fits the sentence: POS prunes the candidates (done by the
+# caller's query), then the sense whose vector is closest to the sentence's context centroid wins;
+# near-ties are broken by gloss/Lesk overlap; with no usable context (or a genuine tie) we fall back
+# to the most-frequent sense (the first candidate). single-pass: the context centroid is built from
+# the OTHER content words' most-frequent senses (no iterative refinement yet).
+# --------------------------------------------------------------
+_WSD_CONTENT_POS = {"NOUN", "VERB", "ADJ", "ADV", "PROPN"}  # spaCy POS that carry context
+
+def _wsd_cosine(a: np.ndarray, b: np.ndarray) -> float:
+    na, nb = float(np.linalg.norm(a)), float(np.linalg.norm(b))
+    return float(np.dot(a, b) / (na * nb)) if na and nb else 0.0
+
+# the most-frequent (first) dictionary sense vector for a token, or None
+def _wsd_mostFrequentVector(token: Token) -> np.ndarray | None:
+    for p in TKPosMapper.get_wn_pos(token.pos_):
+        d = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
+        if d and d.vector:
+            return np.asarray(d.vector, dtype=np.float32)
+    return None
+
+# per-Doc cache (computed once) of {token.i: most-frequent sense vector} for content tokens
+def _wsd_contextVectors(doc) -> dict[int, np.ndarray]:
+    cache = doc.user_data.get("_wsd_vecs")
+    if cache is None:
+        cache = {}
+        for t in doc:
+            if t.pos_ in _WSD_CONTENT_POS and not t.is_stop and not t.is_punct:
+                v = _wsd_mostFrequentVector(t)
+                if v is not None:
+                    cache[t.i] = v
+        doc.user_data["_wsd_vecs"] = cache
+    return cache
+
+# context centroid = mean of the OTHER content tokens' most-frequent vectors (None if no context)
+def _wsd_centroid(token: Token) -> np.ndarray | None:
+    vecs = _wsd_contextVectors(token.doc)
+    others = [v for i, v in vecs.items() if i != token.i]
+    return np.mean(others, axis=0) if others else None
+
+# Lesk overlap: how many of a gloss's content words appear among the sentence's content lemmas
+def _wsd_lesk(definition: str, doc) -> int:
+    if not definition:
+        return 0
+    glossWords = {w for w in (t.strip(".,;:()'\"`") for t in definition.lower().split()) if len(w) > 2 and w.isalpha()}
+    ctx = {t.lemma_.lower() for t in doc if t.pos_ in _WSD_CONTENT_POS and not t.is_stop}
+    return len(glossWords & ctx)
+
+# choose the best sense among candidates (the dictionary docs for token's lemma+POS, >=1)
+def parser_disambiguateSense(token: Token, candidates: list[TKDictionaryDoc]) -> TKDictionaryDoc:
+    if len(candidates) == 1:
+        return candidates[0]
+
+    # LESK FIRST: overlap of the sense's gloss with the sentence's content words is the most reliable
+    # signal on the sparse explicit vectors — a raw centroid cosine can confidently mis-rank (it scores
+    # the "gossip" sense of cat ABOVE the animal sense next to "mammal", while the animal gloss is the
+    # only one that contains "mammal"). pick the UNIQUE top-overlap sense.
+    leskScored = [(_wsd_lesk(c.definition or "", token.doc), c) for c in candidates]
+    maxLesk = max(s for s, _ in leskScored)
+    leaders = [c for s, c in leskScored if s == maxLesk]
+    if maxLesk > 0 and len(leaders) == 1:
+        return leaders[0]
+
+    # otherwise lean on the context centroid (rich contexts the gloss overlap misses); restrict to the
+    # tied Lesk leaders when there IS a positive overlap signal, else consider all candidates.
+    centroid = _wsd_centroid(token)
+    if centroid is not None:
+        pool = leaders if maxLesk > 0 else candidates
+        return max(pool, key=lambda c: _wsd_cosine(np.asarray(c.vector, dtype=np.float32), centroid) if c.vector else -1.0)
+
+    return candidates[0]  # no usable context -> most-frequent. TODO Phase-5: [eval:ambiguous] -> [tokeniko:ask]
+
 def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
 
     tkMeaning = None
@@ -269,10 +342,13 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
     # should be in the dictionary (exclude auxiliaries, pronouns)
     doc_result: TKDictionary = None
     if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
-        # search in dictionary
-        for p in pos:           
-            doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
-            if doc_result: break
+        # search in dictionary — gather the candidate senses for this POS and pick by context (WSD),
+        # falling back to the most-frequent sense when context can't decide.
+        for p in pos:
+            candidates = TKDictionaryDoc.find({"word": token.lemma_, "pos": p}).to_list()
+            if candidates:
+                doc_result = parser_disambiguateSense(token, candidates)
+                break
                 
         # semantic fallback
         for p in pos:
