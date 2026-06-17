@@ -149,46 +149,7 @@ vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`. The HTTP entry p
 `EvaluationService` (`api/services/evaluation_service.py`) behind `POST /api/v1/evaluate` — the
 DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id.
 
-The full design + the empirical findings that grounded it are in `doc/reasoning-engine-brainstorm.md`;
-the phased **execution plan is in `doc/plan.md`**. Concise status below.
-
-**Landed:** fuzzy `[0,1]` operators + `operator_truth`; truth-folding in `e_statement` (RESOLVED truth
-via the operator tree); `POST /api/v1/evaluate`; order-aware directional operators + degenerate-axis
-normalization; the **antonym column-read** primitive — `antonyms(W) = { X : base[X][idx(W)] < 0 }`,
-sense-scoped, verified (this was roadmap #2's antonym half; semantic antonymy is otherwise
-**memory-knowledge**, not geometry — the dictionary's pairwise cosine encodes relatedness, not
-opposition; see memory `dictionary-semantics`). **Phase 0** (parser/compiler hardening): negation is
-now a discrete `TKZipContent.negated` flag (set by the compiler, applied in `evaluator_groundContent`
-→ a negated input evaluates false end-to-end), comparison polarity via the `tkll_antonyms` column-read,
-and noun-complement infinitive binding. **Phase 1a**: `scripts/relations.py` harvested **150,529**
-atomic WordNet triples (`is_a`/`part_of`/`antonym`/…) into the `relations` collection — the inference
-chaining backbone.
-
-**Next — phased (see `doc/plan.md`):**
-
-0. ~~Parser / compiler review & hardening~~ — **done**: D1 negation flag, D2 comparison-polarity via
-   the antonym primitive, D3b noun-complement infinitive binding. **Deferred** to a later parser-level
-   pass: D3a relative-clause matrix subject + purpose-infinitive binding (see
-   `doc/parser-compiler-review.md`).
-1. **Knowledge bootstrap.** **1a done** — WordNet structured relations → `relations` (150k triples,
-   `scripts/relations.py`). **1b nouns done** — `scripts/glosses.py` ingested ~928 definitions +
-   ~1,140 axioms from the base-word **noun** glosses (strict/academic: function-word + informal
-   filtered, gloss-cleaned, POS-framed, routed by clause count). **1b verbs/adjectives deferred** —
-   gated on the parser's infinitive-subject binding (the deferred D3a class; verb/adj framing drops
-   the headword). NB the KB is **re-compilable**: every stored item keeps its `original`, so a future
-   parser/compiler change just re-runs parse+compile over the originals (no NLTK/WordNet) — fast.
-2. **Word-sense disambiguation.** POS-prune → context centroid (sense family) → gloss/Lesk tiebreak →
-   ask on low margin. (Today: POS + most-frequent only.)
-3. **Reasoning engine — intra-statement kernel.** Validity / self-contradiction on the input's own
-   folded form (`X∧¬X`, `X→¬X`, eq/noteq); the validity check (an axiom/theorem must fold `≡ 1`);
-   produce `INCONSISTENT` + `EvaluatorResult.inconsistency` (where).
-4. **Reasoning engine — inter-statement inference.** Soft-unification + forward-chaining over the
-   bootstrapped KB; minimal premise + identification (unsat-core) output; quantifiers + termination.
-5. **Reflective behavior layer (later).** `[eval:*] IMPLY [tokeniko:*]` memory rules; `imperative`
-   activation + action allowlist + the `brain` loop. The seam to the volitional/emotive layer — after
-   the logical brain is whole.
-
-**Parked:** individual-entity identity (Mari ≠ Luca; #2 remainder — limits Phase-4 coreference);
-`axioms`-collection cleanup (Phase 1 largely repopulates it); the t-norm/implication choice.
-
-Keep this list current as items land or priorities shift.
+**Status & the ordered roadmap live in one place → `doc/roadmap.md`** (the single source of truth:
+landed / in-progress / next / parked — keep it current as items land). The phased execution detail is
+in `doc/plan.md`, the design + empirical findings in `doc/reasoning-engine-brainstorm.md`, and the
+parser/compiler quirks + remaining gaps in `doc/parser-compiler-review.md`.
