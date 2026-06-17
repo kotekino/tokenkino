@@ -94,6 +94,10 @@ _NEGATIVE_QUANTIFIERS = {"nobody", "no one", "no-one", "noone", "nothing", "none
 # antonym primitive (Decision 2). the affirmative anchors below seed the antonym column read.
 _COMPARISON_AFFIRMATIVE = {"equal", "same", "alike", "identical", "similar"}
 
+# reflexive pronouns: an identity-comparison operand that is one of these corefers with the subject
+# (a thing is equal to itself) -> the clause is reflexive (a=a / a≠a, hardwired-logic pinned).
+_REFLEXIVE_PRONOUNS = {"itself", "himself", "herself", "themselves", "themself", "oneself"}
+
 # markers
 _MARKER_SIMILARITY_THRESHOLD = 0.85
 
@@ -115,6 +119,10 @@ _ATTITUDE_ANCHORS = {
     "report": ("reportative", 0.6), "argue": ("reportative", 0.4),
 }
 _ATTITUDE_DEFAULT = ("doxastic", 0.5)
+
+# matrix verbs that, with two clausal operands, express logical implication ("X implies/entails Y"):
+# the two clauses combine under IMPLY(antecedent, consequent) instead of an AND of THAT-complements.
+_IMPLICATION_VERBS = {"imply", "entail"}
 
 # spacetime — TIME axis
 # explicit temporal anchors -> absolute position on the time axis, in abstract "days" from now

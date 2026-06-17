@@ -21,6 +21,9 @@ class TKZipContent(BaseModel):
     # there is nothing to ground against, so a contentless clause must NOT score a spurious match
     # ("a wug is a blicket" -> 0.885). the evaluator returns neutral 0.5 (-> INSUFFICIENT / ask) on this.
     unknown: bool = Field(default=False)
+    # reflexive identity clause: the evaluator PINS it (a=a -> true, a≠a -> false) instead of treating
+    # it as a free atom. polarity (which of the two) is carried by `negated`.
+    reflexive: bool = Field(default=False)
     sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925))
     # statement core elements
     subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 300 (marker) + 2925 (semantic) + spacetime (12)

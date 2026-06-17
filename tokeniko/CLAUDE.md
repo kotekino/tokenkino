@@ -29,7 +29,7 @@ There is **no test suite, linter, or formatter** configured. Files under `script
 There are three distinct processes, with different startup requirements:
 
 - **`task api`** (`api/main.py`) — the FastAPI server. Its lifespan calls `parser_init()`, `preparser_init()`, and `decompiler_init()`, which load the spaCy/Stanza pipelines and pull the Ollama models. It needs **all** the dependencies below to start and serve requests. This is where the full compilation pipeline runs.
-- **`task brain`** (`brain/main.py`) — the background "mind": three concurrent loops — **thinking** (cycle over memory, derive theorems, validate axioms for inconsistencies), **priorities** (form wishes/ideas — the `TKIdeaDoc` urge layer), and **actions** (carry out what it decides). It only calls `init_io()` (Mongo + Ollama clients), not the spaCy/Stanza pipeline. Needs MongoDB reachable; the loops are scaffolding (the reasoning + volitional layers are still being built — see `doc/roadmap.md`).
+- **`task brain`** (`brain/main.py`) — the background "mind": three concurrent loops — **thinking** (cycle over memory, derive theorems, validate axioms for inconsistencies), **priorities** (form wishes/ideas — the `TKIdeaDoc` urge layer), and **actions** (carry out what it decides). It only calls `init_io()` (Mongo + Ollama clients), not the spaCy/Stanza pipeline. Needs MongoDB reachable; the loops are scaffolding (the reasoning + volitional layers are still being built — see `doc/roadmap.md`). The brain's first-draft orchestration design (the three loops, queue-priority routing, the `brain_state` continuity singleton) is written up in `brain/README.md`.
 - **`task senses`** (`senses/main.py`) — the connectors daemon (the former stubbed brain listeners, now their own subproject): the **Discord** bot and **ATProto/Bluesky** listener — tokeniko's I/O to the outside world. Concurrent listener tasks; needs MongoDB.
 
 Note also that importing the `lib/llc` pipeline modules (`parser`, `preparser`, `compiler`) loads `en_core_web_lg` at **module import time**, and `translator.py` imports `transformers` at import time — so any process that imports the pipeline needs those models present.
@@ -52,6 +52,8 @@ A sentence flows through a multi-stage pipeline. The main API entry points (`api
 3. **Compiler** (`lib/llc/compiler/` package): `compiler_compile()` is the entry point (re-exported from `compiler/__init__.py`). The package is split by section — `c_entities.py`, `c_subordinates.py`, `c_statements.py`, `c_spacetime.py`, `c_zip.py`, the `c_main.py` orchestrator, and `c_state.py` (shared `_entities` map + spaCy `nlp`, reset in place per compile). Two outputs in one pass:
    - **LLC Flat** (`TKLLC`, defined in `lib/core/tkllc.py`): flattens the recursive statements into entities + references for O(1) access, resolves pronouns and implicit subjects, and computes relative spacetime.
    - **TKZip** (`TKZip`, defined in `lib/core/tkzip.py`): the final fixed-size numeric output. Applies fuzzy-logic vector fusion — advmod scalar multipliers (`_PROP_BASE_ADVMOD_ANCHORS`, e.g. "very"=1.5), Min/Max/negation/Gödel-implication operators kept in `[-1,1]`, `tanh` soft-normalization.
+
+   The compiler also emits two reasoning hooks: a matrix verb `imply`/`entail` (`_IMPLICATION_VERBS`) with two CCOMP complements compiles to `IMPLY(antecedent, consequent)` (`compiler_implicationOperands` drops the "implies" predication leaf and its `THAT` attitude); and an identity-comparison clause whose subject and one operand corefer is flagged `reflexive` (the `reflexive` bool on `TKLLCContent`/`TKZipContent`, set in `compiler_evaluateStatement` via `compiler_isReflexiveIdentity`/`compiler_isIdentityComparison`) — the evaluator's `evaluator_classifyForm` then pins a reflexive leaf to a hardwired constant (`a=a → 1`, `a≠a → 0`) rather than grounding it.
 4. **Decompiler** (`lib/llc/decompiler.py`): `decompiler_raw()` renders LLC back to a raw symbolic string; `decompiler_decompile()` (Ollama) polishes it into natural language. Used for debugging and round-tripping.
 5. **Memory store**: results are saved as Bunnet documents (`TKMemoryItemDoc`, `TKAxiomDoc`, `TKTheoremDoc`) in the memory DB, tagged with source/target stakeholder IDs and a `MEMChannels` channel.
 
@@ -144,8 +146,8 @@ operator similarity), `e_compare.py` (geometric comparison: `evaluator_compareCo
 `e_statement.py` (`evaluator_evaluateStatement`: ground each clause, then **fold the clause truths
 through the operator tree** with `operator_truth` — `A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`
 — and geometrically match axioms/theorems → `EvaluatorResult`), `e_consistency.py`
-(`evaluator_classifyForm` — the intra-statement contradiction check: crisp `{0,1}` enumeration over
-atom-clustered clauses; `e_statement` short-circuits to `INCONSISTENT` on a contradiction). The evaluator is DB-agnostic — the
+(`evaluator_classifyForm` — the intra-statement contradiction kernel: crisp `{0,1}` enumeration over
+atom-clustered clauses, pinning `reflexive`-flagged leaves to a hardwired constant; `e_statement` short-circuits to `INCONSISTENT` on a contradiction). The evaluator is DB-agnostic — the
 caller injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
 `lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most
 representative dictionary word to a statement — a noun-weighted semantic centroid of the role

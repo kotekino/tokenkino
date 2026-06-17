@@ -200,7 +200,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     for i in content.indirects:
         indirects.append(compiler_zipGetVector(i))
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, unknown=compiler_zipContentUnknown(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, unknown=compiler_zipContentUnknown(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:

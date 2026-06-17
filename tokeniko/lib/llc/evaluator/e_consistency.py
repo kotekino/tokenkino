@@ -46,12 +46,20 @@ def evaluator_classifyForm(statement: TKZip) -> FormClass:
 
     # 1. clustering delle foglie in atomi (greedy, primo match). mapping: id(content) -> (atom, sign).
     mapping: dict[int, tuple[int, int]] = {}
+    # foglie PINNATE: identità riflessive (a=a -> 1, a≠a -> 0). costanti hardwired, non atomi liberi.
+    constants: dict[int, float] = {}
     reps: list[TKZipContent] = []
     reps_unknown: list[bool] = []
     # per ogni atomo, le foglie (indice, segno) che vi mappano — serve per la detail string.
     atom_leaves: list[list[tuple[int, int]]] = []
 
     for leaf_index, c in enumerate(contents):
+        if getattr(c, "reflexive", False):
+            # a=a -> 1, a≠a -> 0 (negated flips it). a PINNED constant, not a free atom.
+            # reflexive takes precedence over unknown: logical identity holds regardless of vocabulary.
+            constants[id(c)] = 0.0 if getattr(c, "negated", False) else 1.0
+            continue
+
         if getattr(c, "unknown", False):
             # vocabolario ignoto: atomo proprio, segno +1, non fonde con nulla (skippato nel match).
             atom_index = len(reps)
@@ -80,7 +88,9 @@ def evaluator_classifyForm(statement: TKZip) -> FormClass:
             mapping[id(c)] = (atom_index, 1)
 
     k = len(reps)
-    if k == 0 or k > _MAX_ATOMS:
+    # k==0 free atoms (solo costanti pinnate) deve comunque ripiegare una volta: product(..., repeat=0)
+    # rende una sola assegnazione vuota, così uno statement di sole identità riflessive viene classificato.
+    if k > _MAX_ATOMS:
         return FormClass(False, False, None)
 
     # 2. enumerazione crisp {0,1} su tutti gli atomi: traccia il massimo e il minimo della formula.
@@ -88,6 +98,8 @@ def evaluator_classifyForm(statement: TKZip) -> FormClass:
     minF = float("inf")
     for assignment in product((0.0, 1.0), repeat=k):
         def ground(c, _a=assignment):
+            if id(c) in constants:
+                return constants[id(c)]
             idx, sign = mapping[id(c)]
             v = _a[idx]
             return v if sign > 0 else 1.0 - v
@@ -114,6 +126,10 @@ def evaluator_classifyForm(statement: TKZip) -> FormClass:
             shown = ", ".join(str(i) for i in idxs)
             detail = (
                 f"self-contradiction: clauses {{{shown}}} assert P and ¬P and cannot hold together"
+            )
+        elif constants:
+            detail = (
+                "self-contradiction: reflexive identity violated — a thing cannot differ from itself"
             )
         else:
             detail = (

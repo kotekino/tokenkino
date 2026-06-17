@@ -7,7 +7,7 @@ import copy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntityMapReference, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
-from lib.llc.constants import _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _COMPARISON_AFFIRMATIVE, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
+from lib.llc.constants import _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _COMPARISON_AFFIRMATIVE, _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _REFLEXIVE_PRONOUNS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
 from lib.llc.utils import utils_antonyms
 
 from .c_state import _entities, nlp
@@ -54,6 +54,31 @@ def compiler_entityToken(entityId: int | None) -> str:
         return ""
     ent = next((e for e in _entities if e.entity.id == entityId), None)
     return (ent.entity.token or "").lower() if ent else ""
+
+# is the clause an IDENTITY comparison (same/equal OR different/unlike — either polarity)?
+def compiler_isIdentityComparison(content: TKLLCContent) -> bool:
+    if not content.predicate:
+        return False
+    tok = compiler_entityToken(content.predicate.id)
+    if not tok:
+        return False
+    return tok in _COMPARISON_AFFIRMATIVE or tok in compiler_negativeComparisonWords()
+
+# reflexive identity: an identity comparison whose subject and one operand corefer — either the same
+# entity id (a == a, a cat == a cat) or a reflexive pronoun operand (a == itself). polarity (a=a vs
+# a≠a) is carried by the existing `negated` flag; here we only mark that the relation is reflexive.
+def compiler_isReflexiveIdentity(content: TKLLCContent) -> bool:
+    if not compiler_isIdentityComparison(content) or not content.subject:
+        return False
+    subjectId = content.subject.id
+    operands = ([content.direct] if content.direct else []) + list(content.indirects)
+    for op in operands:
+        if op.id == subjectId:
+            return True
+        tok = compiler_entityToken(op.id)
+        if tok and tok in _REFLEXIVE_PRONOUNS:
+            return True
+    return False
 
 # does a property (or any of its nested properties) carry a negation marker ("not"/"no"/"never")?
 def compiler_propertyIsNegation(prop: TKLLEntityProperty) -> bool:
@@ -319,6 +344,38 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
 
     return result
 
+# logical-implication operands: for "X implies/entails Y" where X and Y are CLAUSES, build the two
+# clause items combined under IMPLY(antecedent, consequent). returns the two TKLLCItem (antecedent
+# seeding the list with op=AND, consequent carrying op=IMPLY so the fold yields IMPLY(T_X, T_Y)), or
+# None when this is not the clausal-implication case (no implication verb, or not exactly two clausal
+# CCOMP complements — e.g. the nominal "rain implies clouds", which falls back to the normal path).
+def compiler_implicationOperands(statement: TKStatement, matrixVerb: str, statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLCItem] | None:
+    if (matrixVerb or "").lower() not in _IMPLICATION_VERBS or not statement.predicate:
+        return None
+
+    # the clausal (CCOMP) complements of the matrix verb, in document order
+    ccompRefs = [r for r in statement.predicate.subordinates if compiler_parseMarker(r.marker) == TKClauseType.CCOMP]
+    if len(ccompRefs) != 2:
+        return None
+
+    items: list[TKLLCItem] = []
+    for ref in ccompRefs:
+        subordinate = next(i for i in statement.entities if ref.id == i.id)
+        items.extend(compiler_evaluateSubordinate(ref, subordinate.payload, statementIdx, statementId, matrixVerb))
+
+    # the two clauses must compile to exactly one item each for a clean IMPLY(antecedent, consequent)
+    if len(items) != 2:
+        return None
+
+    antecedent, consequent = items[0], items[1]
+    # they are logical operands of IMPLY, not doxastic THAT-complements: clear the attitude and make
+    # the antecedent seed the fold (op=AND) and the consequent carry op=IMPLY.
+    antecedent.attitude = None
+    antecedent.op = TKOperator.AND
+    consequent.attitude = None
+    consequent.op = TKOperator.IMPLY
+    return items
+
 # evaluate single statement
 def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = (), clauseType: TKClauseType = TKClauseType.MAIN, operator: TKOperator = TKOperator.AND) -> list[TKLLCItem]:
     result: list[TKLLCItem] = []
@@ -352,13 +409,28 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # recoverable -- the geometry alone loses it (cos("happy", "not happy") == 1.0).
     mainContent.negated = compiler_contentIsNegated(mainContent) or compiler_isNegativeComparison(mainContent)
 
+    # reflexive identity (a=a is necessarily true, a≠a necessarily false) — hardwired logic; the
+    # evaluator pins these instead of grounding them. polarity stays in `negated`.
+    mainContent.reflexive = compiler_isReflexiveIdentity(mainContent)
+
     # ---------------------------------------------
     # predicate (manage statements)
     # ---------------------------------------------
+    # logical-implication matrix verb ("X implies/entails Y"): when the predicate is one of the
+    # implication verbs and it embeds exactly two clausal (CCOMP) complements, the two clauses are
+    # the antecedent and consequent of a real IMPLY — not doxastic THAT-complements. emit them as
+    # IMPLY(antecedent, consequent) and DROP the "implies" predication leaf. otherwise fall back to
+    # the normal subordinate path (so the nominal case "rain implies clouds" is untouched).
+    suppressMatrixLeaf = False
     if statement.predicate:
         # the embedding verb classifies the attitude of any ccomp hanging off the predicate
         matrixVerb = compiler_predicateLemma(statement)
-        result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx, statementId, matrixVerb))
+        implyItems = compiler_implicationOperands(statement, matrixVerb, statementIdx, statementId)
+        if implyItems is not None:
+            result.extend(implyItems)
+            suppressMatrixLeaf = True
+        else:
+            result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx, statementId, matrixVerb))
         newMain = compiler_evaluateCoordinates(statement.predicate.conjuncts, mainContent, predicate.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
@@ -387,7 +459,10 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
         newMain = compiler_evaluateCoordinates(indirectReference.conjuncts, mainContent, indirectReference.id, statement.entities, statementIdx, statementId)
         if newMain != None: mainContent = newMain
 
-    result.insert(0, TKLLCItem(op=operator,content=mainContent))
+    # the matrix predication leaf is dropped for the IMPLY case (the verb is the operator, not a
+    # standalone clause); otherwise it seeds the result as usual.
+    if not suppressMatrixLeaf:
+        result.insert(0, TKLLCItem(op=operator,content=mainContent))
 
     # return all statements
     return result

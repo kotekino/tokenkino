@@ -60,13 +60,50 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     open and the door is not open"; the **lexical-antonym** case ("open" vs "closed", "equal" vs
     "different" without an explicit negation) compiles to geometrically distinct predicates and is
     **deferred** (see Parked).
+14. **Reflexive-identity hardwiring** — the compiler now flags an identity-comparison clause whose
+    subject and one operand corefer as `reflexive` (new `reflexive: bool` on `TKLLCContent` and
+    `TKZipContent`; set in `compiler_evaluateStatement` via `compiler_isReflexiveIdentity` /
+    `compiler_isIdentityComparison`, carried in `compiler_zipContent`). "Identity comparison" = predicate
+    ∈ `_COMPARISON_AFFIRMATIVE` ∪ its antonyms (equal/same… / different/unlike…); "corefer" = same entity
+    id ("a cat is equal to a cat") OR a reflexive-pronoun operand (`_REFLEXIVE_PRONOUNS` =
+    itself/himself/… — "a thing is equal to itself"). The intra-statement kernel
+    (`evaluator_classifyForm`) then **PINS** a reflexive leaf to a hardwired constant instead of grounding
+    it: `a=a → 1`, `a≠a → 0` (the existing `negated` flag carries polarity; both comparison polarities
+    handled). Result: "a thing is not equal to itself" / "a thing is different from itself" →
+    INCONSISTENT; "a thing is equal to itself" → tautology.
+15. **`imply`/`entail` → IMPLY operator + settled belief/attitude semantics** — a matrix verb
+    `imply`/`entail` (new `_IMPLICATION_VERBS`) with two clausal (CCOMP) complements now compiles to
+    `IMPLY(antecedent, consequent)`: `compiler_implicationOperands` builds the two clause items (antecedent
+    seeds with op=AND, consequent carries op=IMPLY) and **drops** the "implies" predication leaf, clearing
+    the doxastic `THAT` attitude. So "a thing is equal to itself implies a thing is not equal to itself"
+    folds `IMPLY(1,0)=0` → INCONSISTENT for the **right reason** (real implication), not via the earlier
+    attitude-modulation workaround (which was **REVERTED** in `_self_truth`). **Belief/attitude semantics
+    settled** (logic-is-sacred): "I believe &lt;logically-false&gt;" is NOT inconsistent — the belief-report
+    is satisfiable (one can believe a falsehood; the `THAT` attitude modulation shields it); "I know
+    &lt;logically-false&gt;" IS inconsistent — knowledge is factive (confidence 1.0, no softening).
+    **Limitation:** `imply`→IMPLY fires only when Stanza roots `implies` as the matrix verb (both clauses
+    CCOMP); for some lexical content Stanza MIS-ROOTS `implies` to `parataxis` (e.g. "a cat is equal to a
+    tree implies …") and it falls back to the old structure (still the correct answer, just not a clean
+    IMPLY) — a Stanza-upstream issue, same class as the parked D3a.
 
 ## 🔭 Next (ordered)
 
-1. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
+1. **Anchor-mechanism unification** — today the "map a surface word → a logical category" decision is
+   done THREE inconsistent ways: `_ATTITUDE_ANCHORS` (literal lemma list), `_PROP_BASE_ADVMOD_ANCHORS`
+   (`TKDictionaryDoc` / Mongo `$vectorSearch` semantic match), `_SUBORDINATE_TYPE_BASE_ANCHORS`
+   (spacy_stanza vector similarity). **Unify the INTERFACE** — one resolver, one place, prefer in-memory
+   — with a small **TYPED TAXONOMY** of category-kinds underneath; *not* "spacy for everything", because
+   spacy static vectors are antonym-/sense-blind (the exact failure the WordNet dictionary fixes;
+   love/hate≈0.86). Taxonomy: closed-class function words (operators/modals/determiners) → literal lemma
+   set (precision is a feature); syntactic role (subordinate type) → spacy_stanza dep/POS; open-class
+   polarity-neutral (intensifier magnitude, attitude verbs) → spacy_stanza vectors (in-memory, cheap);
+   polarity-sensitive (comparison, negation, gradable opposites) → antonym-aware base/dictionary vectors.
+   Do a short **DESIGN pass first** (it's the hardwired language→logic layer — the heart of "logic as the
+   first axiom").
+2. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
    forward-chaining over the `relations` graph + KB; **minimal premise + identification set**
    (unsat-core) output; quantifiers ("all"/"only"); chaining termination/cycles.
-2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
+3. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
@@ -76,6 +113,12 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      below), **actions** (carries them out) — and the external connectors moved to the **`senses/`**
      subproject (Discord + ATProto/Bluesky, the actions' I/O). The loops are stubs awaiting the
      reasoning engine + the ideas-repository below.
+   - **First-draft orchestration design → `brain/README.md`** — the three loops
+     (Thinking / Priorities / Actions), dynamic queue-priority routing, the thinking↔wondering
+     re-evaluation of memory as the KB grows, atomic queue transitions + a `brain_state` singleton for
+     continuity across restarts. Its cognition hooks = the reasoning engine; its idea→action mapping =
+     the reserved-token behavior rules. **A draft to be reconciled** (its feasibility-score vs the urge
+     gradient above; and thinking should also emit theorems/inconsistency-findings, not only ideas).
    - **Ideas repository (`TKIdeaDoc`)** — the concrete structure behind `[tokeniko:<action>]`: axioms/
      theorems that instil ideas/urges in tokeniko's mind. Each idea carries a `TKZip`/`TKZipContent`
      payload plus: (1) an **urge level** — `idea 0.1 · wish 0.5 · urge 0.7 · need 1.0` — which doubles
@@ -93,6 +136,10 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 - **D3a — relative-clause matrix subject** ("the man who loves Mary runs"): a **Stanza mis-rooting**
   (upstream), not parser logic; quotes hunch disproven. Needs a guarded re-rooting heuristic or a
   model change.
+- **`imply`→IMPLY parataxis robustness** — Stanza mis-roots `implies` to `parataxis` for some lexical
+  content, so the `imply`/`entail`→IMPLY transform fires only when `implies` is the clean matrix root
+  with two CCOMP complements; a clausal-subject antecedent isn't captured. Same Stanza-upstream class as
+  D3a; needs guarded parse-repair (risky) — parked.
 - **Proper clausal-subject support** ("to err is human"): represent statement-as-subject in the LLC.
 - **Negative-quantifier subject rewrite** ("nobody" → generic person/thing; flagged only today).
 - **Geometric negation-awareness** in `evaluator_compareContent` (today only the truth path is).

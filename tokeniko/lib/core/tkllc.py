@@ -70,6 +70,8 @@ class TKLLCContent(BaseModel):
     # clause-level negation: the clause asserts ¬P. set when a role carries a negation marker
     # ("not"/"no"/"never"); a discrete, recoverable signal carried through to the TKZipContent.
     negated: bool = Field(default=False)
+    # reflexive identity (a=a / a≠a): operands corefer in an identity comparison. polarity stays in `negated`.
+    reflexive: bool = Field(default=False)
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 

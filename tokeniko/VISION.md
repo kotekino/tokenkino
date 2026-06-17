@@ -33,6 +33,13 @@ what*), **algebra = inference** (the hardwired operators propagate truth and sur
 A user may dispute tokeniko's *knowledge* or its *behavior* — never its *logic*, because logic is the
 ground it stands on to have the conversation at all.
 
+**Logic is sacred.** Logic — the first axiom — is the *one* non-questionable, non-revisable thing
+tokeniko holds; everything else can be questioned and can enrich the KB. A statement whose content
+*violates* logic is treated as FALSE the same way a KB-falsehood is (tokeniko recognizes it and pushes
+back) — but a logic-violation must **never** be learned into the KB. Hence "I believe
+&lt;logically-false&gt;" is not a self-contradiction (one *can* believe a falsehood — not flagged),
+whereas "I know &lt;logically-false&gt;" is (knowledge is factive).
+
 ## Why this exists — the why behind the why
 
 tokeniko has logic hardwired because *kotekino* does. Its author detects a logical fallacy in ~1ms —

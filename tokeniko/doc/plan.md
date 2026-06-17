@@ -99,6 +99,21 @@ tie raises `[eval:ambiguous]` rather than guessing.
 > Explicit-negation contradictions (`X∧¬X` via the `negated` flag) are detected; **lexical-antonym**
 > contradictions (open/closed, equal/different without not/no/never) are **deferred** — the zip layer has
 > no word labels, so they need a TKLLC word-level antonym signal.
+>
+> **Also landed (extending the kernel):** (F1) **reflexive-identity hardwiring** — the compiler flags an
+> identity-comparison clause whose subject and one operand corefer (`reflexive` bool on
+> `TKLLCContent`/`TKZipContent`, set via `compiler_isReflexiveIdentity`/`compiler_isIdentityComparison`);
+> `evaluator_classifyForm` then PINS the reflexive leaf to a hardwired constant (`a=a → 1`, `a≠a → 0`),
+> so "a thing is not equal to itself" → INCONSISTENT and "…equal to itself" → tautology. (F2)
+> **`imply`/`entail` → IMPLY** — a matrix `imply`/`entail` (`_IMPLICATION_VERBS`) with two CCOMP
+> complements compiles to `IMPLY(antecedent, consequent)` (`compiler_implicationOperands`, dropping the
+> "implies" leaf + `THAT` attitude), so a real implication folds `IMPLY(1,0)=0` → INCONSISTENT for the
+> right reason — the earlier attitude-modulation workaround was **REVERTED** in `_self_truth`.
+> **Believe/know semantics settled** (logic-is-sacred): "I believe &lt;false&gt;" is satisfiable (not
+> flagged; `THAT` shields it), "I know &lt;false&gt;" is inconsistent (knowledge is factive).
+> **Limitation:** `imply`→IMPLY fires only when Stanza roots `implies` as the matrix verb; for some
+> lexical content Stanza mis-roots it to `parataxis` and it falls back to the old structure (still correct
+> answer) — a Stanza-upstream issue, same class as the parked D3a.
 
 The self-contained validity / self-contradiction check on the input's own folded form, no KB chaining:
 `X ∧ ¬X`, `X → ¬X`, `eq/noteq` over shared operands. Add the **validity check** (an axiom/theorem must
