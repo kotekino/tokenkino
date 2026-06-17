@@ -30,6 +30,7 @@ dependencies = [
 [tool.taskipy.tasks]
 api = "uvicorn api.main:app --reload"
 brain = "python -m brain.main"
+senses = "python -m senses.main"
 
 
 [tool.setuptools.packages.find]

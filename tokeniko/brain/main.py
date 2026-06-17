@@ -15,7 +15,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("tokeniko-brain")
 
-# main brain loop
+# main brain loop: here tokeniko cycle over his memory, searching for new knowledge (elaborating theorems), validating existing knowledge (inconsistencies over axioms)
+# and creating ideas
 async def idle_thinking_loop():
     logger.info("🧠 Brain loop started")
     try:
@@ -26,30 +27,32 @@ async def idle_thinking_loop():
     except asyncio.CancelledError:
         logger.info("🧠 Brain loop interrupted...")
 
-# atproto listenere
-async def atproto_listener_task():
-
-    logger.info("🦋 ATProto Listener (Jetstream) started")
+# priority evaluation loop
+async def priorities_loop():
+    logger.info("🧠 Priorities loop started")
     try:
         while True:
-
-            await asyncio.sleep(5)  # Simulazione attesa dati
+            logger.info("🤖 tokeniko is taking decisions...")
+            
+            await asyncio.sleep(30) 
     except asyncio.CancelledError:
-        logger.info("🦋 LATProto Listener interrupted...")
+        logger.info("🧠 Priorities loop interrupted...")
 
-# discord bot
-async def discord_bot_task():
-    logger.info("💬 Discord interface started")
+# action loop
+async def actions_loop():
+    logger.info("🧠 Action loop started")
     try:
         while True:
-            # Qui si aggancerebbe il client di Discord (es. discord.py)
-            await asyncio.sleep(10)
+            logger.info("🤖 tokeniko is executing his wills...")
+            
+            await asyncio.sleep(30) 
     except asyncio.CancelledError:
-        logger.info("💬 Discord interface interrupted...")
+        logger.info("🧠 Action loop interrupted...")
+
 
 # main / init
 async def main():
-    logger.info("🚀 Init tokeniko")
+    logger.info("🚀 Init tokeniko: brain")
     
     # 1. Init
     db, db_memory, ai_client = init_io()
@@ -69,10 +72,10 @@ async def main():
     # 3. Tasks launcher
     try:
         async with asyncio.TaskGroup() as tg:
-            # Creiamo i processi paralleli che gireranno contemporaneamente
+            # parallel tasks (so far, one task)
             thinking_task = tg.create_task(idle_thinking_loop())
-            atproto_task = tg.create_task(atproto_listener_task())
-            discord_task = tg.create_task(discord_bot_task())
+            prio_task = tg.create_task(priorities_loop())
+            actions_task = tg.create_task(actions_loop())
             
             # Waiting for sigterms
             await stop_event.wait()
@@ -80,8 +83,9 @@ async def main():
             # Gently shutdown
             logger.info("Shutting down sub threads...")
             thinking_task.cancel()
-            atproto_task.cancel()
-            discord_task.cancel()
+            prio_task.cancel()
+            actions_task.cancel()
+
             
     except* Exception as eg:
         logger.error(f"❌ Critical error: {eg}")
