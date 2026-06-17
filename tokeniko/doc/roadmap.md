@@ -43,16 +43,30 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     words — reliable on the sparse vectors; a raw cosine confidently mis-ranks) → context-**centroid**
     fallback → most-frequent default (Phase-5 ask TODO). Verified: cat→animal next to "mammal", the
     finance vs river sense of "bank". *(Properties still first-sense — a follow-up.)*
+13. **Intra-statement reasoning kernel** — `evaluator_classifyForm` (`lib/llc/evaluator/e_consistency.py`)
+    decides a statement's *form* on its own folded logic, no KB. It clusters the leaf clauses into atoms
+    by geometric similarity (`evaluator_compareContent ≥ 0.90`), reads each leaf's polarity from its
+    `negated` flag, enumerates the crisp `{0,1}` atom assignments, and re-folds the operator tree via
+    `_fold_statement` (on `{0,1}`, `operator_truth` collapses to classical boolean logic) →
+    `FormClass(contradiction, tautology, detail)`. `contradiction` = the folded truth is 0 under *every*
+    assignment (`X∧¬X`); `tautology` = 1 under every. `evaluator_evaluateStatement` now runs this as
+    **STEP 0** and short-circuits to `INCONSISTENT` (truth `0.0`, `inconsistency=detail`) on a
+    contradiction. Two **locked decisions**: (a) **contradiction-only bar** — only genuinely unsatisfiable
+    forms flag, so a satisfiable-but-not-tautological form like `a eq b imply a noteq b` (≡ `IMPLY(x, 1−x)`,
+    true when a≠b) stays RESOLVED; (b) **evaluator-only** — the `tautology` flag is computed but *not* yet
+    wired into axiom/theorem creation (the `≡1` creation guard is a follow-up). **Scope:** the
+    contradiction is caught only when the two clauses share the same predicate and differ by an explicit
+    `negated` flag (not/no/never) — verified on "the cat is alive and the cat is not alive", "the door is
+    open and the door is not open"; the **lexical-antonym** case ("open" vs "closed", "equal" vs
+    "different" without an explicit negation) compiles to geometrically distinct predicates and is
+    **deferred** (see Parked).
 
 ## 🔭 Next (ordered)
 
-1. **Reasoning engine — intra-statement kernel** — validity / self-contradiction on the input's own
-   folded form (`X∧¬X`, `X→¬X`, eq/noteq); the **validity check** (an axiom/theorem must fold `≡ 1`);
-   produce `INCONSISTENT` + `EvaluatorResult.inconsistency` (where).
-2. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
+1. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
    forward-chaining over the `relations` graph + KB; **minimal premise + identification set**
    (unsat-core) output; quantifiers ("all"/"only"); chaining termination/cycles.
-3. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
+2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
@@ -82,6 +96,17 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 - **Proper clausal-subject support** ("to err is human"): represent statement-as-subject in the LLC.
 - **Negative-quantifier subject rewrite** ("nobody" → generic person/thing; flagged only today).
 - **Geometric negation-awareness** in `evaluator_compareContent` (today only the truth path is).
+- **Antonym-predicate / lexical contradiction** — the intra-statement kernel catches `X∧¬X` only when
+  the clauses differ by an *explicit* `negated` flag; a contradiction carried by distinct **antonym
+  words** ("the door is open" vs "…closed"; "a is equal to b" vs "…different from b" *without*
+  not/no/never) compiles to geometrically distinct predicates (cos ~0.30, below the 0.90 alias
+  threshold) and slips through. The `TKZip` layer carries no word labels, so this needs a **TKLLC
+  word-level antonym signal** (the column-read primitive lives there, not in the zip) — and note
+  antonyms also measure as *similar* geometrically. Same deferred class as the alive/dead case; this
+  **supersedes** the old "a equals b and a is different from b → INCONSISTENT" verify line.
+- **Axiom/theorem `≡1` validity creation guard** — `evaluator_classifyForm` already computes the
+  `tautology` flag, but it is not yet wired into the axiom/theorem POST (a trusted relation should fold
+  `≡ 1` over all assignments). A follow-up to the contradiction-only evaluator bar.
 - **Intrinsic comparison grounding** — `compare(subject, indirect)` for eq/noteq clauses.
 - **Trust-weighted grounding + conflict arbitration** (Phase-4 follow-ons; lean on `trusted` + recency).
 - **Individual-entity identity** (Mari ≠ Luca; named-entity vectors) — limits inter-statement coreference.

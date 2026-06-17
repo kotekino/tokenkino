@@ -5,6 +5,7 @@ from .e_compare import evaluator_compareContent, evaluator_compareItem, evaluato
 from .e_truth import evaluator_groundContent
 from .e_statement import evaluator_evaluateStatement
 from .e_label import evaluator_assignWord, TKWordLabel
+from .e_consistency import evaluator_classifyForm, FormClass
 from .operators import operator_similarity, operator_truth
 
 __all__ = [
@@ -15,6 +16,8 @@ __all__ = [
     "evaluator_evaluateStatement",
     "evaluator_assignWord",
     "TKWordLabel",
+    "evaluator_classifyForm",
+    "FormClass",
     "operator_similarity",
     "operator_truth",
 ]

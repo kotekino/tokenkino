@@ -113,6 +113,16 @@ def evaluator_evaluateStatement(
     axioms = axioms or []
     theorems = theorems or []
 
+    # 0. intra-statement consistency: a self-contradiction (X ∧ ¬X) is INCONSISTENT regardless of
+    # what grounds it — checked on the input's own folded form (crisp atom enumeration), no KB.
+    # imported function-locally to avoid an import cycle (e_consistency imports the fold helpers here).
+    from .e_consistency import evaluator_classifyForm
+    form = evaluator_classifyForm(statement)
+    if form.contradiction:
+        return EvaluatorResult(
+            truth=0.0, status=EvaluatorStatus.INCONSISTENT, inconsistency=form.detail,
+        )
+
     # 1. ground each leaf clause against the definitions
     contents = _collect_contents(statement.items)
     groundings = [evaluator_groundContent(c, definitions) for c in contents]

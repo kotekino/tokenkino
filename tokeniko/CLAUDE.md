@@ -143,7 +143,9 @@ operator similarity), `e_compare.py` (geometric comparison: `evaluator_compareCo
 `e_truth.py` (`evaluator_groundContent`: a clause's truth in `[0,1]` vs the definitions),
 `e_statement.py` (`evaluator_evaluateStatement`: ground each clause, then **fold the clause truths
 through the operator tree** with `operator_truth` — `A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`
-— and geometrically match axioms/theorems → `EvaluatorResult`). The evaluator is DB-agnostic — the
+— and geometrically match axioms/theorems → `EvaluatorResult`), `e_consistency.py`
+(`evaluator_classifyForm` — the intra-statement contradiction check: crisp `{0,1}` enumeration over
+atom-clustered clauses; `e_statement` short-circuits to `INCONSISTENT` on a contradiction). The evaluator is DB-agnostic — the
 caller injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
 `lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most
 representative dictionary word to a statement — a noun-weighted semantic centroid of the role

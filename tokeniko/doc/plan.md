@@ -90,6 +90,16 @@ tie raises `[eval:ambiguous]` rather than guessing.
 
 ## Phase 3 — Reasoning engine: intra-statement kernel  *(slice of roadmap #1)*
 
+> **Landed:** implemented as `evaluator_classifyForm` in `lib/llc/evaluator/e_consistency.py` — atoms
+> clustered by geometric similarity, crisp `{0,1}` enumeration re-folded through `_fold_statement`,
+> short-circuiting `evaluator_evaluateStatement` to `INCONSISTENT` on a contradiction. **Contradiction-only
+> bar:** only genuinely unsatisfiable forms flag, so `a eq b imply a noteq b` (≡ `IMPLY(x, 1−x)`, true when
+> a≠b) stays RESOLVED — this **supersedes** the old "→ INCONSISTENT" verify line below. **Evaluator-only:**
+> the `tautology` flag is computed but not yet wired into axiom creation (the `≡1` guard is a follow-up).
+> Explicit-negation contradictions (`X∧¬X` via the `negated` flag) are detected; **lexical-antonym**
+> contradictions (open/closed, equal/different without not/no/never) are **deferred** — the zip layer has
+> no word labels, so they need a TKLLC word-level antonym signal.
+
 The self-contained validity / self-contradiction check on the input's own folded form, no KB chaining:
 `X ∧ ¬X`, `X → ¬X`, `eq/noteq` over shared operands. Add the **validity check** (an axiom/theorem must
 fold to `≡ 1` over all operand assignments — `min == 1`), produce `status = INCONSISTENT` +
