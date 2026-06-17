@@ -73,7 +73,7 @@ was no signal distinguishing "same" from "different".
 ### Fix — antonym column-read + reuse the negation flag
 | File | Function / change |
 |---|---|
-| `lib/tkll/functions.py` | `tkll_antonyms(word) -> set[str]`: the **column read** `{ X : base[X][idx(word)] < 0 }` over `TKBaseDoc` (locate `word`'s axis `index`, then a projected `$match {vector.<idx>: {$lt: 0}}` aggregate — no full 2925-dim rows pulled). Plus `tkll_isAntonymOf(word, anchors)` (read symmetrically). |
+| `lib/llc/utils.py` *(moved here from the former `lib/tkll/functions.py`, refactoring `bd974d4`)* | `utils_antonyms(word) -> set[str]`: the **column read** `{ X : base[X][idx(word)] < 0 }` over `TKBaseDoc` (locate `word`'s axis `index`, then a projected `$match {vector.<idx>: {$lt: 0}}` aggregate — no full 2925-dim rows pulled). Plus `utils_isAntonymOf(word, anchors)` (read symmetrically). |
 | `lib/llc/constants.py` | `_COMPARISON_AFFIRMATIVE = {equal, same, alike, identical, similar}`. |
 | `lib/llc/compiler/c_statements.py` | `compiler_negativeComparisonWords()` (union of the affirmative anchors' antonym columns, cached once per process) + `compiler_isNegativeComparison(content)`; OR-ed into `mainContent.negated`. |
 
@@ -93,7 +93,7 @@ the **reasoning engine's job (Phase 3)**. Decision 2 only sets *polarity*; the d
 | "a cat is equal to a dog" | False |
 | "a cat is different from a dog" | **True** |
 
-`tkll_antonyms("same")` should include `different`; `tkll_antonyms("equal")` should include
+`utils_antonyms("same")` should include `different`; `utils_antonyms("equal")` should include
 `{different, unequal, ...}` (sparse, WordNet-curated).
 
 ---
@@ -154,7 +154,7 @@ compiler.
 - `lib/llc/compiler/c_statements.py` — negation + comparison-polarity detection; set `negated`.
 - `lib/llc/compiler/c_zip.py` — carry `negated`; skip negation markers in vector fusion.
 - `lib/llc/evaluator/e_truth.py` — flip grounded truth on `negated`.
-- `lib/tkll/functions.py` — `tkll_antonyms` (column read) + `tkll_isAntonymOf` (Decision 2).
+- `lib/llc/utils.py` (formerly `lib/tkll/functions.py`) — `utils_antonyms` (column read) + `utils_isAntonymOf` (Decision 2).
 - `lib/llc/compiler/c_subordinates.py` — noun-complement infinitive bearer binding (Decision 3b).
 - `lib/core/utilities.py` — `util_normalizeGloss` (Phase-1 helper).
 - `doc/_phase0_regression.py` — runnable before/after probe (NEW).

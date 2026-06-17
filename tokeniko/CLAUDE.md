@@ -18,17 +18,19 @@ Note: the git repository root is the **parent** directory (`../`), which also ho
 Tasks are defined in `pyproject.toml` via `taskipy` (run from this directory):
 
 - `task api` — run the FastAPI server (`uvicorn api.main:app --reload`) on port 8000
-- `task brain` — run the background daemon (`python -m brain.main`)
+- `task brain` — run the background "mind" daemon (`python -m brain.main`): the thinking, priorities (wishes/ideas), and actions loops
+- `task senses` — run the connectors daemon (`python -m senses.main`): the Discord + ATProto/Bluesky listeners (tokeniko's I/O to the outside)
 - `pip install -e .` — editable install of the `tokeniko` package (`lib*`, `api*`)
 
 There is **no test suite, linter, or formatter** configured. Files under `scripts/` (in the repo root) are standalone executable scripts run directly with `python scripts/<name>.py`; they populate the MongoDB knowledge-base collections (`base`, `dictionary`, `names`, `places`, `markers`, `properties`) and are not imported by the app.
 
-### Two entry points: `api` vs `brain`
+### Three entry points: `api`, `brain`, `senses`
 
-There are two distinct processes, and they have different startup requirements:
+There are three distinct processes, with different startup requirements:
 
 - **`task api`** (`api/main.py`) — the FastAPI server. Its lifespan calls `parser_init()`, `preparser_init()`, and `decompiler_init()`, which load the spaCy/Stanza pipelines and pull the Ollama models. It needs **all** the dependencies below to start and serve requests. This is where the full compilation pipeline runs.
-- **`task brain`** (`brain/main.py`) — a background daemon (idle "thinking" loop, plus stubbed ATProto/Discord listeners). It only calls `init_io()`, so it constructs the Mongo and Ollama clients but does **not** load spaCy/Stanza or pull Ollama models on startup. In practice it needs MongoDB reachable; it does not exercise the NLP pipeline yet.
+- **`task brain`** (`brain/main.py`) — the background "mind": three concurrent loops — **thinking** (cycle over memory, derive theorems, validate axioms for inconsistencies), **priorities** (form wishes/ideas — the `TKIdeaDoc` urge layer), and **actions** (carry out what it decides). It only calls `init_io()` (Mongo + Ollama clients), not the spaCy/Stanza pipeline. Needs MongoDB reachable; the loops are scaffolding (the reasoning + volitional layers are still being built — see `doc/roadmap.md`).
+- **`task senses`** (`senses/main.py`) — the connectors daemon (the former stubbed brain listeners, now their own subproject): the **Discord** bot and **ATProto/Bluesky** listener — tokeniko's I/O to the outside world. Concurrent listener tasks; needs MongoDB.
 
 Note also that importing the `lib/llc` pipeline modules (`parser`, `preparser`, `compiler`) loads `en_core_web_lg` at **module import time**, and `translator.py` imports `transformers` at import time — so any process that imports the pipeline needs those models present.
 
@@ -114,7 +116,7 @@ The recursive models use forward references and **discriminated unions** (`Field
 
 - Comments and log messages are a mix of **English and Italian**; module headers in Italian are common. Match the surrounding language when editing a file.
 - Versioned modules: older implementations are kept alongside (`compilerV1.py`, `markersV1/V2/V3.py`, `scripts/legacy scripts/`). The live "V2" compiler is now the `compiler/` package (was `compiler.py`); `parser.py` (internally "V2") is the live parser.
-- `lib/llc/` = the language-compilation pipeline; `lib/core/` = data models & IO; `lib/tkll/` = dictionary/token similarity search; `lib/tagger/` = tagging helpers.
+- `lib/llc/` = the language-compilation pipeline **+ shared utilities** (`lib/llc/utils.py`: the antonym column-read primitive `utils_antonyms` + dictionary/token similarity — moved here from the former `lib/tkll/`); `lib/core/` = data models & IO. `senses/` (a sibling subproject of `lib/`) = the external connectors (Discord, ATProto/Bluesky).
 - `parser.py` monkey-patches `torch.load` (`weights_only=False`) to load Stanza models — keep that patch when touching parser imports.
 
 ## Roadmap (where the team is heading)

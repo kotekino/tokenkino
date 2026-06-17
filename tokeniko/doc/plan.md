@@ -21,7 +21,7 @@ hardwired first axiom, knowledge + behavior = memory.**
 > **Landed** (merged to main): D1 negation as a discrete `TKZipContent.negated` flag (set by the
 > compiler from not/no/never/negative-quantifier markers, applied in `evaluator_groundContent` →
 > `truth → 1−truth`; verified end-to-end — "I do not think" evaluates false via `/evaluate`); D2
-> comparison polarity via the `tkll_antonyms` column-read primitive ("different"→negated, "same/equal"
+> comparison polarity via the `utils_antonyms` column-read primitive ("different"→negated, "same/equal"
 > →affirmative); D3b noun-complement infinitive binding ("ability to roar" → "cat roar"); plus the
 > `util_normalizeGloss` helper. **Deferred to a later parser-level pass:** D3a relative-clause matrix
 > subject ("the man who loves Mary runs") and purpose-infinitive binding ("...to fly" → "airport fly")

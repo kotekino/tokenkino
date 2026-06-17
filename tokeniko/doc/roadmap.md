@@ -19,7 +19,7 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
    recomputed on the `[0,1]²` grid. *(was roadmap "#3")*
 5. **Truth-folding** — `e_statement` folds clause truths through the operator tree → the RESOLVED
    truth (`A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`). *(slice of the reasoning engine)*
-6. **Antonym column-read primitive** — `tkll_antonyms(W) = { X : base[X][idx(W)] < 0 }`, sense-scoped.
+6. **Antonym column-read primitive** — `utils_antonyms(W) = { X : base[X][idx(W)] < 0 }` (`lib/llc/utils.py`), sense-scoped.
 7. **Phase 0 — parser/compiler hardening** — D1 negation as a discrete `TKZipContent.negated` flag
    (negated input evaluates false end-to-end); D2 comparison polarity via the antonym primitive;
    D3b noun-complement infinitive binding ("ability to roar" → "cat roar").
@@ -57,6 +57,11 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
    becomes living; graded by the `trusted` field). The seam to the volitional/emotive layer.
+   - **Scaffolding already in place** (refactoring `2d97aff`): the `brain` daemon now runs three
+     concurrent loops — **thinking**, **priorities** (forms wishes/ideas → the `TKIdeaDoc` layer
+     below), **actions** (carries them out) — and the external connectors moved to the **`senses/`**
+     subproject (Discord + ATProto/Bluesky, the actions' I/O). The loops are stubs awaiting the
+     reasoning engine + the ideas-repository below.
    - **Ideas repository (`TKIdeaDoc`)** — the concrete structure behind `[tokeniko:<action>]`: axioms/
      theorems that instil ideas/urges in tokeniko's mind. Each idea carries a `TKZip`/`TKZipContent`
      payload plus: (1) an **urge level** — `idea 0.1 · wish 0.5 · urge 0.7 · need 1.0` — which doubles

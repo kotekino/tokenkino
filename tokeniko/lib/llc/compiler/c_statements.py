@@ -18,7 +18,7 @@ from .c_entities import compiler_predicateLemma
 # a comparison predicate asserts a relation between the subject and an indirect operand. the
 # AFFIRMATIVE forms (equal/same/...) assert sameness; their ANTONYMS (different/unlike/...) assert
 # non-equality and are treated as NEGATED comparisons (reusing the Decision-1 flag, no new operator).
-# polarity is decided via the antonym column-read primitive (tkll_antonyms), not a hardcoded list:
+# polarity is decided via the antonym column-read primitive (utils_antonyms), not a hardcoded list:
 # a predicate is a negative comparison iff it is an antonym of an affirmative comparison anchor.
 # the antonym columns of the (few) affirmative anchors are precomputed once and cached.
 # intrinsic grounding -- compare(subject, indirect) -- is the reasoning engine's job (Phase 3); we
