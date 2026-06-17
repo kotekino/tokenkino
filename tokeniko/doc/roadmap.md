@@ -32,20 +32,12 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 10. **Unknown-vocabulary fix** — `TKZipContent.unknown` (set by the compiler when a clause's core
     args are all generic) → grounding returns neutral `0.5` → `INSUFFICIENT` ("unknown vocabulary"),
     instead of spuriously resolving ("a wug is a blicket" was 0.885). The seam for *ask-and-learn*.
-
-## 🔄 In progress — verb/adjective gloss ingestion (the 1b verb/adj half)
-
-Unlock ingesting verb & adjective glosses (1b only did nouns). **Findings (just established):**
-- The `csubj` parser tweak is **not** the unlock — it turns "headword dropped" into a *crash* on
-  clausal subjects (the compiler can't build an id for a clause-as-subject). **Reverted.**
-- The unlock is **nominal framing**: verbs → `"Xing means <gloss>"` (captures the verb lemma),
-  adjectives → `"something X is <gloss>"` (adjective as a property) — both parse as `nsubj`.
-- The clausal-subject crash is the **Phase-1b error class** (`None` entity-id → `TKLLEntityReference`);
-  a small **compiler None-id guard** makes it degrade gracefully (and fixes those ~7 skips).
-
-**Remaining steps:** (a) add the compiler None-id guard (`compiler_evaluateReference`); (b) set the
-verb/adjective frames in `scripts/glosses.py` + widen `_INGEST_POS` to `v`/`a`/`s`; (c) dry-sample →
-bulk re-ingest (resumable, dedup'd). Detail: `doc/plan.md` (#4 section).
+11. **Knowledge bootstrap 1b (adjectives) + compiler None-id guard** — `scripts/glosses.py` ingested
+    **424 definitions + 745 axioms** from base-word **adjective** senses (nominal frame
+    "something X is &lt;gloss&gt;" → the adjective captured as a property; nouns dedup-skipped). The
+    **compiler None-id guard** (`compiler_evaluateReference` returns None instead of an invalid
+    reference) lets clausal subjects degrade gracefully — also retroactively fixing the ~7 Phase-1b
+    crash skips. **KB now: 1,352 definitions + 1,885 axioms.** *(Verbs deferred — see Parked.)*
 
 ## 🔭 Next (ordered)
 
@@ -72,6 +64,10 @@ bulk re-ingest (resumable, dedup'd). Detail: `doc/plan.md` (#4 section).
 
 ## ⏸️ Deferred / parked
 
+- **1b verbs** — the `"X means <gloss>"` frame *captures* the verb but drags in "means" (a spurious
+  predicate / `THAT` doxastic attitude, since "means + clause" parses as a complement-taking verb),
+  below the clean-core bar. Revisit with a cleaner frame (a gerund `"Xing is …"` form needs
+  morphology; or treat "mean" as a definitional copula). Then re-run `glosses.py` with `v` in `_INGEST_POS`.
 - **D3a — relative-clause matrix subject** ("the man who loves Mary runs"): a **Stanza mis-rooting**
   (upstream), not parser logic; quotes hunch disproven. Needs a guarded re-rooting heuristic or a
   model change.
