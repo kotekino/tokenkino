@@ -62,6 +62,13 @@ bulk re-ingest (resumable, dedup'd). Detail: `doc/plan.md` (#4 section).
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
    becomes living; graded by the `trusted` field). The seam to the volitional/emotive layer.
+   - **Ideas repository (`TKIdeaDoc`)** — the concrete structure behind `[tokeniko:<action>]`: axioms/
+     theorems that instil ideas/urges in tokeniko's mind. Each idea carries a `TKZip`/`TKZipContent`
+     payload plus: (1) an **urge level** — `idea 0.1 · wish 0.5 · urge 0.7 · need 1.0` — which doubles
+     as both the **act/don't-act threshold** and the **conflict-resolution** key when several ideas
+     fire (highest urge wins); (2) the **source** the idea came from; (3) metadata (id, timestamps);
+     (4) optionally a **deadline**. tokeniko *thinks always, acts maybe* — this store is the definition
+     of the "maybe". (Statuses/levels and the act-threshold are to be tuned.)
 
 ## ⏸️ Deferred / parked
 
