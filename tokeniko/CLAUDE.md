@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Tokeniko is a **neuro-symbolic NLP engine** that compiles a natural-language sentence into a fixed-size mathematical representation ("the zip") that can be stored in MongoDB as permanent, queryable, geometrically-comparable memory. It combines symbolic parsing (POS tagging, dependency parsing, formal logical operators) with sub-symbolic fuzzy-logic vector fusion (NumPy). See `README.md` for the conceptual overview of the compilation flow.
 
-Note: the git repository root is the **parent** directory (`../`), which also holds `scripts/` (one-off data-ingestion scripts), `atlas/` (local MongoDB data volumes), `data/`, and `doc/`. This directory (`tokeniko/`) is the installable Python package and the FastAPI app.
+Note: the git repository root is the **parent** directory (`../`), which also holds `scripts/` (one-off data-ingestion scripts), `atlas/` (local MongoDB data volumes), `data/`, `doc/`, and `tokeniko-public/` (the public website — a self-contained Node/React sibling project, **not** part of the Python package; cloud-deployed against a public MongoDB Atlas — see the topology note below). This directory (`tokeniko/`) is the installable Python package and the FastAPI app.
 
 ## Commands
 
@@ -33,6 +33,10 @@ There are three distinct processes, with different startup requirements:
 - **`task senses`** (`senses/main.py`) — the connectors daemon (the former stubbed brain listeners, now their own subproject): the **Discord** bot and **ATProto/Bluesky** listener — tokeniko's I/O to the outside world. Concurrent listener tasks; needs MongoDB.
 
 Note also that importing the `lib/llc` pipeline modules (`parser`, `preparser`, `compiler`) loads `en_core_web_lg` at **module import time**, and `translator.py` imports `transformers` at import time — so any process that imports the pipeline needs those models present.
+
+### Embodiment & the public channel (topology)
+
+tokeniko is **embodied on bare metal**: a single, persistent process running with its **local MongoDB** (`:27018`) — one body, one continuous self, finite hardware. It is **not** a horizontally-scaled cloud service. `tokeniko-public/` (a cloud-hosted Node/React sibling project at the repo root, **not** part of the Python package) is its **public window**: a Stream of *transmissions* beside a `/api/mind` **Mind Monitor** whose KPIs mirror the engine concepts (axioms / dictionary base vectors / memory / inferences / refutations / anchors). It runs against a **separate public MongoDB Atlas** in the cloud. The brain's **actions** loop **publishes transmissions** to the public API and **pushes hardware/brain-cycle stats periodically** to that public Atlas — a **one-way publish**: the embodied local db is never bound to or exposed by the public surface. The website is **mock-phase** (`/api/mind` serves a simulated snapshot; the KPI response shape is the contract — wiring the live engine changes only the backend route). It is another **output channel** alongside the `senses` connectors (Discord, ATProto/Bluesky).
 
 ### Runtime dependencies (must be running)
 

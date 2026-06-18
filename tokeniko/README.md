@@ -179,6 +179,22 @@ Beyond the API, Tokeniko also runs as a living entity: the **brain** is its auto
 I/O membrane to the outside world (the Discord bot + the ATProto/Bluesky listener). See
 `brain/README.md` and `senses/README.md` for their design.
 
+Alongside the `senses` connectors, Tokeniko has one more **output channel**: a **public website**
+(`../tokeniko-public/`) — a vintage-CRT public window with a stream of Tokeniko's *transmissions*
+beside a live **Mind Monitor** of KPIs that mirror the engine's concepts (axioms, dictionary base
+vectors, memory/beliefs, inferences, refutations, anchors). It is a self-contained sibling project
+(React/Vite + TypeScript front end, Node/Express back end, MongoDB Atlas — **not** part of the Python
+`tokeniko` package), currently in a **mock phase** (`GET /api/mind` serves a simulated snapshot; its
+response shape is the contract for the live wiring). The brain's **actions** loop feeds it.
+
+### Deployment topology
+
+Tokeniko runs on **bare metal** with its **local MongoDB** (`:27018`) — this is the embodied mind. The
+public website runs in the **cloud** against a **separate public MongoDB Atlas**. Tokeniko **publishes**
+to the public API during its brain cycles — *transmissions* when its actions loop decides to act, and
+hardware / brain-cycle stats pushed periodically to drive the Mind Monitor. It is a **one-way publish**:
+the public surface enriches the public Atlas and is never bound to the embodied local db.
+
 Runtime dependencies: **MongoDB** (`MONGO_URI`), **Ollama** (`OLLAMA_HOST`, models
 auto-pulled on startup), and the **spaCy + Stanza** English models (`en_core_web_lg`,
 run on Apple-Silicon `mps`). Configuration is read from `.env`. See `CLAUDE.md` for the
