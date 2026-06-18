@@ -189,8 +189,16 @@ def compiler_refSense(ref: TKLLEntityReference) -> str | None:
     entity = next((e for e in _entities if ref.id == e.entity.id), None)
     return entity.entity.sense if entity else None
 
+# resolve the sense of an entity referenced by id (a property leaf carries only an id, not a ref).
+def compiler_propSense(prop_id: int) -> str | None:
+    entity = next((e for e in _entities if prop_id == e.entity.id), None)
+    return entity.entity.sense if entity else None
+
 # collect the per-role senses for a content into {role -> sense} (only non-empty ones), so the
 # evaluator can reach the is_a relations graph keyed by role.
+# ALSO surfaces the predicate's nmod-property sense as "predicate_nmod": in the "X is part of Y"
+# copular pattern the WHOLE Y is parsed as an nmod modifier of the predicate noun ("part of Y"),
+# never reaching a role of its own — the part_of grounding needs it to find the whole's sense.
 def compiler_contentSenses(content: TKLLCContent) -> dict[str, str]:
     senses: dict[str, str] = {}
     role_refs = [("subject", content.subject), ("predicate", content.predicate), ("direct", content.direct)]
@@ -200,6 +208,14 @@ def compiler_contentSenses(content: TKLLCContent) -> dict[str, str]:
         s = compiler_refSense(ref)
         if s:
             senses[role] = s
+    # predicate's first nmod property with a resolvable sense -> "predicate_nmod" (the of-modifier)
+    if content.predicate is not None:
+        for p in content.predicate.properties:
+            if getattr(p, "dep", None) == "nmod":
+                ps = compiler_propSense(p.id)
+                if ps:
+                    senses["predicate_nmod"] = ps
+                    break
     return senses
 
 # calculate final vector for the content

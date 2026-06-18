@@ -140,6 +140,20 @@ _ATTITUDE_DEFAULT = ("doxastic", 0.5)
 # the two clauses combine under IMPLY(antecedent, consequent) instead of an AND of THAT-complements.
 _IMPLICATION_VERBS = {"imply", "entail"}
 
+# mereological (part-whole) cue lemmas, matched against the WSD synset LEMMA (the prefix of the
+# synset key, e.g. "part.n.01" -> "part"). two complementary patterns (see the evaluator's STEP-0
+# recon): keep these TIGHT — the evaluator only fires the part_of branch when the pattern is clearly
+# a part-whole claim, else it falls through to definition grounding.
+#
+# (1) the "X is (a) part of Y" copular pattern: the predicate noun is a part-noun and the WHOLE Y is
+#     its nmod modifier ("of Y"). part = the SUBJECT sense, whole = the predicate's nmod sense.
+_PART_OF_PREDICATES = {"part", "portion", "piece", "component", "constituent", "member", "element"}
+# (2) the "Y has/contains X" transitive pattern: the subject is the WHOLE and the direct object is the
+#     PART. matched against the resolved synset lemma (WSD often re-lemmatises: contain->incorporate,
+#     comprise->constitute/comprise, include->include, possess->possess, have->have).
+_HAS_PART_VERBS = {"have", "contain", "include", "comprise", "possess",
+                   "incorporate", "constitute", "encompass"}
+
 # spacetime — TIME axis
 # explicit temporal anchors -> absolute position on the time axis, in abstract "days" from now
 # (deictic origin: utterance now = 0). past < 0, future > 0.

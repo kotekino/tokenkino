@@ -117,3 +117,45 @@ def relations_disjoint(a: str, b: str, parents: Parents) -> Optional[list[str]]:
         return [chain_a, chain_b, note]
 
     return None
+
+
+# ================================================================================================
+# MEREOLOGY — the part_of (part-whole) graph
+# parallel to the is_a logic above, over a DIFFERENT WordNet-derived graph: part_of (meronymy). a
+# clause "X is part of Y" is TRUE when X —part_of*→ Y (transitive closure). DB-agnostic: every
+# function takes a `part_parents` callable (sense -> list[direct part_of wholes]).
+#
+# CONSERVATIVE: the part_of graph is SPARSE/incomplete, so a MISSING edge is NEVER a refutation —
+# only the REVERSE edge (whole —part_of*→ part) refutes, by mereological ANTISYMMETRY ("a car is
+# part of a wheel" is false because a wheel is part of a car, not the absence of car-part-of-wheel).
+# That antisymmetry check lives in e_statement (it queries both directions); here we only expose the
+# reachability primitives.
+# ================================================================================================
+
+# BFS over part_of from `sense` to every reachable WHOLE (the transitive closure of part_of).
+# cycle-safe and depth-capped. returns {whole -> path}, the path being the senses from `sense`
+# (inclusive) up to that whole (inclusive). `sense` itself is NOT a key (not its own part).
+def relations_part_ancestors(sense: str, part_parents: Parents, max_depth: int = 12) -> dict[str, list[str]]:
+    found: dict[str, list[str]] = {}
+    frontier: list[tuple[str, list[str]]] = [(sense, [sense])]
+    while frontier:
+        node, path = frontier.pop(0)
+        if len(path) - 1 >= max_depth:
+            continue
+        for w in part_parents(node):
+            if w == sense or w in found:
+                continue
+            new_path = path + [w]
+            found[w] = new_path
+            frontier.append((w, new_path))
+    return found
+
+
+# the part_of path from `part` up to `whole` (inclusive on both ends) when `whole` is a transitive
+# part_of ancestor of `part`, else None. part == whole returns None (a thing is not part of itself;
+# part_of is irreflexive — unlike is_a's reflexive self-subsumption).
+def relations_is_part_of(part: str, whole: str, part_parents: Parents) -> Optional[list[str]]:
+    if part == whole:
+        return None
+    ancestors = relations_part_ancestors(part, part_parents)
+    return ancestors.get(whole)

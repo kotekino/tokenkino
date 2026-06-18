@@ -6,7 +6,10 @@ from .e_truth import evaluator_groundContent
 from .e_statement import evaluator_evaluateStatement
 from .e_label import evaluator_assignWord, TKWordLabel
 from .e_consistency import evaluator_classifyForm, FormClass
-from .e_relations import relations_isa_ancestors, relations_subsumes, relations_disjoint
+from .e_relations import (
+    relations_isa_ancestors, relations_subsumes, relations_disjoint,
+    relations_part_ancestors, relations_is_part_of,
+)
 from .operators import operator_similarity, operator_truth
 
 __all__ = [
@@ -22,6 +25,8 @@ __all__ = [
     "relations_isa_ancestors",
     "relations_subsumes",
     "relations_disjoint",
+    "relations_part_ancestors",
+    "relations_is_part_of",
     "operator_similarity",
     "operator_truth",
 ]

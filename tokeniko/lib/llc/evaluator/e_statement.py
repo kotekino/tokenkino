@@ -24,8 +24,9 @@ from typing import Callable, Optional
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
+from lib.llc.anchors import anchor_is
 from .e_compare import evaluator_compareZip
-from .e_relations import relations_disjoint, relations_subsumes
+from .e_relations import relations_disjoint, relations_subsumes, relations_is_part_of
 from .e_truth import evaluator_groundContent
 from .operators import operator_truth
 
@@ -120,6 +121,80 @@ def _isa_senses(content: TKZipContent) -> Optional[tuple[str, str]]:
         return subj, pred
     return None
 
+# the lemma prefix of a WSD synset key ("part.n.01" -> "part", "have.v.01" -> "have"), or "" if the
+# key is empty/malformed. used to match mereological cue lemmas against the resolved sense.
+def _synset_lemma(sense: Optional[str]) -> str:
+    if not sense:
+        return ""
+    return sense.split(".", 1)[0]
+
+# is this clause a PART-WHOLE claim the part_of graph can decide? recognize the two patterns pinned
+# by STEP-0 recon and return (part_sense, whole_sense) when one fits clearly, else None:
+#   (1) "X is (a) part of Y": predicate lemma is a part-noun (_PART_OF_PREDICATES) and the WHOLE Y is
+#       the predicate's nmod modifier (surfaced as "predicate_nmod"). part = subject, whole = nmod.
+#   (2) "Y has/contains X": predicate lemma is a meronymic verb (_HAS_PART_VERBS). per the recon the
+#       SUBJECT is the WHOLE and the DIRECT object is the PART. part = direct, whole = subject.
+# conservative: both senses must be present and distinct, else None (fall through).
+def _partof_senses(content: TKZipContent) -> Optional[tuple[str, str]]:
+    senses = getattr(content, "senses", None) or {}
+    subj = senses.get("subject")
+    pred_lemma = _synset_lemma(senses.get("predicate"))
+
+    # pattern (1): "X is part of Y" — part-noun predicate + nmod whole
+    if anchor_is(pred_lemma, "part_of_predicate"):
+        whole = senses.get("predicate_nmod")
+        if subj and whole and subj != whole:
+            return subj, whole          # (part=subject, whole=nmod)
+        return None
+
+    # pattern (2): "Y has/contains X" — meronymic verb, subject=whole, direct=part
+    if anchor_is(pred_lemma, "has_part_verb"):
+        direct = senses.get("direct")
+        if subj and direct and subj != direct:
+            return direct, subj          # (part=direct, whole=subject)
+    return None
+
+# try to decide a clause via the injected part_of (meronymy) graph. returns (truth, chain) when the
+# graph decides it, else None (leave it to is_a / definition-grounding). CONSERVATIVE direction-aware
+# antisymmetry:
+#   part —part_of*→ whole               -> base TRUE  (the asserted direction holds)
+#   whole —part_of*→ part (the REVERSE) -> base FALSE (antisymmetry: the reverse holds, so this is false)
+#   neither edge present                -> None       (part_of is sparse; absence is NOT a refutation)
+# the base verdict is then combined with the clause's quantifier + predicate negation (same net_flip
+# as is_a): net_flip = (quantifier == NEGATIVE) XOR negated.
+def _ground_partof(content: TKZipContent,
+                   part_of: Callable[[str], list[str]]) -> Optional[tuple[float, str]]:
+    pair = _partof_senses(content)
+    if pair is None:
+        return None
+    part_sense, whole_sense = pair
+
+    base: Optional[float] = None
+    chain: str = ""
+
+    path = relations_is_part_of(part_sense, whole_sense, part_of)
+    if path is not None:
+        base = _TAXO_TRUE
+        chain = "part_of: " + " —part_of→ ".join(path)
+    else:
+        # antisymmetry: only the REVERSE edge refutes; a missing edge does NOT (sparse graph)
+        reverse = relations_is_part_of(whole_sense, part_sense, part_of)
+        if reverse is not None:
+            base = _TAXO_FALSE
+            chain = "antisymmetry: reverse holds " + " —part_of→ ".join(reverse)
+
+    if base is None:
+        return None
+
+    quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
+    negated = bool(getattr(content, "negated", False))
+    net_flip = (quantifier == TKQuantifier.NEGATIVE) != negated  # XOR
+    truth = (1.0 - base) if net_flip else base
+    chain += f" | quantifier={quantifier.value} negated={negated}"
+    if net_flip:
+        chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
+    return truth, chain
+
 # try to decide a clause taxonomically via the injected is_a graph. returns (truth, chain) when the
 # graph decides it (subject —is_a*→ predicate ⇒ base TRUE; subject ⊥ predicate at the kingdom level
 # ⇒ base FALSE), else None (leave it to definition-grounding). `relations` is the parents(sense)
@@ -164,13 +239,16 @@ def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[
 
 # evaluate an input statement. definitions are the grounding set (TKZipContent each); axioms and
 # theorems are the relational knowledge (TKZip each). `relations`, when given, is a parents(sense)
-# callable over the is_a graph used for taxonomic grounding/refutation. returns an EvaluatorResult.
+# callable over the is_a graph (taxonomic grounding/refutation); `part_of`, when given, is the
+# analogous wholes(sense) callable over the part_of (meronymy) graph (part-whole grounding). the two
+# readers are kept SEPARATE — is_a and part_of carry different semantics. returns an EvaluatorResult.
 def evaluator_evaluateStatement(
     statement: TKZip,
     definitions: list[TKZipContent],
     axioms: list[TKZip] | None = None,
     theorems: list[TKZip] | None = None,
     relations: Callable[[str], list[str]] | None = None,
+    part_of: Callable[[str], list[str]] | None = None,
 ) -> EvaluatorResult:
     axioms = axioms or []
     theorems = theorems or []
@@ -189,15 +267,28 @@ def evaluator_evaluateStatement(
     contents = _collect_contents(statement.items)
     groundings = [evaluator_groundContent(c, definitions) for c in contents]
 
-    # 1b. RELATIONAL (taxonomic) grounding — when an is_a graph is injected, override the per-clause
-    # grounding for any "X is a Y" clause the graph decides: subsumption -> ~1, kingdom-disjoint -> ~0.
+    # 1b. RELATIONAL grounding — when a relations graph is injected, override the per-clause grounding
+    # for any clause the graph decides. a clause is EITHER taxonomic (is_a) OR mereological (part_of),
+    # never both, so we try is_a first and only fall to part_of when is_a does not decide it (don't
+    # double-decide). is_a: subsumption -> ~1, kingdom-disjoint -> ~0. part_of: part-of-whole -> ~1,
+    # reverse-edge antisymmetry -> ~0 (a MISSING part_of edge is NOT a refutation — sparse graph).
     # the verdict is recorded as a premise chain in `derivation` and the overridden index is tracked so
     # it counts as grounded (not "ungrounded") and a single such clause needs no axiom/theorem match.
     derivation: list[str] = []
     graph_decided: set[int] = set()
-    if relations is not None:
+    if relations is not None or part_of is not None:
         for i, c in enumerate(contents):
-            verdict = _ground_relationally(c, relations)
+            # a clause is EITHER a part-whole claim OR a taxonomic one — never both. recognize the
+            # part-whole pattern FIRST (its predicate is a part-noun "part of" or a meronymic verb
+            # "has/contains") and route it to part_of ONLY: otherwise the is_a copular path would
+            # mis-read "X is part of Y" as "X is_a part" and spuriously refute it (part.n.01 is an
+            # abstraction, X is physical -> false). a non-part clause falls through to is_a.
+            verdict = None
+            is_partwhole = _partof_senses(c) is not None
+            if is_partwhole and part_of is not None:
+                verdict = _ground_partof(c, part_of)
+            elif not is_partwhole and relations is not None:
+                verdict = _ground_relationally(c, relations)
             if verdict is not None:
                 truth, chain = verdict
                 groundings[i] = truth

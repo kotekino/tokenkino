@@ -151,15 +151,41 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     drives the CRISP relational (graph) grounding only — it's recorded but not yet applied to the
     geometric/definition grounding (see Parked).
 
+19. **Inter-statement inference — Slice 2b: part_of (mereological) grounding** — the relations-graph
+    grounding now handles **part_of** (part-whole) claims, parallel to the is_a logic. The pure graph
+    logic in `lib/llc/evaluator/e_relations.py`: `relations_part_ancestors` (BFS transitive closure of
+    part_of, cycle-safe / depth-capped) + `relations_is_part_of(part, whole)` (returns a path or None;
+    irreflexive), parameterized by an injected `part_parents` callable (DB-agnostic). **Relation-type +
+    direction recognition** (`e_statement`): "X is (a) part of Y" / "X belongs to Y" →
+    part_of(part=X, whole=Y); "Y has/contains/includes/comprises X" → part_of(part=X, whole=Y) (the
+    object is the part, the subject the whole). Cue lemma sets in `constants.py` — `_PART_OF_PREDICATES`
+    (part/portion/piece/component/constituent/member/element) and `_HAS_PART_VERBS`
+    (have/contain/include/comprise/possess/incorporate/constitute/encompass) — matched against the
+    WSD-resolved synset lemma; a part-whole clause routes to part_of **ONLY** (never is_a) to avoid
+    double-deciding. **Sense-bridge extension** (`c_zip.py`): for "X is part of Y" the whole Y is the
+    predicate's nmod property — `compiler_contentSenses` now surfaces it as `predicate_nmod` so the
+    whole's sense reaches the evaluator. **Grounding** (conservative, sparse graph): base = TRUE if part
+    is_part_of* whole; base = FALSE by mereological ANTISYMMETRY if the REVERSE holds (whole is_part_of*
+    part — "a car is part of a wheel" is false because wheel∈car); else NO verdict (a MISSING edge is
+    never a refutation). Same quantifier `net_flip = (quantifier == NEGATIVE) XOR negated` as Slice 2a;
+    the chain is recorded in `EvaluatorResult.derivation`. **Wiring**: `EvaluationService` injects a
+    `part_of` reader and `evaluator_evaluateStatement` gained a `part_of=None` param (separate from the
+    is_a `relations=` reader — different semantics). **Verified** via the live /evaluate: "a cell is
+    part of an organism" / "an organism has a cell" → RESOLVED true with the part_of chain;
+    antisymmetry-false + transitivity proven at unit level; is_a + quantifier + gibberish +
+    intra-statement-contradiction regressions all intact. **WSD caveat:** WSD sometimes picks the wrong
+    head sense (e.g. "cell" → cell.n.01 compartment vs cell.n.02 biological); the graph then finds no
+    edge and — by design — conservatively does NOT refute. A known WSD limitation, not a logic defect.
+
 ## 🔭 Next (ordered)
 
-1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a above). The
-   ongoing pieces: **`part_of` + the other clean relation types** (`entails`/`attribute`) — relation-type
-   recognition via the anchor resolver; **KB forward-chaining** over axioms/theorems (soft-unify input
-   clauses to KB facts + propagate truth through the operator algebra) — needs the parked `recompile` to
-   give the stored KB its senses (NB the substrate finding: axioms are mostly flat facts, only ~14%
-   rule-shaped); chaining termination / cycles; and **coreference / individual-entity identity** (no
-   identity system yet).
+1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a) and `part_of`
+   (mereology) ✅ DONE (Slice 2b above). The remaining pieces: **the other relation types**
+   (`entails`/`attribute` — sparse) via relation-type recognition; **KB forward-chaining** over
+   axioms/theorems (soft-unify input clauses to KB facts + propagate truth through the operator algebra)
+   — needs the parked `recompile` to give the stored KB its senses (NB the substrate finding: axioms are
+   mostly flat facts, only ~14% rule-shaped); chaining termination / cycles; and **coreference /
+   individual-entity identity** (no identity system yet).
 2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`

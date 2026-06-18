@@ -46,6 +46,24 @@ class EvaluationService:
 
         return parents
 
+    # the injected part_of (meronymy) graph reader: wholes(sense) -> direct part_of wholes (the
+    # senses Y such that `sense` is part_of Y). kept SEPARATE from the is_a reader — is_a and part_of
+    # are different relations with different truth semantics. cached per evaluate() call, same shape.
+    @staticmethod
+    def _make_partof_reader():
+        cache: dict[str, list[str]] = {}
+
+        def wholes(sense: str) -> list[str]:
+            hit = cache.get(sense)
+            if hit is not None:
+                return hit
+            edges = TKRelationDoc.find({"subject": sense, "relation": "part_of"}).to_list()
+            objs = [e.object for e in edges]
+            cache[sense] = objs
+            return objs
+
+        return wholes
+
     # parse + compile a sentence into its TKZip (same pipeline as the axiom/definition services)
     def _compile_zip(self, tokens: str) -> TKZip:
         recursiveResult = parser(tokens, self._tokeniko, self._tokeniko, self._ai_client)
@@ -70,7 +88,10 @@ class EvaluationService:
 
         statement = self._compile_zip(tokens)
         relations = self._make_relations_reader()
-        result = evaluator_evaluateStatement(statement, definitions, axiom_zips, theorem_zips, relations=relations)
+        part_of = self._make_partof_reader()
+        result = evaluator_evaluateStatement(
+            statement, definitions, axiom_zips, theorem_zips, relations=relations, part_of=part_of
+        )
 
         # map the best (kind, index) back to a concrete document
         matchedId = None

@@ -39,6 +39,8 @@ from lib.llc.constants import (
     _SPATIAL_RELATION_ANCHORS,
     _SEQUENCE_ANCHORS,
     _COMPARISON_AFFIRMATIVE,
+    _PART_OF_PREDICATES,
+    _HAS_PART_VERBS,
     _QUANTIFIER_UNIVERSAL,
     _QUANTIFIER_EXISTENTIAL,
     _QUANTIFIER_NEGATIVE,
@@ -82,6 +84,7 @@ _IMPLICATION_FLOOR: float = 0.7         # solo sinonimi confidenti di implicazio
 _SPATIAL_FLOOR: float = 0.6
 _SEQUENCE_FLOOR: float = 0.7         # >0.65: additive connectives (moreover/however) must NOT read as a temporal advance
 _COMPARISON_FLOOR: float = 0.55         # semantic extension del polarity helper
+_PARTOF_CUE_FLOOR: float = 0.6          # content cue (part-noun / meronymic verb) nearest-anchor floor
 
 
 # ------------------------------------------------------------------------------------------------
@@ -201,6 +204,19 @@ _REGISTRY: dict[str, Category] = {
         name="comparison", table=_COMPARISON_AFFIRMATIVE, strategy=Strategy.SEMANTIC,
         backend=Backend.DICT, polarity_guard=True, floor=_COMPARISON_FLOOR,
         default="none", is_set=True,
+    ),
+    # part-whole cues — CONTENT words (open class) -> map ANY input to the nearest of a small anchor
+    # set (seeds = the literal sets), exact-hit OR nearest >= floor. NO polarity guard (not
+    # polarity-sensitive). Replaces the old fixed `in`-membership in e_statement.
+    "part_of_predicate": Category(
+        name="part_of_predicate", table={w: True for w in _PART_OF_PREDICATES}, strategy=Strategy.SEMANTIC,
+        backend=Backend.DICT, polarity_guard=False, floor=_PARTOF_CUE_FLOOR,
+        default=False, is_set=True,
+    ),
+    "has_part_verb": Category(
+        name="has_part_verb", table={w: True for w in _HAS_PART_VERBS}, strategy=Strategy.SEMANTIC,
+        backend=Backend.DICT, polarity_guard=False, floor=_PARTOF_CUE_FLOOR,
+        default=False, is_set=True,
     ),
 
     # ----------------------------------------------------------------------------------------- EXACT
