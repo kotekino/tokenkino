@@ -172,6 +172,13 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 
 ## ⏸️ Deferred / parked
 
+- **Tiered OOV recovery — optional LLM "polish" escalation** — gibberish is now caught cheaply at the
+  parser/compiler (no-vector → generic, fallback similarity-threshold `_WSD_FALLBACK_MIN_SIMILARITY`,
+  and a lone-predicate/non-propositional clause → `unknown` → INSUFFICIENT). When that *trips*
+  (INSUFFICIENT / unknown), we could OPTIONALLY escalate to the preparser's LLM "polish" pass (SymSpell
+  + the 2-model Ollama typo-correction) to distinguish a genuine typo (recoverable) from true gibberish
+  — i.e. cheap structural detection first, expensive LLM repair only on failure. CPU-heavy, so kept as a
+  fallback/escalation, not the default; ties into the `unknown → ask/recover` seam.
 - **Contextual WSD for ambiguous heads** — with no disambiguating context the frequency-prior guard may
   pick a non-intended sense ("plant" → factory `plant.n.01`); the tiered-ontology refutation still returns
   the right verdict (e.g. "a cat is a plant" → refuted) but via the artifact reading

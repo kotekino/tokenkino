@@ -8,6 +8,13 @@ _ERRORS_UNABLE_TO_PROCESS: str = "Unable to process the sentence"
 _SPACY_MAX_SIMILAR_RESULTS: int = 5
 _SPACY_MODEL = "en_core_web_lg" # alternatives: en_core_web_md (fast), en_core_web_lg (ok), en_core_web_trf (best)
 
+# WSD semantic fallback: minimum cosine similarity a most_similar candidate must clear before its
+# lemma is accepted as a substitute sense for an out-of-dictionary token. guards against the
+# garbage-in -> confident-out failure where an OOV/gibberish token (no real vector, or a far-away
+# nearest neighbour) was force-matched to an unrelated dictionary sense (e.g. "blicket" -> leadership).
+# tunable; ~0.5 keeps genuine near-synonyms while rejecting noise.
+_WSD_FALLBACK_MIN_SIMILARITY: float = 0.5
+
 # operators
 _OPERATORS_BASE_ANCHORS = {
     "and": TKOperator.AND, 

@@ -154,12 +154,31 @@ def compiler_zipRefIsGeneric(ref: TKLLEntityReference) -> bool:
     entity = next((e for e in _entities if ref.id == e.entity.id), None)
     return entity is not None and entity.entity.entity_type == "generic"
 
-# a clause is UNKNOWN (ungroundable) when it has core arguments but ALL of them are generic/unknown —
-# i.e. tokeniko knows none of the "who/what" the clause is about (the copula/predicate alone is not
-# enough). a clause with at least one known core argument, or none at all, is left groundable.
+# a reference is a REAL (groundable) role when it is present and NOT a generic/unknown fallback.
+def compiler_zipRefIsReal(ref: TKLLEntityReference) -> bool:
+    return ref is not None and not compiler_zipRefIsGeneric(ref)
+
+# a clause is UNKNOWN (ungroundable) when:
+#  (1) it has core arguments but ALL of them are generic/unknown — tokeniko knows none of the
+#      "who/what" the clause is about (the copula/predicate alone is not enough); OR
+#  (2) it is a non-propositional fragment — a bare lone predicate with NO real subject AND no real
+#      object (direct or any indirect). e.g. "(ad)" (gibberish stripped, lone predicate left): it is
+#      not a truth-evaluable proposition, so it must not ground/match an axiom.
+# a legitimate copular/transitive clause keeps a real subject ("a cat is a mammal", "the door is
+# open") -> not flagged.
 def compiler_zipContentUnknown(content: TKLLCContent) -> bool:
     core = [r for r in ([content.subject, content.direct] + content.indirects) if r is not None]
-    return bool(core) and all(compiler_zipRefIsGeneric(r) for r in core)
+    if bool(core) and all(compiler_zipRefIsGeneric(r) for r in core):
+        return True
+    # non-propositional fragment: a predicate with neither a real subject nor any real object.
+    has_predicate = content.predicate is not None
+    has_real_subject = compiler_zipRefIsReal(content.subject)
+    has_real_object = compiler_zipRefIsReal(content.direct) or any(
+        compiler_zipRefIsReal(ind) for ind in content.indirects
+    )
+    if has_predicate and not has_real_subject and not has_real_object:
+        return True
+    return False
 
 # resolve a reference to its entity's WSD synset key (e.g. "cat.n.01"), or None when the role is
 # absent / the entity carries no sense (non-dictionary or unresolved). mirrors compiler_zipGetVector's

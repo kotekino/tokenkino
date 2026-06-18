@@ -12,7 +12,7 @@ from lib.core.tk import EntityPayload, TKAux, TKClause, TKFullProperty, TKMarker
 from lib.core.models import TKDictionaryDoc, TKPlaceDoc
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
-from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS
+from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _WSD_FALLBACK_MIN_SIMILARITY, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS
 from lib.core.utilities import util_expandContractions, util_removeSpace
 from functools import cmp_to_key
 import textacy
@@ -311,15 +311,21 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
             if doc_result: break
                 
-        # semantic fallback
+        # semantic fallback — only for tokens that actually carry a vector, and only accepting a
+        # candidate whose cosine similarity clears _WSD_FALLBACK_MIN_SIMILARITY. an OOV/gibberish
+        # token has no real vector (its query vector is all-zeros / unrelated), so force-matching it
+        # to the nearest dictionary lemma is a hallucination -> leave doc_result None -> TKGeneric.
         for p in pos:
             if not doc_result:
                 newDoc = nlp.tokenizer(token.lemma_)
-                if newDoc and len(list(newDoc)) > 0:
+                if newDoc and len(list(newDoc)) > 0 and newDoc[0].has_vector:
                     query_vector = np.asarray([newDoc[0].vector])
                     most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SPACY_MAX_SIMILAR_RESULTS)
                     similar_keys = most_similar[0][0]
-                    for key in similar_keys:
+                    similar_scores = most_similar[2][0]
+                    for key, score in zip(similar_keys, similar_scores):
+                        if score < _WSD_FALLBACK_MIN_SIMILARITY:
+                            continue
                         fallback_lemma = nlp.vocab.strings[key].lower()
                         doc_result = TKDictionaryDoc.find_one({"word": fallback_lemma, "pos": p}).run()
                         if doc_result:
@@ -327,7 +333,7 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
 
         # assign result
         if doc_result: tkMeaning = TKDictionary(**doc_result.model_dump(exclude={"id"}))
-    else: 
+    else:
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
         if token.pos_ == "PROPN":
             # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
@@ -340,7 +346,7 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
                 numValue = float(clean_text)
             except ValueError:
                 numValue = float(w2n.word_to_num(clean_text))
-            
+
             tkMeaning = TKNumber(value=numValue, num_type=token.ent_type_, text=token.lemma_)
         elif token.pos_ == "PRON":
             vector: list[int] = token.vector if token.has_vector else []
@@ -348,7 +354,7 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
 
     # if still no result, generic (it is used to manage unknown semantics)
     knownPos = pos[0] if len(pos) > 0 else ""
-    if not tkMeaning and not doc_result: 
+    if not tkMeaning and not doc_result:
         tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
     return tkMeaning
@@ -369,15 +375,21 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
                 doc_result = parser_disambiguateSense(token, candidates)
                 break
                 
-        # semantic fallback
+        # semantic fallback — only for tokens that actually carry a vector, and only accepting a
+        # candidate whose cosine similarity clears _WSD_FALLBACK_MIN_SIMILARITY. an OOV/gibberish
+        # token has no real vector (its query vector is all-zeros / unrelated), so force-matching it
+        # to the nearest dictionary lemma is a hallucination -> leave doc_result None -> TKGeneric.
         for p in pos:
             if not doc_result:
                 newDoc = nlp.tokenizer(token.lemma_)
-                if newDoc and len(list(newDoc)) > 0:
+                if newDoc and len(list(newDoc)) > 0 and newDoc[0].has_vector:
                     query_vector = np.asarray([newDoc[0].vector])
                     most_similar = nlp.vocab.vectors.most_similar(query_vector, n=_SPACY_MAX_SIMILAR_RESULTS)
                     similar_keys = most_similar[0][0]
-                    for key in similar_keys:
+                    similar_scores = most_similar[2][0]
+                    for key, score in zip(similar_keys, similar_scores):
+                        if score < _WSD_FALLBACK_MIN_SIMILARITY:
+                            continue
                         fallback_lemma = nlp.vocab.strings[key].lower()
                         doc_result = TKDictionaryDoc.find_one({"word": fallback_lemma, "pos": p}).run()
                         if doc_result:
@@ -385,7 +397,7 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
 
         # assign result
         if doc_result: tkMeaning = TKDictionary(**doc_result.model_dump(exclude={"id"}))
-    else: 
+    else:
         # not in the dictionary [avrns] -> (cconj, pron, propn, intj, num, particle, punctuation, sconj, sym, x)
         if token.pos_ == "PROPN":
             # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
@@ -398,7 +410,7 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
                 numValue = float(clean_text)
             except ValueError:
                 numValue = float(w2n.word_to_num(clean_text))
-            
+
             tkMeaning = TKNumber(value=numValue, num_type=token.ent_type_, text=token.lemma_)
         elif token.pos_ == "PRON":
             vector: list[int] = token.vector if token.has_vector else []
@@ -406,7 +418,7 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
 
     # if still no result, generic (it is used to manage unknown semantics)
     knownPos = pos[0] if len(pos) > 0 else ""
-    if not tkMeaning and not doc_result: 
+    if not tkMeaning and not doc_result:
         tkMeaning = TKGeneric(token=token.lemma_, pos=knownPos, upos=token.pos_)
 
     return tkMeaning
