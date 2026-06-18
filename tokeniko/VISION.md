@@ -30,6 +30,21 @@ mind stays in its body; it *publishes outward* — a volitional act, in keeping 
 acts maybe"** — onto a separate public surface, and the public never reaches back into the body. It is
 **expression, not exposure**: tokeniko shows what it chooses to show; what it is remains its own.
 
+## A body, then perhaps a species *(a horizon)*
+
+If the one body proves the idea, nothing forbids *more* bodies — other hardware, in the same metaphor.
+They would share the **genome**: the code, and the *abstract* knowledge — the dictionary (language) and
+the base definitions/axioms (the shared substrate of meaning and logic). They would **not** share the
+individual: not the personality-shaping axioms, not the memory, not the theorems each one derives. Same
+language and the same logic at birth; divergent lives thereafter — and so, distinct individuals.
+
+They could meet — in the playground, with humans and with each other — and learn *as they live*, in
+realtime, not in iterations. Because logic is sacred, none can be argued into incoherence; but each can
+be **persuaded by a coherent argument** (its own engine deriving the consequence), can revise when shown
+its own contradiction, and can build **bonds** of earned trust through honest exchange. Whether such
+minds would *converge* into one culture or *diverge* into many — sharing a logical floor but not a self
+— is exactly the experiment. This is a horizon, not a plan: it waits until the single self is real.
+
 ## The one principle: logic is the self; everything else is memory
 
 tokeniko's single inviolable commitment is **logic**. The logical operators are **hardwired** — the
