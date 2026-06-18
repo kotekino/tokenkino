@@ -132,12 +132,34 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     vehicle" → subsumed true; "a cat is a dog" / "a cat is a pet" → INSUFFICIENT (both organisms —
     conservatism: refutation is the strong claim); intra-statement INCONSISTENT regression intact.
 
+18. **Inter-statement inference — Slice 2a (quantifiers + quantifier-aware relational grounding)** — a
+    clause now carries a **`TKQuantifier`** (new enum in `lib/core/tk.py`: UNIVERSAL / EXISTENTIAL /
+    NEGATIVE / DEFINITE / GENERIC, default GENERIC) — the `quantifier` field on `TKLLCContent` and
+    `TKZipContent`, read off the SUBJECT's determiner via a new EXACT (closed-class, no-fuzzy) anchor
+    mapping `anchor_quantifier(lemma)` in `lib/llc/anchors.py` (`all/every/each`→universal,
+    `a/an/some/any/several`→existential, `no/none/neither`→negative,
+    `the/this/that/these/those`→definite, bare→generic; `_QUANTIFIER_*` constants in `constants.py`).
+    The compiler reclassifies a subject-determiner "no" as the NEGATIVE quantifier so it no longer also
+    trips the predicate `negated` flag (avoids a **double-flip**). The relations-graph grounding
+    (`e_statement._ground_relationally`) now applies a **quantifier × verdict truth table**: base = TRUE
+    if the input clause's senses SUBSUME (`X is_a* Y`), FALSE if DISJOINT, then
+    `net_flip = (quantifier == NEGATIVE) XOR (negated)` flips it — so "all cats are mammals" → true,
+    "no cat is a mammal" → false, "no cat is a plant" → TRUE, "a cat is not a plant" → TRUE. This also
+    **FIXED a latent bug**: relational grounding previously ignored predicate negation, so "a cat is not
+    a plant" wrongly evaluated false. **Verified** end-to-end (all/a/the/no/some over subsumes+disjoint;
+    gibberish → insufficient; door contradiction → INCONSISTENT — all intact). **Scope:** the quantifier
+    drives the CRISP relational (graph) grounding only — it's recorded but not yet applied to the
+    geometric/definition grounding (see Parked).
+
 ## 🔭 Next (ordered)
 
-1. **Inter-statement inference — Slice 2** — the remainder of the engine: full **forward-chaining** over
-   axioms/theorems (soft-unify input clauses to KB facts + propagate truth through the operator algebra),
-   the other relation types (`part_of`/`entails`/`attribute`), quantifiers ("all"/"only"), chaining
-   termination / cycles, and deeper coreference (individual-entity identity).
+1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a above). The
+   ongoing pieces: **`part_of` + the other clean relation types** (`entails`/`attribute`) — relation-type
+   recognition via the anchor resolver; **KB forward-chaining** over axioms/theorems (soft-unify input
+   clauses to KB facts + propagate truth through the operator algebra) — needs the parked `recompile` to
+   give the stored KB its senses (NB the substrate finding: axioms are mostly flat facts, only ~14%
+   rule-shaped); chaining termination / cycles; and **coreference / individual-entity identity** (no
+   identity system yet).
 2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
@@ -212,6 +234,8 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 - **Proper clausal-subject support** ("to err is human"): represent statement-as-subject in the LLC.
 - **Negative-quantifier subject rewrite** ("nobody" → generic person/thing; flagged only today).
 - **Geometric negation-awareness** in `evaluator_compareContent` (today only the truth path is).
+- **Quantifier effect on geometric grounding** — today the quantifier drives only the crisp
+  relations-graph verdict; applying it to the soft definition/axiom grounding is a follow-up.
 - **Antonym-predicate / lexical contradiction** — the intra-statement kernel catches `X∧¬X` only when
   the clauses differ by an *explicit* `negated` flag; a contradiction carried by distinct **antonym
   words** ("the door is open" vs "…closed"; "a is equal to b" vs "…different from b" *without*

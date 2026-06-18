@@ -4,7 +4,7 @@
 # spacetime representation for an entity (in the relative space of the context of the statement, not absolute spacetime)
 from typing import Optional, Union
 from pydantic import BaseModel, Field
-from lib.core.tk import TKOperator
+from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkllc import TKLLAttitude
 
 # zip content: can be a content or another llcitem (recursive)
@@ -24,6 +24,9 @@ class TKZipContent(BaseModel):
     # reflexive identity clause: the evaluator PINS it (a=a -> true, a≠a -> false) instead of treating
     # it as a free atom. polarity (which of the two) is carried by `negated`.
     reflexive: bool = Field(default=False)
+    # quantifier read off the SUBJECT's determiner (all/some/no/the/bare). the evaluator combines it
+    # with the relational (is_a) verdict: NEGATIVE flips the verdict (XOR with `negated`).
+    quantifier: TKQuantifier = Field(default=TKQuantifier.GENERIC)
     # WSD-assigned WordNet synset key per populated role ("subject"/"predicate"/"direct"/"indirect0"…).
     # carried (out of band of the geometry) so the evaluator can reach the is_a relations graph for
     # taxonomic grounding/refutation. only roles whose entity has a non-empty sense appear.

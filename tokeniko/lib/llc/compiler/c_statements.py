@@ -5,10 +5,10 @@
 # ------------------------------------------------------------------------------------------------
 import copy
 
-from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
+from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKQuantifier, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntityMapReference, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
-from lib.llc.constants import _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _REFLEXIVE_PRONOUNS
-from lib.llc.anchors import anchor_resolve, anchor_comparison_polarity
+from lib.llc.constants import _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _QUANTIFIER_NEGATIVE, _REFLEXIVE_PRONOUNS
+from lib.llc.anchors import anchor_resolve, anchor_comparison_polarity, anchor_quantifier
 
 from .c_state import _entities
 from .c_entities import compiler_predicateLemma
@@ -70,12 +70,41 @@ def compiler_propertyIsNegation(prop: TKLLEntityProperty) -> bool:
         return True
     return any(compiler_propertyIsNegation(p) for p in prop.properties)
 
+# the SUBJECT's determiner lemma, if any ("all"/"no"/"the"/"a"/...) — read from the det-dep property
+# on the subject reference. "" when the subject is bare / has no determiner.
+def compiler_subjectDeterminer(content: TKLLCContent) -> str:
+    if not content.subject:
+        return ""
+    for p in content.subject.properties:
+        if p.dep == "det":
+            return compiler_entityToken(p.id)
+    return ""
+
+# the clause's quantifier, read off the subject's determiner ("" / bare -> GENERIC).
+def compiler_contentQuantifier(content: TKLLCContent) -> TKQuantifier:
+    return anchor_quantifier(compiler_subjectDeterminer(content))
+
+# does a property carry a negation marker, EXCLUDING a subject det that is a NEGATIVE quantifier?
+# "no"/"none"/"neither" sit in _NEGATION_MARKERS, but as the SUBJECT's determiner they are
+# RECLASSIFIED to the NEGATIVE quantifier (handled in the quantifier flip) — counting them here too
+# would double-flip the truth. predicate "not"/"never" still flag negated as before.
+def compiler_propertyIsNegationNonQuantifier(prop: TKLLEntityProperty) -> bool:
+    tok = compiler_entityToken(prop.id)
+    if prop.dep == "det" and tok in _QUANTIFIER_NEGATIVE:
+        # still allow a deeper nested negation marker (defensive), just not this det token itself
+        return any(compiler_propertyIsNegation(p) for p in prop.properties)
+    return compiler_propertyIsNegation(prop)
+
 # clause-level negation: a role (subject/predicate/direct/indirect) carries a negation marker as
 # one of its properties. "not"/"never" attach to the predicate (verb/copula) as advmod; "no"
 # attaches to the negated noun (object) as det -- so we scan EVERY role, not just the predicate.
+# the subject's NEGATIVE-quantifier determiner ("no cat ...") is reclassified to the quantifier and
+# excluded here to avoid a double flip (quantifier=NEGATIVE already flips the relational verdict).
 def compiler_contentIsNegated(content: TKLLCContent) -> bool:
-    roles = [content.subject, content.predicate, content.direct, *content.indirects]
-    for role in roles:
+    if content.subject and any(compiler_propertyIsNegationNonQuantifier(p) for p in content.subject.properties):
+        return True
+    other_roles = [content.predicate, content.direct, *content.indirects]
+    for role in other_roles:
         if role and any(compiler_propertyIsNegation(p) for p in role.properties):
             return True
     # negative quantifier subject ("nobody runs" / "nothing happens"): the subject token IS the
@@ -377,6 +406,11 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # OR the predicate is a negative comparison ("different"/"unlike", Decision 2). discrete &
     # recoverable -- the geometry alone loses it (cos("happy", "not happy") == 1.0).
     mainContent.negated = compiler_contentIsNegated(mainContent) or compiler_isNegativeComparison(mainContent)
+
+    # quantifier: read off the SUBJECT's determiner ("all"->UNIVERSAL, "no"->NEGATIVE, "some"/"a"->
+    # EXISTENTIAL, "the"->DEFINITE, bare->GENERIC). a subject "no/none/neither" det was already
+    # excluded from `negated` above (reclassified here) to avoid a double flip in the grounding.
+    mainContent.quantifier = compiler_contentQuantifier(mainContent)
 
     # reflexive identity (a=a is necessarily true, a≠a necessarily false) — hardwired logic; the
     # evaluator pins these instead of grounding them. polarity stays in `negated`.

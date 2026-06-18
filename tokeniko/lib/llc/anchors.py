@@ -26,7 +26,7 @@ from typing import Any, Callable, Optional
 
 import numpy as np
 
-from lib.core.tk import TKClauseType, TKOperator
+from lib.core.tk import TKClauseType, TKOperator, TKQuantifier
 from lib.core.models import TKDictionaryDoc
 from lib.llc.utils import utils_antonyms
 from lib.llc.constants import (
@@ -39,6 +39,10 @@ from lib.llc.constants import (
     _SPATIAL_RELATION_ANCHORS,
     _SEQUENCE_ANCHORS,
     _COMPARISON_AFFIRMATIVE,
+    _QUANTIFIER_UNIVERSAL,
+    _QUANTIFIER_EXISTENTIAL,
+    _QUANTIFIER_NEGATIVE,
+    _QUANTIFIER_DEFINITE,
     _PRONOUNS_BASE_ANCHORS,
     _NEGATION_MARKERS,
     _NEGATIVE_QUANTIFIERS,
@@ -431,6 +435,24 @@ def anchor_is(lemma: str, category: str) -> bool:
         return False
     # dict-categories: membership = chiave presente
     return key in cat.table
+
+
+# ------------------------------------------------------------------------------------------------
+# Quantifier (closed-class determiners -> TKQuantifier)
+# EXACT only — quantifiers are closed-class function words; a fuzzy match would be unsafe ("all" must
+# never collapse onto "tall"). a bare/no/unknown determiner -> GENERIC (the safe default).
+# ------------------------------------------------------------------------------------------------
+_QUANTIFIER_TABLE: dict[str, TKQuantifier] = {
+    **{w: TKQuantifier.UNIVERSAL for w in _QUANTIFIER_UNIVERSAL},
+    **{w: TKQuantifier.EXISTENTIAL for w in _QUANTIFIER_EXISTENTIAL},
+    **{w: TKQuantifier.NEGATIVE for w in _QUANTIFIER_NEGATIVE},
+    **{w: TKQuantifier.DEFINITE for w in _QUANTIFIER_DEFINITE},
+}
+
+
+def anchor_quantifier(lemma: str) -> TKQuantifier:
+    key = (lemma or "").strip().lower()
+    return _QUANTIFIER_TABLE.get(key, TKQuantifier.GENERIC)
 
 
 # ------------------------------------------------------------------------------------------------

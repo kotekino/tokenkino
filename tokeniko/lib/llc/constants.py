@@ -96,6 +96,15 @@ _NEGATION_MARKERS = {"not", "no", "never", "n't", "nor", "neither"}
 # best-effort (Phase-0): the subject is left as the quantifier token; the clause is flagged negated.
 _NEGATIVE_QUANTIFIERS = {"nobody", "no one", "no-one", "noone", "nothing", "none"}
 
+# quantifier anchor sets, read off the SUBJECT's determiner lemma. closed-class function words ->
+# EXACT match only (no fuzzy: "all" must never fuzzy-match "tall"). a bare/no determiner -> GENERIC.
+# NB "no"/"none"/"neither" are ALSO in _NEGATION_MARKERS; as a subject determiner they are
+# RECLASSIFIED to the NEGATIVE *quantifier* (so they do not also trip the predicate `negated` flag).
+_QUANTIFIER_UNIVERSAL = {"all", "every", "each"}
+_QUANTIFIER_EXISTENTIAL = {"a", "an", "some", "any", "several"}
+_QUANTIFIER_NEGATIVE = {"no", "none", "neither"}
+_QUANTIFIER_DEFINITE = {"the", "this", "that", "these", "those"}
+
 # comparison predicates: AFFIRMATIVE forms assert sameness/equality between subject and the indirect
 # operand; their ANTONYMS (different/unlike/...) assert non-equality and are flagged negated via the
 # antonym primitive (Decision 2). the affirmative anchors below seed the antonym column read.

@@ -119,6 +119,16 @@ class TKOperator(str, Enum):
     NOTCONV = "NOT CONV"
     NOTEQ = "NOT EQ"
 
+# quantifier read off the subject's determiner. UNIVERSAL (all/every/each), EXISTENTIAL
+# (a/an/some/any/several), NEGATIVE (no/none/neither), DEFINITE (the/this/that/...), GENERIC
+# (bare/no determiner). drives the quantifier-aware truth flip in the relational grounding.
+class TKQuantifier(str, Enum):
+    UNIVERSAL = "universal"
+    EXISTENTIAL = "existential"
+    NEGATIVE = "negative"
+    DEFINITE = "definite"
+    GENERIC = "generic"
+
 # clause type enum
 class TKClause(str, Enum):
     MAIN = "main"

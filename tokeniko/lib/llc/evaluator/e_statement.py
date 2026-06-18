@@ -22,7 +22,7 @@
 # ------------------------------------------------------------------------------------------------
 from typing import Callable, Optional
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
-from lib.core.tk import TKOperator
+from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from .e_compare import evaluator_compareZip
 from .e_relations import relations_disjoint, relations_subsumes
@@ -121,25 +121,45 @@ def _isa_senses(content: TKZipContent) -> Optional[tuple[str, str]]:
     return None
 
 # try to decide a clause taxonomically via the injected is_a graph. returns (truth, chain) when the
-# graph decides it (subject —is_a*→ predicate ⇒ TRUE; subject ⊥ predicate at the kingdom level ⇒
-# FALSE), else None (leave it to definition-grounding). `relations` is the parents(sense) callable.
+# graph decides it (subject —is_a*→ predicate ⇒ base TRUE; subject ⊥ predicate at the kingdom level
+# ⇒ base FALSE), else None (leave it to definition-grounding). `relations` is the parents(sense)
+# callable. the base verdict is then combined with the clause's QUANTIFIER and predicate negation:
+#   net_flip = (quantifier == NEGATIVE) XOR (negated)
+# a NEGATIVE quantifier ("no cat is a plant") or a predicate negation ("a cat is not a plant") flips
+# the base verdict; both together cancel. universal/existential/definite/generic do not flip.
 def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[str]]) -> Optional[tuple[float, str]]:
     pair = _isa_senses(content)
     if pair is None:
         return None
     subject_sense, object_sense = pair
 
-    # subsumption: subject is_a* object  -> the predication is TRUE
+    base: Optional[float] = None
+    chain: str = ""
+
+    # subsumption: subject is_a* object  -> base TRUE
     path = relations_subsumes(object_sense, subject_sense, relations)
     if path is not None:
-        return _TAXO_TRUE, "subsumed: " + " —is_a→ ".join(path)
+        base = _TAXO_TRUE
+        chain = "subsumed: " + " —is_a→ ".join(path)
+    else:
+        # conservative kingdom-level disjointness: subject ⊥ object  -> base FALSE
+        witness = relations_disjoint(subject_sense, object_sense, relations)
+        if witness is not None:
+            base = _TAXO_FALSE
+            chain = "refuted: " + " | ".join(witness)
 
-    # conservative kingdom-level disjointness: subject ⊥ object  -> the predication is refuted FALSE
-    witness = relations_disjoint(subject_sense, object_sense, relations)
-    if witness is not None:
-        return _TAXO_FALSE, "refuted: " + " | ".join(witness)
+    if base is None:
+        return None
 
-    return None
+    # combine the base verdict with the quantifier + predicate negation (single net flip).
+    quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
+    negated = bool(getattr(content, "negated", False))
+    net_flip = (quantifier == TKQuantifier.NEGATIVE) != negated  # XOR
+    truth = (1.0 - base) if net_flip else base
+    chain += f" | quantifier={quantifier.value} negated={negated}"
+    if net_flip:
+        chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
+    return truth, chain
 
 
 # evaluate an input statement. definitions are the grounding set (TKZipContent each); axioms and
