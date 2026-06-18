@@ -85,25 +85,32 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     CCOMP); for some lexical content Stanza MIS-ROOTS `implies` to `parataxis` (e.g. "a cat is equal to a
     tree implies …") and it falls back to the old structure (still the correct answer, just not a clean
     IMPLY) — a Stanza-upstream issue, same class as the parked D3a.
+16. **Anchor-mechanism unification (semantic-native)** — ONE declarative resolver (`lib/llc/anchors.py`)
+    replacing the three ad-hoc "surface word → logical/semantic category" mechanisms that had grown up
+    in parallel (literal lemma lists; spaCy `en_core_web_lg` similarity; Mongo `$vectorSearch`). The
+    **principle**: never rely on fixed dictionaries — map ANY input to the nearest of a small anchor set
+    by semantic similarity (exact-hit fast path → nearest-anchor fallback above a floor), so the logic
+    stays in a few manageable buckets and **never misses** an input. Per category the backend is chosen
+    for the job — dictionary 2925-dim vectors for content words, spaCy for function words — and
+    **polarity-sensitive** categories are **antonym-guarded** so the fuzzy catch can't flip to an
+    opposite ("but" never resolves to AND); anchor vectors are **cached in-memory** (no per-call DB).
+    **Seven SEMANTIC consumers migrated** onto it: `parser_ccToOperator` (operators),
+    `compiler_parseMarker` (subordinate types), attitude classification, comparison polarity (now
+    antonym-aware *through* the resolver), `compiler_zipGetAdvmodeBase` (**advmod intensifiers: Mongo
+    `$vectorSearch` → in-memory nearest-of-anchors — the cost win**), spatial relations, sequence.
+    **Verified via a golden-baseline diff**: exactly **1 intended delta** (an improvement — a clause that
+    baseline-misfired as a doxastic belief on "rain" now compiles to a clean neutral AND); a `moreover`
+    regression was caught and fixed by raising the sequence floor; `although` now resolves to a safe
+    OTHER instead of a false CAUSAL. The ~13 **EXACT** closed-set categories (pronoun deixis, negation,
+    …) are registered in the resolver (flippable) but still resolved by direct membership at the call
+    sites — a cosmetic mop-up (see Parked).
 
 ## 🔭 Next (ordered)
 
-1. **Anchor-mechanism unification** — today the "map a surface word → a logical category" decision is
-   done THREE inconsistent ways: `_ATTITUDE_ANCHORS` (literal lemma list), `_PROP_BASE_ADVMOD_ANCHORS`
-   (`TKDictionaryDoc` / Mongo `$vectorSearch` semantic match), `_SUBORDINATE_TYPE_BASE_ANCHORS`
-   (spacy_stanza vector similarity). **Unify the INTERFACE** — one resolver, one place, prefer in-memory
-   — with a small **TYPED TAXONOMY** of category-kinds underneath; *not* "spacy for everything", because
-   spacy static vectors are antonym-/sense-blind (the exact failure the WordNet dictionary fixes;
-   love/hate≈0.86). Taxonomy: closed-class function words (operators/modals/determiners) → literal lemma
-   set (precision is a feature); syntactic role (subordinate type) → spacy_stanza dep/POS; open-class
-   polarity-neutral (intensifier magnitude, attitude verbs) → spacy_stanza vectors (in-memory, cheap);
-   polarity-sensitive (comparison, negation, gradable opposites) → antonym-aware base/dictionary vectors.
-   Do a short **DESIGN pass first** (it's the hardwired language→logic layer — the heart of "logic as the
-   first axiom").
-2. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
+1. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
    forward-chaining over the `relations` graph + KB; **minimal premise + identification set**
    (unsat-core) output; quantifiers ("all"/"only"); chaining termination/cycles.
-3. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
+2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
@@ -137,6 +144,21 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 
 ## ⏸️ Deferred / parked
 
+- **Anchor EXACT-membership mop-up** — the ~13 closed sets (pronoun deixis, negation, …) are registered
+  in the resolver but are still resolved by direct `in set` at the call sites; route them through the
+  resolver for literal completeness (a pure refactor, zero behavior change).
+- **Concessive + resultative clause types** — `TKClauseType` lacks CONCESSIVE / RESULTATIVE, so
+  `although` → OTHER (safe but lossy) and `so` → AND instead of contrast / IMPLY; add the types + their
+  operator mappings for correct concessive / resultative logic.
+- **Anchor KB vector-coverage gaps** — some intensifier adverbs (`hugely`) and comparison antonyms
+  (`unequal`, `dissimilar`) have empty/missing dictionary vectors, so the semantic catch can't reach
+  them ("never-miss" is bounded by vector coverage); a dictionary-vectorization follow-up (ties to the
+  deferred adverb work).
+- **Dual `en_core_web_lg` load** — `parser.nlp` + `c_state.nlp` both load the model; consolidate to one.
+- **Anchor floor calibration** — the operator / subordinate / intensifier / attitude / sequence floors
+  were tuned on a 32-sentence battery; validate on a larger set. Also: the operator fuzzy fallback is
+  unsafe for non-`cc` inputs (`because` → NOTIMPLY latent; `parser_ccToOperator` only receives `cc`
+  tokens, so it is currently unreached).
 - **1b verbs** — the `"X means <gloss>"` frame *captures* the verb but drags in "means" (a spurious
   predicate / `THAT` doxastic attitude, since "means + clause" parses as a complement-taking verb),
   below the clean-core bar. Revisit with a cleaner frame (a gerund `"Xing is …"` form needs

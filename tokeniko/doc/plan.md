@@ -27,6 +27,12 @@ hardwired first axiom, knowledge + behavior = memory.**
 > subject ("the man who loves Mary runs") and purpose-infinitive binding ("...to fly" → "airport fly")
 > — both originate in the Stanza parse / `parser.py` root+nsubj selection. Full write-up:
 > `doc/parser-compiler-review.md`. The items below are the original spec, kept for reference.
+>
+> **Also landed (language→logic layer):** **anchor-mechanism unification** — one semantic-native
+> resolver (`lib/llc/anchors.py`) replacing the three ad-hoc "surface word → category" mechanisms
+> (lemma lists / spaCy similarity / Mongo `$vectorSearch`); nearest-of-anchors with a per-category
+> backend + antonym polarity-guard + in-memory caching; seven semantic consumers migrated; verified by
+> a golden-baseline diff (1 intended delta). See roadmap Landed #16.
 
 A focused review session on the quirks the brainstorm tests exposed. Goal: make a compiled clause a
 **faithful, reasoning-ready** unit. Prioritised by downstream need:

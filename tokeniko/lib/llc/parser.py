@@ -18,6 +18,7 @@ from functools import cmp_to_key
 import textacy
 from word2number import w2n
 from lib.core.memory import MEMContext, MEMStakeholder
+from lib.llc.anchors import anchor_resolve
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
@@ -59,30 +60,8 @@ def parser_init():
 def parser_ccToOperator(token: Token | str) -> TKOperator:
     lemma = token.lemma_.lower() if isinstance(token, Token) else token
 
-    # 1. STRADA VELOCE (Hit diretto)
-    if lemma in _OPERATORS_BASE_ANCHORS:
-        return _OPERATORS_BASE_ANCHORS[lemma]
-
-    # 2. SPAZIO VETTORIALE (Distanza dalle 3 ancore base)
-    best_op = TKOperator.AND  # Default di emergenza
-    highest_sim = -1.0
-
-    newDoc = nlp.tokenizer(token.lemma_)
-
-    for anchor_word, operator in _OPERATORS_BASE_ANCHORS.items():
-        anchor_lexeme = nlp.vocab[anchor_word]
-        
-        if newDoc[0].has_vector and anchor_lexeme.has_vector:
-            sim = newDoc[0].similarity(anchor_lexeme)
-            if sim > highest_sim:
-                highest_sim = sim
-                best_op = operator
-
-    # 3. THRESHOLD CHECK
-    if highest_sim >= _OPERATORS_SIMILARITY_THRESHOLD:
-        return best_op
-    else:
-        return TKOperator.AND
+    # unified anchor resolver: exact-hit -> nearest-anchor (polarity-guarded) -> default AND
+    return anchor_resolve(lemma, "operators")
 
 # --------------------------------------------------------------
 # PARSING

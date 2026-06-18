@@ -8,8 +8,9 @@ import numpy as np
 from lib.core.tk import TKMarker
 from lib.core.tkllc import TKLLCContent, TKLLCItem, TKLLEntityMap, TKLLEntityProperty, TKLLEntityReference
 from lib.core.tkzip import TKZipContent, TKZipItem
-from lib.core.models import _VECTOR_INDEX, TKDictionaryDoc, TKMarkerDoc
-from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _NEGATION_MARKERS, _PROP_BASE_ADVMOD_ANCHORS, _PROP_SIMILARITY_THRESHOLD
+from lib.core.models import _VECTOR_INDEX, TKMarkerDoc
+from lib.llc.constants import _MARKER_SIMILARITY_THRESHOLD, _NEGATION_MARKERS
+from lib.llc.anchors import anchor_resolve_vector
 
 from .c_state import _entities, nlp
 
@@ -72,40 +73,13 @@ def compiler_zipGetAdvmodeBase(propVec: np.ndarray) -> tuple[float, float]:
     # error gate
     if propVec.min() == propVec.max() == 0.0: return 1,1
 
-    pipeline = [
-        {
-            "$vectorSearch": {
-                "index": _VECTOR_INDEX,
-                "path": "vector",
-                "queryVector": propVec.tolist(),
-                "numCandidates": 50,
-                "limit": 1
-            }
-        },
-        {
-            "$project": {
-                "_id": 0,
-                "word": 1,
-                "score": { "$meta": "vectorSearchScore" }
-            }
-        }
-    ]
-
-    search_results = list(TKDictionaryDoc.aggregate(pipeline).run())
-
-    weightEnt = 1.0
-    weightProp = 1.0
-
-    if search_results:
-        top_result = search_results[0]
-        match_word = top_result.get("word", "")
-        score = top_result.get("score", 0.0)
-
-        if score >= _PROP_SIMILARITY_THRESHOLD and match_word in _PROP_BASE_ADVMOD_ANCHORS:
-            weightEnt = _PROP_BASE_ADVMOD_ANCHORS[match_word]
-            weightProp = 0.0
-
-    return weightEnt, weightProp
+    # unified anchor resolver on the in-hand 2925-dim propVec (no Mongo): nearest intensifier anchor
+    # >= floor -> its scalar weight; else the category default 1.0. anchors are 0.3/0.5/1.5/2.0, so a
+    # returned weight of exactly 1.0 means "no real anchor matched" -> keep the (1.0, 1.0) contract.
+    weight = anchor_resolve_vector(propVec, "intensifiers")
+    if weight != 1.0:
+        return (weight, 0.0)
+    return (1.0, 1.0)
 
 # sum property (Ora fa solo algebra lineare pura)
 def compiler_zipSumProperty(dep: str, entVec: np.ndarray, propVec: np.ndarray) -> np.ndarray:

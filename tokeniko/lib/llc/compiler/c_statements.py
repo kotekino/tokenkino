@@ -7,10 +7,10 @@ import copy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntityMapReference, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
-from lib.llc.constants import _ATTITUDE_ANCHORS, _ATTITUDE_DEFAULT, _COMPARISON_AFFIRMATIVE, _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _REFLEXIVE_PRONOUNS, _SUBORDINATE_TYPE_BASE_ANCHORS, _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD
-from lib.llc.utils import utils_antonyms
+from lib.llc.constants import _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _REFLEXIVE_PRONOUNS
+from lib.llc.anchors import anchor_resolve, anchor_comparison_polarity
 
-from .c_state import _entities, nlp
+from .c_state import _entities
 from .c_entities import compiler_predicateLemma
 
 # ------------------------------------------------------------------------------------------------
@@ -24,29 +24,13 @@ from .c_entities import compiler_predicateLemma
 # intrinsic grounding -- compare(subject, indirect) -- is the reasoning engine's job (Phase 3); we
 # only set polarity here. NB the operands stay subject + indirect (the parser already does this).
 # ------------------------------------------------------------------------------------------------
-_COMPARISON_NEGATIVE_CACHE: set[str] | None = None
-
-# union of the antonym columns of every affirmative comparison anchor -> the negative-comparison
-# predicate set (different/unlike/...). computed lazily once per process (the base matrix is static).
-def compiler_negativeComparisonWords() -> set[str]:
-    global _COMPARISON_NEGATIVE_CACHE
-    if _COMPARISON_NEGATIVE_CACHE is None:
-        negatives: set[str] = set()
-        for anchor in _COMPARISON_AFFIRMATIVE:
-            negatives |= utils_antonyms(anchor)
-        # an affirmative anchor must never count as its own negation
-        _COMPARISON_NEGATIVE_CACHE = negatives - _COMPARISON_AFFIRMATIVE
-    return _COMPARISON_NEGATIVE_CACHE
-
-# is the clause a NEGATIVE comparison? true when its predicate token is an antonym of an affirmative
-# comparison anchor (different/unlike vs same/equal). affirmative comparisons stay non-negated.
+# is the clause a NEGATIVE comparison? true when its predicate token has negative comparison polarity
+# (different/unlike vs same/equal), via the unified antonym-aware resolver. affirmative comparisons
+# stay non-negated.
 def compiler_isNegativeComparison(content: TKLLCContent) -> bool:
     if not content.predicate:
         return False
-    predicateToken = compiler_entityToken(content.predicate.id)
-    if not predicateToken or predicateToken in _COMPARISON_AFFIRMATIVE:
-        return False
-    return predicateToken in compiler_negativeComparisonWords()
+    return anchor_comparison_polarity(compiler_entityToken(content.predicate.id)) == "negative"
 
 # token (lemma/text) of a flat entity by its id, lowercased; "" if unknown.
 def compiler_entityToken(entityId: int | None) -> str:
@@ -62,7 +46,7 @@ def compiler_isIdentityComparison(content: TKLLCContent) -> bool:
     tok = compiler_entityToken(content.predicate.id)
     if not tok:
         return False
-    return tok in _COMPARISON_AFFIRMATIVE or tok in compiler_negativeComparisonWords()
+    return anchor_comparison_polarity(tok) != "none"
 
 # reflexive identity: an identity comparison whose subject and one operand corefer — either the same
 # entity id (a == a, a cat == a cat) or a reflexive pronoun operand (a == itself). polarity (a=a vs
@@ -160,36 +144,21 @@ def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
         else:
             return TKClauseType.OTHER
 
-    # 0. get doc
-    newDoc = nlp.tokenizer(marker.word)
+    # 1. unified anchor resolver: exact-hit -> nearest-anchor -> default OTHER
+    subType = anchor_resolve(marker.word, "subordinate_types")
+    if subType != TKClauseType.OTHER:
+        return subType
 
-    # 1. simple case
-    if marker.word in _SUBORDINATE_TYPE_BASE_ANCHORS:
-        return _SUBORDINATE_TYPE_BASE_ANCHORS[marker.word]
-
-    # 2. vector space on the marker
-    best_type = TKClauseType.OTHER
-    for anchor_word, sub_type in _SUBORDINATE_TYPE_BASE_ANCHORS.items():
-        anchor_lexeme = nlp.vocab[anchor_word]
-
-        if newDoc[0].has_vector and anchor_lexeme.has_vector:
-            sim = newDoc[0].similarity(anchor_lexeme)
-            if sim > _SUBORDINATE_TYPE_SIMILARITY_THRESHOLD:
-                best_type = sub_type
-
-    if best_type != TKClauseType.OTHER:
-        return best_type
-
-    # 3. parse marker on lemma, then connect_clause then fallback other
+    # 2. dep-label fallback (only when the anchors return the OTHER default)
     if marker.parent_dep: return marker.parent_dep
 
-    # 4. fallback
+    # 3. fallback
     return TKClauseType.OTHER
 
 # classify a propositional-attitude verb (the matrix predicate of a THAT/ccomp) into its
 # attitude class + default world-truth confidence of the complement X
 def compiler_classifyAttitude(verb: str) -> TKLLAttitude:
-    klass, confidence = _ATTITUDE_ANCHORS.get((verb or "").lower(), _ATTITUDE_DEFAULT)
+    klass, confidence = anchor_resolve(verb, "attitudes")
     return TKLLAttitude(verb=verb or None, klass=klass, confidence=confidence)
 
 # evaluate subordinate clause

@@ -9,7 +9,8 @@
 # ------------------------------------------------------------------------------------------------
 from lib.core.tk import TKEntity
 from lib.core.tkllc import LLCItemPayload, TKLLCContent, TKLLCItem, TKLLEntityReference, TKLLSpacetimeMap
-from lib.llc.constants import _SEQUENCE_ANCHORS, _SPATIAL_RELATION_ANCHORS, _TEMPORAL_ANCHORS, _TEMPORAL_PREP_DURATION, _TEMPORAL_PREP_PAST, _TENSE_ANCHORS, _TIME_UNITS
+from lib.llc.constants import _SPATIAL_RELATION_ANCHORS, _TEMPORAL_ANCHORS, _TEMPORAL_PREP_DURATION, _TEMPORAL_PREP_PAST, _TENSE_ANCHORS, _TIME_UNITS
+from lib.llc.anchors import anchor_resolve
 
 from .c_state import _entities
 
@@ -89,8 +90,9 @@ def compiler_spacetimeClauseTime(content: TKLLCContent, cursor: dict, tokens: di
         for prop in content.predicate.properties:
             if prop.dep == "advmod":
                 word = tokens.get(prop.id, "")
-                if word in _SEQUENCE_ANCHORS:
-                    cursor["t"] += _SEQUENCE_ANCHORS[word]
+                seq = anchor_resolve(word, "sequence")
+                if seq != 0.0:
+                    cursor["t"] += seq
                     return cursor["t"]
 
     # tense baseline (coarse past/present/future): weakest fallback, only while no explicit
@@ -157,7 +159,7 @@ def compiler_spacetimeClauseLocatives(content: TKLLCContent, tokens: dict[int, s
             continue
         marker = ref.marker
         if marker and marker.dep == "case":
-            relation = _SPATIAL_RELATION_ANCHORS.get((marker.word or "").lower())
+            relation = anchor_resolve(marker.word, "spatial_relations")
             if relation:
                 locatives.append((ref, relation))
     return locatives
