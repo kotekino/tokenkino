@@ -1,0 +1,103 @@
+.subpage__hero {
+  background: linear-gradient(to bottom, var(--violet-light), var(--parchment));
+  padding: calc(var(--space-24) + 64px) 0 var(--space-16);
+  border-bottom: 1px solid var(--border);
+}
+
+.subpage__title {
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-3xl), 6vw, var(--text-5xl));
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: var(--space-4);
+}
+
+.subpage__intro {
+  font-size: clamp(var(--text-base), 2vw, var(--text-xl));
+  color: var(--muted);
+  max-width: 540px;
+  line-height: 1.7;
+}
+
+.subpage__body {
+  padding-top: var(--space-16);
+  padding-bottom: var(--space-24);
+}
+
+.subpage__section {
+  margin-bottom: var(--space-12);
+}
+
+.subpage__section h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.subpage__section h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--ink);
+  margin: var(--space-6) 0 var(--space-2);
+}
+
+.subpage__section p {
+  font-size: var(--text-base);
+  color: var(--mid);
+  line-height: 1.75;
+  max-width: 680px;
+  margin-bottom: var(--space-4);
+}
+
+.subpage__section a {
+  color: var(--violet);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--transition);
+}
+.subpage__section a:hover { color: var(--violet-dark); }
+
+.subpage__values {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-left: var(--space-4);
+  border-left: 3px solid var(--violet-light);
+  margin-top: var(--space-4);
+}
+
+.subpage__values li {
+  font-size: var(--text-base);
+  color: var(--mid);
+  line-height: 1.6;
+}
+
+.subpage__values strong { color: var(--ink); }
+
+/* Legal pages */
+.subpage__legal address {
+  font-style: normal;
+  line-height: 1.8;
+  color: var(--mid);
+  margin-top: var(--space-2);
+}
+
+.subpage__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0;
+  padding-left: var(--space-6);
+}
+
+.subpage__list li {
+  font-size: var(--text-sm);
+  color: var(--mid);
+  line-height: 1.6;
+  list-style: disc;
+}

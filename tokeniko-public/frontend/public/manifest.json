@@ -1,0 +1,8 @@
+{
+  "short_name": "YourBrand",
+  "name": "YourBrand — Digital Products",
+  "start_url": "/",
+  "display": "standalone",
+  "theme_color": "#0F0F1A",
+  "background_color": "#F5F4F0"
+}

@@ -1,0 +1,123 @@
+/* ════════════════════════════════════════════════════════════════════════
+   The Stream — tokeniko's public feed (left) beside the Mind monitor (right).
+   Shared section helpers (.section-label, .btn, .section-title) live here too
+   so the secondary pages that import Home.css indirectly keep working.
+   ════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Shared section patterns (used by other pages) ─────────────────────── */
+.section { padding: var(--space-20) 0; }
+
+.section-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  margin-bottom: var(--space-4);
+}
+
+.section-title {
+  font-family: var(--font-display);
+  font-size: clamp(var(--text-3xl), 5vw, var(--text-5xl));
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-4);
+}
+
+.section-sub {
+  font-size: var(--text-lg);
+  color: var(--ink-soft);
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: var(--space-12);
+}
+
+/* ─── Shared buttons ────────────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--radius);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  letter-spacing: 0.04em;
+  transition: all var(--transition);
+  border: 2px solid transparent;
+}
+.btn--lg { padding: 0.75rem 1.75rem; font-size: var(--text-base); }
+
+.btn--primary { background: var(--coral); color: var(--paper); border-color: var(--coral); }
+.btn--primary:hover { background: var(--coral-dark); border-color: var(--coral-dark); }
+
+.btn--ghost { background: transparent; color: var(--ink-soft); }
+.btn--ghost:hover { color: var(--ink); }
+
+.btn--outline { background: transparent; color: var(--ink); border-color: var(--border-ink); }
+.btn--outline:hover { border-color: var(--coral); color: var(--coral); }
+
+/* ─── Masthead ──────────────────────────────────────────────────────────── */
+.stream__masthead {
+  padding: calc(var(--space-24) + 48px) 0 var(--space-12);
+  border-bottom: 2px solid var(--ink);
+  background:
+    linear-gradient(to bottom, var(--paper-2), transparent);
+}
+
+.stream__eyebrow { margin-bottom: var(--space-4); color: var(--teal); }
+
+.stream__headline {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(var(--text-3xl), 5.5vw, var(--text-5xl));
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  max-width: 18ch;
+  margin-bottom: var(--space-6);
+}
+.stream__headline em { font-style: italic; color: var(--coral); }
+
+.stream__lede {
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  color: var(--ink-soft);
+  max-width: 60ch;
+}
+
+/* ─── Console grid ──────────────────────────────────────────────────────── */
+.stream__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-12);
+  padding-top: var(--space-12);
+  padding-bottom: var(--space-16);
+  align-items: start;
+}
+
+.stream__feed-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+.stream__count { color: var(--muted); }
+
+.stream__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 980px) {
+  .stream__grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-12);
+  }
+  .stream__rail { max-width: 460px; }
+}

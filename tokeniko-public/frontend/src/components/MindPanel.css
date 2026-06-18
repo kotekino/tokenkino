@@ -1,0 +1,213 @@
+/* ─── The CRT, set into a cream Bakelite console ────────────────────────── */
+.mind {
+  position: sticky;
+  top: 96px;
+}
+
+.mind__screen {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 0%, var(--crt-bg-2), var(--crt-bg));
+  color: var(--crt-green);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-lg);
+  /* the bezel: a chunky enamel frame with a screw-down feel */
+  border: 3px solid var(--crt-frame);
+  box-shadow:
+    inset 0 0 0 2px rgba(111, 227, 154, 0.06),
+    inset 0 0 50px rgba(0, 0, 0, 0.6),
+    0 6px 0 var(--border-ink),
+    0 18px 40px rgba(43, 39, 34, 0.25);
+  padding: var(--space-4) var(--space-4) var(--space-3);
+}
+
+/* phosphor scanlines + vignette */
+.mind__scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.mind__screen > *:not(.mind__scanlines) { position: relative; z-index: 1; }
+
+/* ─── Header ────────────────────────────────────────────────────────────── */
+.mind__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
+  border-bottom: 1px dashed rgba(111, 227, 154, 0.25);
+}
+
+.mind__head-title {
+  font-size: var(--text-xs);
+  letter-spacing: 0.22em;
+  color: var(--crt-amber);
+  text-shadow: 0 0 8px rgba(233, 184, 74, 0.4);
+}
+
+.mind__state {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.mind__state-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px 1px currentColor;
+  animation: mind-blink 1.4s steps(1) infinite;
+}
+
+.mind__state--thinking { color: var(--crt-green); }
+.mind__state--refuting { color: var(--coral); }
+.mind__state--ingesting { color: var(--crt-amber); }
+.mind__state--idle { color: var(--crt-green-dim); }
+
+@keyframes mind-blink { 50% { opacity: 0.25; } }
+
+/* ─── Doing now ─────────────────────────────────────────────────────────── */
+.mind__doing {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-3) 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.mind__prompt { color: var(--crt-amber); flex-shrink: 0; }
+.mind__doing-text { color: var(--crt-green); text-shadow: 0 0 6px rgba(111, 227, 154, 0.35); }
+
+.mind__caret {
+  display: inline-block;
+  width: 8px;
+  height: 14px;
+  background: var(--crt-green);
+  box-shadow: 0 0 6px var(--crt-green);
+  transform: translateY(2px);
+  animation: mind-blink 1s steps(1) infinite;
+}
+
+/* ─── Uptime ────────────────────────────────────────────────────────────── */
+.mind__uptime {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  background: rgba(111, 227, 154, 0.06);
+  border: 1px solid rgba(111, 227, 154, 0.18);
+}
+
+.mind__uptime-label { font-size: 0.625rem; letter-spacing: 0.2em; color: var(--crt-green-dim); }
+.mind__uptime-value { font-size: var(--text-lg); letter-spacing: 0.04em; color: var(--crt-amber); }
+
+/* ─── KPIs ──────────────────────────────────────────────────────────────── */
+.mind__kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: rgba(111, 227, 154, 0.18);
+  border: 1px solid rgba(111, 227, 154, 0.18);
+  margin-bottom: var(--space-4);
+}
+
+.mind__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-3);
+  background: var(--crt-bg);
+}
+
+.mind__kpi-value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--text-xl);
+  color: var(--crt-green);
+  text-shadow: 0 0 8px rgba(111, 227, 154, 0.35);
+  line-height: 1;
+}
+
+.mind__kpi-trend { font-size: 0.625rem; }
+.mind__kpi-trend--1 { color: var(--mint); }
+.mind__kpi-trend--0 { color: var(--crt-green-dim); }
+.mind__kpi-trend---1 { color: var(--coral); }
+
+.mind__kpi-label {
+  margin-top: 4px;
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--crt-amber);
+}
+
+.mind__kpi-unit { font-size: 0.625rem; color: var(--crt-green-dim); }
+
+/* ─── Activity log ──────────────────────────────────────────────────────── */
+.mind__log-head {
+  font-size: 0.625rem;
+  letter-spacing: 0.2em;
+  color: var(--crt-green-dim);
+  margin-bottom: var(--space-2);
+}
+
+.mind__log-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.mind__log-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  opacity: 0;
+  animation: mind-row-in 0.5s ease forwards;
+}
+.mind__log-row:nth-child(1) { animation-delay: 0.05s; }
+.mind__log-row:nth-child(2) { animation-delay: 0.12s; }
+.mind__log-row:nth-child(3) { animation-delay: 0.19s; }
+.mind__log-row:nth-child(4) { animation-delay: 0.26s; }
+.mind__log-row:nth-child(5) { animation-delay: 0.33s; }
+.mind__log-row:nth-child(6) { animation-delay: 0.40s; }
+
+@keyframes mind-row-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.mind__log-time { color: var(--crt-green-dim); white-space: nowrap; }
+.mind__log-text { color: var(--crt-green); }
+
+/* ─── Footer ────────────────────────────────────────────────────────────── */
+.mind__foot {
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  border-top: 1px dashed rgba(111, 227, 154, 0.25);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--crt-green-dim);
+}
+
+@media (max-width: 980px) {
+  .mind { position: static; }
+}
