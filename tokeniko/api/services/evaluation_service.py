@@ -11,7 +11,7 @@ import copy
 from lib.llc.parser import parser
 from lib.llc.compiler import compiler_compile
 from lib.llc.evaluator import evaluator_evaluateStatement
-from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKTheoremDoc
+from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKRelationDoc, TKTheoremDoc
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
@@ -27,6 +27,24 @@ class EvaluationService:
     def __init__(self, tokeniko, ai_client):
         self._tokeniko = tokeniko
         self._ai_client = ai_client
+
+    # the injected is_a graph reader: parents(sense) -> direct is_a hypernyms. the ~150k-triple
+    # `relations` collection is never loaded wholesale — only the per-sense edges actually touched.
+    # cached per evaluate() call (rebuilt below) so repeated lookups during one BFS hit memory.
+    @staticmethod
+    def _make_relations_reader():
+        cache: dict[str, list[str]] = {}
+
+        def parents(sense: str) -> list[str]:
+            hit = cache.get(sense)
+            if hit is not None:
+                return hit
+            edges = TKRelationDoc.find({"subject": sense, "relation": "is_a"}).to_list()
+            objs = [e.object for e in edges]
+            cache[sense] = objs
+            return objs
+
+        return parents
 
     # parse + compile a sentence into its TKZip (same pipeline as the axiom/definition services)
     def _compile_zip(self, tokens: str) -> TKZip:
@@ -51,7 +69,8 @@ class EvaluationService:
         theorem_zips = [t.zip for t in theorem_docs]
 
         statement = self._compile_zip(tokens)
-        result = evaluator_evaluateStatement(statement, definitions, axiom_zips, theorem_zips)
+        relations = self._make_relations_reader()
+        result = evaluator_evaluateStatement(statement, definitions, axiom_zips, theorem_zips, relations=relations)
 
         # map the best (kind, index) back to a concrete document
         matchedId = None

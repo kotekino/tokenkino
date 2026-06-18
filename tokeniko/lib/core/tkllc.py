@@ -29,6 +29,9 @@ class TKLLEntity(BaseModel):
     entity_type: str = Field(default='generic')
     semantic_vector: list[float] = Field(default_factory=list)
     geo: Optional[list[float]] = None  # [lon, lat(, alt)] for known places, used by the space axis
+    # WSD-assigned WordNet synset key (e.g. "cat.n.01") for dictionary entities; the bridge that
+    # carries the parse-time sense across the LLC boundary so the evaluator can reach the is_a graph.
+    sense: Optional[str] = None
 
 # map from tkentity and tkllentity
 class TKLLEntityMap(BaseModel):

@@ -54,6 +54,20 @@ class TKPropertyDoc(TKProperty, Document):
     class Settings:
         name = "properties"
 
+# synset-keyed semantic relations graph (WordNet-derived): {subject, relation, object, pos}.
+# direct edges only — the transitive closure (is_a ancestry) is computed at query time. ~150k triples;
+# read lazily through an injected accessor, never loaded wholesale.
+class TKRelationDoc(Document):
+    # plain fields: the collection already carries indexes on subject/object/relation, so we do not
+    # re-declare them here (avoid index-creation churn on a ~150k-doc collection).
+    subject: str
+    relation: str
+    object: str
+    pos: Optional[str] = None
+
+    class Settings:
+        name = "relations"
+
 # --------------------------------------------------------------
 # tokeniko memory
 # --------------------------------------------------------------

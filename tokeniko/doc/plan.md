@@ -91,6 +91,14 @@ Upgrade sense selection from "POS + most-frequent" to **POS-prune → context-ce
 gloss/Lesk overlap (break near-ties) → ask on low margin**. Joint/iterative if needed (context words
 are themselves ambiguous: bootstrap with frequency sense, then refine). Reuses the existing cosine /
 matching machinery.
+
+> **Hardening landed** (with inter-statement Slice 1): a **frequency-prior guard** in
+> `parser_disambiguateSense` — when Lesk gives no clear winner AND the context-centroid is not confident
+> (below an absolute floor or within a margin of the runner-up), default to the most-frequent sense
+> (smallest WordNet sense number, query-word lemma preferred) instead of a low-confidence centroid guess.
+> Fixes "a cat is a X" → `cat.n.01` (was `cat.n.03`/`guy.n.01`); the Lesk-driven bank finance-vs-river
+> cases are preserved. (Contextual WSD for genuinely ambiguous heads with no context — e.g. "plant" →
+> factory — remains a deeper follow-up; see roadmap Parked.)
 **Verify:** the validated cases — animal-context → `cat.n.01`, person-context → `guy.n.01`; a genuine
 tie raises `[eval:ambiguous]` rather than guessing.
 
@@ -129,6 +137,19 @@ signal alongside `noteq = 1−eq`.
 **Verify:** `a eq b imply a noteq b` → INCONSISTENT / rejected as an axiom; consistent forms unaffected.
 
 ## Phase 4 — Reasoning engine: inter-statement inference  *(the rest of #1)*
+
+> **Slice 1 landed** (see roadmap Landed "Inter-statement inference — Slice 1"): **taxonomic is_a
+> grounding + refutation** over the `relations` graph — `evaluator_evaluateStatement` (injected
+> `relations=` reader) grounds a copular "X is a Y" clause by subsumption (`subsumes(obj, subj)` →
+> truth ~1) and refutes it by **tiered, conservative ontological disjointness**
+> (`disjoint(subj, obj)` → truth ~0), pure graph logic in `lib/llc/evaluator/e_relations.py`. The
+> verdict stays **RESOLVED** (truth ~1 / ~0) — refutation is *not* `INCONSISTENT` (that stays the
+> intra-statement `X∧¬X`) — with the premise chain in the new `EvaluatorResult.derivation`. Enabled by
+> the **sense-bridge** (`TKDictionary.sense` → `TKLLEntity.sense` → `TKZipContent.senses`, role→sense)
+> and the **WSD frequency-prior** (Phase 2). Verified: "a cat is a mammal" true, "a cat is a plant"
+> refuted, "a cat is a dog"/"a cat is a pet" INSUFFICIENT (conservatism). **Slice 2** (the remainder):
+> full forward-chaining over axioms/theorems, the other relations (part_of/entails/attribute),
+> quantifiers, chaining termination/cycles, deeper coreference.
 
 The full engine: **soft-unification** (similarity + Phase-2 WSD + memory coreference) joins input
 clauses to KB facts; **forward-chaining** propagates truth through the operator algebra over the

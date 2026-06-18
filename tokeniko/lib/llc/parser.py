@@ -196,9 +196,36 @@ def parser_getPlace(token: Token) -> TKPlace | None:
 # --------------------------------------------------------------
 _WSD_CONTENT_POS = {"NOUN", "VERB", "ADJ", "ADV", "PROPN"}  # spaCy POS that carry context
 
+# the centroid may override the frequency prior ONLY when it is confident: its top cosine must clear
+# this absolute floor AND beat the runner-up of a different sense by this margin. otherwise a weak /
+# ambiguous centroid (the "cat is a plant" failure: the sparse explicit vectors confidently mis-rank
+# a person-sense over the animal-sense) can never override the most-frequent sense.
+_WSD_CENTROID_FLOOR = 0.5      # absolute cosine the centroid winner must clear to be trusted
+_WSD_CENTROID_MARGIN = 0.1     # how far it must beat the next-best sense to be trusted
+
 def _wsd_cosine(a: np.ndarray, b: np.ndarray) -> float:
     na, nb = float(np.linalg.norm(a)), float(np.linalg.norm(b))
     return float(np.dot(a, b) / (na * nb)) if na and nb else 0.0
+
+# WordNet orders a word's senses by frequency, so the most-frequent sense is the one with the
+# smallest sense number NN in its synset name ("word.pos.NN"). NB: the stored `sense` is the synset's
+# PRIMARY-lemma name, which for a non-dominant lemma is a DIFFERENT word (e.g. "cat" -> the woman
+# sense is stored as "guy.n.01"), so NN alone ties guy.n.01 with cat.n.01. We therefore (1) prefer
+# candidates whose synset lemma matches the query word, then (2) take the smallest NN. Mongo
+# find().to_list() has NO guaranteed order, so we never rely on candidates[0] being the most frequent.
+def _wsd_senseNumber(sense: str) -> int:
+    # "word.pos.NN" -> NN (large fallback so an unparseable sense never wins the min)
+    try:
+        return int(sense.rsplit(".", 1)[-1])
+    except (ValueError, AttributeError):
+        return 1_000_000
+
+def _wsd_mostFrequent(token: Token, candidates: list[TKDictionaryDoc]) -> TKDictionaryDoc:
+    lemma = token.lemma_.lower()
+    # prefer senses whose synset lemma IS the query word; fall back to all if none match
+    own = [c for c in candidates if (c.sense or "").rsplit(".", 2)[0].lower() == lemma]
+    pool = own or candidates
+    return min(pool, key=lambda c: _wsd_senseNumber(c.sense or ""))
 
 # the most-frequent (first) dictionary sense vector for a token, or None
 def _wsd_mostFrequentVector(token: Token) -> np.ndarray | None:
@@ -250,14 +277,27 @@ def parser_disambiguateSense(token: Token, candidates: list[TKDictionaryDoc]) ->
     if maxLesk > 0 and len(leaders) == 1:
         return leaders[0]
 
-    # otherwise lean on the context centroid (rich contexts the gloss overlap misses); restrict to the
-    # tied Lesk leaders when there IS a positive overlap signal, else consider all candidates.
+    # CONFIDENT CENTROID: lean on the context centroid only when it is decisive (rich contexts the
+    # gloss overlap misses). Restrict to the tied Lesk leaders when there IS a positive overlap signal,
+    # else consider all candidates. A centroid pick overrides the frequency prior ONLY if its cosine
+    # clears the absolute floor AND beats the best DIFFERENT-sense runner-up by the margin — so a weak
+    # / ambiguous centroid can never override the most-frequent sense.
     centroid = _wsd_centroid(token)
     if centroid is not None:
         pool = leaders if maxLesk > 0 else candidates
-        return max(pool, key=lambda c: _wsd_cosine(np.asarray(c.vector, dtype=np.float32), centroid) if c.vector else -1.0)
+        scored = sorted(
+            ((_wsd_cosine(np.asarray(c.vector, dtype=np.float32), centroid) if c.vector else -1.0, c) for c in pool),
+            key=lambda sc: sc[0], reverse=True,
+        )
+        topScore, topCand = scored[0]
+        runnerUp = next((s for s, c in scored[1:] if (c.sense or "") != (topCand.sense or "")), None)
+        if topScore >= _WSD_CENTROID_FLOOR and (runnerUp is None or topScore - runnerUp >= _WSD_CENTROID_MARGIN):
+            return topCand
 
-    return candidates[0]  # no usable context -> most-frequent. TODO Phase-5: [eval:ambiguous] -> [tokeniko:ask]
+    # FREQUENCY PRIOR (default): no clear Lesk winner and no confident centroid -> the most-frequent
+    # sense (smallest sense number, query-word lemma preferred), NOT an arbitrary candidates[0] nor a
+    # low-confidence centroid guess. TODO Phase-5: [eval:ambiguous] -> [tokeniko:ask]
+    return _wsd_mostFrequent(token, candidates)
 
 def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
 

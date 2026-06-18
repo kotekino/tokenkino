@@ -24,3 +24,6 @@ class EvaluatorResult(BaseModel):
     relationMatch: Optional[float] = None                  # best zip similarity to a known statement
     matchedKind: Optional[str] = None                      # "axiom" | "theorem"
     matchedIndex: Optional[int] = None                     # position within that kind's injected list
+    # premise chain(s) for a KB-derived verdict (taxonomic subsumption -> truth~1, or kingdom-level
+    # refutation -> truth~0). each entry is a human-readable is_a chain / disjointness witness.
+    derivation: list[str] = Field(default_factory=list)

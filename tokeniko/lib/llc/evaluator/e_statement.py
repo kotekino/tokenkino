@@ -20,10 +20,12 @@
 #   complement truth is modulated toward 0.5 by the attitude confidence, then conjoined. NOT is a
 #   defensive unary case (observed negation is encoded inside the clause vector, not as a NOT op).
 # ------------------------------------------------------------------------------------------------
+from typing import Callable, Optional
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.tk import TKOperator
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from .e_compare import evaluator_compareZip
+from .e_relations import relations_disjoint, relations_subsumes
 from .e_truth import evaluator_groundContent
 from .operators import operator_truth
 
@@ -102,13 +104,53 @@ def _best_match(statement: TKZip, axioms: list[TKZip], theorems: list[TKZip]):
             best, kind, index = score, "theorem", i
     return best, kind, index
 
+# truth value pinned to a KB-derived taxonomic verdict (subsumed / refuted). kept off the 0/1 rails
+# so the fuzzy fold stays well-behaved, but far past _GROUNDING_MARGIN so it is decisive.
+_TAXO_TRUE = 1.0
+_TAXO_FALSE = 0.0
+
+# is this clause a copular taxonomic predication "X is a Y" that the is_a graph can decide? per the
+# STEP-0 recon, in "a cat is a plant" the SUBJECT holds "cat" and the PREDICATE holds the class noun
+# ("plant"); both resolve to dictionary senses. require both senses present (and distinct).
+def _isa_senses(content: TKZipContent) -> Optional[tuple[str, str]]:
+    senses = getattr(content, "senses", None) or {}
+    subj = senses.get("subject")
+    pred = senses.get("predicate")
+    if subj and pred and subj != pred:
+        return subj, pred
+    return None
+
+# try to decide a clause taxonomically via the injected is_a graph. returns (truth, chain) when the
+# graph decides it (subject —is_a*→ predicate ⇒ TRUE; subject ⊥ predicate at the kingdom level ⇒
+# FALSE), else None (leave it to definition-grounding). `relations` is the parents(sense) callable.
+def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[str]]) -> Optional[tuple[float, str]]:
+    pair = _isa_senses(content)
+    if pair is None:
+        return None
+    subject_sense, object_sense = pair
+
+    # subsumption: subject is_a* object  -> the predication is TRUE
+    path = relations_subsumes(object_sense, subject_sense, relations)
+    if path is not None:
+        return _TAXO_TRUE, "subsumed: " + " —is_a→ ".join(path)
+
+    # conservative kingdom-level disjointness: subject ⊥ object  -> the predication is refuted FALSE
+    witness = relations_disjoint(subject_sense, object_sense, relations)
+    if witness is not None:
+        return _TAXO_FALSE, "refuted: " + " | ".join(witness)
+
+    return None
+
+
 # evaluate an input statement. definitions are the grounding set (TKZipContent each); axioms and
-# theorems are the relational knowledge (TKZip each). returns a structured EvaluatorResult.
+# theorems are the relational knowledge (TKZip each). `relations`, when given, is a parents(sense)
+# callable over the is_a graph used for taxonomic grounding/refutation. returns an EvaluatorResult.
 def evaluator_evaluateStatement(
     statement: TKZip,
     definitions: list[TKZipContent],
     axioms: list[TKZip] | None = None,
     theorems: list[TKZip] | None = None,
+    relations: Callable[[str], list[str]] | None = None,
 ) -> EvaluatorResult:
     axioms = axioms or []
     theorems = theorems or []
@@ -127,6 +169,21 @@ def evaluator_evaluateStatement(
     contents = _collect_contents(statement.items)
     groundings = [evaluator_groundContent(c, definitions) for c in contents]
 
+    # 1b. RELATIONAL (taxonomic) grounding — when an is_a graph is injected, override the per-clause
+    # grounding for any "X is a Y" clause the graph decides: subsumption -> ~1, kingdom-disjoint -> ~0.
+    # the verdict is recorded as a premise chain in `derivation` and the overridden index is tracked so
+    # it counts as grounded (not "ungrounded") and a single such clause needs no axiom/theorem match.
+    derivation: list[str] = []
+    graph_decided: set[int] = set()
+    if relations is not None:
+        for i, c in enumerate(contents):
+            verdict = _ground_relationally(c, relations)
+            if verdict is not None:
+                truth, chain = verdict
+                groundings[i] = truth
+                graph_decided.add(i)
+                derivation.append(chain)
+
     # 2. fold the clause truths through the operator tree -> the statement's overall truth.
     # map each leaf content (by identity) to its grounding; the fold walks the same objects.
     truth_by_id = {id(c): g for c, g in zip(contents, groundings)}
@@ -135,19 +192,25 @@ def evaluator_evaluateStatement(
     missing: list[str] = []
     # clauses whose core arguments are unknown vocabulary (generic, no dictionary sense): a distinct,
     # actionable INSUFFICIENT reason — tokeniko doesn't know the word(s), the seam for an ask-and-learn.
-    unknown = sum(1 for c in contents if getattr(c, "unknown", False))
+    # a graph-decided clause is grounded by the is_a graph, so it is not "unknown" here.
+    unknown = sum(1 for i, c in enumerate(contents)
+                  if i not in graph_decided and getattr(c, "unknown", False))
     if unknown:
         missing.append(f"{unknown} clause(s) reference unknown vocabulary")
-    # clauses that are known but no definition decides them (truth sits in the neutral band)
-    ungrounded = sum(1 for c, g in zip(contents, groundings)
-                     if not getattr(c, "unknown", False) and abs(g - 0.5) < _GROUNDING_MARGIN)
+    # clauses that are known but no definition decides them (truth sits in the neutral band) — a
+    # graph-decided clause is grounded by the is_a graph, so it is excluded from this count.
+    ungrounded = sum(1 for i, (c, g) in enumerate(zip(contents, groundings))
+                     if i not in graph_decided and not getattr(c, "unknown", False)
+                     and abs(g - 0.5) < _GROUNDING_MARGIN)
     if ungrounded:
         missing.append(f"{ungrounded} clause(s) not grounded by any definition")
 
     # 3. relational match — always computed (to surface the closest known statement), but only
-    # REQUIRED when the input actually relates clauses (more than one clause).
+    # REQUIRED when the input actually relates clauses (>1 clause) AND none of those clauses was
+    # decided by the is_a graph (a graph-decided taxonomic clause is its own relational evidence).
     relationMatch, matchedKind, matchedIndex = _best_match(statement, axioms, theorems)
-    if len(contents) > 1 and (relationMatch is None or relationMatch < _RELATION_MATCH_THRESHOLD):
+    if (len(contents) > 1 and not graph_decided
+            and (relationMatch is None or relationMatch < _RELATION_MATCH_THRESHOLD)):
         missing.append("no matching axiom/theorem covers the relation")
 
     # 4. combine
@@ -155,11 +218,13 @@ def evaluator_evaluateStatement(
         return EvaluatorResult(
             truth=0.5, status=EvaluatorStatus.INSUFFICIENT, groundings=groundings, missing=missing,
             relationMatch=relationMatch, matchedKind=matchedKind, matchedIndex=matchedIndex,
+            derivation=derivation,
         )
 
-    # RESOLVED — clauses grounded and (if relational) a known statement covers the relation.
-    # truth = the clause truths folded through the input's operator tree (fuzzy [0,1]).
+    # RESOLVED — clauses grounded (by definitions and/or the is_a graph) and (if relational) a known
+    # statement covers the relation. truth = the clause truths folded through the operator tree.
     return EvaluatorResult(
         truth=folded, status=EvaluatorStatus.RESOLVED, groundings=groundings,
         relationMatch=relationMatch, matchedKind=matchedKind, matchedIndex=matchedIndex,
+        derivation=derivation,
     )

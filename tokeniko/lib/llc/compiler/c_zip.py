@@ -161,6 +161,28 @@ def compiler_zipContentUnknown(content: TKLLCContent) -> bool:
     core = [r for r in ([content.subject, content.direct] + content.indirects) if r is not None]
     return bool(core) and all(compiler_zipRefIsGeneric(r) for r in core)
 
+# resolve a reference to its entity's WSD synset key (e.g. "cat.n.01"), or None when the role is
+# absent / the entity carries no sense (non-dictionary or unresolved). mirrors compiler_zipGetVector's
+# id -> entity lookup, but reads .sense instead of the vectors.
+def compiler_refSense(ref: TKLLEntityReference) -> str | None:
+    if ref is None:
+        return None
+    entity = next((e for e in _entities if ref.id == e.entity.id), None)
+    return entity.entity.sense if entity else None
+
+# collect the per-role senses for a content into {role -> sense} (only non-empty ones), so the
+# evaluator can reach the is_a relations graph keyed by role.
+def compiler_contentSenses(content: TKLLCContent) -> dict[str, str]:
+    senses: dict[str, str] = {}
+    role_refs = [("subject", content.subject), ("predicate", content.predicate), ("direct", content.direct)]
+    for i, ind in enumerate(content.indirects):
+        role_refs.append((f"indirect{i}", ind))
+    for role, ref in role_refs:
+        s = compiler_refSense(ref)
+        if s:
+            senses[role] = s
+    return senses
+
 # calculate final vector for the content
 def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     ironic = content.properties.ironic
@@ -174,7 +196,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     for i in content.indirects:
         indirects.append(compiler_zipGetVector(i))
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, unknown=compiler_zipContentUnknown(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:

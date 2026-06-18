@@ -105,11 +105,39 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     …) are registered in the resolver (flippable) but still resolved by direct membership at the call
     sites — a cosmetic mop-up (see Parked).
 
+17. **Inter-statement inference — Slice 1 (taxonomic grounding + refutation) + WSD frequency-prior** —
+    first slice of the inference engine: the WSD sense now **bridges** through the whole pipeline
+    (`TKDictionary.sense` → `TKLLEntity.sense`, set in `compiler_getEntity` → `TKZipContent.senses`, a
+    role→sense dict populated in `compiler_zipContent`) — previously the sense was dropped at the LLC
+    boundary. A new **`TKRelationDoc`** (the `relations` collection, registered in `init_io`) exposes the
+    ~150k synset-keyed WordNet triples; `EvaluationService` injects a cached `parents(sense)` reader. The
+    pure graph logic lives in `lib/llc/evaluator/e_relations.py`: `relations_isa_ancestors` (BFS is_a
+    closure, cycle-safe / depth-capped), `relations_subsumes` (is_a path child→parent), and
+    `relations_disjoint` (CONSERVATIVE, **tiered** ontological disjointness — two senses are disjoint only
+    if, at the FINEST tier where both are placed, they sit under DIFFERENT mutually-exclusive anchors:
+    tier 1 biological kingdoms (animal/plant/fungus/…), tier 2 kinds of physical thing
+    (organism/artifact/natural_object/substance), tier 3 physical_entity/abstraction). `evaluator_evaluateStatement`
+    (new injected `relations=` param) does **relational grounding + refutation** on an is_a clause
+    (copular "X is a Y", subject+predicate senses): `subsumes(obj, subj)` → truth ~1 (+ chain),
+    `disjoint(subj, obj)` → truth ~0 (+ refutation chain). The verdict stays **RESOLVED** (truth ~1 or
+    ~0) — refutation is NOT a new status and NOT `INCONSISTENT` (that stays reserved for the
+    intra-statement logic-impossible `X∧¬X`); the premise chain goes in the new
+    `EvaluatorResult.derivation: list[str]`. A **WSD frequency-prior guard** (`parser_disambiguateSense`):
+    when Lesk gives no clear winner AND the context-centroid is not confident (below an absolute floor or
+    within a margin of the runner-up), default to the MOST-FREQUENT sense (smallest WordNet sense number,
+    query-word lemma preferred) instead of a low-confidence centroid guess — fixes "a cat is a X" →
+    `cat.n.01` (was `cat.n.03`/`guy.n.01`); the Lesk-driven bank finance-vs-river cases are preserved.
+    **Verified:** "a cat is a plant" → RESOLVED truth 0.0 with chain (organism⊥artifact); "a cat is a
+    car"/"an idea" / "lettuce is an animal" (kingdom) → refuted; "a cat is a mammal" / "a car is a
+    vehicle" → subsumed true; "a cat is a dog" / "a cat is a pet" → INSUFFICIENT (both organisms —
+    conservatism: refutation is the strong claim); intra-statement INCONSISTENT regression intact.
+
 ## 🔭 Next (ordered)
 
-1. **Reasoning engine — inter-statement inference** — soft-unification (similarity + WSD + memory) +
-   forward-chaining over the `relations` graph + KB; **minimal premise + identification set**
-   (unsat-core) output; quantifiers ("all"/"only"); chaining termination/cycles.
+1. **Inter-statement inference — Slice 2** — the remainder of the engine: full **forward-chaining** over
+   axioms/theorems (soft-unify input clauses to KB facts + propagate truth through the operator algebra),
+   the other relation types (`part_of`/`entails`/`attribute`), quantifiers ("all"/"only"), chaining
+   termination / cycles, and deeper coreference (individual-entity identity).
 2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
@@ -144,6 +172,10 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 
 ## ⏸️ Deferred / parked
 
+- **Contextual WSD for ambiguous heads** — with no disambiguating context the frequency-prior guard may
+  pick a non-intended sense ("plant" → factory `plant.n.01`); the tiered-ontology refutation still returns
+  the right verdict (e.g. "a cat is a plant" → refuted) but via the artifact reading
+  (organism⊥artifact rather than animal⊥plant). Deeper context/Lesk-improving WSD is the follow-up.
 - **Anchor EXACT-membership mop-up** — the ~13 closed sets (pronoun deixis, negation, …) are registered
   in the resolver but are still resolved by direct `in set` at the call sites; route them through the
   resolver for literal completeness (a pure refactor, zero behavior change).

@@ -15,11 +15,14 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
     token = ''
     semantic: list[float] = list()
     geo: list[float] | None = None
+    sense: str | None = None
     entity_type = ent.payload.entity_type
 
     if ent.payload.entity_type == "dictionary":
         token = ent.payload.word
         semantic: list[float] = ent.payload.vector
+        # carry the WSD-assigned synset key across the LLC boundary (was dropped before)
+        sense = ent.payload.sense
     elif ent.payload.entity_type == "name":
         token = ent.payload.name
     elif ent.payload.entity_type == "place":
@@ -37,7 +40,7 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
     elif ent.payload.entity_type == "generic":
         token = ent.payload.token
 
-    return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type, geo=geo)
+    return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type, geo=geo, sense=sense)
 
 # get all the entities
 def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = ()) -> list[TKLLEntityMap]:

@@ -48,7 +48,7 @@ Config is read from `.env` via `python-dotenv`. `HF_HUB_OFFLINE` / `TRANSFORMERS
 A sentence flows through a multi-stage pipeline. The main API entry points (`api/main.py`) — `/api/v1/input`, the axiom/definition/theorem resources, and `/api/v1/evaluate` — chain these stages:
 
 1. **Preparser** (`lib/llc/preparser.py`, optional, `prepare=1`): typo correction (SymSpell), language detection (lingua), and translation to English (MarianMT via `lib/llc/translator.py`) before parsing. LLM-assisted via Ollama.
-2. **Parser** (`lib/llc/parser.py`): `parser()` is the entry point. Uses spaCy+Stanza to dependency-parse, then builds a **recursive AST of `TKStatement` objects** (`TKStatements = list[TKStatement]`). Resolves word meanings against the MongoDB dictionary, attaches markers/operators, and produces the nested grammatical structure (subject / predicate / direct / indirects, with conjuncts, subordinates, and properties).
+2. **Parser** (`lib/llc/parser.py`): `parser()` is the entry point. Uses spaCy+Stanza to dependency-parse, then builds a **recursive AST of `TKStatement` objects** (`TKStatements = list[TKStatement]`). Resolves word meanings against the MongoDB dictionary (word-sense disambiguation, `parser_disambiguateSense`, Phase 2: Lesk-first → context-centroid → a **frequency-prior guard** that defaults to the most-frequent sense — smallest WordNet sense number, query-word lemma preferred — when Lesk gives no clear winner and the centroid is not confident), attaches markers/operators, and produces the nested grammatical structure (subject / predicate / direct / indirects, with conjuncts, subordinates, and properties).
 3. **Compiler** (`lib/llc/compiler/` package): `compiler_compile()` is the entry point (re-exported from `compiler/__init__.py`). The package is split by section — `c_entities.py`, `c_subordinates.py`, `c_statements.py`, `c_spacetime.py`, `c_zip.py`, the `c_main.py` orchestrator, and `c_state.py` (shared `_entities` map + spaCy `nlp`, reset in place per compile). Two outputs in one pass:
    - **LLC Flat** (`TKLLC`, defined in `lib/core/tkllc.py`): flattens the recursive statements into entities + references for O(1) access, resolves pronouns and implicit subjects, and computes relative spacetime.
    - **TKZip** (`TKZip`, defined in `lib/core/tkzip.py`): the final fixed-size numeric output. Applies fuzzy-logic vector fusion — advmod scalar multipliers (`_PROP_BASE_ADVMOD_ANCHORS`, e.g. "very"=1.5), Min/Max/negation/Gödel-implication operators kept in `[-1,1]`, `tanh` soft-normalization.
@@ -146,15 +146,29 @@ operator similarity), `e_compare.py` (geometric comparison: `evaluator_compareCo
 `e_truth.py` (`evaluator_groundContent`: a clause's truth in `[0,1]` vs the definitions),
 `e_statement.py` (`evaluator_evaluateStatement`: ground each clause, then **fold the clause truths
 through the operator tree** with `operator_truth` — `A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`
-— and geometrically match axioms/theorems → `EvaluatorResult`), `e_consistency.py`
+— and geometrically match axioms/theorems → `EvaluatorResult`; it now also takes an optional injected
+`relations=` reader and does **relational grounding/refutation** on an is_a clause — subsumption →
+true, tiered ontological disjointness → false — writing the premise chain to
+`EvaluatorResult.derivation`), `e_relations.py` (pure is_a graph logic: `relations_isa_ancestors` /
+`relations_subsumes` / `relations_disjoint` — BFS is_a closure, subsumption, and CONSERVATIVE tiered
+ontological disjointness), `e_consistency.py`
 (`evaluator_classifyForm` — the intra-statement contradiction kernel: crisp `{0,1}` enumeration over
 atom-clustered clauses, pinning `reflexive`-flagged leaves to a hardwired constant; `e_statement` short-circuits to `INCONSISTENT` on a contradiction). The evaluator is DB-agnostic — the
-caller injects definitions/axioms/theorems. `EvaluatorResult`/`EvaluatorStatus` live in
+caller injects definitions/axioms/theorems (and, for the relations graph, a cached `parents(sense)`
+reader — see the sense-bridge below). `EvaluatorResult`/`EvaluatorStatus` live in
 `lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most
 representative dictionary word to a statement — a noun-weighted semantic centroid of the role
 vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`. The HTTP entry point is
 `EvaluationService` (`api/services/evaluation_service.py`) behind `POST /api/v1/evaluate` — the
-DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id.
+DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id; it
+also injects a cached `parents(sense)` reader backed by the new **`TKRelationDoc`** (the `relations`
+collection — `{subject, relation, object, pos}`, synset-keyed, ~150k WordNet
+is_a/part_of/antonym/entails/attribute/similar_to triples; registered in `init_io`).
+
+**Sense-bridge** — the WSD sense now propagates through the whole pipeline so the evaluator can read
+it: `TKDictionary.sense` (e.g. `cat.n.01`) → `TKLLEntity.sense` (set in `compiler_getEntity`) →
+`TKZipContent.senses` (a role→sense dict, populated in `compiler_zipContent`). Previously the sense was
+dropped at the LLC boundary.
 
 **Status & the ordered roadmap live in one place → `doc/roadmap.md`** (the single source of truth:
 landed / in-progress / next / parked — keep it current as items land). The phased execution detail is
