@@ -27,23 +27,14 @@
   flex-shrink: 0;
 }
 
-.nameplate__badge {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  background: var(--teal);
-  border-radius: 50%;
-  border: 2px solid var(--ink);
-  box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+.nameplate__mark {
+  flex-shrink: 0;
+  color: var(--ink); /* drives the bezel + orbit-dot stroke */
 }
 
-.nameplate__led {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--coral);
-  box-shadow: 0 0 6px 1px var(--coral);
+/* the core breathes — the mind is alive */
+.nameplate__mark .logo-core-glow {
+  transform-origin: center;
   animation: led-pulse 2.4s ease-in-out infinite;
 }
 

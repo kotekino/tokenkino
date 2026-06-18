@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+import LogoMark from './LogoMark';
 import './Header.css';
 
 const navItems = [
@@ -11,9 +12,7 @@ const navItems = [
 
 const Nameplate: React.FC = () => (
   <Link to="/" className="nameplate" aria-label="tokeniko — home">
-    <span className="nameplate__badge" aria-hidden="true">
-      <span className="nameplate__led" />
-    </span>
+    <LogoMark className="nameplate__mark" size={38} />
     <span className="nameplate__text">
       tokeniko
       <span className="nameplate__sub">a thinking machine · est. 2026</span>

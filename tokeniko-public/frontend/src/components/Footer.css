@@ -28,13 +28,9 @@
   letter-spacing: -0.02em;
 }
 
-.footer__logo-badge {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--teal);
-  border: 2px solid var(--mint);
-  box-shadow: 0 0 6px var(--mint);
+.footer__logo-mark {
+  flex-shrink: 0;
+  color: var(--parchment); /* light bezel on the dark footer */
 }
 
 .footer__tagline {

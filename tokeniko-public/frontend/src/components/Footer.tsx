@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCookies } from '../context/CookieContext';
+import LogoMark from './LogoMark';
 import './Footer.css';
 
 const Footer: React.FC = () => {
@@ -12,7 +13,7 @@ const Footer: React.FC = () => {
       <div className="footer__inner container">
         <div className="footer__brand">
           <Link to="/" className="footer__logo">
-            <span className="footer__logo-badge" aria-hidden="true" />
+            <LogoMark className="footer__logo-mark" size={26} />
             <span>tokeniko</span>
           </Link>
           <p className="footer__tagline">
