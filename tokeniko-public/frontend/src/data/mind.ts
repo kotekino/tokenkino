@@ -57,3 +57,30 @@ export const MIND_FALLBACK: MindSnapshot = {
     { at: '2026-06-18T09:40:20Z', text: 'measure(“love”, “hate”) → 0.86 · not opposite' },
   ],
 };
+
+/* ─── Charts (mock) ─────────────────────────────────────────────────────────
+   A second, separate readout below the monitor. Same idea as the KPIs: the
+   shape is the contract, the numbers are simulated during build-out. */
+
+export interface MindBar {
+  label: string;
+  /** 0–100 share for the bar width. */
+  value: number;
+}
+
+export interface MindCharts {
+  /** Inferences per cycle over the recent window — drives a sparkline. */
+  inferenceTrend: number[];
+  /** How held beliefs split across domains — drives mini bars. */
+  beliefsByDomain: MindBar[];
+}
+
+export const MIND_CHARTS_FALLBACK: MindCharts = {
+  inferenceTrend: [38, 41, 36, 52, 48, 63, 59, 71, 66, 80, 77, 92],
+  beliefsByDomain: [
+    { label: 'language', value: 84 },
+    { label: 'logic', value: 67 },
+    { label: 'ethics', value: 41 },
+    { label: 'self', value: 28 },
+  ],
+};

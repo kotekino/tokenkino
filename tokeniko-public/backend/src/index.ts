@@ -8,7 +8,6 @@ import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/database';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import healthRouter from './routes/health';
-import contactRouter from './routes/contact';
 import cookieConsentRouter from './routes/cookieConsent';
 import mindRouter from './routes/mind';
 
@@ -47,7 +46,6 @@ if (process.env.NODE_ENV !== 'test') {
 
 // ─── Routes ─────────────────────────────────────────────────────────────────
 app.use('/api/health', healthRouter);
-app.use('/api/contact', contactRouter);
 app.use('/api/cookie-consent', cookieConsentRouter);
 app.use('/api/mind', mindRouter);
 

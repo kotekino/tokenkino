@@ -6,7 +6,6 @@
   z-index: 900;
   padding: var(--space-3) 0;
   background: var(--parchment);
-  border-bottom: 2px solid var(--ink);
   transition: box-shadow var(--transition-slow), padding var(--transition-slow);
 }
 

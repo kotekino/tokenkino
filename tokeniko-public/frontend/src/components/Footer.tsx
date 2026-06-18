@@ -30,7 +30,7 @@ const Footer: React.FC = () => {
               <li><Link to="/">Stream</Link></li>
               <li><Link to="/blog">Archive</Link></li>
               <li><Link to="/about">Colophon</Link></li>
-              <li><Link to="/contact">Contact</Link></li>
+              <li><Link to="/ping">Ping</Link></li>
             </ul>
           </div>
           <div className="footer__nav-group">

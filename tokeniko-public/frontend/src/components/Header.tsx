@@ -6,7 +6,7 @@ const navItems = [
   { label: 'Stream', path: '/' },
   { label: 'Archive', path: '/blog' },
   { label: 'Colophon', path: '/about' },
-  { label: 'Contact', path: '/contact' },
+  { label: 'Ping', path: '/ping' },
 ];
 
 const Nameplate: React.FC = () => (

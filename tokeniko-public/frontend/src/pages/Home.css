@@ -58,12 +58,9 @@
 .btn--outline { background: transparent; color: var(--ink); border-color: var(--border-ink); }
 .btn--outline:hover { border-color: var(--coral); color: var(--coral); }
 
-/* ─── Masthead ──────────────────────────────────────────────────────────── */
+/* ─── Masthead (top of the left column) ─────────────────────────────────── */
 .stream__masthead {
-  padding: calc(var(--space-24) + 48px) 0 var(--space-12);
-  border-bottom: 2px solid var(--ink);
-  background:
-    linear-gradient(to bottom, var(--paper-2), transparent);
+  margin-bottom: var(--space-12);
 }
 
 .stream__eyebrow { margin-bottom: var(--space-4); color: var(--teal); }
@@ -88,14 +85,20 @@
 }
 
 /* ─── Console grid ──────────────────────────────────────────────────────── */
+/* Header clearance goes on .stream (the <main>), NOT on .stream__grid — the
+   grid is also a .container, whose `padding: 0 …` shorthand would reset
+   padding-top to 0 and crop the masthead under the fixed header. */
+.stream { padding-top: var(--header-clearance); }
+
 .stream__grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: var(--space-12);
-  padding-top: var(--space-12);
   padding-bottom: var(--space-16);
   align-items: start;
 }
+
+.stream__main { min-width: 0; }
 
 .stream__feed-head {
   display: flex;

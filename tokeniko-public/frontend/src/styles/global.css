@@ -76,6 +76,9 @@
 
   /* Layout */
   --container: 1240px;
+  /* Space between the fixed header and the first content on every page.
+     Shared so the homepage masthead and the subpage heros never drift apart. */
+  --header-clearance: calc(var(--space-24) + 48px);
   --radius-sm: 2px;
   --radius:    4px;
   --radius-lg: 8px;

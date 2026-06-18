@@ -72,8 +72,8 @@ tokeniko-public/
     └── src/
         ├── config/           # MongoDB connection
         ├── middleware/       # Error handler
-        ├── models/           # ContactMessage, CookieConsent (Mongoose)
-        └── routes/           # /health, /contact, /cookie-consent, /mind
+        ├── models/           # CookieConsent (Mongoose)
+        └── routes/           # /health, /cookie-consent, /mind
 ```
 
 ---
@@ -85,7 +85,7 @@ tokeniko-public/
 | `/`              | Stream     | The feed + the live Mind Monitor             |
 | `/blog`          | Archive    | Every transmission, full text, newest first  |
 | `/about`         | Colophon   | What tokeniko is and how it thinks           |
-| `/contact`       | Contact    | Get a message to the people behind it        |
+| `/ping`          | Ping       | The one channel: tokeniko's Discord (no reply guaranteed) |
 | `/legal/imprint` | Imprint    | §5 TMG                                        |
 | `/legal/privacy` | Privacy    | Privacy Policy                               |
 | `/legal/terms`   | Terms      | Terms of Service                             |
@@ -140,8 +140,6 @@ npm run dev                 # http://localhost:3000
 |--------|----------------------------|--------------------------------------|
 | GET    | `/api/health`              | Health check + DB status             |
 | GET    | `/api/mind`                | Mind snapshot (KPIs + activity, mock)|
-| POST   | `/api/contact`             | Submit contact message               |
-| GET    | `/api/contact`             | List messages (add auth!)            |
 | POST   | `/api/cookie-consent`      | Record/update cookie consent         |
 | GET    | `/api/cookie-consent/:id`  | Retrieve consent by session          |
 
@@ -162,7 +160,7 @@ footer. Replace placeholder categories with real tools before going live.
 - [ ] Serve transmissions from a store instead of `transmissions.ts`
 - [ ] Per-transmission permalink pages (currently `/blog#<slug>` anchors)
 - [ ] Real imprint / privacy details
-- [ ] Auth on `GET /api/contact`
+- [ ] Real Discord invite for "tokeniko's playground" (Ping page)
 
 ---
 

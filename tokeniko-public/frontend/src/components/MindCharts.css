@@ -1,0 +1,143 @@
+/* A second readout below the monitor — same CRT family, its own box. */
+.charts {
+  margin-top: var(--space-6);
+}
+
+.charts__screen {
+  position: relative;
+  overflow: hidden;
+  background: radial-gradient(ellipse 120% 80% at 50% 0%, var(--crt-bg-2), var(--crt-bg));
+  color: var(--crt-green);
+  font-family: var(--font-mono);
+  border-radius: var(--radius-lg);
+  border: 3px solid var(--crt-frame);
+  box-shadow:
+    inset 0 0 0 2px rgba(111, 227, 154, 0.06),
+    inset 0 0 40px rgba(0, 0, 0, 0.6),
+    0 6px 0 var(--border-ink),
+    0 18px 40px rgba(43, 39, 34, 0.25);
+  padding: var(--space-4);
+}
+
+.charts__scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.16) 3px
+  );
+  mix-blend-mode: multiply;
+}
+
+.charts__screen > *:not(.charts__scanlines) { position: relative; z-index: 1; }
+
+.charts__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-3);
+  border-bottom: 1px dashed rgba(111, 227, 154, 0.25);
+}
+
+.charts__title {
+  font-size: var(--text-xs);
+  letter-spacing: 0.22em;
+  color: var(--crt-amber);
+  text-shadow: 0 0 8px rgba(233, 184, 74, 0.4);
+}
+
+.charts__hint {
+  font-size: 0.625rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--crt-green-dim);
+}
+
+.charts__block { margin-bottom: var(--space-4); }
+.charts__block:last-of-type { margin-bottom: var(--space-3); }
+
+.charts__label {
+  font-size: 0.625rem;
+  letter-spacing: 0.18em;
+  color: var(--crt-green-dim);
+  margin-bottom: var(--space-2);
+}
+
+/* ─── Sparkline ─────────────────────────────────────────────────────────── */
+.charts__spark {
+  display: block;
+  width: 100%;
+  height: 56px;
+}
+
+.charts__spark-area {
+  fill: rgba(111, 227, 154, 0.12);
+  stroke: none;
+}
+
+.charts__spark-line {
+  fill: none;
+  stroke: var(--crt-green);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px rgba(111, 227, 154, 0.5));
+}
+
+.charts__spark-dot {
+  fill: var(--crt-amber);
+  filter: drop-shadow(0 0 4px var(--crt-amber));
+}
+
+/* ─── Domain bars ───────────────────────────────────────────────────────── */
+.charts__bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.charts__bar-row {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.6875rem;
+}
+
+.charts__bar-name {
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--crt-amber);
+}
+
+.charts__bar-track {
+  height: 9px;
+  background: rgba(111, 227, 154, 0.10);
+  border: 1px solid rgba(111, 227, 154, 0.18);
+}
+
+.charts__bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--crt-green);
+  box-shadow: 0 0 6px rgba(111, 227, 154, 0.5);
+  animation: charts-fill 0.8s ease forwards;
+  transform-origin: left center;
+}
+
+@keyframes charts-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.charts__foot {
+  padding-top: var(--space-2);
+  border-top: 1px dashed rgba(111, 227, 154, 0.25);
+  font-size: 0.625rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--crt-green-dim);
+}
