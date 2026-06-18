@@ -11,7 +11,7 @@ fuzzy-logic vector fusion (NumPy).
 
 ## Tokeniko's Compilation Flow
 
-1. **NLP Parsing & Disambiguation (Symbolic Phase):** Tokeniko receives a natural language sentence, performs grammatical deconstruction (POS tagging, dependency parsing), and resolves contextual references (e.g., it understands that "you" refers to itself, i.e., "tokeniko").
+1. **NLP Parsing & Disambiguation (Symbolic Phase):** Tokeniko receives a natural language sentence, performs grammatical deconstruction (POS tagging, dependency parsing), and resolves contextual references (e.g., it understands that "you" refers to itself, i.e., "tokeniko"). Surface words are mapped to their logical categories (operators, markers, attitudes, intensifiers, …) by a unified, **semantic-native anchor resolver** (`lib/llc/anchors.py`) — nearest-of-anchors rather than fixed keyword lists, so no input is ever silently missed.
 2. **Vector Semantic Lookup:** It queries the database (MongoDB) to retrieve the encyclopedic definitions and the "pure" base tensors (2925 dimensions) for each word/entity, linking them to their respective *synsets* (e.g., WordNet).
 3. **Logical Intermediary Generation (LLC):** It builds a dual-track data structure:
    * **LLC Flat:** A flat dictionary for fast $O(1)$ memory access.
@@ -19,6 +19,7 @@ fuzzy-logic vector fusion (NumPy).
 4. **Fuzzy Fusion Engine (Sub-Symbolic Phase):** It uses linear algebra (via NumPy) to calculate the true "meaning" of the entire sentence. It applies scalar multipliers for adverbs (e.g., "very" = 1.5), uses vectorized fuzzy logic operators (Min, Max, negations, and Gödel implications) to handle complex conditions without exceeding the **[-1, 1]** range, and stabilizes the root entity with a soft normalization (`tanh`).
 5. **Compilation into the `TKZip` Format:** It encapsulates the mathematical outcome into a strictly typed, fixed-size format. The logical roles of the sentence (subject, predicate, direct object) are transformed into final tensors of exactly **3237 dimensions** (300 logical markers + 2925 semantic space + 12 spacetime).
 6. **Decompilation (round-trip):** The LLC can be rendered back to a raw symbolic string and, optionally, polished into natural language (via Ollama) — used for debugging and verifying that meaning survived the trip.
+7. **Evaluation / Reasoning Phase:** A compiled statement is not just stored — it can be reasoned about. The **evaluator** (`lib/llc/evaluator/`) measures a statement against the knowledge base: it **grounds** each flat clause to a truth in **[0, 1]** against the *definitions*, **folds those clause truths through the operator tree** (fuzzy logic — `A1 IMPLY (A2 AND A3)` becomes `IMPLY(T1, AND(T2, T3))`), runs an **intra-statement consistency check** (a self-contradiction → `inconsistent`), and geometrically matches the whole statement against the active **axioms/theorems** — producing an `EvaluatorResult` whose `status` is `resolved`, `insufficient_knowledge`, or `inconsistent`. Logic itself is hardwired, not learned: a reflexive identity is pinned (`a = a` → true, `a ≠ a` → false), and the verb `imply`/`entail` compiles to a real `IMPLY` operator rather than to ordinary predication.
 
 ---
 
@@ -41,6 +42,9 @@ the relative coordinates live in).
 
 Tokeniko's memory is more than a log — it is layered by epistemic status:
 
+- **Definitions** — single-clause, purely *semantic* statements that define Tokeniko's
+  vocabulary ("a cat is an animal"). Trusted ground truths, no demonstration; the bedrock
+  that axioms and theorems build on (and what the evaluator grounds clauses against).
 - **Axioms** — *trusted ground truths* Tokeniko holds about the world; the basis for
   reasoning and deriving new knowledge. Trusted by default and read-only.
 - **Theorems** — knowledge *derived* from the axioms (slightly lower trust, archived by
@@ -135,7 +139,10 @@ geometrically matched against the active **axioms/theorems**.
 
 `status` is `resolved` (grounded + a known relation matches → `truth` is the folded value),
 `insufficient_knowledge` (an ungrounded clause or no matching relation → `truth` 0.5), or
-`inconsistent` (reserved for the logic-rule engine, not yet produced).
+`inconsistent` (`truth` 0.0) — returned when the statement is internally self-contradictory,
+detected by the intra-statement consistency kernel (`evaluator_classifyForm` in
+`lib/llc/evaluator/e_consistency.py`): e.g. `X ∧ ¬X`, or a reflexive-identity violation like
+"a thing is not equal to itself".
 
 ### Utils (debugging; may be removed later)
 
@@ -163,8 +170,14 @@ From this directory (`tokeniko/`):
 pip install -e .          # editable install of the tokeniko package
 docker compose up -d      # local MongoDB (Atlas) container
 task api                  # FastAPI server on :8000
-task brain                # background "thinking" daemon (MongoDB only)
+task brain                # the autonomous "mind" daemon (MongoDB only)
+task senses               # the Discord + ATProto/Bluesky I/O daemon
 ```
+
+Beyond the API, Tokeniko also runs as a living entity: the **brain** is its autonomous mind
+— the *thinking*, *priorities* (wishes/ideas), and *actions* loops — and **senses** is its
+I/O membrane to the outside world (the Discord bot + the ATProto/Bluesky listener). See
+`brain/README.md` and `senses/README.md` for their design.
 
 Runtime dependencies: **MongoDB** (`MONGO_URI`), **Ollama** (`OLLAMA_HOST`, models
 auto-pulled on startup), and the **spaCy + Stanza** English models (`en_core_web_lg`,
