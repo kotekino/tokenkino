@@ -248,10 +248,19 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      stored geometry now carries **senses** (sense-bridge postdated the data). Verified: **0 failures**,
      3211/3237 gained senses, 5 axioms gained identities, all metadata preserved (dry-run-default +
      `--apply`). Forward-chaining now has senses to unify against.
-   - **(b) rule-shaped KB** — repopulate a small set of actual *rules* to chain over (substrate finding:
-     axioms are mostly flat facts, only ~14% rule-shaped — little to reason across until repopulated).
-   - **(c) chaining engine** — soft-unify input clauses to KB facts + propagate truth through the
-     operator algebra; chaining termination / cycles.
+   - **(b) rule-shaped KB** ✅ DONE (`scripts/seed_rules.py`) — recon corrected the substrate finding:
+     the 1885 "axioms" are almost entirely WordNet-gloss *definitions* (generic/existential), with
+     ~ZERO genuine rules (universal quantifiers: 1, a gloss fluke). So (b) was authoring from scratch,
+     not harvesting. Seeded 5 **universal property rules** ("all carnivores eat meat" → universal subj +
+     predicate/object senses): `all carnivores eat meat`, `all birds have feathers`, `all fish swim`,
+     `all humans are mortal`, `all thinkers exist` (trusted axioms). KEY: `quantifier==universal` cleanly
+     discriminates rules from the gloss-axioms (6 universal-leaf axioms total = our 5 + 1 fluke). The
+     syllogism `all humans are mortal` + `Mari is a human` (a Slice-3a individual) → `Mari is mortal` is
+     the bridge demo for (c). NB the gloss-as-axioms pollution remains (parked legacy cleanup).
+   - **(c) chaining engine** — soft-unify input clauses to KB **rules** (filter by universal quantifier)
+     + propagate the rule's property down the is_a graph (subject is_a* rule-subject ⇒ inherit predicate)
+     + fold truth through the operator algebra; chaining termination / cycles. Target demos:
+     `Mari is mortal` (syllogism) and `my cat eats only lettuce` ⊥ (carnivores eat meat) → INCONSISTENT.
 2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
