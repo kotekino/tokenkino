@@ -187,6 +187,67 @@ def parser_getPlace(token: Token) -> TKPlace | None:
     return TKPlace(**doc.model_dump(exclude={"id"})) if doc else None
 
 # --------------------------------------------------------------
+# NAMED-INDIVIDUAL ENTITY-LINKING (Slice 3a)
+# a proper noun NER-typed to a known type centroid becomes an entity-linked individual: it gets the
+# type centroid as its SEMANTIC vector (meaning=geometry — NEVER a random/noise vector into the
+# grounded 2925 space) + a context-scoped IDENTITY uid (identity=symbolic, kept separate). gated by
+# NER type + has_vector so OOV gibberish (which spaCy mislabels) never mints an individual.
+# --------------------------------------------------------------
+# spaCy NER label -> the dictionary type-centroid sense whose 2925 vector becomes the individual's
+# semantic vector. unmapped labels are not entity-linked (conservative).
+_NER_TYPE_CENTROID = {
+    "PERSON": "person.n.01",
+    "GPE": "location.n.01",
+    "LOC": "location.n.01",
+    "FAC": "location.n.01",
+    "ORG": "organization.n.01",
+    "NORP": "group.n.01",
+    "PRODUCT": "artifact.n.01",
+    "WORK_OF_ART": "artifact.n.01",
+    "EVENT": "event.n.01",
+}
+
+# in-memory cache of {sense -> 2925 type centroid}; these lookups repeat across tokens/sentences.
+_TYPE_CENTROID_CACHE: dict[str, list[float]] = {}
+
+def _parser_typeCentroid(sense: str) -> list[float] | None:
+    if sense in _TYPE_CENTROID_CACHE:
+        return _TYPE_CENTROID_CACHE[sense]
+    doc = TKDictionaryDoc.find_one({"sense": sense}).run()
+    vec = doc.vector if (doc and doc.vector) else None
+    if vec is not None:
+        _TYPE_CENTROID_CACHE[sense] = vec
+    return vec
+
+# is the surface form a REAL word (known to the spaCy lg vectors), not OOV gibberish? the parser
+# tokens come from the stanza pipeline, which carries NO word vectors (token.has_vector is always
+# False there), so the has_vector gate is checked against the lg `nlp` vocab — where real names
+# ("Mari", "Rome") have vectors and gibberish ("Kjadhfhfjdk") does not.
+def _parser_hasLgVector(text: str) -> bool:
+    lex = nlp.vocab[text]
+    return bool(lex.has_vector) and float(lex.vector_norm) > 0.0
+
+# mint an entity-linked individual TKName, or None when the token is not a linkable individual
+# (caller falls back to a bare TKName). deterministic + READ-ONLY (no DB writes -> /evaluate stays pure).
+def parser_getIndividual(token: Token, talker: MEMStakeholder) -> TKName | None:
+    # gate: a known NER type AND a real vector (rejects OOV gibberish spaCy mislabels as GPE/...)
+    mapped_sense = _NER_TYPE_CENTROID.get(token.ent_type_)
+    if mapped_sense is None or not _parser_hasLgVector(token.text):
+        return None
+
+    # the type centroid is the individual's SEMANTIC vector (never fabricate one)
+    centroid = _parser_typeCentroid(mapped_sense)
+    if centroid is None:
+        return None
+
+    # context-scoped identity uid: name@channel:talker_uid
+    name_norm = token.lemma_.lower()
+    context = f"{talker.channel.value}:{talker.uid}"
+    uid = f"{name_norm}@{context}"
+
+    return TKName(name=token.lemma_, ner=token.ent_type_, uid=uid, vector=centroid)
+
+# --------------------------------------------------------------
 # WORD-SENSE DISAMBIGUATION (Phase 2)
 # pick the dictionary sense that best fits the sentence: POS prunes the candidates (done by the
 # caller's query), then the sense whose vector is closest to the sentence's context centroid wins;
@@ -338,7 +399,7 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
         if token.pos_ == "PROPN":
             # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
             # its coordinates) from the places knowledge base; otherwise it is a plain name
-            tkMeaning = parser_getPlace(token) or TKName(name=token.lemma_)
+            tkMeaning = parser_getPlace(token) or parser_getIndividual(token, _talker) or TKName(name=token.lemma_)
         if token.pos_ == "NUM":
             clean_text = token.text.replace(',', '').strip()
             numValue = 0
@@ -402,7 +463,7 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
         if token.pos_ == "PROPN":
             # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
             # its coordinates) from the places knowledge base; otherwise it is a plain name
-            tkMeaning = parser_getPlace(token) or TKName(name=token.lemma_)
+            tkMeaning = parser_getPlace(token) or parser_getIndividual(token, _talker) or TKName(name=token.lemma_)
         if token.pos_ == "NUM":
             clean_text = token.text.replace(',', '').strip()
             numValue = 0

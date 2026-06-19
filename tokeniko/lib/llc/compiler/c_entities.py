@@ -16,6 +16,7 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
     semantic: list[float] = list()
     geo: list[float] | None = None
     sense: str | None = None
+    uid: str | None = None
     entity_type = ent.payload.entity_type
 
     if ent.payload.entity_type == "dictionary":
@@ -25,6 +26,10 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
         sense = ent.payload.sense
     elif ent.payload.entity_type == "name":
         token = ent.payload.name
+        # entity-linked individual: the 2925 type centroid is its SEMANTIC vector (or [] for a bare
+        # name); the uid is its referential IDENTITY (the identity-bridge across the LLC boundary).
+        semantic = ent.payload.vector or []
+        uid = ent.payload.uid
     elif ent.payload.entity_type == "place":
         token = ent.payload.name
         # carry the place's coordinates ([lon, lat]) into the flat entity for the space axis
@@ -40,7 +45,7 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
     elif ent.payload.entity_type == "generic":
         token = ent.payload.token
 
-    return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type, geo=geo, sense=sense)
+    return TKLLEntity(id=id, token=token, semantic_vector=semantic, entity_type=entity_type, geo=geo, sense=sense, uid=uid)
 
 # get all the entities
 def compiler_getEntities(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = ()) -> list[TKLLEntityMap]:

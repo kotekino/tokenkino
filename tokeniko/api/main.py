@@ -5,7 +5,7 @@ from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import HTMLResponse
 from dotenv import load_dotenv
 from lib.llc.parser import parser, parser_diagram, parser_init
-from lib.core.io import get_stakeholder, get_tokeniko, init_io
+from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individual
 from lib.core.models import TKMemoryItemDoc
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
@@ -343,6 +343,20 @@ async def render(tokens: str = Query(..., min_length=3, description="Sentence to
 # ------------------------
 # COMPILER endpoints
 # ------------------------
+# walk the recursive parse for entity-linked named individuals (TKName with a uid) — recurses into
+# nested statements. exposes the full name payload (uid + ner + 2925 type centroid) so the storing
+# path can home each individual in the stakeholders collection.
+def _collect_individuals(statements) -> list:
+    found = []
+    for stat in statements:
+        for ent in getattr(stat, "entities", []):
+            payload = ent.payload
+            if getattr(payload, "entity_type", None) == "statement":
+                found.extend(_collect_individuals([payload]))
+            elif getattr(payload, "entity_type", None) == "name" and getattr(payload, "uid", None):
+                found.append(payload)
+    return found
+
 @app.get("/api/v1/input")
 async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
     try:
@@ -377,6 +391,19 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                 channel=MEMChannels.API
             )
             memory_doc.insert()
+
+            # home any entity-linked named individuals in the stakeholders collection (storing path
+            # only — NOT /evaluate). contextKey = the scope after "@" in the parser-minted uid.
+            for individual in _collect_individuals(recursiveResult):
+                context_key = individual.uid.split("@", 1)[1] if "@" in individual.uid else None
+                upsert_individual(
+                    name=individual.name,
+                    uid=individual.uid,
+                    ner_type=individual.ner,
+                    vector=individual.vector,
+                    context_key=context_key,
+                    channel=talkerEntity.channel,
+                )
 
     except Exception as error:
         res = repr(error)

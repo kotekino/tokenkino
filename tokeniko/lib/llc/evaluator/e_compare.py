@@ -226,3 +226,15 @@ def evaluator_compareItem(a: TKZipItem, b: TKZipItem) -> float:
 # compare two whole zips (convenience wrapper over their root items)
 def evaluator_compareZip(a: TKZip, b: TKZip) -> float:
     return evaluator_compareItem(a.items, b.items)
+
+# ------------------------------------------------------------------------------------------------
+# ENTITY-LINKING (Slice 3a)
+# the demonstrable same-individual primitive: identity lives in the symbolic uid (out of band of the
+# 2925 geometry). returns True if both clauses name the SAME individual in `role`, False if they name
+# DIFFERENT individuals, None when either side is unknown (no uid for that role — can't decide).
+# ------------------------------------------------------------------------------------------------
+def evaluator_sameIndividual(a: TKZipContent, b: TKZipContent, role: str = "subject") -> bool | None:
+    ua, ub = a.identities.get(role), b.identities.get(role)
+    if ua is None or ub is None:
+        return None
+    return ua == ub

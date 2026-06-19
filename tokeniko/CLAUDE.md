@@ -178,6 +178,29 @@ it: `TKDictionary.sense` (e.g. `cat.n.01`) → `TKLLEntity.sense` (set in `compi
 `TKZipContent.senses` (a role→sense dict, populated in `compiler_zipContent`). Previously the sense was
 dropped at the LLC boundary.
 
+**Identity-bridge** (Slice 3a) — named individuals ("Mari", "Rome", "Google") used to compile to a
+ZERO 2925 vector (all collapsing to one point). They now get **two SEPARATE things**: (a) an honest
+SEMANTIC vector = their NER **type centroid** (meaning=geometry — `PERSON→person.n.01`,
+`GPE/LOC/FAC→location.n.01`, `ORG→organization.n.01`, `NORP→group.n.01`,
+`PRODUCT/WORK_OF_ART→artifact.n.01`, `EVENT→event.n.01`; fetched from the `dictionary` collection,
+in-memory cached) and (b) a referential **IDENTITY** = a context-scoped uid `name@channel:talker_uid`
+(identity=symbolic). The two never mix — the grounded 2925 space stays pollution-free (NEVER a
+random/noise vector). Minting is **gated** by NER-type + a real spaCy-lg word vector (parser tokens
+come from stanza, which has no vectors, so the `has_vector` gate is checked against the lg `nlp` vocab
+via `_parser_hasLgVector`), so OOV gibberish (which spaCy mislabels as GPE) never mints an individual;
+a known place still takes the `parser_getPlace` route first (geo-anchored, not an individual). The
+bridge MIRRORS the sense-bridge: `TKName.uid/vector/ner` (minted in `parser_getIndividual`, wired into
+both PROPN sites as `parser_getPlace(token) or parser_getIndividual(token, _talker) or
+TKName(name=...)`) → `TKLLEntity.uid` (set in `compiler_getEntity`; the centroid rides in
+`semantic_vector` and is now consumed for `entity_type=="name"` in `compiler_zipGetEntityVector`) →
+`TKZipContent.identities` (a role→uid dict, populated by `compiler_contentIdentities`/`compiler_refUid`
+in `compiler_zipContent`). An individual is homed in the extended `MEMStakeholder`
+(`kind="individual"`, `ner_type`, `vector`, `contextKey`) via `io.upsert_individual` (get-or-create,
+idempotent) — called ONLY on storing paths (the `/input` handler walks the recursive parse for
+name payloads with a uid), NEVER on `/evaluate` (which stays pure / read-only).
+`evaluator_sameIndividual(a, b, role)` is the demonstrable entity-linking primitive: same uid → True,
+different → False, either missing → None.
+
 **Status & the ordered roadmap live in one place → `doc/roadmap.md`** (the single source of truth:
 landed / in-progress / next / parked — keep it current as items land). The phased execution detail is
 in `doc/plan.md`, the design + empirical findings in `doc/reasoning-engine-brainstorm.md`, and the

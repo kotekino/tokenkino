@@ -32,6 +32,9 @@ class TKLLEntity(BaseModel):
     # WSD-assigned WordNet synset key (e.g. "cat.n.01") for dictionary entities; the bridge that
     # carries the parse-time sense across the LLC boundary so the evaluator can reach the is_a graph.
     sense: Optional[str] = None
+    # context-scoped identity uid for an entity-linked named individual ("mari@api:<uid>"); the
+    # identity-bridge that carries referential identity across the LLC boundary (parallel to sense).
+    uid: Optional[str] = None
 
 # map from tkentity and tkllentity
 class TKLLEntityMap(BaseModel):

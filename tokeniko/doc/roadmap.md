@@ -202,6 +202,39 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     tautology), different-subject, non-antonym, heavy/light → consistent; P∧¬P (alive/¬alive) keeps its
     existing mixed-polarity detail; is_a + unknown-vocab regressions intact; `antonyms=None` not flagged.
 
+21. **Discriminative individual representation + entity-linking (Slice 3a)** — named individuals
+    ("Mari", "Rome", "Google") used to compile to a **ZERO** 2925 vector — all collapsing to one
+    indistinguishable point. They now get **two SEPARATE things, deliberately kept apart**: (a) an honest
+    **SEMANTIC** vector = their NER **type centroid** (`PERSON→person.n.01`, `GPE/LOC/FAC→location.n.01`,
+    `ORG→organization.n.01`, `NORP→group.n.01`, `PRODUCT/WORK_OF_ART→artifact.n.01`, `EVENT→event.n.01`;
+    pulled from the `dictionary` collection, in-memory cached) and (b) a referential **IDENTITY** = a
+    context-scoped uid `name@channel:talker_uid`. **Decision — no random vectors:** meaning lives in the
+    GROUNDED/sacred 2925 geometry (each dim a measured base word), identity lives **symbolically** in the
+    uid; the two NEVER mix, so the semantic space stays pollution-free. The **context key** is
+    `(channel-type, talker-uid)` — same surface name from different talkers/channels is a different
+    individual. **Identity-bridge** (mirrors the sense-bridge): `TKName.uid/vector/ner` (minted in
+    `parser_getIndividual`, wired into both PROPN sites) → `TKLLEntity.uid` (`compiler_getEntity`; the
+    centroid rides in `semantic_vector`, now consumed for `entity_type=="name"` in
+    `compiler_zipGetEntityVector`) → `TKZipContent.identities` (role→uid, via
+    `compiler_contentIdentities`/`compiler_refUid`). **Gate:** NER-type-mapped **AND** a real spaCy-lg
+    word vector — parser tokens are stanza tokens (no vectors), so `has_vector` is checked against the lg
+    `nlp` vocab (`_parser_hasLgVector`); OOV gibberish spaCy mislabels as GPE is rejected; a **known place
+    still wins via `parser_getPlace`** (geo-anchored, not an individual). **Homing:** extended
+    `MEMStakeholder` (`kind="individual"`, `ner_type`, `vector`, `contextKey`) via `io.upsert_individual`
+    (get-or-create, idempotent), called ONLY on storing paths (the `/input` handler walks the recursive
+    parse), NEVER on `/evaluate` (stays pure). **Primitive:** `evaluator_sameIndividual(a, b, role)` —
+    same uid→True / different→False / either missing→None (the demonstrable linking hook; not yet wired
+    into `_best_match`/grounding). **Verified** (full pipeline, all 8 cases): Mari → uid
+    `mari@internal:tokeniko` + nonzero person-centroid subject vector; Mari vs Luca → different uids,
+    semantic cosine 1.0 (same type — correct), `sameIndividual` False; Mari vs Mari(sad) → same uid, True;
+    Mari (person) vs Google (org) centroid cosine ~0.05 (distinct types); deterministic (identical uid +
+    vector on recompile); gibberish "Kjadhfhfjdk" mints nothing; "a cat is a mammal" + alive/dead
+    contradiction regressions intact; `upsert_individual` idempotent. **Deferred:** pronoun→individual
+    coreference; group-channel **shared context** (resolve via KB later, not channel-keyed); learned /
+    accruing individual vectors (today the static type centroid); deeper evaluator consumption of
+    `identities` (coref-driven matching/chaining in `_best_match`/grounding). The dormant `names`
+    collection is now **superseded** by NER + the stakeholders collection (cleanup deferred).
+
 ## 🔭 Next (ordered)
 
 1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a), `part_of`
@@ -313,7 +346,9 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
   `≡ 1` over all assignments). A follow-up to the contradiction-only evaluator bar.
 - **Intrinsic comparison grounding** — `compare(subject, indirect)` for eq/noteq clauses.
 - **Trust-weighted grounding + conflict arbitration** (Phase-4 follow-ons; lean on `trusted` + recency).
-- **Individual-entity identity** (Mari ≠ Luca; named-entity vectors) — limits inter-statement coreference.
+- **Individual-entity identity** (Mari ≠ Luca; named-entity vectors) — ✅ **DONE** (Landed #21, Slice 3a):
+  type-centroid semantic vector + context-scoped identity uid + `evaluator_sameIndividual`. Remaining:
+  coreference/coref-driven matching (deferred — see #21).
 - **`axioms`-collection legacy cleanup** (predates the three-tier model; 1b largely repopulates it).
 - **`@-1,0,0` spacetime artifact** — single-entity axis normalization tidy.
 - **`recompile` utility** — re-derive the KB from stored `original`s when the parser changes (fast, no

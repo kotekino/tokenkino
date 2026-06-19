@@ -31,10 +31,15 @@ class TKDictionary(BaseModel):
     definition: str
     vector: list[float] = Field(default_factory=list, min_length=2925, max_length=2925)
 
-# list of proper names
+# a proper name. a bare name (no NER-type centroid match) carries name only; an entity-linked
+# individual additionally carries its NER label, a context-scoped identity uid, and the 2925 type
+# centroid as its SEMANTIC vector (meaning=geometry, identity=symbolic uid — kept SEPARATE).
 class TKName(BaseModel):
     entity_type: Literal["name"] = Field(default="name")
     name: str
+    ner: Optional[str] = None  # the spaCy NER label (PERSON/GPE/ORG/...) when entity-linked
+    uid: Optional[str] = None  # context-scoped identity "name@channel:talker_uid", or None for a bare name
+    vector: list[float] = Field(default_factory=list)  # 2925 type centroid, or [] for a bare name
 
 # list of places
 class TKPlace(BaseModel):

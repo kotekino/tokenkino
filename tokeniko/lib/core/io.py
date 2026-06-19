@@ -64,10 +64,32 @@ def get_tokeniko():
 
 # try getting a stakeholder by uid
 def get_stakeholder(name: str, channel: MEMChannels = MEMChannels.INTERNAL):
-    
+
     stakeholder = TKMemoryStakeholdersDoc.find_one({"uid": name}).run()
 
     if not stakeholder:
         stakeholder = TKMemoryStakeholdersDoc(uid=name, name=name, isMe=False, channel=channel).save()
 
     return stakeholder
+
+# get-or-create an entity-linked named individual stakeholder by its context-scoped uid. idempotent:
+# returns the existing doc if present, else creates one with kind="individual" + its NER type, 2925
+# type centroid (vector) and context key. only the storing paths (e.g. /input) call this — NOT
+# /evaluate, which must stay pure.
+def upsert_individual(name: str, uid: str, ner_type: str, vector: list, context_key: str, channel: MEMChannels = MEMChannels.INTERNAL):
+
+    individual = TKMemoryStakeholdersDoc.find_one({"uid": uid}).run()
+
+    if not individual:
+        individual = TKMemoryStakeholdersDoc(
+            uid=uid,
+            name=name,
+            isMe=False,
+            kind="individual",
+            ner_type=ner_type,
+            vector=vector,
+            contextKey=context_key,
+            channel=channel
+        ).save()
+
+    return individual

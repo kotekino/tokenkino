@@ -1,7 +1,7 @@
 # the evaluator package: geometric comparison of compiled meaning + truth grounding.
 # split by section: operators (fuzzy operator math), e_compare (geometric similarity),
 # e_truth (grounding a clause vs definitions), e_statement (staged statement evaluation).
-from .e_compare import evaluator_compareContent, evaluator_compareItem, evaluator_compareZip
+from .e_compare import evaluator_compareContent, evaluator_compareItem, evaluator_compareZip, evaluator_sameIndividual
 from .e_truth import evaluator_groundContent
 from .e_statement import evaluator_evaluateStatement
 from .e_label import evaluator_assignWord, TKWordLabel
@@ -16,6 +16,7 @@ __all__ = [
     "evaluator_compareContent",
     "evaluator_compareItem",
     "evaluator_compareZip",
+    "evaluator_sameIndividual",
     "evaluator_groundContent",
     "evaluator_evaluateStatement",
     "evaluator_assignWord",

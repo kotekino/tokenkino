@@ -31,6 +31,11 @@ class TKZipContent(BaseModel):
     # carried (out of band of the geometry) so the evaluator can reach the is_a relations graph for
     # taxonomic grounding/refutation. only roles whose entity has a non-empty sense appear.
     senses: dict[str, str] = Field(default_factory=dict)
+    # context-scoped identity uid per entity-linked role ("subject"/"predicate"/"direct"/"indirect0"…).
+    # the identity-bridge target (parallel to senses): referential identity carried out of band of the
+    # 2925 geometry so the evaluator can recognize the SAME individual across statements. only roles
+    # whose entity is an entity-linked named individual appear.
+    identities: dict[str, str] = Field(default_factory=dict)
     sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925))
     # statement core elements
     subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 300 (marker) + 2925 (semantic) + spacetime (12)

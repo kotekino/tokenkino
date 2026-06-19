@@ -104,8 +104,10 @@ def compiler_zipGetEntityVector(entity: TKLLEntityMap, properties: list[TKLLEnti
     # default vector
     entityVec = np.zeros(2925, dtype=np.float32)
 
-    # get semantic for entities
-    if entity.entity.entity_type == "dictionary":
+    # get semantic for entities. dictionary words carry their sense vector; an entity-linked named
+    # individual ("name") carries its NER type centroid (Slice 3a) in the same semantic_vector slot
+    # (meaning lives in the grounded 2925 geometry — a bare name still has []).
+    if entity.entity.entity_type in ("dictionary", "name"):
         if len(entity.entity.semantic_vector) > 0:
             entityVec = np.array(entity.entity.semantic_vector, dtype=np.float32)
 
@@ -194,6 +196,15 @@ def compiler_propSense(prop_id: int) -> str | None:
     entity = next((e for e in _entities if prop_id == e.entity.id), None)
     return entity.entity.sense if entity else None
 
+# resolve a reference to its entity's context-scoped identity uid (an entity-linked named individual),
+# or None when the role is absent / the entity is not an individual. mirrors compiler_refSense but
+# reads .uid instead of .sense — the read end of the identity-bridge.
+def compiler_refUid(ref: TKLLEntityReference) -> str | None:
+    if ref is None:
+        return None
+    entity = next((e for e in _entities if ref.id == e.entity.id), None)
+    return entity.entity.uid if entity else None
+
 # collect the per-role senses for a content into {role -> sense} (only non-empty ones), so the
 # evaluator can reach the is_a relations graph keyed by role.
 # ALSO surfaces the predicate's nmod-property sense as "predicate_nmod": in the "X is part of Y"
@@ -218,6 +229,20 @@ def compiler_contentSenses(content: TKLLCContent) -> dict[str, str]:
                     break
     return senses
 
+# collect the per-role identity uids for a content into {role -> uid} (only entity-linked individuals),
+# mirroring compiler_contentSenses exactly but reading .uid off each role ref instead of the sense.
+# the write end of the identity-bridge: lets the evaluator recognize the SAME individual across statements.
+def compiler_contentIdentities(content: TKLLCContent) -> dict[str, str]:
+    identities: dict[str, str] = {}
+    role_refs = [("subject", content.subject), ("predicate", content.predicate), ("direct", content.direct)]
+    for i, ind in enumerate(content.indirects):
+        role_refs.append((f"indirect{i}", ind))
+    for role, ref in role_refs:
+        u = compiler_refUid(ref)
+        if u:
+            identities[role] = u
+    return identities
+
 # calculate final vector for the content
 def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     ironic = content.properties.ironic
@@ -231,7 +256,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     for i in content.indirects:
         indirects.append(compiler_zipGetVector(i))
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, quantifier=content.quantifier, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, quantifier=content.quantifier, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), identities=compiler_contentIdentities(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:

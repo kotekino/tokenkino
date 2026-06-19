@@ -15,13 +15,22 @@ class MEMChannels(str, Enum):
     DISCORD = "discord"
     ATPROTO = "atproto"
 
-# known talking entities
+# known talking entities + named individuals.
+# kind="participant" (default) is a conversation participant (talker/listener); kind="individual"
+# is a named individual referred to in a sentence ("Mari", "Rome", "Google") — entity-linked to a
+# context-scoped uid. an individual carries a NER-type-derived SEMANTIC vector (the 2925 type
+# centroid; meaning lives in the grounded geometry) separate from its referential uid (identity
+# lives symbolically). contextKey scopes the uid to "channel:talker_uid".
 class MEMStakeholder(BaseModel):
     name: str
     uid: str
     channel: MEMChannels = Field(default=MEMChannels.INTERNAL)
     isMe: bool = Field(default=False)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
+    kind: str = "participant"  # "participant" | "individual"
+    ner_type: Optional[str] = None  # the spaCy NER label for an individual (PERSON/GPE/ORG/...)
+    vector: Optional[list[float]] = None  # the 2925 type centroid (meaning=geometry); None for participants
+    contextKey: Optional[str] = None  # "channel:talker_uid" scope of an individual's uid
 
 # mem item properties
 class MEMItemProperties(BaseModel):
