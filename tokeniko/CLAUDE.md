@@ -157,7 +157,11 @@ true, tiered ontological disjointness → false — writing the premise chain to
 `relations_subsumes` / `relations_disjoint` — BFS is_a closure, subsumption, and CONSERVATIVE tiered
 ontological disjointness), `e_consistency.py`
 (`evaluator_classifyForm` — the intra-statement contradiction kernel: crisp `{0,1}` enumeration over
-atom-clustered clauses, pinning `reflexive`-flagged leaves to a hardwired constant; `e_statement` short-circuits to `INCONSISTENT` on a contradiction). The evaluator is DB-agnostic — the
+atom-clustered clauses, pinning `reflexive`-flagged leaves to a hardwired constant; it also detects a
+**contrary-predicate contradiction** — two clauses predicating same-subject, antonym-linked predicate
+senses ("the cat is alive and the cat is dead") — via an injected `antonyms` reader, modeled as a
+mutual-exclusion constraint in the enumeration (forbids the (1,1) corner only, so a disjunction of
+contraries stays satisfiable and non-tautological); `e_statement` short-circuits to `INCONSISTENT` on a contradiction). `evaluator_evaluateStatement` gained an `antonyms=` reader (alongside `relations=`/`part_of=`) that feeds this check; `EvaluationService` injects it (relation `"antonym"` over `TKRelationDoc`). The evaluator is DB-agnostic — the
 caller injects definitions/axioms/theorems (and, for the relations graph, a cached `parents(sense)`
 reader — see the sense-bridge below). `EvaluatorResult`/`EvaluatorStatus` live in
 `lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most

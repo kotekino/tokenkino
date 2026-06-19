@@ -16,7 +16,7 @@
 # ------------------------------------------------------------------------------------------------
 from dataclasses import dataclass
 from itertools import product
-from typing import Optional
+from typing import Callable, Optional
 
 from lib.core.tkzip import TKZip, TKZipContent
 from .e_compare import evaluator_compareContent
@@ -37,9 +37,59 @@ class FormClass:
     detail: Optional[str] = None
 
 
+# il lemma-prefisso di una chiave-synset WSD ("alive.a.01" -> "alive"), o "" se vuota/malformata.
+# serve per la detail string contrary-predicate.
+def _sense_lemma(sense: Optional[str]) -> str:
+    if not sense:
+        return ""
+    return sense.split(".", 1)[0]
+
+
+# coppie di atomi CONTRARI: due atomi (non-unknown) che predicano l'uno l'antonimo dell'altro sullo
+# STESSO soggetto ("X è vivo" / "X è morto"). i contrari non possono valere insieme (1,1) ma possono
+# essere entrambi falsi (0,0) — quindi è un vincolo di mutua esclusione, NON P/¬P. guardie conservative:
+# stesso senso-soggetto, sensi-predicato distinti, entrambi NON negati (così l'atomo significa pulito
+# la predicazione positiva "X è <pred>"), e i due predicati legati da antonimia. senza un reader -> [].
+def _contrary_pairs(
+    reps: list[TKZipContent],
+    reps_unknown: list[bool],
+    antonyms: Optional[Callable[[str], list[str]]],
+) -> list[tuple[int, int]]:
+    if antonyms is None:
+        return []
+    pairs: list[tuple[int, int]] = []
+    n = len(reps)
+    for i in range(n):
+        if reps_unknown[i]:
+            continue
+        for j in range(i + 1, n):
+            if reps_unknown[j]:
+                continue
+            rep_i, rep_j = reps[i], reps[j]
+            si = (getattr(rep_i, "senses", None) or {}).get("subject")
+            pi = (getattr(rep_i, "senses", None) or {}).get("predicate")
+            sj = (getattr(rep_j, "senses", None) or {}).get("subject")
+            pj = (getattr(rep_j, "senses", None) or {}).get("predicate")
+            # stesso soggetto, predicati distinti
+            if not (si and sj and si == sj):
+                continue
+            if not (pi and pj and pi != pj):
+                continue
+            # entrambi non negati: evita di mis-modellare predicazioni negate
+            if getattr(rep_i, "negated", False) or getattr(rep_j, "negated", False):
+                continue
+            # legame di antonimia (in una delle due direzioni)
+            if pj in antonyms(pi) or pi in antonyms(pj):
+                pairs.append((i, j))
+    return pairs
+
+
 # classifica la forma logica di uno statement: è una contraddizione (mai vera) e/o una tautologia
 # (sempre vera)? Il controllo è puramente strutturale sul fold dell'input, senza alcuna conoscenza.
-def evaluator_classifyForm(statement: TKZip) -> FormClass:
+# quando `antonyms` è iniettato, aggiunge il check contrary-predicate (sensi-predicato antonimi dello
+# stesso soggetto): modellato come vincolo di mutua esclusione (no (1,1)) nell'enumerazione crisp.
+# con antonyms=None il comportamento è identico byte-per-byte a prima (additivo).
+def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], list[str]]] = None) -> FormClass:
     contents = _collect_contents(statement.items)
     if not contents:
         return FormClass(False, False, None)
@@ -93,10 +143,18 @@ def evaluator_classifyForm(statement: TKZip) -> FormClass:
     if k > _MAX_ATOMS:
         return FormClass(False, False, None)
 
+    # 1c. coppie di atomi CONTRARI (predicati antonimi sullo stesso soggetto): vincolo di mutua
+    # esclusione sull'enumerazione — i due atomi non possono valere entrambi 1.
+    contrary_pairs = _contrary_pairs(reps, reps_unknown, antonyms)
+
     # 2. enumerazione crisp {0,1} su tutti gli atomi: traccia il massimo e il minimo della formula.
     maxF = float("-inf")
     minF = float("inf")
     for assignment in product((0.0, 1.0), repeat=k):
+        # i contrari non possono valere insieme: scarta l'angolo (1,1) di ogni coppia contraria.
+        # (0,0) resta ammessa -> una disgiunzione di contrari resta soddisfacibile e NON tautologica.
+        if any(assignment[i] >= 1.0 - _EPS and assignment[j] >= 1.0 - _EPS for (i, j) in contrary_pairs):
+            continue
         def ground(c, _a=assignment):
             if id(c) in constants:
                 return constants[id(c)]
@@ -126,6 +184,17 @@ def evaluator_classifyForm(statement: TKZip) -> FormClass:
             shown = ", ".join(str(i) for i in idxs)
             detail = (
                 f"self-contradiction: clauses {{{shown}}} assert P and ¬P and cannot hold together"
+            )
+        elif contrary_pairs:
+            # nessuna polarità mista, ma esistono predicati antonimi dello stesso soggetto: contrarietà.
+            i, j = contrary_pairs[0]
+            li = atom_leaves[i][0][0]
+            lj = atom_leaves[j][0][0]
+            lemma_i = _sense_lemma((getattr(reps[i], "senses", None) or {}).get("predicate"))
+            lemma_j = _sense_lemma((getattr(reps[j], "senses", None) or {}).get("predicate"))
+            detail = (
+                f"contrary-predicate contradiction: clauses {{{li},{lj}}} predicate antonyms "
+                f"({lemma_i} / {lemma_j}) of the same subject and cannot both hold"
             )
         elif constants:
             detail = (

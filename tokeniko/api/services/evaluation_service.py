@@ -64,6 +64,24 @@ class EvaluationService:
 
         return wholes
 
+    # the injected antonym reader: antonyms(sense) -> the senses directly antonym-linked to `sense`.
+    # feeds the intra-statement contrary-predicate check (same-subject + antonym predicate senses).
+    # cached per evaluate() call, same shape as the is_a / part_of readers.
+    @staticmethod
+    def _make_antonym_reader():
+        cache: dict[str, list[str]] = {}
+
+        def antonyms(sense: str) -> list[str]:
+            hit = cache.get(sense)
+            if hit is not None:
+                return hit
+            edges = TKRelationDoc.find({"subject": sense, "relation": "antonym"}).to_list()
+            objs = [e.object for e in edges]
+            cache[sense] = objs
+            return objs
+
+        return antonyms
+
     # parse + compile a sentence into its TKZip (same pipeline as the axiom/definition services)
     def _compile_zip(self, tokens: str) -> TKZip:
         recursiveResult = parser(tokens, self._tokeniko, self._tokeniko, self._ai_client)
@@ -89,8 +107,10 @@ class EvaluationService:
         statement = self._compile_zip(tokens)
         relations = self._make_relations_reader()
         part_of = self._make_partof_reader()
+        antonyms = self._make_antonym_reader()
         result = evaluator_evaluateStatement(
-            statement, definitions, axiom_zips, theorem_zips, relations=relations, part_of=part_of
+            statement, definitions, axiom_zips, theorem_zips,
+            relations=relations, part_of=part_of, antonyms=antonyms,
         )
 
         # map the best (kind, index) back to a concrete document

@@ -241,7 +241,9 @@ def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[
 # theorems are the relational knowledge (TKZip each). `relations`, when given, is a parents(sense)
 # callable over the is_a graph (taxonomic grounding/refutation); `part_of`, when given, is the
 # analogous wholes(sense) callable over the part_of (meronymy) graph (part-whole grounding). the two
-# readers are kept SEPARATE — is_a and part_of carry different semantics. returns an EvaluatorResult.
+# readers are kept SEPARATE — is_a and part_of carry different semantics. `antonyms`, when given, is
+# an antonyms(sense) reader that feeds the intra-statement contrary-predicate check (two clauses
+# predicating antonym senses of the same subject -> INCONSISTENT). returns an EvaluatorResult.
 def evaluator_evaluateStatement(
     statement: TKZip,
     definitions: list[TKZipContent],
@@ -249,6 +251,7 @@ def evaluator_evaluateStatement(
     theorems: list[TKZip] | None = None,
     relations: Callable[[str], list[str]] | None = None,
     part_of: Callable[[str], list[str]] | None = None,
+    antonyms: Callable[[str], list[str]] | None = None,
 ) -> EvaluatorResult:
     axioms = axioms or []
     theorems = theorems or []
@@ -257,7 +260,7 @@ def evaluator_evaluateStatement(
     # what grounds it — checked on the input's own folded form (crisp atom enumeration), no KB.
     # imported function-locally to avoid an import cycle (e_consistency imports the fold helpers here).
     from .e_consistency import evaluator_classifyForm
-    form = evaluator_classifyForm(statement)
+    form = evaluator_classifyForm(statement, antonyms=antonyms)
     if form.contradiction:
         return EvaluatorResult(
             truth=0.0, status=EvaluatorStatus.INCONSISTENT, inconsistency=form.detail,

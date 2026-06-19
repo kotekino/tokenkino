@@ -177,11 +177,39 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     head sense (e.g. "cell" → cell.n.01 compartment vs cell.n.02 biological); the graph then finds no
     edge and — by design — conservatively does NOT refute. A known WSD limitation, not a logic defect.
 
+20. **Intra-statement contrary-predicate contradiction (Slice-2 priority-1)** — the intra-statement
+    kernel (`evaluator_classifyForm`) now also catches a **contrary-predicate** contradiction: two
+    clauses predicating **antonym senses of the same subject** ("the cat is alive AND the cat is dead")
+    → INCONSISTENT. It is **not** P∧¬P (no explicit `negated` flip) — the two clauses are geometrically
+    distinct atoms (cos ~0.69, below the 0.90 alias threshold) carrying antonym predicate senses
+    (`alive.a.01` / `dead.a.01`). Modeled as a **mutual-exclusion constraint** in the crisp enumeration:
+    `_contrary_pairs(reps, reps_unknown, antonyms)` finds atom pairs that (same subject sense, distinct
+    predicate senses, **both non-negated**, antonym-linked) cannot both be 1; the enumeration loop skips
+    the (1,1) corner of each such pair. This forbids ONLY (1,1) — (0,0) stays allowed, so a disjunction
+    of contraries ("X is alive or X is dead") remains satisfiable AND is **not** a spurious tautology;
+    an AND of contraries loses its only satisfying corner → maxF=0 → contradiction (correct *contrary*
+    semantics, contrary ≠ contradictory). The signal is injected: `evaluator_classifyForm` /
+    `evaluator_evaluateStatement` gained an `antonyms=` reader, and `EvaluationService` injects a cached
+    one over the `relations` collection (`relation == "antonym"`, `TKRelationDoc`); with `antonyms=None`
+    the kernel is byte-for-byte unchanged (purely additive). The P∧¬P branch keeps priority over the
+    contrary branch in the detail string. **Key findings:** (a) the precise signal is **antonym** —
+    `entails` is an *inference* edge (not assertional like is_a/part_of) → deferred to KB
+    forward-chaining; `attribute` is too coarse for contrariety (groups hot/warm, which are not
+    contraries → over-fires) so it is NOT a trigger; (b) recall is gated by **adjectival WSD quality** —
+    a mis-WSD (heavy/`light.a.03` military; open/`close.v.01` verb; present/absent not antonym-linked in
+    WordNet) yields a **conservative miss, never a false positive**. **Verified:** alive/dead and
+    true/false → INCONSISTENT; alive ∧ ¬dead (non-negated guard), alive ∨ dead (satisfiable, not
+    tautology), different-subject, non-antonym, heavy/light → consistent; P∧¬P (alive/¬alive) keeps its
+    existing mixed-polarity detail; is_a + unknown-vocab regressions intact; `antonyms=None` not flagged.
+
 ## 🔭 Next (ordered)
 
-1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a) and `part_of`
-   (mereology) ✅ DONE (Slice 2b above). The remaining pieces: **the other relation types**
-   (`entails`/`attribute` — sparse) via relation-type recognition; **KB forward-chaining** over
+1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a), `part_of`
+   (mereology) ✅ DONE (Slice 2b), and the **antonym-predicate contrary contradiction** ✅ DONE (#20
+   above — was Slice-2 priority-1). On the other relation types: **`entails`** is an *inference* edge
+   (not an assertional relation like is_a/part_of) → folded into **KB forward-chaining** (priority 2,
+   below); **`attribute`** is NOT used for contrariety (too coarse — hot/warm). The remaining pieces:
+   **KB forward-chaining** over
    axioms/theorems (soft-unify input clauses to KB facts + propagate truth through the operator algebra)
    — needs the parked `recompile` to give the stored KB its senses (NB the substrate finding: axioms are
    mostly flat facts, only ~14% rule-shaped); chaining termination / cycles; and **coreference /
@@ -262,14 +290,24 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 - **Geometric negation-awareness** in `evaluator_compareContent` (today only the truth path is).
 - **Quantifier effect on geometric grounding** — today the quantifier drives only the crisp
   relations-graph verdict; applying it to the soft definition/axiom grounding is a follow-up.
-- **Antonym-predicate / lexical contradiction** — the intra-statement kernel catches `X∧¬X` only when
-  the clauses differ by an *explicit* `negated` flag; a contradiction carried by distinct **antonym
-  words** ("the door is open" vs "…closed"; "a is equal to b" vs "…different from b" *without*
-  not/no/never) compiles to geometrically distinct predicates (cos ~0.30, below the 0.90 alias
-  threshold) and slips through. The `TKZip` layer carries no word labels, so this needs a **TKLLC
-  word-level antonym signal** (the column-read primitive lives there, not in the zip) — and note
-  antonyms also measure as *similar* geometrically. Same deferred class as the alive/dead case; this
-  **supersedes** the old "a equals b and a is different from b → INCONSISTENT" verify line.
+- **Antonym-predicate / lexical contradiction** — ✅ **DONE** (Landed #20): the intra-statement kernel
+  now catches a contradiction carried by distinct **antonym predicate senses** of the same subject
+  ("the cat is alive" vs "…dead") via an injected `antonyms` reader over the sense-bridged
+  `TKZipContent.senses` + the `relations` collection (`relation == "antonym"`), modeled as a
+  mutual-exclusion constraint in the crisp enumeration. (The sense-bridge made the word-level signal
+  reachable from the zip layer — the earlier blocker.) Remaining edges are WSD-gated (a mis-WSD →
+  conservative miss) and noted in #20.
+- **Co-predication WSD hint** — when several adjectives predicate the same subject, *prefer adjective
+  senses that share an `attribute`* (the WordNet adjective→attribute-noun link). Would lift recall on
+  the contrary-predicate check (e.g. open/closed, present/absent) by steering WSD toward the
+  predicate-sense pair that is actually contrastive, instead of the frequency-prior default that today
+  picks `close.v.01` (verb) or a non-antonym-linked sense. A WSD-quality improvement, not a logic
+  change.
+- **Graded attribute-based contrariety** — the current contrary check fires only on a discrete
+  `antonym` edge (a hard contrary). A future idea: derive *graded* contrariety from the `attribute`
+  relation (same attribute-noun, opposed poles) for adjective pairs without an explicit antonym edge —
+  but `attribute` is too coarse to use as a crisp trigger (hot/warm share an attribute yet are not
+  contraries), so this needs a graded/degree model, not a boolean one.
 - **Axiom/theorem `≡1` validity creation guard** — `evaluator_classifyForm` already computes the
   `tautology` flag, but it is not yet wired into the axiom/theorem POST (a trusted relation should fold
   `≡ 1` over all assignments). A follow-up to the contradiction-only evaluator bar.
