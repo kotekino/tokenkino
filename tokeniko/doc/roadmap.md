@@ -241,12 +241,17 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
    (mereology) ✅ DONE (Slice 2b), and the **antonym-predicate contrary contradiction** ✅ DONE (#20
    above — was Slice-2 priority-1). On the other relation types: **`entails`** is an *inference* edge
    (not an assertional relation like is_a/part_of) → folded into **KB forward-chaining** (priority 2,
-   below); **`attribute`** is NOT used for contrariety (too coarse — hot/warm). The remaining pieces:
-   **KB forward-chaining** over
-   axioms/theorems (soft-unify input clauses to KB facts + propagate truth through the operator algebra)
-   — needs the parked `recompile` to give the stored KB its senses (NB the substrate finding: axioms are
-   mostly flat facts, only ~14% rule-shaped); chaining termination / cycles; and **coreference /
-   individual-entity identity** (no identity system yet).
+   below); **`attribute`** is NOT used for contrariety (too coarse — hot/warm). Individual-entity
+   identity ✅ DONE (Slice 3a, #21). Ordered as **a → b → c**:
+   - **(a) `recompile`** ✅ DONE (`scripts/recompile.py`) — the whole stored KB (1885 axioms + 1352
+     definitions; theorems 0) re-derived from each item's `original` under the current pipeline, so the
+     stored geometry now carries **senses** (sense-bridge postdated the data). Verified: **0 failures**,
+     3211/3237 gained senses, 5 axioms gained identities, all metadata preserved (dry-run-default +
+     `--apply`). Forward-chaining now has senses to unify against.
+   - **(b) rule-shaped KB** — repopulate a small set of actual *rules* to chain over (substrate finding:
+     axioms are mostly flat facts, only ~14% rule-shaped — little to reason across until repopulated).
+   - **(c) chaining engine** — soft-unify input clauses to KB facts + propagate truth through the
+     operator algebra; chaining termination / cycles.
 2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
@@ -351,8 +356,9 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
   coreference/coref-driven matching (deferred — see #21).
 - **`axioms`-collection legacy cleanup** (predates the three-tier model; 1b largely repopulates it).
 - **`@-1,0,0` spacetime artifact** — single-entity axis normalization tidy.
-- **`recompile` utility** — re-derive the KB from stored `original`s when the parser changes (fast, no
-  NLTK/WordNet). Worth adding next time the parser changes materially.
+- **`recompile` utility** — ✅ **DONE** (`scripts/recompile.py`, priority-2 step a): re-derives the KB
+  from stored `original`s under the current pipeline (dry-run-default + `--apply`, metadata-preserving,
+  per-item-robust). Re-run it whenever the parser/compiler changes materially.
 - **t-norm / implication choice** (Gödel vs Łukasiewicz vs product) — the one semi-arbitrary "physics
   constant".
 
