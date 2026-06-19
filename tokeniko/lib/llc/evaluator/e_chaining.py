@@ -1,0 +1,195 @@
+# ------------------------------------------------------------------------------------------------
+# EVALUATOR — multi-hop forward-chaining engine (priority-2 step c, the capstone)
+#
+# Given an input statement, derive the consequences for the input's subject(s) by firing universal
+# rules to a FIXPOINT, then check the input clause against the derived facts -> corroborated (truth~1)
+# or KB-refuted (truth~0, with a derivation chain). Per doctrine, a KB-contradiction is RESOLVED with
+# truth~0 + a chain, NEVER INCONSISTENT (INCONSISTENT is reserved for logic/math rule violations).
+#
+# Two rule kinds (classified by the universal rule's PREDICATE part-of-speech in its synset key):
+#   MEMBERSHIP rule (predicate is a NOUN, ".n.")  — "all humans are thinkers": subject is_a* S
+#                   ⇒ subject is_a [predicate-sense class]. These GROW the class closure C.
+#   PROPERTY  rule (predicate is ".a."/".s."/".v.") — "all carnivores eat meat" / "all humans are
+#                   mortal": subject is_a* S ⇒ subject has property (predicate, object, negated).
+#
+# The engine:
+#   1. seed a class closure C from the input subject's sense (+ its is_a ancestors) and, for an
+#      individual subject, from the membership FACTS about that uid (+ their ancestors);
+#   2. fire MEMBERSHIP rules to a fixpoint (each fired rule adds its predicate class + ancestors to C);
+#   3. apply PROPERTY rules whose subject sits in C -> derived properties, each with a derivation chain.
+#
+# Pure / DB-agnostic: the caller injects rules, facts, and the is_a `parents(sense)` reader.
+# ------------------------------------------------------------------------------------------------
+from typing import Callable, Optional
+
+from lib.core.tk import TKQuantifier
+from lib.core.tkzip import TKZipContent
+from .e_relations import relations_isa_ancestors
+
+Parents = Callable[[str], list[str]]
+
+# truth pinned to a KB-derived verdict (mirrors e_statement). off the exact rails is not required, but
+# kept at 1.0/0.0 so a chained verdict is decisive past the grounding margin.
+_TAXO_TRUE = 1.0
+_TAXO_FALSE = 0.0
+
+
+# the lemma prefix of a WSD synset key ("eat.v.02" -> "eat"), or "" if empty/malformed.
+def _synset_lemma(sense: Optional[str]) -> str:
+    if not sense:
+        return ""
+    return sense.split(".", 1)[0]
+
+
+# is this synset key a NOUN sense (membership-rule predicate)? ".n." in "thinker.n.01".
+def _is_noun_sense(sense: Optional[str]) -> bool:
+    return bool(sense) and ".n." in sense
+
+
+# add `sense` and its is_a ancestors to the closure C, recording provenance for each newly-added
+# class. `base_chain` is the provenance of how `sense` itself entered C (e.g. the seed fact, or a
+# membership rule). closure[c] holds the human-readable chain explaining why c is in C.
+def _add_with_ancestors(sense: str, base_chain: str, closure: dict[str, str], parents: Parents) -> bool:
+    added = False
+    if sense not in closure:
+        closure[sense] = base_chain
+        added = True
+    for anc, path in relations_isa_ancestors(sense, parents).items():
+        if anc not in closure:
+            closure[anc] = base_chain + " -> " + " —is_a→ ".join(path)
+            added = True
+    return added
+
+
+# run the forward-chainer for one subject (a sense and/or an individual uid). returns
+# (derived_props, chains) where derived_props is a list of dicts
+#   {predicate, object, negated, chain}
+# and `chains` is the list of all property-derivation chains (same as the per-prop chains).
+def evaluator_forwardChain(
+    subject_sense: Optional[str],
+    subject_uid: Optional[str],
+    rules: list,
+    parents: Parents,
+    facts: list,
+    max_hops: int = 6,
+) -> tuple[list[dict], list[str]]:
+    # ---- 1. seed the class closure C (sense -> provenance chain) ----
+    closure: dict[str, str] = {}
+    if subject_sense:
+        _add_with_ancestors(subject_sense, subject_sense, closure, parents)
+    if subject_uid:
+        for fact in facts:
+            if fact.get("subject_uid") != subject_uid:
+                continue
+            klass = fact.get("klass_sense")
+            if not klass:
+                continue
+            base = f"{subject_uid} is_a {klass} (fact)"
+            _add_with_ancestors(klass, base, closure, parents)
+
+    if not closure:
+        return [], []
+
+    # display name for the subject in the chains
+    subject_name = subject_uid or subject_sense or "?"
+
+    # ---- 2. fixpoint over MEMBERSHIP rules ----
+    membership = [r for r in rules if r.get("kind") == "membership"]
+    for _ in range(max_hops):
+        changed = False
+        for r in membership:
+            r_subj = r.get("subject")
+            r_pred = r.get("predicate")
+            if not r_subj or not r_pred:
+                continue
+            if r_subj in closure and r_pred not in closure:
+                base = (
+                    closure[r_subj]
+                    + f" -> all {r_subj} are {r_pred}"
+                    + f" -> {subject_name} is_a {r_pred}"
+                )
+                if _add_with_ancestors(r_pred, base, closure, parents):
+                    changed = True
+        if not changed:
+            break  # fixpoint reached
+
+    # ---- 3. apply PROPERTY rules ----
+    derived: list[dict] = []
+    for r in rules:
+        if r.get("kind") != "property":
+            continue
+        r_subj = r.get("subject")
+        r_pred = r.get("predicate")
+        if not r_subj or not r_pred or r_subj not in closure:
+            continue
+        chain = (
+            closure[r_subj]
+            + f" -> all {r_subj} {r_pred}"
+            + f" -> {subject_name} {r_pred}"
+        )
+        derived.append({
+            "predicate": r_pred,
+            "object": r.get("object"),
+            "negated": bool(r.get("negated", False)),
+            "chain": chain,
+        })
+
+    return derived, [d["chain"] for d in derived]
+
+
+# the grounding hook (mirrors _ground_relationally in e_statement): decide the input clause via the
+# chaining engine. returns (truth, chain) when chaining decides it, else None (fall through). a
+# KB-refutation is a RESOLVED truth~0 with a chain — NOT inconsistent.
+def evaluator_chainGround(
+    content: TKZipContent,
+    rules: list,
+    parents: Parents,
+    facts: list,
+) -> Optional[tuple[float, str]]:
+    senses = getattr(content, "senses", None) or {}
+    identities = getattr(content, "identities", None) or {}
+
+    subject_uid = identities.get("subject")
+    subject_sense = senses.get("subject")
+    if not subject_uid and not subject_sense:
+        return None
+
+    pred = senses.get("predicate")
+    if not pred:
+        return None
+    obj = senses.get("direct")
+    negated = bool(getattr(content, "negated", False))
+
+    derived, _ = evaluator_forwardChain(subject_sense, subject_uid, rules, parents, facts)
+
+    # find a derived property matching the input predicate (object must match, or the rule had none)
+    match: Optional[dict] = None
+    for d in derived:
+        if d["predicate"] != pred:
+            continue
+        if d["object"] is None or d["object"] == obj:
+            match = d
+            break
+
+    if match is None:
+        return None  # chaining doesn't decide -> fall through
+
+    if match["negated"] == negated:
+        base = _TAXO_TRUE
+        chain = "chain: " + match["chain"]
+    else:
+        base = _TAXO_FALSE
+        chain = "KB-refuted: " + match["chain"] + " | input negates the derived property"
+
+    # quantifier net_flip — mirrors the shared convention so a NEGATIVE quantifier ("no cat eats
+    # meat") flips the base verdict. NB: unlike _ground_relationally (whose base verdict is the
+    # affirmative graph fact, with `negated` applied as the flip), here `negated` is ALREADY consumed
+    # in the corroborate/refute decision above (input.negated vs the derived property's negation), so
+    # only the quantifier dimension remains to flip — otherwise the predicate negation double-counts.
+    quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
+    net_flip = (quantifier == TKQuantifier.NEGATIVE)
+    truth = (1.0 - base) if net_flip else base
+    chain += f" | quantifier={quantifier.value} negated={negated}"
+    if net_flip:
+        chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
+    return truth, chain

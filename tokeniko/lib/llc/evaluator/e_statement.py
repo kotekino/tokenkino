@@ -243,7 +243,12 @@ def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[
 # analogous wholes(sense) callable over the part_of (meronymy) graph (part-whole grounding). the two
 # readers are kept SEPARATE — is_a and part_of carry different semantics. `antonyms`, when given, is
 # an antonyms(sense) reader that feeds the intra-statement contrary-predicate check (two clauses
-# predicating antonym senses of the same subject -> INCONSISTENT). returns an EvaluatorResult.
+# predicating antonym senses of the same subject -> INCONSISTENT). `rules`/`facts`, when given, feed
+# the forward-chaining grounder (e_chaining): universal MEMBERSHIP rules grow the subject's is_a class
+# closure to a fixpoint and PROPERTY rules then derive properties, so a verb/adj-predicate clause that
+# the is_a copular grounder skips is corroborated (truth~1) or KB-refuted from the rules. A KB-refutation
+# is a RESOLVED truth~0 with a derivation chain — NOT INCONSISTENT (that is reserved for logic violations).
+# returns an EvaluatorResult.
 def evaluator_evaluateStatement(
     statement: TKZip,
     definitions: list[TKZipContent],
@@ -252,6 +257,8 @@ def evaluator_evaluateStatement(
     relations: Callable[[str], list[str]] | None = None,
     part_of: Callable[[str], list[str]] | None = None,
     antonyms: Callable[[str], list[str]] | None = None,
+    rules: list | None = None,
+    facts: list | None = None,
 ) -> EvaluatorResult:
     axioms = axioms or []
     theorems = theorems or []
@@ -279,7 +286,7 @@ def evaluator_evaluateStatement(
     # it counts as grounded (not "ungrounded") and a single such clause needs no axiom/theorem match.
     derivation: list[str] = []
     graph_decided: set[int] = set()
-    if relations is not None or part_of is not None:
+    if relations is not None or part_of is not None or rules:
         for i, c in enumerate(contents):
             # a clause is EITHER a part-whole claim OR a taxonomic one — never both. recognize the
             # part-whole pattern FIRST (its predicate is a part-noun "part of" or a meronymic verb
@@ -292,6 +299,13 @@ def evaluator_evaluateStatement(
                 verdict = _ground_partof(c, part_of)
             elif not is_partwhole and relations is not None:
                 verdict = _ground_relationally(c, relations)
+            # forward-chaining grounder: a verb/adj-predicate clause (not is_a copular) falls through
+            # the relational grounder; the chainer fires universal rules over the subject's is_a
+            # closure (membership rules grow it; property rules derive properties) and corroborates
+            # (truth~1) or KB-refutes (truth~0, RESOLVED — NOT inconsistent) the input clause.
+            if verdict is None and rules:
+                from .e_chaining import evaluator_chainGround
+                verdict = evaluator_chainGround(c, rules, relations, facts or [])
             if verdict is not None:
                 truth, chain = verdict
                 groundings[i] = truth

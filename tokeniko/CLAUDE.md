@@ -161,7 +161,19 @@ atom-clustered clauses, pinning `reflexive`-flagged leaves to a hardwired consta
 **contrary-predicate contradiction** — two clauses predicating same-subject, antonym-linked predicate
 senses ("the cat is alive and the cat is dead") — via an injected `antonyms` reader, modeled as a
 mutual-exclusion constraint in the enumeration (forbids the (1,1) corner only, so a disjunction of
-contraries stays satisfiable and non-tautological); `e_statement` short-circuits to `INCONSISTENT` on a contradiction). `evaluator_evaluateStatement` gained an `antonyms=` reader (alongside `relations=`/`part_of=`) that feeds this check; `EvaluationService` injects it (relation `"antonym"` over `TKRelationDoc`). The evaluator is DB-agnostic — the
+contraries stays satisfiable and non-tautological); `e_statement` short-circuits to `INCONSISTENT` on a contradiction). `evaluator_evaluateStatement` gained an `antonyms=` reader (alongside `relations=`/`part_of=`) that feeds this check; `EvaluationService` injects it (relation `"antonym"` over `TKRelationDoc`). `e_chaining.py`
+(`evaluator_forwardChain` / `evaluator_chainGround` — the **multi-hop forward-chainer**, priority-2 step c):
+given an input it seeds a class closure from the subject's sense (+ is_a ancestors) and, for an individual
+subject, from the membership FACTS about that uid; fires **MEMBERSHIP rules** (universal, NOUN predicate —
+"all humans are thinkers": subject is_a* S ⇒ subject is_a [predicate class]) to a **fixpoint** to grow the
+closure; then applies **PROPERTY rules** (universal, verb/adj predicate — "all carnivores eat meat") whose
+subject sits in the closure to derive properties. `evaluator_chainGround` (wired into the `e_statement`
+per-clause grounding loop AFTER is_a/part_of, since a verb/adj-predicate clause falls through the is_a
+copular grounder) **corroborates** (truth≈1) or **KB-refutes** the input clause with a derivation chain —
+a KB-refutation is **RESOLVED truth≈0 + a chain, NEVER INCONSISTENT** (that is reserved for logic violations).
+`evaluator_evaluateStatement` gained `rules=`/`facts=`; `EvaluationService` extracts them from the active
+axioms (`_extract_rules`: universal-leaf with subject+predicate senses → rule, classified membership/property
+by predicate POS; `_extract_facts`: an entity-linked individual leaf with a NOUN predicate → fact). The evaluator is DB-agnostic — the
 caller injects definitions/axioms/theorems (and, for the relations graph, a cached `parents(sense)`
 reader — see the sense-bridge below). `EvaluatorResult`/`EvaluatorStatus` live in
 `lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most

@@ -12,9 +12,9 @@ from lib.llc.parser import parser
 from lib.llc.compiler import compiler_compile
 from lib.llc.evaluator import evaluator_evaluateStatement
 from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKRelationDoc, TKTheoremDoc
-from lib.core.tk import TKStatement
+from lib.core.tk import TKQuantifier, TKStatement
 from lib.core.tkllc import TKLLC
-from lib.core.tkzip import TKZip
+from lib.core.tkzip import TKZip, TKZipContent
 
 
 class EvaluationService:
@@ -82,6 +82,71 @@ class EvaluationService:
 
         return antonyms
 
+    # collect every leaf TKZipContent of a zip item tree, in order.
+    @staticmethod
+    def _zip_leaves(item) -> list:
+        c = item.content
+        if isinstance(c, TKZipContent):
+            return [c]
+        out = []
+        if isinstance(c, list):
+            for child in c:
+                out += EvaluationService._zip_leaves(child)
+        return out
+
+    # extract universal RULES from the active axioms for the forward-chainer. a rule leaf is a
+    # UNIVERSAL-quantified clause with a subject sense and a predicate sense ("all carnivores eat
+    # meat", "all humans are thinkers"). the predicate POS classifies the rule: a NOUN predicate
+    # (".n.") is a MEMBERSHIP rule (subject is_a* S => subject is_a [predicate class]); anything else
+    # (".a."/".s."/".v.") is a PROPERTY rule (subject is_a* S => subject has the predicate property).
+    def _extract_rules(self, axiom_docs) -> list:
+        rules: list = []
+        for doc in axiom_docs:
+            if doc.zip is None:
+                continue
+            for leaf in self._zip_leaves(doc.zip.items):
+                if getattr(leaf, "quantifier", None) != TKQuantifier.UNIVERSAL:
+                    continue
+                senses = getattr(leaf, "senses", None) or {}
+                subject = senses.get("subject")
+                predicate = senses.get("predicate")
+                if not subject or not predicate:
+                    continue
+                kind = "membership" if ".n." in predicate else "property"
+                rules.append({
+                    "subject": subject,
+                    "predicate": predicate,
+                    "object": senses.get("direct"),
+                    "negated": bool(getattr(leaf, "negated", False)),
+                    "kind": kind,
+                    "original": doc.original,
+                })
+        return rules
+
+    # extract individual membership FACTS from the active axioms for the forward-chainer. a fact leaf
+    # has an entity-linked individual subject (identities['subject']) and a NOUN predicate sense and is
+    # NOT universal ("Mari is a human" => mari@... is_a homo.n.02).
+    def _extract_facts(self, axiom_docs) -> list:
+        facts: list = []
+        for doc in axiom_docs:
+            if doc.zip is None:
+                continue
+            for leaf in self._zip_leaves(doc.zip.items):
+                if getattr(leaf, "quantifier", None) == TKQuantifier.UNIVERSAL:
+                    continue
+                identities = getattr(leaf, "identities", None) or {}
+                senses = getattr(leaf, "senses", None) or {}
+                subject_uid = identities.get("subject")
+                predicate = senses.get("predicate")
+                if not subject_uid or not predicate or ".n." not in predicate:
+                    continue
+                facts.append({
+                    "subject_uid": subject_uid,
+                    "klass_sense": predicate,
+                    "original": doc.original,
+                })
+        return facts
+
     # parse + compile a sentence into its TKZip (same pipeline as the axiom/definition services)
     def _compile_zip(self, tokens: str) -> TKZip:
         recursiveResult = parser(tokens, self._tokeniko, self._tokeniko, self._ai_client)
@@ -108,9 +173,12 @@ class EvaluationService:
         relations = self._make_relations_reader()
         part_of = self._make_partof_reader()
         antonyms = self._make_antonym_reader()
+        rules = self._extract_rules(axiom_docs)
+        facts = self._extract_facts(axiom_docs)
         result = evaluator_evaluateStatement(
             statement, definitions, axiom_zips, theorem_zips,
             relations=relations, part_of=part_of, antonyms=antonyms,
+            rules=rules, facts=facts,
         )
 
         # map the best (kind, index) back to a concrete document

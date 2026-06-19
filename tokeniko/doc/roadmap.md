@@ -242,7 +242,9 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
    above — was Slice-2 priority-1). On the other relation types: **`entails`** is an *inference* edge
    (not an assertional relation like is_a/part_of) → folded into **KB forward-chaining** (priority 2,
    below); **`attribute`** is NOT used for contrariety (too coarse — hot/warm). Individual-entity
-   identity ✅ DONE (Slice 3a, #21). Ordered as **a → b → c**:
+   identity ✅ DONE (Slice 3a, #21). Ordered as **a → b → c** — **all three landed ✅** (the forward-
+   chaining KB engine is in place; this priority-2 reasoning block is effectively done, modulo the parked
+   defeasibility caveat noted under (c) and the legacy gloss-as-axioms cleanup):
    - **(a) `recompile`** ✅ DONE (`scripts/recompile.py`) — the whole stored KB (1885 axioms + 1352
      definitions; theorems 0) re-derived from each item's `original` under the current pipeline, so the
      stored geometry now carries **senses** (sense-bridge postdated the data). Verified: **0 failures**,
@@ -257,10 +259,28 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      discriminates rules from the gloss-axioms (6 universal-leaf axioms total = our 5 + 1 fluke). The
      syllogism `all humans are mortal` + `Mari is a human` (a Slice-3a individual) → `Mari is mortal` is
      the bridge demo for (c). NB the gloss-as-axioms pollution remains (parked legacy cleanup).
-   - **(c) chaining engine** — soft-unify input clauses to KB **rules** (filter by universal quantifier)
-     + propagate the rule's property down the is_a graph (subject is_a* rule-subject ⇒ inherit predicate)
-     + fold truth through the operator algebra; chaining termination / cycles. Target demos:
-     `Mari is mortal` (syllogism) and `my cat eats only lettuce` ⊥ (carnivores eat meat) → INCONSISTENT.
+   - **(c) chaining engine** ✅ DONE (`lib/llc/evaluator/e_chaining.py`) — the multi-hop forward-chainer.
+     Given an input, it seeds a class closure from the subject's sense (+ is_a ancestors) and, for an
+     individual subject, from the membership FACTS about that uid; fires **MEMBERSHIP rules** (universal,
+     NOUN predicate — "all humans are thinkers") to a **fixpoint** to grow that closure; then applies
+     **PROPERTY rules** (universal, verb/adj predicate — "all carnivores eat meat") whose subject sits in
+     the closure to derive properties. `evaluator_chainGround` (the grounding hook, wired into the
+     `e_statement` per-clause loop after is_a/part_of) **corroborates** (truth≈1) or **KB-refutes**
+     (truth≈0) the input clause with a derivation chain. Per doctrine a KB-contradiction is **RESOLVED
+     with truth≈0 + a chain, NEVER INCONSISTENT** (that is reserved for logic/math violations).
+     `evaluator_evaluateStatement` gained `rules=`/`facts=`; `EvaluationService` extracts them from the
+     active axioms (universal-leaf → rule, classified membership/property by predicate POS; individual
+     membership leaf → fact). Demos verified (rules/facts injected in-probe, DB untouched): `a cat eats
+     meat` → 1.0 (cat→feline→carnivore + rule); `a cat does not eat meat` → 0.0 KB-refuted (NOT
+     inconsistent); `Mari is mortal` → 1.0 (fact + rule syllogism); `Mari exists` → 1.0 **2-hop** (fact →
+     `all humans are thinkers` → Mari is_a thinker → `all thinkers exist` → Mari exists); `a cat is happy`
+     → INSUFFICIENT (no spurious fire); is_a grounding + the antonym kernel regress clean.
+     `scripts/seed_rules.py` extended with the membership rule `all humans are thinkers` + a `FACTS`
+     list (`Mari is a human`) — dry-run-default; `--apply` is the operator's to run.
+     **Parked caveat — defeasibility**: strict universals over biological kinds have exceptions
+     (penguins don't fly, a sated cat may not eat) — the current engine treats `all` as crisp/monotonic,
+     so it can over-assert; refine via future KB/input (exception facts, graded trust). MATH/logic
+     universals stay clean.
 2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
