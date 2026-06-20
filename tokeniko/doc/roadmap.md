@@ -235,9 +235,7 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
     `identities` (coref-driven matching/chaining in `_best_match`/grounding). The dormant `names`
     collection is now **superseded** by NER + the stakeholders collection (cleanup deferred).
 
-## 🔭 Next (ordered)
-
-1. **Inter-statement inference — Slice 2 (remainder)** — quantifiers ✅ DONE (Slice 2a), `part_of`
+22. **Inter-statement inference & forward-chaining — priority-2 (Slices 2a–2c)** ✅ DONE — quantifiers ✅ DONE (Slice 2a), `part_of`
    (mereology) ✅ DONE (Slice 2b), and the **antonym-predicate contrary contradiction** ✅ DONE (#20
    above — was Slice-2 priority-1). On the other relation types: **`entails`** is an *inference* edge
    (not an assertional relation like is_a/part_of) → folded into **KB forward-chaining** (priority 2,
@@ -281,7 +279,31 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      (penguins don't fly, a sated cat may not eat) — the current engine treats `all` as crisp/monotonic,
      so it can over-assert; refine via future KB/input (exception facts, graded trust). MATH/logic
      universals stay clean.
-2. **Reflective behavior layer (later)** — behavior as memory rules over reserved tokens
+
+## 🔭 Next (ordered)
+
+> Order locked with the author: **1 → 2 → 3 → 4**. Each step makes the layer beneath "strong and
+> failproof" before the next builds on it; the brain (4) comes last, on a verified foundation.
+
+1. **Engine consolidation — parked reasoning loose-ends** — finish the edges of the now-built reasoning
+   engine before building up:
+   - **≡1 tautology / axiom-creation guard** — `evaluator_classifyForm` already computes `tautology`;
+     wire it into axiom/theorem POST so a trusted relation must fold `≡1` over all assignments.
+   - **deeper evaluator use of `identities`** — consume the identity-bridge in `_best_match` / grounding
+     (coref-driven same-individual matching); today only the `evaluator_sameIndividual` primitive exists.
+   - smaller follow-ons: **co-predication WSD hint**, **graded attribute-contrariety**, **defeasibility**
+     of biological universals (exception facts / graded trust) — pick the high-value ones.
+2. **KB consolidation — gloss-as-axioms legacy cleanup** — the 1885 "axioms" are really WordNet-gloss
+   *definitions* (predate the 3-tier model). Reclassify them (glosses → definitions), leaving a clean
+   **axiom/rule** pool (the seeded universal rules + genuine relations). `scripts/recompile.py` (done in
+   priority-2a) supports re-deriving the geometry; this is the read-and-route cleanup on top.
+3. **Pipeline deep-test — first end-to-end test harness (pytest)** *(the failproof gate before the brain)*
+   — there is no test suite today; everything has been verified ad-hoc. Introduce **pytest** + a curated
+   **sentence → expected-behavior** corpus over parser → compiler → evaluator (AST / WSD / quantifier /
+   negation / individual-minting; the sense & identity bridges; grounding; intra-statement contradiction;
+   forward-chaining + derivation chains; KB-refutation). **Seeded from this session's verified cases**,
+   grown during (1)/(2), and hardened here into the regression gate that must pass before the brain (4).
+4. **Reflective behavior layer — the brain (last)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
    perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
