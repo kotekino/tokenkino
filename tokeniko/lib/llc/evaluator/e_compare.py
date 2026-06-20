@@ -115,6 +115,22 @@ def evaluator_compareContent(a: TKZipContent, b: TKZipContent) -> float:
         "modality": _modality_similarity(a, b),
     }
 
+    # entity-linking override (Slice 3a / #1b): identity is EXACT and lives in the symbolic uid, out of
+    # band of the 2925 geometry — so for an individual-bearing role it DOMINATES the geometric score
+    # (which conflates same-type individuals: "Mari" and "Luca" share the person type-centroid → ~1.0).
+    # same uid → certain same referent (1.0); different uid → different referent (0.0); no uid on either
+    # side → keep the geometric score (definitions / generic clauses carry no uid, so they are untouched).
+    # only roles that already scored (not None) are overridden — a uid implies a nonzero centroid vector,
+    # so an absent (None) role never carries one; the guard just avoids resurrecting a skipped role.
+    for role in ("subject", "direct"):
+        if similarities[role] is None:
+            continue
+        same = evaluator_sameIndividual(a, b, role)
+        if same is True:
+            similarities[role] = 1.0
+        elif same is False:
+            similarities[role] = 0.0
+
     # weighted mean over the applicable components (skip the None / not-applicable ones)
     totalWeight = sum(_CONTENT_WEIGHTS[k] for k, v in similarities.items() if v is not None)
     if totalWeight == 0.0:

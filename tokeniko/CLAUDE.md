@@ -211,7 +211,11 @@ in `compiler_zipContent`). An individual is homed in the extended `MEMStakeholde
 idempotent) — called ONLY on storing paths (the `/input` handler walks the recursive parse for
 name payloads with a uid), NEVER on `/evaluate` (which stays pure / read-only).
 `evaluator_sameIndividual(a, b, role)` is the demonstrable entity-linking primitive: same uid → True,
-different → False, either missing → None.
+different → False, either missing → None. `evaluator_compareContent` **consumes** it (#1b): for the
+subject/direct roles it overrides the geometric score by identity (same uid → 1.0, different → 0.0, no
+uid → geometry), so same-type individuals are no longer conflated ("Mari is happy" ≠ "Luca is happy")
+while the same individual is recognized across different claims — propagating through
+`compareItem`/`compareZip`/`_best_match` and the consistency-kernel clustering.
 
 **Status & the ordered roadmap live in one place → `doc/roadmap.md`** (the single source of truth:
 landed / in-progress / next / parked — keep it current as items land). The phased execution detail is

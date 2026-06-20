@@ -293,8 +293,14 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      `InconsistentStatementError` → HTTP 422; tautologies AND contingent statements are allowed (it is a
      contradiction-reject guard, **not** a tautology requirement). Guard is outside `compile_fields`, so
      `scripts/recompile.py` is unaffected.
-   - **deeper evaluator use of `identities`** — consume the identity-bridge in `_best_match` / grounding
-     (coref-driven same-individual matching); today only the `evaluator_sameIndividual` primitive exists.
+   - **deeper evaluator use of `identities`** ✅ DONE (#1b) — `evaluator_compareContent` now consumes the
+     identity-bridge: for the subject/direct roles it overrides the geometric score by
+     `evaluator_sameIndividual` (same uid → 1.0, different uid → 0.0, no uid → geometry), so same-type
+     individuals are no longer conflated ("Mari is happy" vs "Luca is happy" drops ~0.96 → 0.615, below
+     the match/cluster thresholds) and the same individual is recognized across different claims ("Mari
+     is happy"/"Mari is sad" keep subject=1.0). Propagates through `compareItem`/`compareZip`/`_best_match`
+     and the consistency-kernel clustering; definitions/generic clauses (no uid) are untouched. Indirects
+     (variable-length set) deferred.
    - smaller follow-ons: **co-predication WSD hint**, **graded attribute-contrariety**, **defeasibility**
      of biological universals (exception facts / graded trust) — pick the high-value ones.
 2. **KB consolidation — gloss-as-axioms legacy cleanup** — the 1885 "axioms" are really WordNet-gloss
