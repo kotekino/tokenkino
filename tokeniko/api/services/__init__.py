@@ -29,6 +29,10 @@ from api.services.memory_service import (
 from api.services.evaluation_service import (
     EvaluationService,
 )
+from api.services.validation import (
+    InconsistentStatementError,
+    assert_no_contradiction,
+)
 
 __all__ = [
     "AxiomService", "AxiomNotFoundError", "InvalidAxiomIdError",
@@ -37,4 +41,5 @@ __all__ = [
     "StakeholderService", "StakeholderNotFoundError", "InvalidStakeholderIdError",
     "MemoryService", "MemoryNotFoundError", "InvalidMemoryIdError",
     "EvaluationService",
+    "InconsistentStatementError", "assert_no_contradiction",
 ]

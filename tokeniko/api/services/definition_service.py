@@ -17,6 +17,7 @@ from lib.core.memory import MEMChannels
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip, TKZipContent
+from api.services.validation import assert_no_contradiction
 
 
 # --- domain errors (mapped by the API layer onto HTTP codes) ---
@@ -58,7 +59,9 @@ class DefinitionService:
             raise ValueError("compilation produced no result")
         content = _extract_definition_content(flatResult[1])
         rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
-        return {"original": tokens, "content": content, "raw": rawResult}
+        # also expose the full zip so the contradiction guard can classify the form (recompile uses
+        # only content/raw, so the extra key is harmless).
+        return {"original": tokens, "content": content, "raw": rawResult, "zip": flatResult[1]}
 
     # fetch a definition by id, or raise a domain error
     def _resolve(self, object_id: str) -> TKDefinitionDoc:
@@ -86,6 +89,7 @@ class DefinitionService:
     # insert a new definition from a sentence
     def create(self, tokens: str) -> TKDefinitionDoc:
         fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
         definition = TKDefinitionDoc(
             original=fields["original"],
             content=fields["content"],
@@ -102,6 +106,7 @@ class DefinitionService:
         definition = self._resolve(object_id)
         if "tokens" in updates:
             fields = self.compile_fields(updates.pop("tokens"))
+            assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
             definition.original = fields["original"]
             definition.content = fields["content"]
             definition.raw = fields["raw"]
@@ -116,6 +121,7 @@ class DefinitionService:
     def replace(self, object_id: str, tokens: str, trusted: float, archived: bool, readonly: bool) -> TKDefinitionDoc:
         definition = self._resolve(object_id)
         fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
         definition.original = fields["original"]
         definition.content = fields["content"]
         definition.raw = fields["raw"]

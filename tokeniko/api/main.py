@@ -23,6 +23,7 @@ from api.schemas import (
     EvaluateIn,
     StakeholderSummary, stakeholder_or_http,
     MemoryIn, MemorySummary, memory_or_http,
+    create_or_http,
 )
 
 # env load (MONGO_URI, ecc.)
@@ -87,8 +88,10 @@ async def get_axiom(object_id: str):
 @app.post("/api/v1/axioms")
 async def create_axiom(payload: AxiomIn):
     try:
-        axiom = app.state.axiom_service.create(payload.tokens)
+        axiom = create_or_http(lambda: app.state.axiom_service.create(payload.tokens))
         return {"status": "complete", "data": axiom}
+    except HTTPException:
+        raise
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 
@@ -97,7 +100,7 @@ async def create_axiom(payload: AxiomIn):
 async def patch_axiom(object_id: str, payload: AxiomPatch):
     updates = payload.model_dump(exclude_unset=True)
     try:
-        axiom = axiom_or_http(lambda: app.state.axiom_service.patch(object_id, updates))
+        axiom = create_or_http(lambda: axiom_or_http(lambda: app.state.axiom_service.patch(object_id, updates)))
         return {"status": "complete", "data": axiom}
     except HTTPException:
         raise
@@ -108,7 +111,7 @@ async def patch_axiom(object_id: str, payload: AxiomPatch):
 @app.put("/api/v1/axioms/{object_id}")
 async def put_axiom(object_id: str, payload: AxiomReplace):
     try:
-        axiom = axiom_or_http(lambda: app.state.axiom_service.replace(object_id, **payload.model_dump()))
+        axiom = create_or_http(lambda: axiom_or_http(lambda: app.state.axiom_service.replace(object_id, **payload.model_dump())))
         return {"status": "complete", "data": axiom}
     except HTTPException:
         raise
@@ -140,8 +143,10 @@ async def get_definition(object_id: str):
 @app.post("/api/v1/definitions")
 async def create_definition(payload: DefinitionIn):
     try:
-        definition = app.state.definition_service.create(payload.tokens)
+        definition = create_or_http(lambda: app.state.definition_service.create(payload.tokens))
         return {"status": "complete", "data": definition}
+    except HTTPException:
+        raise
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 
@@ -150,7 +155,7 @@ async def create_definition(payload: DefinitionIn):
 async def patch_definition(object_id: str, payload: DefinitionPatch):
     updates = payload.model_dump(exclude_unset=True)
     try:
-        definition = definition_or_http(lambda: app.state.definition_service.patch(object_id, updates))
+        definition = create_or_http(lambda: definition_or_http(lambda: app.state.definition_service.patch(object_id, updates)))
         return {"status": "complete", "data": definition}
     except HTTPException:
         raise
@@ -161,7 +166,7 @@ async def patch_definition(object_id: str, payload: DefinitionPatch):
 @app.put("/api/v1/definitions/{object_id}")
 async def put_definition(object_id: str, payload: DefinitionReplace):
     try:
-        definition = definition_or_http(lambda: app.state.definition_service.replace(object_id, **payload.model_dump()))
+        definition = create_or_http(lambda: definition_or_http(lambda: app.state.definition_service.replace(object_id, **payload.model_dump())))
         return {"status": "complete", "data": definition}
     except HTTPException:
         raise
@@ -193,8 +198,10 @@ async def get_theorem(object_id: str):
 @app.post("/api/v1/theorems")
 async def create_theorem(payload: TheoremIn):
     try:
-        theorem = app.state.theorem_service.create(payload.tokens)
+        theorem = create_or_http(lambda: app.state.theorem_service.create(payload.tokens))
         return {"status": "complete", "data": theorem}
+    except HTTPException:
+        raise
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 
@@ -203,7 +210,7 @@ async def create_theorem(payload: TheoremIn):
 async def patch_theorem(object_id: str, payload: TheoremPatch):
     updates = payload.model_dump(exclude_unset=True)
     try:
-        theorem = theorem_or_http(lambda: app.state.theorem_service.patch(object_id, updates))
+        theorem = create_or_http(lambda: theorem_or_http(lambda: app.state.theorem_service.patch(object_id, updates)))
         return {"status": "complete", "data": theorem}
     except HTTPException:
         raise
@@ -214,7 +221,7 @@ async def patch_theorem(object_id: str, payload: TheoremPatch):
 @app.put("/api/v1/theorems/{object_id}")
 async def put_theorem(object_id: str, payload: TheoremReplace):
     try:
-        theorem = theorem_or_http(lambda: app.state.theorem_service.replace(object_id, **payload.model_dump()))
+        theorem = create_or_http(lambda: theorem_or_http(lambda: app.state.theorem_service.replace(object_id, **payload.model_dump())))
         return {"status": "complete", "data": theorem}
     except HTTPException:
         raise

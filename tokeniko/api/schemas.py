@@ -11,11 +11,12 @@ from bunnet import PydanticObjectId
 
 from api.services import (
     AxiomNotFoundError, InvalidAxiomIdError,
-    DefinitionNotFoundError, InvalidDefinitionIdError,
+    DefinitionNotFoundError, InvalidDefinitionIdError, NotASingleClauseError,
     TheoremNotFoundError, InvalidTheoremIdError,
     StakeholderNotFoundError, InvalidStakeholderIdError,
     MemoryNotFoundError, InvalidMemoryIdError,
 )
+from api.services.validation import InconsistentStatementError
 
 # ------------------------------ axioms ------------------------------
 class AxiomIn(BaseModel):
@@ -148,3 +149,11 @@ def stakeholder_or_http(action):
 
 def memory_or_http(action):
     return _or_http(action, InvalidMemoryIdError, MemoryNotFoundError, "memory item")
+
+# run a create/patch/replace action, translating validation failures to HTTP 422:
+# a contradictory FORM (logic-is-sacred) or a non-single-clause definition. Anything else re-raises.
+def create_or_http(action):
+    try:
+        return action()
+    except (InconsistentStatementError, NotASingleClauseError) as error:
+        raise HTTPException(status_code=422, detail=str(error))

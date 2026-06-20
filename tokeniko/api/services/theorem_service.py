@@ -17,6 +17,7 @@ from lib.core.memory import MEMChannels
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
+from api.services.validation import assert_no_contradiction
 
 
 # --- domain errors (mapped by the API layer onto HTTP codes) ---
@@ -70,6 +71,7 @@ class TheoremService:
     # insert a new theorem from a sentence
     def create(self, tokens: str) -> TKTheoremDoc:
         fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
         theorem = TKTheoremDoc(
             original=fields["original"],
             zip=fields["zip"],
@@ -86,6 +88,7 @@ class TheoremService:
         theorem = self._resolve(object_id)
         if "tokens" in updates:
             fields = self.compile_fields(updates.pop("tokens"))
+            assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
             theorem.original = fields["original"]
             theorem.zip = fields["zip"]
             theorem.raw = fields["raw"]
@@ -100,6 +103,7 @@ class TheoremService:
     def replace(self, object_id: str, tokens: str, trusted: float, archived: bool) -> TKTheoremDoc:
         theorem = self._resolve(object_id)
         fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
         theorem.original = fields["original"]
         theorem.zip = fields["zip"]
         theorem.raw = fields["raw"]

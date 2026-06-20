@@ -287,8 +287,12 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
 
 1. **Engine consolidation — parked reasoning loose-ends** — finish the edges of the now-built reasoning
    engine before building up:
-   - **≡1 tautology / axiom-creation guard** — `evaluator_classifyForm` already computes `tautology`;
-     wire it into axiom/theorem POST so a trusted relation must fold `≡1` over all assignments.
+   - **≡1 / contradiction creation guard** — ✅ DONE. `assert_no_contradiction` (`api/services/validation.py`)
+     runs `evaluator_classifyForm` (with the antonym reader) in axiom/definition/theorem
+     create/patch/replace and **rejects a contradictory FORM** (`X∧¬X`, `a≠a`, antonym-predicate) →
+     `InconsistentStatementError` → HTTP 422; tautologies AND contingent statements are allowed (it is a
+     contradiction-reject guard, **not** a tautology requirement). Guard is outside `compile_fields`, so
+     `scripts/recompile.py` is unaffected.
    - **deeper evaluator use of `identities`** — consume the identity-bridge in `_best_match` / grounding
      (coref-driven same-individual matching); today only the `evaluator_sameIndividual` primitive exists.
    - smaller follow-ons: **co-predication WSD hint**, **graded attribute-contrariety**, **defeasibility**

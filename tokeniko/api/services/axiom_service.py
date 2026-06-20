@@ -17,6 +17,7 @@ from lib.core.memory import MEMChannels
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
+from api.services.validation import assert_no_contradiction
 
 
 # --- domain errors (mapped by the API layer onto HTTP codes) ---
@@ -75,6 +76,7 @@ class AxiomService:
     # insert a new axiom from a sentence
     def create(self, tokens: str) -> TKAxiomDoc:
         fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
         axiom = TKAxiomDoc(
             original=fields["original"],
             zip=fields["zip"],
@@ -91,6 +93,7 @@ class AxiomService:
         axiom = self._resolve(object_id)
         if "tokens" in updates:
             fields = self.compile_fields(updates.pop("tokens"))
+            assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
             axiom.original = fields["original"]
             axiom.zip = fields["zip"]
             axiom.raw = fields["raw"]
@@ -106,6 +109,7 @@ class AxiomService:
     def replace(self, object_id: str, tokens: str, trusted: float, archived: bool, readonly: bool) -> TKAxiomDoc:
         axiom = self._resolve(object_id)
         fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
         axiom.original = fields["original"]
         axiom.zip = fields["zip"]
         axiom.raw = fields["raw"]
