@@ -365,10 +365,31 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      intent `targetId=self`, others → outward); `priorities_phase` consumes the dispatch (pending ideas
      sorted **urge-desc**). Seed via `scripts/seed_behavior_rules.py` (dry-run default; `--apply`
      operator-gated). **Parked doors:** the **collapse arbitration** (choosing among multiple kept
-     candidates) + the **actions-as-data** future (externalize `_DISPATCH` to a table). **D** = the
-     **WHAT** — fill in the loops' real business logic (thinking scan, priority/feasibility scoring,
-     action execution). After B comes the HOW orchestration BL (scheduler implementing the routing +
-     cooperative yield + event-interruption against *stub* cognition), then C ✅, then D.
+     candidates) + the **actions-as-data** future (externalize `_DISPATCH` to a table). **B ✅, HOW ✅
+     (coordinator), C ✅ (meta-language + a seeded birth personality live).** **D** (🔭 NEXT) = the
+     **WHAT** — fill in the loops' real business logic: **D1 Thinking** (the keystone — wire the
+     reasoning engine over recent `memory` TKZips → write theorems→KB + turn `eval:*` outcomes into
+     ideas via `spawn_ideas_for`; the thinking/wondering state machine); **D2** priorities feasibility
+     scoring; **D3** action execution (`guess`/`learn` → real provisional-low-trust KB writes;
+     `speakup/ask/why/post` → `senses` I/O).
+     - **D refinement — learning from others (`eval:true` novelty split):** silence=consent holds only
+       for *redundant* truths. A true + logic-consistent statement that **bridges axioms/definitions
+       tokeniko already holds but hadn't derived** is a **theorem taught from outside** → stay silent
+       but **absorb** it. So `eval:true` splits: redundant→`tokeniko:ignore`; **novel + KB-bridging →
+       `tokeniko:learn`** (record it, at **trust = f(teacher's `trusted`)** — the teaching channel + the
+       trust gradient: externally-taught < self-derived < base KB). Guards: gate on "genuinely *bridges*
+       the KB" (not trivial-new); general-bridge→theorem, contingent-fact→memory. Needs an evaluator
+       `eval:true`-novelty signal (already-derivable? via grounding/chaining). See the memory note
+       `learning-from-others`.
+     - **Two-tier trust (the contingent-fact home):** a contingent claim is NOT discarded — trust splits.
+       **Tier 2** (KB-bridging deduction) → trust **1.0, speaker-irrelevant** (logic-is-sacred; learn the
+       theorem even from a liar). **Tier 1** (contingent claim, e.g. "Mario climbed Everest") →
+       **speaker-scoped, trust-weighted** local assumption held in a per-relationship structure
+       (**"KB-tokeniko-userA"**) as a **context-universe / what-if** tokeniko can reason *inside* at trust
+       τ(speaker), NOT promoted to global truth unless corroborated. Grounds onto existing substrate
+       (memory is already source-attributed via `sourceId`+`trusted`; the doxastic `THAT`/belief frame; the
+       trust gradient). τ(speaker)-from-history + full context-universe reasoning are BIG future pieces —
+       scope when built.
    - **Cooperative-preemption model** — there is no OS preemption and `brain` / `api`+`senses` are
      **separate processes**: `api`/`senses` handle input in their own process regardless, and the brain
      *reacts* via the memory-trace (new `memory` items snap thinking back) while **throttling** (bounded
