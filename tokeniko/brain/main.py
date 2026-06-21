@@ -2,8 +2,19 @@ import asyncio
 import logging
 import signal
 import sys
+import time
+
 from dotenv import load_dotenv
-from lib.core.io import init_io
+
+from lib.core.io import init_io, get_tokeniko
+from lib.core.models import TKIdeaDoc, TKActionDoc, TKBrainStateDoc, TKMemoryItemDoc
+from lib.core.memory import (
+    IdeaStatus,
+    ActionStatus,
+    ActionType,
+    MEMChannels,
+    UrgeLevel,
+)
 
 load_dotenv()
 
@@ -15,52 +26,221 @@ logging.basicConfig(
 )
 logger = logging.getLogger("tokeniko-brain")
 
-# main brain loop: here tokeniko cycle over his memory, searching for new knowledge (elaborating theorems), validating existing knowledge (inconsistencies over axioms)
-# and creating ideas
-async def idle_thinking_loop():
-    logger.info("🧠 Brain loop started")
-    try:
-        while True:
-            logger.info("🤖 tokeniko is thinking...")
-            
-            await asyncio.sleep(30) 
-    except asyncio.CancelledError:
-        logger.info("🧠 Brain loop interrupted...")
+# --------------------------------------------------------------
+# brain orchestration — the HOW (step A). A SINGLE coordinator that, each tick, picks the
+# highest-priority phase WITH WORK — Actions > Priorities > Thinking — runs ONE bounded unit, then
+# cooperatively yields. The queue mechanics (grab / transition / drain, idea -> action creation) are
+# REAL; the cognition (scoring, trigger -> action mapping, thinking derivation) is STUBBED — those are
+# steps C (meta-language) and D (the WHAT / reasoning-engine). Every stub is marked inline.
+#
+# Concurrency note: a single coordinator process has no intra-process race, so the queue state
+# machines use find + save (read, mutate, persist). The PRODUCTION upgrade — once multiple workers /
+# overlapping execution frames are introduced — is an atomic MongoDB `find_one_and_update`
+# (pending -> processing) so two workers can never grab the same item. See brain/README.md Appendix.
+# --------------------------------------------------------------
 
-# priority evaluation loop
-async def priorities_loop():
-    logger.info("🧠 Priorities loop started")
-    try:
-        while True:
-            logger.info("🤖 tokeniko is taking decisions...")
-            
-            await asyncio.sleep(30) 
-    except asyncio.CancelledError:
-        logger.info("🧠 Priorities loop interrupted...")
+# how long to sleep when only Thinking ran this tick (CPU throttle / good citizen)
+IDLE_INTERVAL = 5.0
+# cooperative yield between busy units (lets the loop stay responsive without saturating a core)
+BUSY_YIELD = 0.05
+# Priorities keep/discard floor: an idea must clear this urge to survive (wish = 0.5)
+URGE_THRESHOLD = UrgeLevel.WISH.value
 
-# action loop
-async def actions_loop():
-    logger.info("🧠 Action loop started")
+
+# --------------------------------------------------------------
+# brain_state continuity singleton — persists the working-memory cursor + wondering window across
+# process restarts, so tokeniko resumes its cycles (one continuous self).
+# --------------------------------------------------------------
+def get_or_create_brain_state() -> TKBrainStateDoc:
+    bs = TKBrainStateDoc.find_one({"key": "singleton"}).run()
+    if bs is None:
+        bs = TKBrainStateDoc(key="singleton")
+        bs.insert()
+    return bs
+
+
+# --------------------------------------------------------------
+# Actions phase (The Executor) — strict FIFO. Pull the oldest pending action and carry it out.
+# Returns True if it processed an action this tick, False if the queue was empty.
+# --------------------------------------------------------------
+def actions_phase() -> bool:
+    pending = (
+        TKActionDoc.find({"status": ActionStatus.PENDING.value})
+        .sort("createdAt")
+        .limit(1)
+        .to_list()
+    )
+    if not pending:
+        return False
+
+    action = pending[0]
+
+    # grab: pending -> processing
+    # (production: atomic find_one_and_update to avoid a multi-worker race — see module note)
+    action.status = ActionStatus.PROCESSING
+    action.save()
+
+    # STUB (D): execute the action. brain DECIDES, `senses` CARRIES OUT the real I/O (Discord /
+    # ATProto / cURL). The brain never touches a socket — it only names a channel + target.
+    logger.info(
+        "[actions] would execute %s on channel=%s target=%s "
+        "(senses carries out — TODO)",
+        action.action_type,
+        action.channel,
+        action.targetId,
+    )
+
+    # transition: processing -> done
+    action.status = ActionStatus.DONE
+    action.save()
+    return True
+
+
+# --------------------------------------------------------------
+# Priorities phase (The Filter) — urge x feasibility gatekeeper. Pull the oldest pending UNPARSED
+# idea, score it, and either yield an Action (keep) or discard it. One idea per tick.
+# Returns True if it processed an idea this tick, False if none awaited evaluation.
+# --------------------------------------------------------------
+def priorities_phase() -> bool:
+    pending = (
+        TKIdeaDoc.find(
+            {"status": IdeaStatus.PENDING.value, "parsed_by_prio": False}
+        )
+        .sort("createdAt")
+        .limit(1)
+        .to_list()
+    )
+    if not pending:
+        return False
+
+    idea = pending[0]
+
+    # grab: pending -> processing
+    # (production: atomic find_one_and_update — see module note)
+    idea.status = IdeaStatus.PROCESSING
+    idea.save()
+
+    # STUB (D): score feasibility. The real scorer (resources / allowlist / reachable channel /
+    # derivable proof) lands with the reasoning engine. Placeholder = always feasible.
+    feasibility = 1.0
+
+    # decision: keep iff urge clears the threshold AND it is feasible; else discard.
+    keep = idea.urge >= URGE_THRESHOLD and feasibility > 0
+
+    if keep:
+        # STUB (C): idea -> action mapping. The real mapping is the reserved-token behavior layer
+        # (the meta-language: [eval:X] -> [tokeniko:Y], KB-driven personality). Here we emit a
+        # placeholder INTERNAL SEND_MESSAGE so the Actions FIFO has something to drain.
+        action = TKActionDoc(
+            action_type=ActionType.SEND_MESSAGE,
+            payload={
+                "trigger": idea.trigger,
+                "note": "stub mapping — reserved-token behavior layer is step C",
+            },
+            sourceId=_tokeniko_uid,
+            channel=MEMChannels.INTERNAL,
+            ideaId=str(idea.id),
+        )
+        action.insert()
+
+        idea.feasibility = feasibility
+        idea.parsed_by_prio = True
+        idea.status = IdeaStatus.DONE
+        logger.info(
+            "[priorities] kept idea trigger=%s urge=%s -> action %s",
+            idea.trigger,
+            idea.urge,
+            str(action.id),
+        )
+    else:
+        idea.feasibility = feasibility
+        idea.parsed_by_prio = True
+        idea.status = IdeaStatus.DISCARDED
+        logger.info(
+            "[priorities] discarded idea trigger=%s urge=%s (below threshold %s)",
+            idea.trigger,
+            idea.urge,
+            URGE_THRESHOLD,
+        )
+
+    idea.save()
+    return True
+
+
+# --------------------------------------------------------------
+# Thinking phase (The Generator) — the lowest-priority background filler ("thinks always, acts
+# maybe"). Runs only when both queues are empty. Here it is STUBBED: it touches brain_state
+# continuity but derives no theorems / ideas yet.
+# --------------------------------------------------------------
+def thinking_phase(brain_state: TKBrainStateDoc) -> None:
+    # STUB (D): the real thinking scan runs the reasoning engine over recent `memory` TKZips —
+    # derives theorems (necessary truths -> KB), detects inconsistencies, validates axioms, and
+    # spawns ideas (urges to act -> the Ideas queue). The thinking/wondering state machine + the
+    # event-driven interruption also live here. None of that is done yet.
+    logger.info("[thinking] background tick (reasoning-engine derivation — TODO)")
+
+    # placeholder cursor advance: nudge the working-memory cursor toward the latest memory ts so the
+    # continuity singleton is exercised. The full thinking/wondering window logic is step D.
+    latest = (
+        TKMemoryItemDoc.find({})
+        .sort("-timestamp")
+        .limit(1)
+        .to_list()
+    )
+    if latest:
+        ts = latest[0].timestamp
+        # timestamp is a tz-aware datetime; the cursor is epoch seconds
+        brain_state.working_memory_cursor = int(ts.timestamp())
+
+    brain_state.last_thinking_at = int(time.time())
+    brain_state.save()
+
+
+# --------------------------------------------------------------
+# The coordinator — dynamic priority routing. Each tick: drain Actions fully before Priorities;
+# Priorities before Thinking; Thinking only when both are empty. The cooperative yield between busy
+# units + the longer idle sleep is the throttle. Event-driven interruption falls out for free: a new
+# idea/action created between ticks is picked up on the next iteration.
+# --------------------------------------------------------------
+async def coordinator(stop_event: asyncio.Event) -> None:
+    logger.info("🧠 Coordinator started")
+    bs = get_or_create_brain_state()
     try:
-        while True:
-            logger.info("🤖 tokeniko is executing his wills...")
-            
-            await asyncio.sleep(30) 
+        while not stop_event.is_set():
+            if actions_phase():
+                await asyncio.sleep(BUSY_YIELD)
+                continue
+            if priorities_phase():
+                await asyncio.sleep(BUSY_YIELD)
+                continue
+            thinking_phase(bs)
+            await asyncio.sleep(IDLE_INTERVAL)
     except asyncio.CancelledError:
-        logger.info("🧠 Action loop interrupted...")
+        logger.info("🧠 Coordinator interrupted...")
+        raise
+
+
+# the tokeniko stakeholder uid, resolved once in main() and used as every action's sourceId.
+_tokeniko_uid: str = ""
 
 
 # main / init
 async def main():
+    global _tokeniko_uid
     logger.info("🚀 Init tokeniko: brain")
-    
-    # 1. Init
+
+    # 1. Init — brain only needs MongoDB (+ Ollama client); no spaCy/Stanza pipeline.
     db, db_memory, ai_client = init_io()
-    
+
+    # resolve tokeniko's identity once; every action it emits is sourced from it.
+    tokeniko = get_tokeniko()
+    _tokeniko_uid = tokeniko.uid
+    logger.info("🧠 tokeniko identity: uid=%s", _tokeniko_uid)
+
     # 2. Graceful Shutdown
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
-    
+
     def shutdown_handler():
         logger.warning("⚠️ SIGTERM. Time to go to deep sleep...")
         stop_event.set()
@@ -69,28 +249,24 @@ async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, shutdown_handler)
 
-    # 3. Tasks launcher
+    # 3. Run the single coordinator (replaces the three independent loops).
+    coordinator_task = asyncio.create_task(coordinator(stop_event))
     try:
-        async with asyncio.TaskGroup() as tg:
-            # parallel tasks (so far, one task)
-            thinking_task = tg.create_task(idle_thinking_loop())
-            prio_task = tg.create_task(priorities_loop())
-            actions_task = tg.create_task(actions_loop())
-            
-            # Waiting for sigterms
-            await stop_event.wait()
-            
-            # Gently shutdown
-            logger.info("Shutting down sub threads...")
-            thinking_task.cancel()
-            prio_task.cancel()
-            actions_task.cancel()
+        # Waiting for sigterms
+        await stop_event.wait()
 
-            
-    except* Exception as eg:
-        logger.error(f"❌ Critical error: {eg}")
+        # Gently shutdown
+        logger.info("Shutting down coordinator...")
+        coordinator_task.cancel()
+        try:
+            await coordinator_task
+        except asyncio.CancelledError:
+            pass
+    except Exception as e:
+        logger.error(f"❌ Critical error: {e}")
     finally:
         logger.info("🛑 tokeniko is deep sleeping. See ya'll")
+
 
 if __name__ == "__main__":
     # main start
