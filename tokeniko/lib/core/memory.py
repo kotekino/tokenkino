@@ -63,12 +63,13 @@ class MEMTheorem(MEMItem, MEMItemProperties):
     archivedAt: Optional[int] = None # timestamp of archiving (if archived, the theorem is not used for reasoning and deriving new knowledge)
     trusted: float = Field(default=0.9)
 
-# definition: a single-sentence, purely semantic statement defining tokeniko's vocabulary/rules
-# ("a thing is equal to itself"). no operators / relations -> its meaning is a single TKZipContent
-# (not a full TKZip). like axioms, definitions are trusted ground truths and need no demonstration.
+# definition: a semantic statement defining tokeniko's vocabulary/rules ("a thing is equal to
+# itself"; "an apple is a fruit with red skin and sweet flesh"). its meaning is the full compiled
+# structure (single OR multi clause) -> a TKZip, like axioms/theorems. all WordNet glosses live here.
+# like axioms, definitions are trusted ground truths and need no demonstration.
 class MEMDefinition(MEMItemProperties):
     original: str
-    content: Optional[TKZipContent] = None # the single semantic clause (one TKZipContent)
+    zip: Optional[TKZip] = None # the compiled semantic structure (single or multi clause)
     raw: Optional[str] = None # raw rendering (optional, for debugging)
     sourceId: str # unique stakeholder objectId of the source (talker)
     targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)

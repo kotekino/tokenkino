@@ -303,10 +303,23 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      (variable-length set) deferred.
    - smaller follow-ons: **co-predication WSD hint**, **graded attribute-contrariety**, **defeasibility**
      of biological universals (exception facts / graded trust) — pick the high-value ones.
-2. **KB consolidation — gloss-as-axioms legacy cleanup** — the 1885 "axioms" are really WordNet-gloss
-   *definitions* (predate the 3-tier model). Reclassify them (glosses → definitions), leaving a clean
-   **axiom/rule** pool (the seeded universal rules + genuine relations). `scripts/recompile.py` (done in
-   priority-2a) supports re-deriving the geometry; this is the read-and-route cleanup on top.
+2. **KB consolidation — full re-home of gloss-axioms into multi-clause definitions** *(built — pending
+   operator-gated `--apply`)* — the ~1883 "axioms" are really WordNet-gloss *definitions* (predate the
+   3-tier model). The re-home has two coordinated halves, landed together (model + data migrate as one;
+   API down for the cutover):
+   - **Model:** `MEMDefinition` now holds the full compiled `TKZip` (`zip`, single **OR** multi clause)
+     instead of a single `TKZipContent` (`content`). `NotASingleClauseError` removed — multi-clause
+     definitions are legal. `EvaluationService` flattens each definition's `zip` → leaf clauses, so the
+     evaluator still receives a flat `list[TKZipContent]` (`evaluator_groundContent` unchanged).
+     `DefinitionService.compile_fields`/create/patch/replace store `zip`; the contradiction guard is kept.
+   - **Migration:** `scripts/migrate_glosses.py` (dry-run by default; `--apply` operator-gated). Phase 1
+     re-derives the existing ~1352 `content`-shaped defs to the new `zip` shape (raw-pymongo read — old
+     rows can't load via the new model — recompile via `compile_fields`, `$set {zip,raw} $unset content`,
+     metadata preserved). Phase 2 moves the gloss-axiom batches into definitions: an axiom is a
+     gloss-to-move iff its `createdAt` day ∉ the **keep-set {2026-06-14, 2026-06-19}** (the 2 genuine
+     relational axioms + 7 seeded rules/facts = 9 kept) — authoritative, with a frame-regex cross-check
+     for disagreement — dedup by `original`, then delete the moved axiom. Leaves `axioms` = genuine
+     relations + universal rules + individual facts only. Idempotent on re-`--apply`.
 3. **Pipeline deep-test — first end-to-end test harness (pytest)** *(the failproof gate before the brain)*
    — there is no test suite today; everything has been verified ad-hoc. Introduce **pytest** + a curated
    **sentence → expected-behavior** corpus over parser → compiler → evaluator (AST / WSD / quantifier /

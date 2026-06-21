@@ -11,7 +11,7 @@ from bunnet import PydanticObjectId
 
 from api.services import (
     AxiomNotFoundError, InvalidAxiomIdError,
-    DefinitionNotFoundError, InvalidDefinitionIdError, NotASingleClauseError,
+    DefinitionNotFoundError, InvalidDefinitionIdError,
     TheoremNotFoundError, InvalidTheoremIdError,
     StakeholderNotFoundError, InvalidStakeholderIdError,
     MemoryNotFoundError, InvalidMemoryIdError,
@@ -50,7 +50,7 @@ class DefinitionIn(BaseModel):
     tokens: str  # single-clause sentence to compile and store as a definition
 
 class DefinitionPatch(BaseModel):
-    tokens: Optional[str] = None       # if present, recompiles original/content/raw
+    tokens: Optional[str] = None       # if present, recompiles original/zip/raw
     trusted: Optional[float] = None
     archived: Optional[bool] = None
     readonly: Optional[bool] = None
@@ -62,7 +62,7 @@ class DefinitionReplace(BaseModel):
     archived: bool = False
     readonly: bool = True
 
-class DefinitionSummary(BaseModel):  # listing view (no content)
+class DefinitionSummary(BaseModel):  # listing view (no zip)
     id: PydanticObjectId = Field(alias="_id")
     original: str
     raw: Optional[str] = None
@@ -151,9 +151,9 @@ def memory_or_http(action):
     return _or_http(action, InvalidMemoryIdError, MemoryNotFoundError, "memory item")
 
 # run a create/patch/replace action, translating validation failures to HTTP 422:
-# a contradictory FORM (logic-is-sacred) or a non-single-clause definition. Anything else re-raises.
+# a contradictory FORM (logic-is-sacred). Anything else re-raises.
 def create_or_http(action):
     try:
         return action()
-    except (InconsistentStatementError, NotASingleClauseError) as error:
+    except InconsistentStatementError as error:
         raise HTTPException(status_code=422, detail=str(error))

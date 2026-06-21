@@ -83,7 +83,7 @@ Routes (all under `/api/v1`):
   - `PATCH /axioms/{id}` — partial update (recompiles if `tokens` is supplied)
   - `PUT /axioms/{id}` — replacement update (recompile + reset flags)
   - `DELETE /axioms/{id}` — delete
-- **Definitions — full REST resource** (`DefinitionService`): same shape as axioms, but each definition is a single-clause semantic statement (`TKZipContent`, not a full `TKZip`); a non-single-clause input raises `NotASingleClauseError`.
+- **Definitions — full REST resource** (`DefinitionService`): same shape as axioms — a definition's meaning is now the full compiled `TKZip` (`MEMDefinition.zip`, single **OR** multi clause; all WordNet glosses live here). Migrated from the old single-`TKZipContent` shape; `NotASingleClauseError` is gone (multi-clause is legal). `scripts/migrate_glosses.py` performs the one-time re-home (re-derive existing defs `content`→`zip` + move the gloss-axiom batches into definitions).
   - `POST /definitions`, `GET /definitions` (summary, optional `?archived=`), `GET /definitions/{id}`, `PATCH /definitions/{id}`, `PUT /definitions/{id}`, `DELETE /definitions/{id}`
 - **Theorems — full REST resource** (`TheoremService`): derived knowledge (full `TKZip`); no `readonly` flag.
   - `POST /theorems`, `GET /theorems` (summary, optional `?archived=`), `GET /theorems/{id}`, `PATCH /theorems/{id}`, `PUT /theorems/{id}`, `DELETE /theorems/{id}`
@@ -95,8 +95,8 @@ Routes (all under `/api/v1`):
   - `GET /memory/search` — filter the log (declared before `/memory/{id}` so `search` isn't read as an id): `?from=&to=` (epoch **seconds**, converted to UTC datetimes on `timestamp`; `from` is aliased, the keyword), `?source=` (`sourceId`), `?target=` (`targetId`), `?channel=`, `?limit=` — only the supplied filters apply; newest first
   - `GET /memory/{id}` — single (full document)
   - `POST /memory` — append a log entry (`original`, `sourceId`, optional `targetId`/`channel`/`metadata`)
-- Domain errors map to HTTP in `main.py` via the `*_or_http` helpers: invalid-id → 400, not-found → 404. **Contradiction creation guard:** axiom/definition/theorem **create/patch/replace** reject a contradictory FORM — `assert_no_contradiction` (`api/services/validation.py`) runs `evaluator_classifyForm` (with the antonym reader) on the compiled zip and raises `InconsistentStatementError` if the form folds to 0 under every crisp assignment (`X∧¬X`, `a≠a`, antonym-predicate); tautologies AND contingent statements are allowed (logic-is-sacred: a logical falsehood can never be trusted knowledge). The guard lives **outside** `compile_fields` (so `scripts/recompile.py` never chokes on a pre-existing bad row). `create_or_http` (`api/schemas.py`) maps `InconsistentStatementError` → 422 and `NotASingleClauseError` → 422.
-- **Evaluate — action, not a resource** (`EvaluationService`): `POST /evaluate` (`{"tokens": "..."}`) — compile a sentence and evaluate its truth against tokeniko's knowledge. Grounds each flat clause against the definitions, **folds the clause truths through the operator tree** (fuzzy `[0,1]`, via `operator_truth`), and geometrically matches the whole statement against the active axioms/theorems. Returns an `EvaluatorResult` (`truth`, `status` = resolved/insufficient/inconsistent, `groundings`, `missing`, `relationMatch`, `matchedKind`/`matchedIndex`) plus the resolved `matchedId`/`matchedOriginal`. **Pure — stores nothing.** Loads only active knowledge (`archived=False`; NB theorems default `archived=True`, so the theorem pool is empty until one is promoted).
+- Domain errors map to HTTP in `main.py` via the `*_or_http` helpers: invalid-id → 400, not-found → 404. **Contradiction creation guard:** axiom/definition/theorem **create/patch/replace** reject a contradictory FORM — `assert_no_contradiction` (`api/services/validation.py`) runs `evaluator_classifyForm` (with the antonym reader) on the compiled zip and raises `InconsistentStatementError` if the form folds to 0 under every crisp assignment (`X∧¬X`, `a≠a`, antonym-predicate); tautologies AND contingent statements are allowed (logic-is-sacred: a logical falsehood can never be trusted knowledge). The guard lives **outside** `compile_fields` (so `scripts/recompile.py` never chokes on a pre-existing bad row). `create_or_http` (`api/schemas.py`) maps `InconsistentStatementError` → 422.
+- **Evaluate — action, not a resource** (`EvaluationService`): `POST /evaluate` (`{"tokens": "..."}`) — compile a sentence and evaluate its truth against tokeniko's knowledge. Grounds each flat clause against the definitions (each definition's `zip` is **flattened into its leaf clauses** in `EvaluationService` — the evaluator still receives a flat `list[TKZipContent]`, unchanged), **folds the clause truths through the operator tree** (fuzzy `[0,1]`, via `operator_truth`), and geometrically matches the whole statement against the active axioms/theorems. Returns an `EvaluatorResult` (`truth`, `status` = resolved/insufficient/inconsistent, `groundings`, `missing`, `relationMatch`, `matchedKind`/`matchedIndex`) plus the resolved `matchedId`/`matchedOriginal`. **Pure — stores nothing.** Loads only active knowledge (`archived=False`; NB theorems default `archived=True`, so the theorem pool is empty until one is promoted).
 - **Utils** (debugging; may be removed later): `GET /utils/dict?token=` (similar-token dictionary lookup), `GET /utils/markers?token=` (base-marker lookup), `GET /utils/polish?tokens=` (typo correction), `GET /utils/prepare?tokens=` (full preparse), `GET /utils/translate?tokens=` (translation), `GET /utils/render?tokens=` (HTML dependency diagram).
 - **Compiler**: `GET /input?tokens=&output=&prepare=&talker=` — run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item. `GET /output?tokens=` — polish a raw LLC string into natural language.
 
@@ -129,12 +129,14 @@ The recursive models use forward references and **discriminated unions** (`Field
 ## Roadmap (where the team is heading)
 
 **Memory model — three epistemic tiers** (see `memory.py` / `models.py`):
-- **definitions** (`MEMDefinition` → `definitions` collection) — single-sentence, purely *semantic*
-  statements defining tokeniko's vocabulary/rules ("a thing is equal to itself"). No operators; a
-  definition's meaning is a single `TKZipContent`. Trusted ground truths, no demonstration.
+- **definitions** (`MEMDefinition` → `definitions` collection) — *semantic* statements defining
+  tokeniko's vocabulary/rules ("a thing is equal to itself"; "an apple is a fruit with red skin").
+  A definition's meaning is the full compiled `TKZip` (`MEMDefinition.zip`, single **OR** multi
+  clause) — all WordNet glosses live here. Trusted ground truths, no demonstration. (The "full
+  re-home" migration `scripts/migrate_glosses.py` re-derives the old single-`content` defs to `zip`
+  and moves the gloss-axiom batches here, leaving `axioms` = genuine relations + rules only.)
 - **axioms** (`TKZip`) — relations between definitions/vocabulary via operators ("I think because I
-  am"). Trusted, no demonstration. *(NB: the current `axioms` collection predates this model and is
-  "wrong" — a cleanup is parked until after the evaluator coding.)*
+  am") + universal rules/individual facts. Trusted, no demonstration.
 - **theorems** (`TKZip`) — knowledge demonstrated from definitions + axioms + the hardwired operator
   math.
 - **memory** — the time-series log of inputs/outputs.

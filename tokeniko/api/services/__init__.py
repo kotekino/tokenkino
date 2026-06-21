@@ -9,7 +9,6 @@ from api.services.definition_service import (
     DefinitionService,
     DefinitionNotFoundError,
     InvalidDefinitionIdError,
-    NotASingleClauseError,
 )
 from api.services.theorem_service import (
     TheoremService,
@@ -36,7 +35,7 @@ from api.services.validation import (
 
 __all__ = [
     "AxiomService", "AxiomNotFoundError", "InvalidAxiomIdError",
-    "DefinitionService", "DefinitionNotFoundError", "InvalidDefinitionIdError", "NotASingleClauseError",
+    "DefinitionService", "DefinitionNotFoundError", "InvalidDefinitionIdError",
     "TheoremService", "TheoremNotFoundError", "InvalidTheoremIdError",
     "StakeholderService", "StakeholderNotFoundError", "InvalidStakeholderIdError",
     "MemoryService", "MemoryNotFoundError", "InvalidMemoryIdError",

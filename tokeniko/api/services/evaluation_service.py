@@ -165,7 +165,13 @@ class EvaluationService:
         axiom_docs = TKAxiomDoc.find({"archived": False}).to_list()
         theorem_docs = TKTheoremDoc.find({"archived": False}).to_list()
 
-        definitions = [d.content for d in definition_docs if d.content is not None]
+        # definitions are now full TKZips (single OR multi clause); flatten each into its leaf
+        # clauses so the evaluator still grounds against a flat list[TKZipContent].
+        definitions = [
+            leaf
+            for d in definition_docs if d.zip is not None
+            for leaf in self._zip_leaves(d.zip.items)
+        ]
         axiom_zips = [a.zip for a in axiom_docs]
         theorem_zips = [t.zip for t in theorem_docs]
 

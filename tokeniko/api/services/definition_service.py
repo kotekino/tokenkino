@@ -1,7 +1,7 @@
 # --------------------------------------------------------------
 # services: business logic for the definitions resource.
-# A definition is a single-sentence, purely semantic statement (no operators):
-# its meaning is a single TKZipContent, not a full TKZip.
+# A definition is a semantic statement defining tokeniko's vocabulary/rules: its meaning is the full
+# compiled structure (single OR multi clause) -> a TKZip, like axioms/theorems.
 # --------------------------------------------------------------
 import copy
 import time
@@ -16,7 +16,7 @@ from lib.core.models import TKDefinitionDoc
 from lib.core.memory import MEMChannels
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
-from lib.core.tkzip import TKZip, TKZipContent
+from lib.core.tkzip import TKZip
 from api.services.validation import assert_no_contradiction
 
 
@@ -27,41 +27,27 @@ class InvalidDefinitionIdError(Exception):
 class DefinitionNotFoundError(Exception):
     """No definition found for the given object id."""
 
-class NotASingleClauseError(Exception):
-    """The sentence is not a single semantic clause (a definition must have no operators)."""
-
-
-# the single leaf TKZipContent of a one-clause statement; rejects multi-clause / operator-bearing zips
-def _extract_definition_content(tkzip: TKZip) -> TKZipContent:
-    items = tkzip.items.content
-    if isinstance(items, list) and len(items) == 1 and isinstance(items[0].content, TKZipContent):
-        return items[0].content
-    raise NotASingleClauseError("a definition must be a single semantic clause (no operators, one clause)")
-
 
 class DefinitionService:
     """CRUD + compilation for definitions (the 'definitions' collection).
 
-    Mirrors AxiomService, but stores the single clause's TKZipContent (definitions are purely
-    semantic, with no relational operators). Framework-agnostic: built once at startup and reused.
+    Mirrors AxiomService: stores the full compiled TKZip (definitions may be single OR multi clause —
+    e.g. WordNet glosses). Framework-agnostic: built once at startup and reused.
     """
 
     def __init__(self, tokeniko, ai_client):
         self._tokeniko = tokeniko
         self._ai_client = ai_client
 
-    # parse + compile a sentence into the fields stored on a definition (single TKZipContent)
+    # parse + compile a sentence into the fields stored on a definition (full TKZip)
     def compile_fields(self, tokens: str) -> dict:
         recursiveResult = parser(tokens, self._tokeniko, self._tokeniko, self._ai_client)
         recursiveResultCopy: TKStatement = copy.deepcopy(recursiveResult)
         flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
         if not flatResult:
             raise ValueError("compilation produced no result")
-        content = _extract_definition_content(flatResult[1])
         rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
-        # also expose the full zip so the contradiction guard can classify the form (recompile uses
-        # only content/raw, so the extra key is harmless).
-        return {"original": tokens, "content": content, "raw": rawResult, "zip": flatResult[1]}
+        return {"original": tokens, "zip": flatResult[1], "raw": rawResult}
 
     # fetch a definition by id, or raise a domain error
     def _resolve(self, object_id: str) -> TKDefinitionDoc:
@@ -82,7 +68,7 @@ class DefinitionService:
             cursor = cursor.project(projection)
         return cursor.to_list()
 
-    # single definition (full document, content included)
+    # single definition (full document, zip included)
     def get(self, object_id: str) -> TKDefinitionDoc:
         return self._resolve(object_id)
 
@@ -92,7 +78,7 @@ class DefinitionService:
         assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
         definition = TKDefinitionDoc(
             original=fields["original"],
-            content=fields["content"],
+            zip=fields["zip"],
             raw=fields["raw"],
             sourceId=str(self._tokeniko.id),
             targetId=str(self._tokeniko.id),
@@ -108,7 +94,7 @@ class DefinitionService:
             fields = self.compile_fields(updates.pop("tokens"))
             assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
             definition.original = fields["original"]
-            definition.content = fields["content"]
+            definition.zip = fields["zip"]
             definition.raw = fields["raw"]
         for key, value in updates.items():
             setattr(definition, key, value)
@@ -123,7 +109,7 @@ class DefinitionService:
         fields = self.compile_fields(tokens)
         assert_no_contradiction(fields["zip"])  # reject a contradictory form before saving
         definition.original = fields["original"]
-        definition.content = fields["content"]
+        definition.zip = fields["zip"]
         definition.raw = fields["raw"]
         definition.trusted = trusted
         definition.archived = archived

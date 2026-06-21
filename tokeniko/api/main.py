@@ -125,21 +125,21 @@ async def delete_axiom(object_id: str):
     return {"status": "complete", "data": {"deleted": object_id}}
 
 # ------------------------
-# DEFINITIONS resource (/api/v1/definitions) — single-clause semantic statements (TKZipContent)
+# DEFINITIONS resource (/api/v1/definitions) — semantic statements (single OR multi clause; TKZip)
 # ------------------------
-# list definitions (summary view, no content); optional filter by archived
+# list definitions (summary view, no zip); optional filter by archived
 @app.get("/api/v1/definitions")
 async def list_definitions(archived: Optional[bool] = None):
     definitions = app.state.definition_service.list(archived=archived, projection=DefinitionSummary)
     return {"status": "complete", "data": definitions}
 
-# get a single definition (full document, including content)
+# get a single definition (full document, including zip)
 @app.get("/api/v1/definitions/{object_id}")
 async def get_definition(object_id: str):
     definition = definition_or_http(lambda: app.state.definition_service.get(object_id))
     return {"status": "complete", "data": definition}
 
-# insert a new definition, given a single-clause sentence
+# insert a new definition, given a sentence (single OR multi clause)
 @app.post("/api/v1/definitions")
 async def create_definition(payload: DefinitionIn):
     try:

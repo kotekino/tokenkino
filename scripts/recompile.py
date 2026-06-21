@@ -4,7 +4,7 @@
 # up `senses` + `identities` it never had (it was saved BEFORE those bridges existed). Needed for the
 # upcoming forward-chaining work.
 #
-# It rewrites ONLY the derived fields — axioms/theorems: `zip` + `raw`; definitions: `content` + `raw`
+# It rewrites ONLY the derived fields — axioms/theorems: `zip` + `raw`; definitions: `zip` + `raw`
 # — and NEVER touches metadata (trusted/archived/readonly/createdAt/archivedAt/sourceId/targetId/
 # channel/original). It REUSES the exact `*Service.compile_fields(original)` the create/update API
 # paths use, so the derived geometry is bit-for-bit the same as a fresh POST.
@@ -217,8 +217,8 @@ def main():
         ))
     if "definitions" in want:
         all_stats.append(_process(
-            "definitions", TKDefinitionDoc, definition_service, ("content", "raw"),
-            _content_attr_count, args.apply, args.limit,
+            "definitions", TKDefinitionDoc, definition_service, ("zip", "raw"),
+            _zip_attr_count, args.apply, args.limit,
         ))
 
     for stats in all_stats:
