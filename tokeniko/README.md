@@ -177,7 +177,9 @@ task senses               # the Discord + ATProto/Bluesky I/O daemon
 Beyond the API, Tokeniko also runs as a living entity: the **brain** is its autonomous mind
 — the *thinking*, *priorities* (wishes/ideas), and *actions* loops — and **senses** is its
 I/O membrane to the outside world (the Discord bot + the ATProto/Bluesky listener). See
-`brain/README.md` and `senses/README.md` for their design.
+`brain/README.md` and `senses/README.md` for their design. With the reasoning foundation now in
+place, fleshing out this autonomous **brain** (behavior-as-memory: reserved-token reflex rules over a
+perceive→evaluate→act loop) is the next phase.
 
 Alongside the `senses` connectors, Tokeniko has one more **output channel**: a **public website**
 (`../tokeniko-public/`) — a vintage-CRT public window with a stream of Tokeniko's *transmissions*

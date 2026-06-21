@@ -58,6 +58,13 @@ grown:
 - **Behavior** (future) — tokeniko's own policy, as memory rules over reflective tokens
   (`[eval:inconsistent] IMPLY [tokeniko:speakup]`).
 
+And because memory is *grown*, tokeniko can **learn by guessing**: meeting an unknown word, it may
+interpolate a *provisional* meaning from context and write it to the KB at **low trust** — just as its
+author, an Italian native, infers an unfamiliar English word from the sentence around it ("that must
+mean roughly…"), *probably* right, to be confirmed or corrected later. The knowledge base is alive: it
+grows through experience, not only through trusted ingestion, with the trust gradient marking what is
+still a guess.
+
 Two layers cooperate: **geometry = soft unification** (the vectors only decide *what connects to
 what*), **algebra = inference** (the hardwired operators propagate truth and surface contradictions).
 A user may dispute tokeniko's *knowledge* or its *behavior* — never its *logic*, because logic is the

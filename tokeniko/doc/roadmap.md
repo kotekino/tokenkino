@@ -341,11 +341,33 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
    `all birds have feathers` rule uses `bird.n.02`; a specific bird sits under a different sense so the
    rule never fires) AND a symptom of thin grounding giving a confident-ish verdict where it should
    abstain. Tracked, not red.
-4. **Reflective behavior layer — the brain (last)** — behavior as memory rules over reserved tokens
-   (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
-   `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
-   perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the KB
-   becomes living; graded by the `trusted` field). The seam to the volitional/emotive layer.
+4. **Reflective behavior layer — the brain (THE ACTIVE FRONTIER)** — behavior as memory rules over
+   reserved tokens (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY
+   [tokeniko:ask]`); `imperative`-modality activation; hardwired action-dispatch + allowlist; the
+   `brain` perceive→evaluate→act loop. Includes the **unknown → ask → learn-at-lower-trust** loop (the
+   KB becomes living; graded by the `trusted` field). The seam to the volitional/emotive layer.
+   **The consolidation arc beneath it (#1 engine consolidation, #2 KB consolidation, #3 pytest gate) is
+   DONE — the foundation is strong/clean/failproof, so #4 is now the build frontier.**
+   - **Build order — A → B → C → D** (author's; **HOW before WHAT**): **A** = the orchestration's
+     control-flow spec (this is the existing `brain/README.md` design; priority ordering **Actions >
+     Priorities > Thinking** — thinking is *background*, the reactive path wins); **B** = the **data
+     model** (FIRST concrete step, greenfield): the `MEMIdea`/`MEMAction`/`BrainState` entities + Bunnet
+     docs + `io` registration, with atomic (`find_one_and_update`) queue state-machines and a singleton
+     `brain_state` for continuity across restarts; **C** = the **meta-language** — hardwired
+     reserved-token *syntax* (`eval:*` triggers, `tokeniko:*` actions, the `[eval:X] → [tokeniko:Y]`
+     rule format) with KB-driven *personality* in a `behavior_rules` table (VISION pillar 9), including
+     **`eval:unknown → tokeniko:guess`** (interpolate a provisional low-trust definition from context —
+     the KB lives/learns); **D** = the **WHAT** — fill in the loops' real business logic (thinking scan,
+     priority scoring, action execution). After B comes the HOW orchestration BL (scheduler implementing
+     the routing + cooperative yield + event-interruption against *stub* cognition), then C, then D.
+   - **Cooperative-preemption model** — there is no OS preemption and `brain` / `api`+`senses` are
+     **separate processes**: `api`/`senses` handle input in their own process regardless, and the brain
+     *reacts* via the memory-trace (new `memory` items snap thinking back) while **throttling** (bounded
+     work-units, check-between, back off when `Actions` is non-empty or new memory appears) so the
+     reactive path is never starved. Thinking is lowest-priority background filler.
+   - **Detailed design lives in `brain/README.md`** (the three loops, queue-priority routing, the
+     data model, the meta-language + guess, the governor). This roadmap entry is the summary; that doc
+     is the spec.
    - **Scaffolding already in place** (refactoring `2d97aff`): the `brain` daemon now runs three
      concurrent loops — **thinking**, **priorities** (forms wishes/ideas → the `TKIdeaDoc` layer
      below), **actions** (carries them out) — and the external connectors moved to the **`senses/`**

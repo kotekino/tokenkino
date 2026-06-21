@@ -15,6 +15,25 @@ The three core loops are:
 > `doc/plan.md`); the brain is the runtime that drives it. Where the text below says "evaluates" or
 > "scores", read "runs the reasoning engine".
 
+## Build order (A → B → C → D)
+
+The brain is built **HOW before WHAT** — get the orchestration's control-flow sound before filling
+each loop with its real cognition. The author's order:
+
+- **A — HOW before WHAT (this document).** The orchestration spec: the three loops, the priority
+  routing (**Actions > Priorities > Thinking** — thinking is *background*, "thinks always, acts
+  maybe"; the reactive path always takes precedence), the cooperative yield + event-driven
+  interruption, and the governor. Get this right first.
+- **B — the data model (FIRST concrete step, greenfield).** The `MEMIdea` / `MEMAction` / `BrainState`
+  entities + their Bunnet docs + `io` registration (see **## Data model** below). Mandatory before the
+  orchestration BL — the loops have nothing to pass between them until the queues exist. With the data
+  model in place, the HOW orchestration BL is the scheduler that implements the priority routing +
+  cooperative yield + event interruption, calling *stub* cognition.
+- **C — the meta-language.** The reserved-token behavior rules — hardwired syntax, KB-driven
+  personality (see **## The meta-language (behavior rules)** below).
+- **D — the WHAT.** Fill in the loops' real business logic: the thinking scan, the priority scoring,
+  the action execution. This is where the reasoning-engine cognition lands behind the stubs.
+
 ## Core Philosophy: Dynamic Resource & Priority Routing
 
 Before detailing each loop, it is crucial to understand the overarching theoretical orchestration. The
@@ -37,6 +56,23 @@ implements a proportional **dynamic yield** (a "stride" or throttling mechanism)
 available computational resources, ensuring tokeniko remains a good citizen on the server without
 blocking API requests or database I/O.
 
+#### Cooperative preemption — the realistic shape of "input pauses thinking"
+"Input takes precedence over thinking" is **not** OS preemption — there is no true preemption of
+CPU-bound work, and crucially **`brain` and `api`/`senses` are SEPARATE processes**. So the precedence
+is two cooperating things, not one scheduler:
+
+1. **`api`/`senses` handle input in their own process, regardless.** Inbound messages are parsed,
+   compiled, and logged to `memory` by those processes; the brain does not gate them.
+2. **The brain *reacts* to that input via its memory-trace, and *throttles* so it never starves the
+   reactive path.** The hook is the existing event-driven interruption: new `memory` items snap the
+   thinking loop back from *wondering* to *thinking*. To make that responsive, the thinking loop does
+   **bounded work-units and checks queue/memory state *between* them** (a cooperative yield), backing
+   off whenever `Actions` is non-empty or new memory has appeared. Thinking is the **lowest-priority
+   background filler**: it thinks always, but it always defers to acting.
+
+In short: no process preempts another; the brain *cooperatively yields* between bounded units and
+reacts to the memory-trace the input process leaves behind.
+
 ### A note on the `always` vs the `maybe`
 The vision splits tokeniko's life into **thinks always** (necessary, internal, non-optional) and
 **acts maybe** (volitional, outward, a choice). That line runs straight through this engine and is the
@@ -45,6 +81,33 @@ key to reading it:
   tokeniko wants; it is part of thinking, not a choice.
 - **Outward acts are "maybe".** Sending a message, posting, asking — these *can* be not-done, and so
   they flow through the Ideas → Priorities → Actions chain, where some of them fade into nothing.
+
+---
+
+## Data model
+
+> This is the **B** step — the **first concrete build, greenfield**. Nothing else can be wired until
+> these exist: the loops have no queue to hand items across, and continuity has nowhere to live.
+
+Three entities, each backed by a Bunnet `Document` (collection) and registered in `io.init_io`:
+
+| entity → Bunnet doc (collection) | key fields |
+|---|---|
+| `MEMIdea` → `TKIdeaDoc` (`ideas`) | `payload` (`TKZip` **or** `TKZipContent` — what the idea is *about*) · `trigger` (string for now — the reserved-token that fired it, e.g. `eval:inconsistent`) · `urge: float` (the level — idea 0.1 / wish 0.5 / urge 0.7 / need 1.0 — the **act/don't-act threshold** *and* the **conflict key** when ideas compete) · `feasibility: float?` (set later by Priorities) · `source` (provenance id) · `status` (`pending → processing → done/discarded`, atomic via `find_one_and_update`) · `parsed_by_prio: bool` · `deadline: int?` · `createdAt` |
+| `MEMAction` → `TKActionDoc` (`actions`) | `action_type` (enum: `SEND_MESSAGE` / `CURL` / `POST_CONTENT`) · `payload` (channel, content/message) · `sourceId` (= tokeniko) · `targetId?` · `channel` (`MEMChannels`) · `status` (`pending → processing → done/failed`, **FIFO** + atomic) · `ideaId` (provenance — the idea that yielded it) · `createdAt` |
+| `BrainState` → `TKBrainStateDoc` (`brain_state`, **singleton**) | `working_memory_cursor` (last-processed memory timestamp) · `wondering_window` (`[lo, hi]`) · `last_thinking_at` / `last_wondering_at` · a singleton key |
+
+**Atomic state machines.** The `ideas` and `actions` queues advance through linear state machines
+(`pending → processing → done/discarded` / `…/failed`) via MongoDB `find_one_and_update`, so two loops
+(or overlapping execution frames) can never grab the same item. (This generalizes the appendix note
+below.)
+
+**`brain_state` continuity.** The singleton persists the working-memory cursor and the wondering window
+across **process restarts**, so tokeniko resumes its thinking/wondering cycles without gaps or redundant
+re-processing — it is **one continuous self**, not a fresh process each boot.
+
+The fields below (urge levels, statuses, the deadline) are first-cut and **to be tuned**; the shape is
+the contract.
 
 ---
 
@@ -124,8 +187,44 @@ Priorities weighs both: an idea is acted on only if its **urge** clears the thre
 4. For each validated idea, the loop yields an **Action** — it inserts a new execution payload into the
    `Actions` collection based on what the underlying idea dictates. **This idea → action mapping is the
    reserved-token behavior layer** (memory rules over reserved tokens such as `[tokeniko:speakup]` /
-   `[tokeniko:ask]`), not an ad-hoc switch *(mapping logic TBD)*.
+   `[tokeniko:ask]`), not an ad-hoc switch — see **## The meta-language (behavior rules)** below
+   *(mapping logic TBD)*.
 5. The original idea is flagged as `parsed_by_prio: true`.
+
+## The meta-language (behavior rules)
+
+> This is the **C** step. The idea → action mapping is a **reserved-token behavior layer**, not an
+> ad-hoc switch. The split is the heart of it: **the syntax is hardwired, the policy is memory.**
+
+**Hardwired syntax.** The grammar of behavior is fixed, part of the engine:
+- **Trigger side — `eval:*`** reserved tokens, the outcomes of an evaluation: `eval:inconsistent`,
+  `eval:unknown`, … (the `eval:*` namespace mirrors the evaluator's `EvaluatorStatus`).
+- **Action side — `tokeniko:*`** reserved tokens, the reflexes tokeniko *can* fire: `tokeniko:speakup`,
+  `tokeniko:ask`, `tokeniko:why`, `tokeniko:guess`, …
+- **Rule format** — `[eval:X] → [tokeniko:Y]` (in VISION's notation, `[eval:X] IMPLY [tokeniko:Y]`).
+
+**KB-driven personality.** The *content* — *which* `eval:*` maps to *which* `tokeniko:*`, at what urge —
+is **knowledge**, not code. The rules live in a dedicated **`behavior_rules`** table and *constitute
+tokeniko's personality*: tokeniko-1 might meet missing knowledge with a high-urge `tokeniko:why` ("what
+is X?"); tokeniko-2 might first try to *interpolate/deduce* before asking. Same hardwired mechanism,
+divergent selves — this is **VISION pillar 9 ("behavior as memory: mechanism hardwired, policy in
+memory")** made concrete. *The exact reserved-token vocabulary is still a placeholder, to be finalized
+in C.*
+
+### tokeniko can GUESS
+
+A behavior the meta-language enables — the `eval:unknown → tokeniko:guess` rule. Instead of (or
+*before*) asking, tokeniko **interpolates a PROVISIONAL definition from context** and writes it to its
+KB at **LOW trust** (the trust gradient — the `trusted` field). This is exactly how the author
+(*kotekino*, an Italian native) guesses an unfamiliar English word from context — "flabbergasting must
+mean overwhelmingly shocking…" — *probably* right, to be confirmed or refined later by experience.
+
+Two consequences:
+- The KB becomes **living** — it learns through experience, not only through trusted ingestion.
+- Ask-first vs guess-first is a **personality axis**: a `behavior_rules` policy choice, not a hardwired
+  one. It is the same `unknown → ask/recover/learn` seam (and the `tokeniko:why` reflex) we kept hitting
+  in the evaluator (e.g. the "Sgriodnsktj exists" → INSUFFICIENT case), now resolved by *forming*
+  knowledge rather than only flagging its absence.
 
 ## 3. Actions (The Executor)
 
