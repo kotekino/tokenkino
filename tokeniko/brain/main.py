@@ -11,10 +11,9 @@ from lib.core.models import TKIdeaDoc, TKActionDoc, TKBrainStateDoc, TKMemoryIte
 from lib.core.memory import (
     IdeaStatus,
     ActionStatus,
-    ActionType,
-    MEMChannels,
     UrgeLevel,
 )
+from brain import behavior
 
 load_dotenv()
 
@@ -106,7 +105,7 @@ def priorities_phase() -> bool:
         TKIdeaDoc.find(
             {"status": IdeaStatus.PENDING.value, "parsed_by_prio": False}
         )
-        .sort("createdAt")
+        .sort("-urge")  # most-urgent candidate first (urge is also the conflict key)
         .limit(1)
         .to_list()
     )
@@ -128,30 +127,30 @@ def priorities_phase() -> bool:
     keep = idea.urge >= URGE_THRESHOLD and feasibility > 0
 
     if keep:
-        # STUB (C): idea -> action mapping. The real mapping is the reserved-token behavior layer
-        # (the meta-language: [eval:X] -> [tokeniko:Y], KB-driven personality). Here we emit a
-        # placeholder INTERNAL SEND_MESSAGE so the Actions FIFO has something to drain.
-        action = TKActionDoc(
-            action_type=ActionType.SEND_MESSAGE,
-            payload={
-                "trigger": idea.trigger,
-                "note": "stub mapping — reserved-token behavior layer is step C",
-            },
-            sourceId=_tokeniko_uid,
-            channel=MEMChannels.INTERNAL,
-            ideaId=str(idea.id),
-        )
-        action.insert()
+        # C (IMPLEMENTED): idea -> action mapping via the reserved-token behavior layer (the
+        # meta-language: [eval:X] -> [tokeniko:Y], KB-driven personality — see brain/behavior.py).
+        # The idea already carries its baked-in tokeniko:Y reflex (action_token); dispatch maps it to
+        # a concrete Action (or None for tokeniko:ignore / no reflex). The feasibility SCORING +
+        # collapse-arbitration over multiple kept candidates remain D / parked.
+        action = behavior.dispatch_action(idea, _tokeniko_uid)
 
         idea.feasibility = feasibility
         idea.parsed_by_prio = True
         idea.status = IdeaStatus.DONE
-        logger.info(
-            "[priorities] kept idea trigger=%s urge=%s -> action %s",
-            idea.trigger,
-            idea.urge,
-            str(action.id),
-        )
+        if action is None:
+            logger.info(
+                "[priorities] kept idea trigger=%s action_token=%s -> ignore/no-op",
+                idea.trigger,
+                idea.action_token,
+            )
+        else:
+            logger.info(
+                "[priorities] kept idea trigger=%s action_token=%s -> action %s (%s)",
+                idea.trigger,
+                idea.action_token,
+                str(action.id),
+                action.action_type.value,
+            )
     else:
         idea.feasibility = feasibility
         idea.parsed_by_prio = True

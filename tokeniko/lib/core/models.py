@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, BrainState
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, BrainState
 
 _VECTOR_INDEX = "vector_index"
 
@@ -123,3 +123,10 @@ class TKBrainStateDoc(BrainState, Document):
     key: Annotated[str, Indexed(unique=True)] = "singleton"
     class Settings:
         name = "brain_state"
+
+# behavior_rules: the meta-language (C) personality table — [eval:X] -> [tokeniko:Y] @ urge. multiple
+# rules may share a trigger (a superposition of candidate reflexes), so the index is NON-unique.
+class TKBehaviorRuleDoc(MEMBehaviorRule, Document):
+    trigger: Annotated[str, Indexed()] = ""   # non-unique index (multi-rule per trigger)
+    class Settings:
+        name = "behavior_rules"

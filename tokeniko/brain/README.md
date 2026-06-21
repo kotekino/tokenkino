@@ -193,8 +193,32 @@ Priorities weighs both: an idea is acted on only if its **urge** clears the thre
 
 ## The meta-language (behavior rules)
 
-> This is the **C** step. The idea → action mapping is a **reserved-token behavior layer**, not an
-> ad-hoc switch. The split is the heart of it: **the syntax is hardwired, the policy is memory.**
+> This is the **C** step — **IMPLEMENTED**. The idea → action mapping is a **reserved-token behavior
+> layer**, not an ad-hoc switch. The split is the heart of it: **the syntax is hardwired, the policy
+> is memory.**
+
+**What landed (C).** The engine is `brain/behavior.py`:
+- `behavior_for(trigger)` — the candidate rule set (the **superposition**) for a trigger: every
+  enabled `behavior_rules` row, most-urgent first.
+- `spawn_ideas_for(trigger, payload, source)` — fans the candidates out into ideas (one `TKIdeaDoc`
+  per rule, each carrying the rule's baked-in `action_token` + `urge`). The superposition made
+  concrete; Thinking (D) calls it.
+- `dispatch_action(idea, tokeniko_uid)` — maps an idea's `action_token` to a concrete `TKActionDoc`
+  via the **hardwired `_DISPATCH` registry** (`tokeniko:* → ActionType`). `tokeniko:ignore` (or no /
+  unknown token) → `None` (no action); `tokeniko:guess`/`tokeniko:learn` are **internal** KB-write
+  intents (`targetId = tokeniko`, the actual write is D); `speakup`/`ask`/`why` → outward messages
+  (`targetId = None`; `senses` carries out); `post` → `POST_CONTENT`.
+
+The data: `MEMBehaviorRule` → `TKBehaviorRuleDoc` (the `behavior_rules` collection; `trigger` is a
+**non-unique** index — multi-rule per trigger), the reserved-token enums `EvalToken` / `TokenikoAction`
+(the hardwired vocabulary), and `MEMIdea.action_token` (the reflex carried from the matched rule).
+`priorities_phase` now **consumes the dispatch** (pending ideas sorted **urge-desc**, the highest-urge
+candidate handled first; keep → `dispatch_action`). Seed the default personality with
+`scripts/seed_behavior_rules.py` (dry-run default; `--apply` operator-gated).
+
+**Parked doors:** the **collapse arbitration** (choosing among *multiple kept* candidates of one
+trigger, not just handling them one-per-tick) and the **actions-as-data** future (externalizing
+`_DISPATCH` from code to a table) stay future work — alongside the feasibility scoring (D).
 
 **Hardwired syntax.** The grammar of behavior is fixed, part of the engine:
 - **Trigger side — `eval:*`** reserved tokens, the outcomes of an evaluation: `eval:inconsistent`,

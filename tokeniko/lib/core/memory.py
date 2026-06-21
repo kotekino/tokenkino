@@ -113,12 +113,37 @@ class ActionType(str, Enum):
     CURL = "curl"
     POST_CONTENT = "post_content"
 
+# --------------------------------------------------
+# the meta-language (C) — reserved-token behavior layer. The grammar of behavior is HARDWIRED here
+# (these two enums = the fixed vocabulary); the POLICY (which trigger maps to which action, at what
+# urge) is MEMORY (the `behavior_rules` table = tokeniko's personality). See brain/README.md
+# "## The meta-language (behavior rules)".
+# --------------------------------------------------
+
+# trigger side — the outcomes of an evaluation (mirrors the evaluator's EvaluatorStatus namespace).
+class EvalToken(str, Enum):
+    INCONSISTENT = "eval:inconsistent"
+    FALSE = "eval:false"
+    UNKNOWN = "eval:unknown"
+    TRUE = "eval:true"
+
+# action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
+class TokenikoAction(str, Enum):
+    SPEAKUP = "tokeniko:speakup"
+    ASK = "tokeniko:ask"
+    WHY = "tokeniko:why"
+    GUESS = "tokeniko:guess"
+    LEARN = "tokeniko:learn"
+    POST = "tokeniko:post"
+    IGNORE = "tokeniko:ignore"
+
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a
 # single-leaf TKZip (avoids a TKZip/TKZipContent union). `trigger` is the reserved-token that fired it.
 class MEMIdea(BaseModel):
     payload: Optional[TKZip] = None             # what the idea is about
     trigger: str                                # reserved-token (e.g. "eval:inconsistent") — meta-language (C)
+    action_token: Optional[str] = None          # the tokeniko:Y reflex baked in from the matched behavior-rule
     urge: float = Field(default=UrgeLevel.IDEA.value)  # act/don't-act threshold + conflict key
     feasibility: Optional[float] = None         # set later by Priorities (can-it-be-done)
     source: Optional[str] = None                # provenance: the memory/theorem/axiom id that spawned it
@@ -136,6 +161,17 @@ class MEMAction(BaseModel):
     channel: MEMChannels = Field(default=MEMChannels.INTERNAL)
     status: ActionStatus = Field(default=ActionStatus.PENDING)
     ideaId: Optional[str] = None                # provenance: the idea that yielded this action
+    createdAt: int = Field(default_factory=lambda: int(time.time()))
+
+# a behavior rule [eval:X] -> [tokeniko:Y] @ urge — KB-driven PERSONALITY (multiple rules may share a
+# trigger: a superposition of candidate reflexes; Priorities arbitrates). syntax is hardwired, this
+# CONTENT is memory. enabled lets a rule be toggled; order is a tiebreak hint.
+class MEMBehaviorRule(BaseModel):
+    trigger: str                      # an EvalToken value, e.g. "eval:unknown"
+    action: str                       # a TokenikoAction value, e.g. "tokeniko:why"
+    urge: float = Field(default=UrgeLevel.WISH.value)
+    enabled: bool = Field(default=True)
+    order: int = Field(default=0)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
 
 # the BRAIN_STATE singleton — cognitive continuity across process restarts: the working-memory cursor

@@ -353,13 +353,22 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      Priorities > Thinking** — thinking is *background*, the reactive path wins); **B** = the **data
      model** (FIRST concrete step, greenfield): the `MEMIdea`/`MEMAction`/`BrainState` entities + Bunnet
      docs + `io` registration, with atomic (`find_one_and_update`) queue state-machines and a singleton
-     `brain_state` for continuity across restarts; **C** = the **meta-language** — hardwired
-     reserved-token *syntax* (`eval:*` triggers, `tokeniko:*` actions, the `[eval:X] → [tokeniko:Y]`
-     rule format) with KB-driven *personality* in a `behavior_rules` table (VISION pillar 9), including
-     **`eval:unknown → tokeniko:guess`** (interpolate a provisional low-trust definition from context —
-     the KB lives/learns); **D** = the **WHAT** — fill in the loops' real business logic (thinking scan,
-     priority scoring, action execution). After B comes the HOW orchestration BL (scheduler implementing
-     the routing + cooperative yield + event-interruption against *stub* cognition), then C, then D.
+     `brain_state` for continuity across restarts; **C** = the **meta-language** ✅ **BUILT** (pending the
+     operator-run seed `--apply`) — hardwired reserved-token *syntax* (`EvalToken`/`TokenikoAction`
+     enums: `eval:*` triggers, `tokeniko:*` actions, the `[eval:X] → [tokeniko:Y]` rule format) with
+     KB-driven *personality* in a `behavior_rules` table (`MEMBehaviorRule`→`TKBehaviorRuleDoc`,
+     non-unique `trigger` index; VISION pillar 9), including **`eval:unknown → tokeniko:guess`**
+     (interpolate a provisional low-trust definition from context — the KB lives/learns). The engine is
+     `brain/behavior.py` (`behavior_for` = the candidate superposition; `spawn_ideas_for` = the fan-out
+     into ideas carrying `MEMIdea.action_token`; `dispatch_action` = `tokeniko:Y → ActionType` via the
+     hardwired `_DISPATCH` registry — `ignore`/no-token → no action, `guess`/`learn` → internal KB-write
+     intent `targetId=self`, others → outward); `priorities_phase` consumes the dispatch (pending ideas
+     sorted **urge-desc**). Seed via `scripts/seed_behavior_rules.py` (dry-run default; `--apply`
+     operator-gated). **Parked doors:** the **collapse arbitration** (choosing among multiple kept
+     candidates) + the **actions-as-data** future (externalize `_DISPATCH` to a table). **D** = the
+     **WHAT** — fill in the loops' real business logic (thinking scan, priority/feasibility scoring,
+     action execution). After B comes the HOW orchestration BL (scheduler implementing the routing +
+     cooperative yield + event-interruption against *stub* cognition), then C ✅, then D.
    - **Cooperative-preemption model** — there is no OS preemption and `brain` / `api`+`senses` are
      **separate processes**: `api`/`senses` handle input in their own process regardless, and the brain
      *reacts* via the memory-trace (new `memory` items snap thinking back) while **throttling** (bounded
