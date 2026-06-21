@@ -156,21 +156,37 @@ def compiler_zipRefIsGeneric(ref: TKLLEntityReference) -> bool:
     entity = next((e for e in _entities if ref.id == e.entity.id), None)
     return entity is not None and entity.entity.entity_type == "generic"
 
-# a reference is a REAL (groundable) role when it is present and NOT a generic/unknown fallback.
+# does a reference resolve to an UNRESOLVED name? a PROPN that failed the individual-minting gate
+# (not a known place, not NER+vector enough to mint an individual, not a dictionary word) becomes a
+# bare `name` entity with NO uid (a MINTED individual like "Mari" carries one) and no sense/vector —
+# it is unknown vocabulary, ungroundable exactly like a generic ("Sgriodnsktj" in "Sgriodnsktj exists").
+def compiler_zipRefIsUnresolvedName(ref: TKLLEntityReference) -> bool:
+    if ref is None:
+        return False
+    entity = next((e for e in _entities if ref.id == e.entity.id), None)
+    return entity is not None and entity.entity.entity_type == "name" and entity.entity.uid is None
+
+# a reference is UNGROUNDABLE when it is a generic fallback OR an unresolved name — either way tokeniko
+# has no anchor for it (no sense, no identity, no vector), so it cannot ground/match.
+def compiler_zipRefIsUngroundable(ref: TKLLEntityReference) -> bool:
+    return compiler_zipRefIsGeneric(ref) or compiler_zipRefIsUnresolvedName(ref)
+
+# a reference is a REAL (groundable) role when it is present and NOT ungroundable (generic / unresolved name).
 def compiler_zipRefIsReal(ref: TKLLEntityReference) -> bool:
-    return ref is not None and not compiler_zipRefIsGeneric(ref)
+    return ref is not None and not compiler_zipRefIsUngroundable(ref)
 
 # a clause is UNKNOWN (ungroundable) when:
-#  (1) it has core arguments but ALL of them are generic/unknown — tokeniko knows none of the
-#      "who/what" the clause is about (the copula/predicate alone is not enough); OR
+#  (1) it has core arguments but ALL of them are ungroundable (generic OR unresolved name) — tokeniko
+#      knows none of the "who/what" the clause is about (the copula/predicate alone is not enough; an
+#      unknown proper-noun subject like "Sgriodnsktj exists" must NOT match an existence axiom); OR
 #  (2) it is a non-propositional fragment — a bare lone predicate with NO real subject AND no real
 #      object (direct or any indirect). e.g. "(ad)" (gibberish stripped, lone predicate left): it is
 #      not a truth-evaluable proposition, so it must not ground/match an axiom.
 # a legitimate copular/transitive clause keeps a real subject ("a cat is a mammal", "the door is
-# open") -> not flagged.
+# open") -> not flagged; a MINTED individual subject ("Mari exists") is real (it has a uid) -> not flagged.
 def compiler_zipContentUnknown(content: TKLLCContent) -> bool:
     core = [r for r in ([content.subject, content.direct] + content.indirects) if r is not None]
-    if bool(core) and all(compiler_zipRefIsGeneric(r) for r in core):
+    if bool(core) and all(compiler_zipRefIsUngroundable(r) for r in core):
         return True
     # non-propositional fragment: a predicate with neither a real subject nor any real object.
     has_predicate = content.predicate is not None

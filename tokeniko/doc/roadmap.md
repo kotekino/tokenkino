@@ -30,8 +30,15 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
    axioms** from base-word **noun** glosses (strict/academic: function-word + informal filtered,
    cleaned, POS-framed, routed by clause count).
 10. **Unknown-vocabulary fix** — `TKZipContent.unknown` (set by the compiler when a clause's core
-    args are all generic) → grounding returns neutral `0.5` → `INSUFFICIENT` ("unknown vocabulary"),
-    instead of spuriously resolving ("a wug is a blicket" was 0.885). The seam for *ask-and-learn*.
+    args are all **ungroundable**) → grounding returns neutral `0.5` → `INSUFFICIENT` ("unknown
+    vocabulary"), instead of spuriously resolving ("a wug is a blicket" was 0.885). The seam for
+    *ask-and-learn*. **Extended** (user-found bug): "ungroundable" now covers an **unresolved name**, not
+    just a generic — a PROPN that failed the individual-minting gate is a bare `name` entity with
+    `uid=None` (a *minted* individual like "Mari" carries a uid), so it has no sense/identity/vector and
+    must be treated as unknown vocabulary. Without this, "Sgriodnsktj exists" matched an existence axiom
+    on the predicate alone (zero subject vector skipped as "absent") → spurious 0.99; now → INSUFFICIENT
+    (the `tokeniko:why` — "what is X?" — seam). `compiler_zipRefIsUnresolvedName`/`…IsUngroundable` in
+    `c_zip.py`; minted individuals ("Mari exists") + places (Rome) stay groundable.
 11. **Knowledge bootstrap 1b (adjectives) + compiler None-id guard** — `scripts/glosses.py` ingested
     **424 definitions + 745 axioms** from base-word **adjective** senses (nominal frame
     "something X is &lt;gloss&gt;" → the adjective captured as a property; nouns dedup-skipped). The
