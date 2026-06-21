@@ -7,13 +7,14 @@ import time
 from dotenv import load_dotenv
 
 from lib.core.io import init_io, get_tokeniko
-from lib.core.models import TKIdeaDoc, TKActionDoc, TKBrainStateDoc, TKMemoryItemDoc
+from lib.core.models import TKIdeaDoc, TKActionDoc, TKBrainStateDoc
 from lib.core.memory import (
     IdeaStatus,
     ActionStatus,
     UrgeLevel,
 )
 from brain import behavior
+from brain import thinking
 
 load_dotenv()
 
@@ -168,31 +169,17 @@ def priorities_phase() -> bool:
 
 # --------------------------------------------------------------
 # Thinking phase (The Generator) — the lowest-priority background filler ("thinks always, acts
-# maybe"). Runs only when both queues are empty. Here it is STUBBED: it touches brain_state
-# continuity but derives no theorems / ideas yet.
+# maybe"). Runs only when both queues are empty. D1a (IMPLEMENTED): it evaluates ONE stored `memory`
+# TKZip against the current KB via the parser-free harness (brain/thinking.think_one) and fans the
+# eval:* outcome into ideas — closing perceive -> evaluate -> ideas -> priorities -> actions.
+# Returns True iff it processed a memory item this tick (which may have spawned ideas).
+# (D1b — wondering / theorem-derivation / the eval:true novelty split — is still next.)
 # --------------------------------------------------------------
-def thinking_phase(brain_state: TKBrainStateDoc) -> None:
-    # STUB (D): the real thinking scan runs the reasoning engine over recent `memory` TKZips —
-    # derives theorems (necessary truths -> KB), detects inconsistencies, validates axioms, and
-    # spawns ideas (urges to act -> the Ideas queue). The thinking/wondering state machine + the
-    # event-driven interruption also live here. None of that is done yet.
-    logger.info("[thinking] background tick (reasoning-engine derivation — TODO)")
-
-    # placeholder cursor advance: nudge the working-memory cursor toward the latest memory ts so the
-    # continuity singleton is exercised. The full thinking/wondering window logic is step D.
-    latest = (
-        TKMemoryItemDoc.find({})
-        .sort("-timestamp")
-        .limit(1)
-        .to_list()
-    )
-    if latest:
-        ts = latest[0].timestamp
-        # timestamp is a tz-aware datetime; the cursor is epoch seconds
-        brain_state.working_memory_cursor = int(ts.timestamp())
-
+def thinking_phase(brain_state: TKBrainStateDoc) -> bool:
+    did = thinking.think_one(brain_state)
     brain_state.last_thinking_at = int(time.time())
     brain_state.save()
+    return did
 
 
 # --------------------------------------------------------------
@@ -212,8 +199,11 @@ async def coordinator(stop_event: asyncio.Event) -> None:
             if priorities_phase():
                 await asyncio.sleep(BUSY_YIELD)
                 continue
-            thinking_phase(bs)
-            await asyncio.sleep(IDLE_INTERVAL)
+            # Thinking ran: if it actually processed memory (and may have spawned ideas), yield
+            # briefly so the next tick promptly routes to Priorities; only true idle gets the long
+            # sleep (CPU throttle / good citizen).
+            did = thinking_phase(bs)
+            await asyncio.sleep(BUSY_YIELD if did else IDLE_INTERVAL)
     except asyncio.CancelledError:
         logger.info("🧠 Coordinator interrupted...")
         raise

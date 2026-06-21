@@ -366,12 +366,18 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      sorted **urge-desc**). Seed via `scripts/seed_behavior_rules.py` (dry-run default; `--apply`
      operator-gated). **Parked doors:** the **collapse arbitration** (choosing among multiple kept
      candidates) + the **actions-as-data** future (externalize `_DISPATCH` to a table). **B ✅, HOW ✅
-     (coordinator), C ✅ (meta-language + a seeded birth personality live).** **D** (🔭 NEXT) = the
-     **WHAT** — fill in the loops' real business logic: **D1 Thinking** (the keystone — wire the
-     reasoning engine over recent `memory` TKZips → write theorems→KB + turn `eval:*` outcomes into
-     ideas via `spawn_ideas_for`; the thinking/wondering state machine); **D2** priorities feasibility
-     scoring; **D3** action execution (`guess`/`learn` → real provisional-low-trust KB writes;
-     `speakup/ask/why/post` → `senses` I/O).
+     (coordinator), C ✅ (meta-language + a seeded birth personality live).** **D** (🔭 IN PROGRESS) = the
+     **WHAT** — fill in the loops' real business logic: **D1 Thinking** (the keystone). **D1a ✅ DONE** —
+     the reactive `evaluate→ideas` loop is closed: `brain/thinking.py` (`think_one`/`status_to_token`)
+     evaluates one stored `memory` TKZip per tick against the active KB via the **parser-free**
+     `lib/core/evaluation_harness.evaluate_zip` (the eval logic factored out of `EvaluationService` so the
+     parser-free `brain` can share it — `EvaluationService` now only adds the `_compile_zip` parser step
+     on top) and fans `eval:*` outcomes into ideas via `spawn_ideas_for` (cursor-driven, bounded,
+     first-run-guarded; the coordinator promptly re-routes to Priorities after a productive Thinking tick).
+     **D1b** (still next) — *wondering* (historical-window re-evaluation), theorem **derivation** (necessary
+     truths→KB), and the `eval:true` **novelty split** (below). **D2** priorities feasibility scoring;
+     **D3** action execution (`guess`/`learn` → real provisional-low-trust KB writes; `speakup/ask/why/post`
+     → `senses` I/O).
      - **D refinement — learning from others (`eval:true` novelty split):** silence=consent holds only
        for *redundant* truths. A true + logic-consistent statement that **bridges axioms/definitions
        tokeniko already holds but hadn't derived** is a **theorem taught from outside** → stay silent

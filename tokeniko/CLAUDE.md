@@ -186,7 +186,11 @@ vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`. The HTTP entry p
 DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id; it
 also injects a cached `parents(sense)` reader backed by the new **`TKRelationDoc`** (the `relations`
 collection — `{subject, relation, object, pos}`, synset-keyed, ~150k WordNet
-is_a/part_of/antonym/entails/attribute/similar_to triples; registered in `init_io`).
+is_a/part_of/antonym/entails/attribute/similar_to triples; registered in `init_io`). The DB-adapter
+part of this (load active definitions/axioms/theorems → build readers + forward-chainer rules/facts →
+evaluate a ready `TKZip` → map the best match to a doc id) is factored into the **parser-free**
+`lib/core/evaluation_harness.py` (`evaluate_zip`), shared by `EvaluationService` (api; adds the
+`_compile_zip` parser step on top) and `brain/thinking.py` (the brain stays spaCy/Stanza-free).
 
 **Sense-bridge** — the WSD sense now propagates through the whole pipeline so the evaluator can read
 it: `TKDictionary.sense` (e.g. `cat.n.01`) → `TKLLEntity.sense` (set in `compiler_getEntity`) →

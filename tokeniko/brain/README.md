@@ -118,6 +118,18 @@ timeseries collection: it derives theorems, detects inconsistencies, and validat
 
 It reads backwards in time from the most recent entries up to a defined **working memory threshold**.
 
+> **Status — D1a is implemented.** `brain/thinking.py` (`think_one` + `status_to_token`) closes the
+> reactive `perceive → evaluate → ideas` arc: it evaluates ONE stored `memory` zip per tick against the
+> current KB via the **parser-free** `lib/core/evaluation_harness.evaluate_zip`, maps the
+> `EvaluatorStatus`/truth to a reserved `eval:*` token (INCONSISTENT → `eval:inconsistent`, INSUFFICIENT
+> → `eval:unknown`, RESOLVED with truth > 0.85 → `eval:true` / < 0.15 → `eval:false`, else no idea), and
+> fans it into ideas through `behavior.spawn_ideas_for`. One **bounded** item per tick (cooperative with
+> the coordinator); a strictly-newer-than-cursor scan over `brain_state.working_memory_cursor`, with a
+> first-run guard (no cursor → initialize to the latest ts and react only to memory that arrives after).
+> Still **D1b** (next): *wondering* (the historical-window mode below), theorem **derivation** (necessary
+> truths → KB), and the `eval:true` **novelty split** (redundant → ignore vs a novel KB-bridging truth
+> taught externally → learn).
+
 ### Two outputs, by the always/maybe rule
 Thinking does **not** write only to the `Ideas` queue. It has two destinations, selected by *whether
 the result is a necessary truth or a volitional urge*:
