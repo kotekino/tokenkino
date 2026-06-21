@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, BrainState
 
 _VECTOR_INDEX = "vector_index"
 
@@ -106,3 +106,20 @@ class TKMemoryStakeholdersDoc(MEMStakeholder, Document):
     uid: Annotated[str, Indexed(unique=True)]
     class Settings:
         name = "stakeholders"
+
+# --------------------------------------------------------------
+# brain documents (#4 step B): the Idea / Action queues + the brain_state continuity singleton.
+# atomic queue transitions use find_one_and_update; brain_state is a singleton keyed by `key`.
+# --------------------------------------------------------------
+class TKIdeaDoc(MEMIdea, Document):
+    class Settings:
+        name = "ideas"
+
+class TKActionDoc(MEMAction, Document):
+    class Settings:
+        name = "actions"
+
+class TKBrainStateDoc(BrainState, Document):
+    key: Annotated[str, Indexed(unique=True)] = "singleton"
+    class Settings:
+        name = "brain_state"

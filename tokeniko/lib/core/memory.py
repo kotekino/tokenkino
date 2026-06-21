@@ -79,3 +79,70 @@ class MEMDefinition(MEMItemProperties):
     createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
     archivedAt: Optional[int] = None # timestamp of archiving
     trusted: float = Field(default=1)
+
+# --------------------------------------------------
+# brain — the autonomous mind's data model (#4, step B). See brain/README.md "## Data model".
+# the Idea / Action queues (with atomic linear state machines) + the brain_state continuity singleton.
+# this is the SHAPE / contract; the urge levels, statuses and deadline are first-cut and to be tuned.
+# --------------------------------------------------
+
+# urge level of an idea: the act/don't-act threshold AND the conflict key (highest urge wins).
+class UrgeLevel(float, Enum):
+    IDEA = 0.1
+    WISH = 0.5
+    URGE = 0.7
+    NEED = 1.0
+
+# linear state machine of a queued idea (atomic transitions via find_one_and_update).
+class IdeaStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DONE = "done"
+    DISCARDED = "discarded"
+
+# linear state machine of a queued action.
+class ActionStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    DONE = "done"
+    FAILED = "failed"
+
+# the outward act categories — brain decides, senses carries out.
+class ActionType(str, Enum):
+    SEND_MESSAGE = "send_message"
+    CURL = "curl"
+    POST_CONTENT = "post_content"
+
+# an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
+# Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a
+# single-leaf TKZip (avoids a TKZip/TKZipContent union). `trigger` is the reserved-token that fired it.
+class MEMIdea(BaseModel):
+    payload: Optional[TKZip] = None             # what the idea is about
+    trigger: str                                # reserved-token (e.g. "eval:inconsistent") — meta-language (C)
+    urge: float = Field(default=UrgeLevel.IDEA.value)  # act/don't-act threshold + conflict key
+    feasibility: Optional[float] = None         # set later by Priorities (can-it-be-done)
+    source: Optional[str] = None                # provenance: the memory/theorem/axiom id that spawned it
+    status: IdeaStatus = Field(default=IdeaStatus.PENDING)
+    parsed_by_prio: bool = Field(default=False)  # awaits the Priorities evaluator
+    deadline: Optional[int] = None              # optional epoch-seconds deadline
+    createdAt: int = Field(default_factory=lambda: int(time.time()))
+
+# an ACTION — a concrete execution payload (the Actions FIFO queue). brain decides, senses carries out.
+class MEMAction(BaseModel):
+    action_type: ActionType
+    payload: dict = Field(default_factory=dict)  # action-specific (channel, content/message, ...)
+    sourceId: str                               # always tokeniko
+    targetId: Optional[str] = None
+    channel: MEMChannels = Field(default=MEMChannels.INTERNAL)
+    status: ActionStatus = Field(default=ActionStatus.PENDING)
+    ideaId: Optional[str] = None                # provenance: the idea that yielded this action
+    createdAt: int = Field(default_factory=lambda: int(time.time()))
+
+# the BRAIN_STATE singleton — cognitive continuity across process restarts: the working-memory cursor
+# and the wondering window, so tokeniko resumes its cycles without gaps (one continuous self).
+class BrainState(BaseModel):
+    key: str = "singleton"                      # the singleton key (unique-indexed on the doc)
+    working_memory_cursor: Optional[int] = None  # last-processed memory timestamp (epoch seconds)
+    wondering_window: Optional[list[int]] = None  # [lo, hi] of the current wondering window
+    last_thinking_at: Optional[int] = None
+    last_wondering_at: Optional[int] = None
