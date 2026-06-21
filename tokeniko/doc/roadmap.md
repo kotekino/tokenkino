@@ -327,12 +327,20 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      relational axioms + 7 seeded rules/facts = 9 kept) — authoritative, with a frame-regex cross-check
      for disagreement — dedup by `original`, then delete the moved axiom. Leaves `axioms` = genuine
      relations + universal rules + individual facts only. Idempotent on re-`--apply`.
-3. **Pipeline deep-test — first end-to-end test harness (pytest)** *(the failproof gate before the brain)*
-   — there is no test suite today; everything has been verified ad-hoc. Introduce **pytest** + a curated
-   **sentence → expected-behavior** corpus over parser → compiler → evaluator (AST / WSD / quantifier /
-   negation / individual-minting; the sense & identity bridges; grounding; intra-statement contradiction;
-   forward-chaining + derivation chains; KB-refutation). **Seeded from this session's verified cases**,
-   grown during (1)/(2), and hardened here into the regression gate that must pass before the brain (4).
+3. **Pipeline deep-test — first end-to-end test harness (pytest)** ✅ DONE *(the failproof gate before
+   the brain)* — `tokeniko/tests/` (pytest; `task test`). **Band-asserts** (status + truth band +
+   structural facts — NEVER exact floats/senses, so the suite guards *meaning* and won't cry wolf on
+   numeric drift) across **layer contracts**: `test_compiler.py` (flags: unknown/quantifier/negated/
+   reflexive, senses/identities key presence, leaf count), `test_evaluator.py` (verdict bands: resolved-
+   true/false, insufficient, inconsistent; chaining derivation non-empty), `test_identity.py`
+   (compareContent + `evaluator_sameIndividual`), `test_guard.py` (contradiction-creation reject path).
+   Seeded from this session's verified cases. **23 passed, 1 xfailed** (integration-style: needs
+   Mongo+Ollama + the seeded KB; ~150s, pipeline loaded once via a session fixture). The pre-commit
+   regression gate; corpus grows as behaviors land. **xfail (tracked gap):** `"a robin has feathers"` →
+   `resolved truth≈0.12` (confident near-FALSE, empty derivation) instead of true — WSD-gated (the
+   `all birds have feathers` rule uses `bird.n.02`; a specific bird sits under a different sense so the
+   rule never fires) AND a symptom of thin grounding giving a confident-ish verdict where it should
+   abstain. Tracked, not red.
 4. **Reflective behavior layer — the brain (last)** — behavior as memory rules over reserved tokens
    (`[eval:inconsistent] IMPLY [tokeniko:speakup]`, `[eval:unknown] IMPLY [tokeniko:ask]`);
    `imperative`-modality activation; hardwired action-dispatch + allowlist; the `brain`
@@ -374,6 +382,19 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
   + the 2-model Ollama typo-correction) to distinguish a genuine typo (recoverable) from true gibberish
   — i.e. cheap structural detection first, expensive LLM repair only on failure. CPU-heavy, so kept as a
   fallback/escalation, not the default; ties into the `unknown → ask/recover` seam.
+- **Sentence-level unparseable gate — generalize the preparser into a robustness front-gate** *(deferred
+  refinement, user-raised; not a bug)* — a WHOLESALE-gibberish / non-English sentence ("rufodi lkjsdf …")
+  today gets the full expensive pipeline (Stanza parse + WSD + compile + evaluate) only to land on
+  "everything unknown" — and `/evaluate` bypasses the preparser entirely, so there is no front-gate at
+  all. The preparser already does typo-fix (SymSpell) + language-detect (lingua) + translate (Ollama),
+  but it is binary ("preparse? → fix + translate") and **only on `prepare=1`**. Generalize it: add a
+  cheap **English-vocab-coverage check** (the `has_vector` / lg-vocab signal) up front; below a
+  CONSERVATIVE floor (wholesale gibberish, NOT a sentence with one rare name — "Sgriodnsktj exists" must
+  still parse → the clause-level INSUFFICIENT from #16-class) → **REJECT** to a distinct "unparseable /
+  not-understood" outcome (the `tokeniko:why` — "I don't understand" — seam), short-circuiting BEFORE the
+  slow/CPU-heavy Ollama translate. So: cheap reject of the untranslatable; translation stays the explicit
+  path for real foreign languages. Complements the clause-level unknown handling (sentence-level vs
+  clause-level). PERF guard + correctness. Threshold calibration is the main risk. Deferred — no hurry.
 - **Contextual WSD for ambiguous heads** — with no disambiguating context the frequency-prior guard may
   pick a non-intended sense ("plant" → factory `plant.n.01`); the tiered-ontology refutation still returns
   the right verdict (e.g. "a cat is a plant" → refuted) but via the artifact reading

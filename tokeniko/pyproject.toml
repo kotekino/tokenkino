@@ -27,10 +27,18 @@ dependencies = [
     "sacremoses"
 ]
 
+[project.optional-dependencies]
+dev = ["pytest"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
 [tool.taskipy.tasks]
 api = "uvicorn api.main:app --reload"
 brain = "python -m brain.main"
 senses = "python -m senses.main"
+test = "pytest"
 
 
 [tool.setuptools.packages.find]
