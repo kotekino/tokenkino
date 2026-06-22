@@ -4,7 +4,7 @@
 # spacetime representation for an entity (in the relative space of the context of the statement, not absolute spacetime)
 from typing import Optional, Union
 from pydantic import BaseModel, Field
-from lib.core.tk import TKAux, TKClauseType, TKMarker, TKOperator, TKQuantifier
+from lib.core.tk import TKAux, TKClauseType, TKMarker, TKOperator, TKQuantifier, TKWhRole
 
 # spacetime
 class TKLLSpacetime(BaseModel):
@@ -81,6 +81,9 @@ class TKLLCContent(BaseModel):
     # quantifier read off the SUBJECT's determiner (all/some/no/the/bare). drives the
     # quantifier-aware truth flip in the relational grounding; default GENERIC (bare/no determiner).
     quantifier: TKQuantifier = Field(default=TKQuantifier.GENERIC)
+    # wh-question gap role (the variable X to solve for); None = polar question or declarative.
+    # mood itself rides `properties.dubitative` (statement 0.5 / question 1.0).
+    wh_role: Optional[TKWhRole] = Field(default=None)
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 

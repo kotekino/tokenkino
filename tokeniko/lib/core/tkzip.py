@@ -4,7 +4,7 @@
 # spacetime representation for an entity (in the relative space of the context of the statement, not absolute spacetime)
 from typing import Optional, Union
 from pydantic import BaseModel, Field
-from lib.core.tk import TKOperator, TKQuantifier
+from lib.core.tk import TKOperator, TKQuantifier, TKWhRole
 from lib.core.tkllc import TKLLAttitude
 
 # zip content: can be a content or another llcitem (recursive)
@@ -27,6 +27,10 @@ class TKZipContent(BaseModel):
     # quantifier read off the SUBJECT's determiner (all/some/no/the/bare). the evaluator combines it
     # with the relational (is_a) verdict: NEGATIVE flips the verdict (XOR with `negated`).
     quantifier: TKQuantifier = Field(default=TKQuantifier.GENERIC)
+    # wh-question gap role (the variable X to solve for); None = polar question or declarative. mood
+    # itself rides `dubitative` (statement 0.5 / question 1.0). the brain answers questions instead of
+    # asserting them: it routes off the assertion path and skips the cross-item conflict check.
+    wh_role: Optional[TKWhRole] = Field(default=None)
     # WSD-assigned WordNet synset key per populated role ("subject"/"predicate"/"direct"/"indirect0"…).
     # carried (out of band of the geometry) so the evaluator can reach the is_a relations graph for
     # taxonomic grounding/refutation. only roles whose entity has a non-empty sense appear.

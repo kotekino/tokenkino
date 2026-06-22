@@ -26,7 +26,7 @@ from typing import Any, Callable, Optional
 
 import numpy as np
 
-from lib.core.tk import TKClauseType, TKOperator, TKQuantifier
+from lib.core.tk import TKClauseType, TKOperator, TKQuantifier, TKWhRole
 from lib.core.models import TKDictionaryDoc
 from lib.llc.utils import utils_antonyms
 from lib.llc.constants import (
@@ -45,6 +45,12 @@ from lib.llc.constants import (
     _QUANTIFIER_EXISTENTIAL,
     _QUANTIFIER_NEGATIVE,
     _QUANTIFIER_DEFINITE,
+    _WH_SUBJECT,
+    _WH_PREDICATE,
+    _WH_LOCATION,
+    _WH_TIME,
+    _WH_MANNER,
+    _WH_CAUSE,
     _PRONOUNS_BASE_ANCHORS,
     _NEGATION_MARKERS,
     _NEGATIVE_QUANTIFIERS,
@@ -469,6 +475,25 @@ _QUANTIFIER_TABLE: dict[str, TKQuantifier] = {
 def anchor_quantifier(lemma: str) -> TKQuantifier:
     key = (lemma or "").strip().lower()
     return _QUANTIFIER_TABLE.get(key, TKQuantifier.GENERIC)
+
+
+# ------------------------------------------------------------------------------------------------
+# Wh-word (closed-class interrogative -> the gap role = the variable X to solve for)
+# EXACT only — wh-words are closed-class; the parser also gates on PronType=Int. a non-wh lemma -> None.
+# ------------------------------------------------------------------------------------------------
+_WH_TABLE: dict[str, TKWhRole] = {
+    **{w: TKWhRole.SUBJECT for w in _WH_SUBJECT},
+    **{w: TKWhRole.PREDICATE for w in _WH_PREDICATE},
+    **{w: TKWhRole.LOCATION for w in _WH_LOCATION},
+    **{w: TKWhRole.TIME for w in _WH_TIME},
+    **{w: TKWhRole.MANNER for w in _WH_MANNER},
+    **{w: TKWhRole.CAUSE for w in _WH_CAUSE},
+}
+
+
+def anchor_whType(lemma: str) -> Optional[TKWhRole]:
+    key = (lemma or "").strip().lower()
+    return _WH_TABLE.get(key)
 
 
 # ------------------------------------------------------------------------------------------------

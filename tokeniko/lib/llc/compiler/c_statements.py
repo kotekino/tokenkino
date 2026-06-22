@@ -374,6 +374,18 @@ def compiler_implicationOperands(statement: TKStatement, matrixVerb: str, statem
     consequent.op = TKOperator.IMPLY
     return items
 
+# stamp the utterance's interrogative mood onto EVERY leaf of a compiled statement. mood is a property
+# of the whole sentence ("the cat is dead and alive?" → both clauses are the question), but leaves are
+# produced by several paths (head clause, coordinated entities, coordinated SUB-statements, subordinates),
+# so the only consistent place to apply it is over the finished leaf set. dubitative rides `properties`.
+def _stamp_mood(items: list[TKLLCItem], dubitative: float, wh_role) -> None:
+    for it in items:
+        if isinstance(it.content, TKLLCContent):
+            it.content.properties.dubitative = dubitative
+            it.content.wh_role = wh_role
+        else:
+            _stamp_mood(it.content, dubitative, wh_role)
+
 # evaluate single statement
 def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, statementId: tuple[int, ...] = (), clauseType: TKClauseType = TKClauseType.MAIN, operator: TKOperator = TKOperator.AND) -> list[TKLLCItem]:
     result: list[TKLLCItem] = []
@@ -466,6 +478,12 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # standalone clause); otherwise it seeds the result as usual.
     if not suppressMatrixLeaf:
         result.insert(0, TKLLCItem(op=operator,content=mainContent))
+
+    # interrogative mood (a question is ANSWERED, not asserted): stamp the parser-detected
+    # dubitative/wh_role onto every leaf of this utterance. only for questions — declaratives
+    # (dubitative 0.5 / wh_role None) are left untouched, so the assertion path is unchanged.
+    if statement.dubitative != 0.5 or statement.wh_role is not None:
+        _stamp_mood(result, statement.dubitative, statement.wh_role)
 
     # return all statements
     return result

@@ -134,6 +134,18 @@ class TKQuantifier(str, Enum):
     DEFINITE = "definite"
     GENERIC = "generic"
 
+# wh-question GAP ROLE — which semantic slot is the variable X a wh-question asks to solve for.
+# who/whom/which -> SUBJECT, what -> PREDICATE (copular complement), where -> LOCATION, when -> TIME,
+# how -> MANNER, why -> CAUSE. None = polar question or declarative (no gap).
+class TKWhRole(str, Enum):
+    SUBJECT = "subject"
+    PREDICATE = "predicate"
+    DIRECT = "direct"
+    LOCATION = "location"
+    TIME = "time"
+    MANNER = "manner"
+    CAUSE = "cause"
+
 # clause type enum
 class TKClause(str, Enum):
     MAIN = "main"
@@ -163,6 +175,13 @@ class TKStatement(BaseModel):
 
     # clause type
     clause_type: TKClause = Field(default=TKClause.MAIN)
+
+    # interrogative mood — the author-scaffolded `dubitative` carrier: statement 0.5 / question 1.0.
+    # set by the parser when the sentence is a question ("?" survives as a PUNCT token; a wh-word
+    # carries PronType=Int). a question is ANSWERED, not asserted/believed (see the evaluator/brain).
+    dubitative: float = Field(default=0.5)
+    # wh-question gap role (the variable X to solve for); None = polar question or declarative.
+    wh_role: Optional[TKWhRole] = Field(default=None)
 
     # public fields
     subject: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value

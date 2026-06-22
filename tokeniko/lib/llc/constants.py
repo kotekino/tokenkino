@@ -105,6 +105,17 @@ _QUANTIFIER_EXISTENTIAL = {"a", "an", "some", "any", "several"}
 _QUANTIFIER_NEGATIVE = {"no", "none", "neither"}
 _QUANTIFIER_DEFINITE = {"the", "this", "that", "these", "those"}
 
+# wh-words (interrogative pronouns/adverbs/determiners) -> the GAP ROLE = the variable X a wh-question
+# asks tokeniko to solve for. EXACT only (closed-class function words; the parser also confirms the
+# token via PronType=Int). who/whom/which/whose -> SUBJECT, what -> PREDICATE (copular complement),
+# where -> LOCATION, when -> TIME, how -> MANNER, why -> CAUSE.
+_WH_SUBJECT = {"who", "whom", "which", "whose"}
+_WH_PREDICATE = {"what"}
+_WH_LOCATION = {"where"}
+_WH_TIME = {"when"}
+_WH_MANNER = {"how"}
+_WH_CAUSE = {"why"}
+
 # comparison predicates: AFFIRMATIVE forms assert sameness/equality between subject and the indirect
 # operand; their ANTONYMS (different/unlike/...) assert non-equality and are flagged negated via the
 # antonym primitive (Decision 2). the affirmative anchors below seed the antonym column read.

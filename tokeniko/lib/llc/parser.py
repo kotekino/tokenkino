@@ -18,7 +18,7 @@ from functools import cmp_to_key
 import textacy
 from word2number import w2n
 from lib.core.memory import MEMContext, MEMStakeholder
-from lib.llc.anchors import anchor_resolve
+from lib.llc.anchors import anchor_resolve, anchor_whType
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
@@ -656,6 +656,18 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     if subjectToken: tkMain.create_subject(fullEntity=tkSubject)
     if directToken: tkMain.create_direct(fullEntity=tkDirect)
     for it in indirectEntities: tkMain.add_indirect(fullEntity=it)
+
+    # ----------------------------------------
+    # interrogative mood (a question is ANSWERED, not asserted). detection is empirically robust:
+    # "?" survives as a PUNCT token, and every wh-word carries PronType=Int in its morph (regardless of
+    # POS — PRON who/what, ADV how/where/why, DET which). polar = "?" with no wh-word; wh = a wh-word
+    # whose lemma maps to the gap role (anchor_whType). carried on the statement -> dubitative + wh_role.
+    # ----------------------------------------
+    whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")), None)
+    if whToken is not None or any(t.text == "?" for t in tokens):
+        tkMain.dubitative = 1.0
+        if whToken is not None:
+            tkMain.wh_role = anchor_whType(whToken.lemma_)
 
     #return statement
     return tkMain
