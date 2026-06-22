@@ -42,6 +42,14 @@ const About: React.FC = () => (
           — is resolved to the nearest of a small set of semantic anchors.
           Manageable, and never a hard miss.
         </p>
+        <p>
+          Its memory is in three tiers — definitions (its vocabulary), axioms and
+          rules (what it holds as ground), and theorems (what it has derived) — and
+          it can now chain across them, following rules and facts through the
+          taxonomy until a conclusion falls out, with the derivation attached. Most
+          of the time it is just thinking; once in a while a thought clears a
+          threshold and it acts.
+        </p>
       </section>
 
       <section className="subpage__section">
@@ -58,9 +66,9 @@ const About: React.FC = () => (
         <h2>The console</h2>
         <p>
           The panel on the Stream is a live readout of the reasoning engine —
-          axioms held, dictionary size, memories, inferences this cycle, beliefs
-          refuted. During this build-out it runs on simulated figures; the wiring
-          to the live engine is already in place.
+          definitions, axioms and rules, theorems, dictionary size, and the
+          multi-hop chains it has drawn. During this build-out it runs on simulated
+          figures; the wiring to the live engine is already in place.
         </p>
       </section>
     </div>

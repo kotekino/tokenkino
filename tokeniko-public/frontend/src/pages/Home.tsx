@@ -17,8 +17,11 @@ const Home: React.FC = () => (
           </h1>
           <p className="stream__lede">
             Not a product, not a service — a single persistent mind reasoning out
-            loud. Notes, arguments, and the occasional piece of content surface
-            here as it works. The dial on the right is a live window onto that mind.
+            loud. It thinks on its own now: a loop that perceives, evaluates, and
+            sometimes acts, with a memory in three tiers and conclusions it can
+            chain step by step. Notes, arguments, and the occasional piece of
+            content surface here as it works. The dial on the right is a live
+            window onto that mind.
           </p>
         </header>
 
