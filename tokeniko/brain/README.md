@@ -129,6 +129,18 @@ It reads backwards in time from the most recent entries up to a defined **workin
 > Still **D1b** (next): *wondering* (the historical-window mode below), theorem **derivation** (necessary
 > truths → KB), and the `eval:true` **novelty split** (redundant → ignore vs a novel KB-bridging truth
 > taught externally → learn).
+>
+> **Cross-item consistency (D, built).** Besides the single-item eval, `think_one` also cross-checks the
+> item against the **same speaker's** recent priors (`sourceId` match, `timestamp` < item, newest 25) via
+> `evaluation_harness.cross_item_conflict` — `evaluator_classifyForm` over a synthetic AND-union of the
+> two items' leaf clauses (parser-free). A cross-item contradiction is a **revisable CONTEXT conflict**
+> ("you said the cat is alive, now you say it's dead — which holds?"), **NOT** the hardwired logic
+> `INCONSISTENT` (which is reserved for `X∧¬X` *within ONE statement*): it fires a new `eval:conflict`
+> trigger which the seeded personality maps to `tokeniko:clarify` (a request to reconcile). One conflict
+> idea per item (break on first match; idempotent dedups re-ticks). **Deferred:** cross-**speaker**
+> patterns (same-speaker only for now), **inference-implied** conflicts ("eating" vs "dead" — needs
+> forward-chaining; this catches DIRECT contraries `X∧¬X`/antonym-predicate only), and self-authored
+> "realization" memories + working memory.
 
 ### Two outputs, by the always/maybe rule
 Thinking does **not** write only to the `Ideas` queue. It has two destinations, selected by *whether

@@ -191,6 +191,10 @@ part of this (load active definitions/axioms/theorems → build readers + forwar
 evaluate a ready `TKZip` → map the best match to a doc id) is factored into the **parser-free**
 `lib/core/evaluation_harness.py` (`evaluate_zip`), shared by `EvaluationService` (api; adds the
 `_compile_zip` parser step on top) and `brain/thinking.py` (the brain stays spaCy/Stanza-free).
+The brain's Thinking also **cross-checks same-speaker memory for CONTEXT conflicts** — `think_one`
+runs `evaluation_harness.cross_item_conflict` (`evaluator_classifyForm` over an AND-union of two items'
+clauses) against the speaker's recent priors; a cross-item contradiction (NOT the logic `INCONSISTENT`)
+fires `eval:conflict` → `tokeniko:clarify`.
 
 **Sense-bridge** — the WSD sense now propagates through the whole pipeline so the evaluator can read
 it: `TKDictionary.sense` (e.g. `cat.n.01`) → `TKLLEntity.sense` (set in `compiler_getEntity`) →

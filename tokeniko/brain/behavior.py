@@ -26,6 +26,9 @@ _DISPATCH = {
     TokenikoAction.POST.value:    ActionType.POST_CONTENT,
     TokenikoAction.GUESS.value:   ActionType.SEND_MESSAGE,   # internal (targetId=self) — see below
     TokenikoAction.LEARN.value:   ActionType.SEND_MESSAGE,   # internal (targetId=self)
+    # clarify: outward (NOT in _INTERNAL, so targetId=None for now). The actual recipient — the
+    # conflicting speaker — is resolved later in D3 / `senses` (from the conflict's source memory item).
+    TokenikoAction.CLARIFY.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 

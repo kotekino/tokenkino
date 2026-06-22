@@ -16,6 +16,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Optional
 
+import lib.core.evaluation_harness as evaluation_harness
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.memory import EvalToken
@@ -114,6 +115,44 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             result.status.value,
             result.truth,
         )
+
+    # --------------------------------------------------------------
+    # CROSS-ITEM CONSISTENCY (#4 D): besides the single-item eval above, cross-check this item
+    # against the SAME speaker's recent prior items for a contradiction. A cross-item contradiction
+    # is a REVISABLE CONTEXT conflict ("you said the cat is alive, now you say it's dead — which
+    # holds?") — NOT the hardwired logic INCONSISTENT (that is reserved for X∧¬X within ONE
+    # statement). On a conflict, emit eval:conflict (the seeded personality maps it to
+    # tokeniko:clarify). Parser-free: classifyForm over a synthetic union of the two items' clauses.
+    #
+    # DEFERRED: (1) cross-SPEAKER patterns — this is SAME-SPEAKER only; (2) inference-implied
+    # conflicts (e.g. "eating" vs "dead") that need forward-chaining — this catches DIRECT contraries
+    # (X∧¬X / antonym-predicate) only.
+    n_clauses = evaluation_harness._zip_leaves(item.zip.items)
+    priors = (
+        TKMemoryItemDoc.find(
+            {"sourceId": item.sourceId, "timestamp": {"$lt": item.timestamp}}
+        )
+        .sort("-timestamp")
+        .limit(25)
+        .to_list()
+    )
+    for m in priors:
+        if m.zip is None:
+            continue
+        detail = evaluation_harness.cross_item_conflict(
+            n_clauses + evaluation_harness._zip_leaves(m.zip.items)
+        )
+        if detail:
+            behavior.spawn_ideas_for(
+                EvalToken.CONFLICT.value, payload=item.zip, source=str(item.id)
+            )
+            logger.info(
+                "[thinking] cross-item conflict: memory=%s vs %s -> eval:conflict (%s)",
+                str(item.id),
+                str(m.id),
+                detail,
+            )
+            break  # one conflict idea per N (idempotent dedups re-ticks anyway)
 
     # advance the cursor past this item so it is never reprocessed.
     brain_state.working_memory_cursor = _epoch_utc(item.timestamp)

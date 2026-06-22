@@ -374,6 +374,16 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      parser-free `brain` can share it — `EvaluationService` now only adds the `_compile_zip` parser step
      on top) and fans `eval:*` outcomes into ideas via `spawn_ideas_for` (cursor-driven, bounded,
      first-run-guarded; the coordinator promptly re-routes to Priorities after a productive Thinking tick).
+     **Cross-item consistency ✅ DONE (`eval:conflict`→`tokeniko:clarify`)** — `think_one` now ALSO
+     cross-checks an item against the **same speaker's** recent priors (`sourceId`+`timestamp`<item, newest
+     25) via `evaluation_harness.cross_item_conflict` (`evaluator_classifyForm` over a synthetic AND-union of
+     the two items' leaf clauses; parser-free). A cross-item contradiction is a **revisable CONTEXT conflict**
+     — NOT the hardwired logic `INCONSISTENT` (reserved for `X∧¬X` within ONE statement) — fires
+     `eval:conflict`, mapped by the seeded personality to `tokeniko:clarify` (`SEND_MESSAGE`, outward,
+     `targetId=None` until D3/`senses` resolves the speaker). One idea per item (break + idempotent).
+     **Deferred:** cross-**speaker** patterns (same-speaker only), **inference-implied** conflicts (needs
+     forward-chaining; DIRECT `X∧¬X`/antonym-predicate contraries only), self-authored "realization" memories
+     + working memory. (Seed rule `eval:conflict→tokeniko:clarify @ 0.7` in `scripts/seed_behavior_rules.py`.)
      **D1b** (still next) — *wondering* (historical-window re-evaluation), theorem **derivation** (necessary
      truths→KB), and the `eval:true` **novelty split** (below). **D2** priorities feasibility scoring;
      **D3** action execution (`guess`/`learn` → real provisional-low-trust KB writes; `speakup/ask/why/post`

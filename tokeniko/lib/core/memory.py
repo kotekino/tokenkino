@@ -126,6 +126,7 @@ class EvalToken(str, Enum):
     FALSE = "eval:false"
     UNKNOWN = "eval:unknown"
     TRUE = "eval:true"
+    CONFLICT = "eval:conflict"  # a CROSS-ITEM (revisable CONTEXT) contradiction across a speaker's prior claims — NOT the hardwired logic INCONSISTENT (that is X∧¬X within ONE statement)
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):
@@ -136,6 +137,7 @@ class TokenikoAction(str, Enum):
     LEARN = "tokeniko:learn"
     POST = "tokeniko:post"
     IGNORE = "tokeniko:ignore"
+    CLARIFY = "tokeniko:clarify"  # ask the speaker to reconcile a cross-item context conflict
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a

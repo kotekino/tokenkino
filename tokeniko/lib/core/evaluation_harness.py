@@ -12,10 +12,12 @@
 # evaluator package is parser-free, so the brain reuses this harness directly. The single parser step
 # (sentence -> TKZip) stays in EvaluationService._compile_zip and is the only api-only piece.
 # --------------------------------------------------------------
+from typing import Optional
+
 from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKRelationDoc, TKTheoremDoc
-from lib.core.tk import TKQuantifier
-from lib.core.tkzip import TKZip, TKZipContent
-from lib.llc.evaluator import evaluator_evaluateStatement
+from lib.core.tk import TKOperator, TKQuantifier
+from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
+from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement
 
 
 # the injected is_a graph reader: parents(sense) -> direct is_a hypernyms. the ~150k-triple
@@ -82,6 +84,26 @@ def _zip_leaves(item) -> list:
         for child in c:
             out += _zip_leaves(child)
     return out
+
+
+# the CROSS-ITEM consistency engine (parser-free). Detect a contradiction across a set of clauses
+# (TKZipContent), treating them as one conjunction. Returns classifyForm's detail string on a
+# contradiction, else None. Used to compare statements from DIFFERENT memory items (e.g. the same
+# speaker's prior claims). A cross-item contradiction is a revisable CONTEXT conflict — NOT the
+# hardwired logic INCONSISTENT (that is X∧¬X within ONE statement). The caller keeps the set small
+# (pairwise) to stay under classifyForm's atom cap (_MAX_ATOMS=16).
+def cross_item_conflict(clauses: list) -> Optional[str]:
+    if len(clauses) < 2:
+        return None
+    synthetic = TKZip(
+        map=[0.0] * 8,
+        items=TKZipItem(
+            op=TKOperator.AND,
+            content=[TKZipItem(content=c) for c in clauses],
+        ),
+    )
+    form = evaluator_classifyForm(synthetic, antonyms=_make_antonym_reader())
+    return form.detail if form.contradiction else None
 
 
 # extract universal RULES from the active axioms for the forward-chainer. a rule leaf is a
