@@ -381,6 +381,15 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ deferred/parked
      — NOT the hardwired logic `INCONSISTENT` (reserved for `X∧¬X` within ONE statement) — fires
      `eval:conflict`, mapped by the seeded personality to `tokeniko:clarify` (`SEND_MESSAGE`, outward,
      `targetId=None` until D3/`senses` resolves the speaker). One idea per item (break + idempotent).
+     **Per-user-grouped scan ✅ DONE** — Thinking no longer reads one global oldest-first stream; each tick
+     it focuses on the **liveliest conversation** (the speaker owning the single newest unprocessed message)
+     and drains *that* speaker's window oldest-first, advancing only that speaker's cursor, before the focus
+     moves on (quiet backlogs served after the lively chat drains — and, later, by *wondering*). `brain_state`
+     now holds a global `wake_at` boundary + **per-speaker** `source_cursors` (`sourceId→ts`); the per-speaker
+     cursors let the focus jump between speakers without a global cursor leaping past — and dropping —
+     another conversation's backlog. **Detection-equivalent** to the cross-item check above (single-item eval
+     + same-speaker conflict unchanged) — this is purely the *ordering + per-source cursor + pacing* layer, so
+     a fresh message spawns an action within a tick or two (tokeniko reads as present in the live chat).
      **Deferred:** cross-**speaker** patterns (same-speaker only), **inference-implied** conflicts (needs
      forward-chaining; DIRECT `X∧¬X`/antonym-predicate contraries only), self-authored "realization" memories
      + working memory. (Seed rule `eval:conflict→tokeniko:clarify @ 0.7` in `scripts/seed_behavior_rules.py`.)

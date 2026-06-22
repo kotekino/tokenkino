@@ -176,11 +176,18 @@ class MEMBehaviorRule(BaseModel):
     order: int = Field(default=0)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
 
-# the BRAIN_STATE singleton — cognitive continuity across process restarts: the working-memory cursor
-# and the wondering window, so tokeniko resumes its cycles without gaps (one continuous self).
+# the BRAIN_STATE singleton — cognitive continuity across process restarts: the per-speaker memory
+# cursors + the wondering window, so tokeniko resumes its cycles without gaps (one continuous self).
 class BrainState(BaseModel):
     key: str = "singleton"                      # the singleton key (unique-indexed on the doc)
-    working_memory_cursor: Optional[float] = None  # last-processed memory ts (epoch seconds, SUB-SECOND: int-truncation re-finds the newest sub-second item every tick → obsessive loop)
+    # the global WAKE boundary (epoch seconds, SUB-SECOND float — int-truncation re-finds the newest
+    # sub-second item every tick → the obsessive loop): tokeniko reacts only to memory that ARRIVES
+    # AFTER it first wakes, and never re-thinks all of history. Set once on first run; never moves.
+    wake_at: Optional[float] = None
+    # PER-SPEAKER last-processed memory ts (epoch seconds, sub-second), keyed by sourceId (#1: the
+    # per-user-grouped scan). Each conversation's window advances INDEPENDENTLY so the focus can jump
+    # between speakers without a single global cursor leaping past — and dropping — another's backlog.
+    source_cursors: dict[str, float] = Field(default_factory=dict)
     wondering_window: Optional[list[int]] = None  # [lo, hi] of the current wondering window
     last_thinking_at: Optional[int] = None
     last_wondering_at: Optional[int] = None

@@ -60,16 +60,24 @@ def status_to_token(result: EvaluatorResult) -> Optional[str]:
     return None
 
 
-# process ONE memory item (a bounded work-unit for the coordinator). Reads the OLDEST memory item
-# with a zip whose timestamp is strictly newer than the brain_state cursor, evaluates it, maps the
-# outcome to an eval:* token, and (if a strong conclusion) fans it into ideas. Advances + persists
-# the cursor so the item is never reprocessed. Returns True iff it processed an item this tick.
+# process ONE memory item (a bounded work-unit for the coordinator). PER-USER-GROUPED scan (#1):
+# rather than one global oldest-first stream, it focuses on the LIVELIEST conversation — the speaker
+# who owns the single newest unprocessed message — and drains THAT speaker's window oldest-first
+# (advancing only that speaker's cursor) before the focus moves on. So tokeniko reads as present in
+# the live chat: a fresh message makes its speaker the focus and an action spawns within a tick or
+# two; quiet backlogs are served once the lively conversation is drained (and, eventually, by the
+# wondering state). Per-speaker cursors are what let the focus jump between speakers without a single
+# global cursor leaping past — and dropping — another conversation's unprocessed backlog.
 #
-# First-run guard: if the cursor is None, initialize it to the latest memory ts and return False —
+# It evaluates the chosen item, maps the outcome to an eval:* token, and (if a strong conclusion)
+# fans it into ideas; then cross-checks the same speaker's priors for a context conflict. Advances +
+# persists that speaker's cursor so the item is never reprocessed. Returns True iff it processed one.
+#
+# First-run guard: if wake_at is None, initialize it to the latest memory ts and return False —
 # tokeniko only reacts to memory that ARRIVES AFTER it first wakes, never re-thinks all of history.
 def think_one(brain_state: TKBrainStateDoc) -> bool:
-    cursor = brain_state.working_memory_cursor
-    if cursor is None:
+    wake = brain_state.wake_at
+    if wake is None:
         latest = (
             TKMemoryItemDoc.find({})
             .sort("-timestamp")
@@ -77,22 +85,38 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             .to_list()
         )
         if latest:
-            brain_state.working_memory_cursor = _epoch_utc(latest[0].timestamp)
+            brain_state.wake_at = _epoch_utc(latest[0].timestamp)
         else:
-            brain_state.working_memory_cursor = datetime.now(timezone.utc).timestamp()
+            brain_state.wake_at = datetime.now(timezone.utc).timestamp()
         brain_state.save()
         return False
 
-    cursor_dt = datetime.fromtimestamp(cursor, timezone.utc)
-    # oldest memory item with a zip, strictly newer than the cursor (timeseries; sorted ascending).
+    wake_dt = datetime.fromtimestamp(wake, timezone.utc)
+    # every memory item past the wake boundary, with a zip, NEWEST-first (so the first eligible item
+    # we hit is the single newest unprocessed message across all speakers → its speaker is the focus).
     candidates = (
-        TKMemoryItemDoc.find({"timestamp": {"$gt": cursor_dt}})
-        .sort("timestamp")
+        TKMemoryItemDoc.find({"timestamp": {"$gt": wake_dt}})
+        .sort("-timestamp")
         .to_list()
     )
-    item = next((c for c in candidates if c.zip is not None), None)
-    if item is None:
+    cursors = dict(brain_state.source_cursors or {})
+    # eligible = unprocessed per its OWN speaker's cursor (default floor = the wake boundary).
+    eligible = [
+        c
+        for c in candidates
+        if c.zip is not None and _epoch_utc(c.timestamp) > cursors.get(c.sourceId, wake)
+    ]
+    if not eligible:
         return False
+
+    # FOCUS = the speaker who owns the newest eligible message (candidates are newest-first, so it is
+    # eligible[0]'s speaker). Within that speaker, process the OLDEST eligible item — draining their
+    # window chronologically (priors before posteriors, which the cross-item check below relies on).
+    focus_source = eligible[0].sourceId
+    item = min(
+        (c for c in eligible if c.sourceId == focus_source),
+        key=lambda c: c.timestamp,
+    )
 
     out = evaluate_zip(item.zip)
     result: EvaluatorResult = out["result"]
@@ -154,7 +178,10 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             )
             break  # one conflict idea per N (idempotent dedups re-ticks anyway)
 
-    # advance the cursor past this item so it is never reprocessed.
-    brain_state.working_memory_cursor = _epoch_utc(item.timestamp)
+    # advance ONLY the focus speaker's cursor past this item (sub-second, so the just-processed item
+    # is strictly excluded next tick — the obsessive-loop guard). Other speakers' cursors are untouched,
+    # so their backlogs survive the focus jump. Reassign the dict so the doc-save persists the mutation.
+    cursors[focus_source] = _epoch_utc(item.timestamp)
+    brain_state.source_cursors = cursors
     brain_state.save()
     return True

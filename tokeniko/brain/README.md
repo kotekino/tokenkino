@@ -95,7 +95,7 @@ Three entities, each backed by a Bunnet `Document` (collection) and registered i
 |---|---|
 | `MEMIdea` → `TKIdeaDoc` (`ideas`) | `payload` (`TKZip` **or** `TKZipContent` — what the idea is *about*) · `trigger` (string for now — the reserved-token that fired it, e.g. `eval:inconsistent`) · `urge: float` (the level — idea 0.1 / wish 0.5 / urge 0.7 / need 1.0 — the **act/don't-act threshold** *and* the **conflict key** when ideas compete) · `feasibility: float?` (set later by Priorities) · `source` (provenance id) · `status` (`pending → processing → done/discarded`, atomic via `find_one_and_update`) · `parsed_by_prio: bool` · `deadline: int?` · `createdAt` |
 | `MEMAction` → `TKActionDoc` (`actions`) | `action_type` (enum: `SEND_MESSAGE` / `CURL` / `POST_CONTENT`) · `payload` (channel, content/message) · `sourceId` (= tokeniko) · `targetId?` · `channel` (`MEMChannels`) · `status` (`pending → processing → done/failed`, **FIFO** + atomic) · `ideaId` (provenance — the idea that yielded it) · `createdAt` |
-| `BrainState` → `TKBrainStateDoc` (`brain_state`, **singleton**) | `working_memory_cursor` (last-processed memory timestamp) · `wondering_window` (`[lo, hi]`) · `last_thinking_at` / `last_wondering_at` · a singleton key |
+| `BrainState` → `TKBrainStateDoc` (`brain_state`, **singleton**) | `wake_at` (the global wake boundary — sub-second float epoch; tokeniko reacts only to memory arriving *after* it first wakes) · `source_cursors: dict[sourceId → ts]` (**per-speaker** last-processed memory timestamp — the per-user scan; each conversation advances independently) · `wondering_window` (`[lo, hi]`) · `last_thinking_at` / `last_wondering_at` · a singleton key |
 
 **Atomic state machines.** The `ideas` and `actions` queues advance through linear state machines
 (`pending → processing → done/discarded` / `…/failed`) via MongoDB `find_one_and_update`, so two loops
@@ -124,8 +124,20 @@ It reads backwards in time from the most recent entries up to a defined **workin
 > `EvaluatorStatus`/truth to a reserved `eval:*` token (INCONSISTENT → `eval:inconsistent`, INSUFFICIENT
 > → `eval:unknown`, RESOLVED with truth > 0.85 → `eval:true` / < 0.15 → `eval:false`, else no idea), and
 > fans it into ideas through `behavior.spawn_ideas_for`. One **bounded** item per tick (cooperative with
-> the coordinator); a strictly-newer-than-cursor scan over `brain_state.working_memory_cursor`, with a
-> first-run guard (no cursor → initialize to the latest ts and react only to memory that arrives after).
+> the coordinator).
+>
+> **Per-user-grouped scan (#1, built).** The scan is no longer one global oldest-first stream. Each tick
+> Thinking focuses on the **liveliest conversation** — the speaker who owns the single newest unprocessed
+> message — and drains *that* speaker's window oldest-first (advancing only that speaker's cursor) before
+> the focus moves on; quiet backlogs are served once the lively chat is drained (and, eventually, by the
+> *wondering* state). State lives in `brain_state`: a global `wake_at` boundary (first-run guard — react
+> only to memory arriving after waking; never re-think all history) plus **per-speaker** `source_cursors`
+> (`sourceId → last-processed ts`). The per-speaker cursors are what let the focus jump between speakers
+> without a single global cursor leaping past — and dropping — another conversation's backlog. Sub-second
+> float cursors (the obsessive-loop guard: an int-truncated cursor re-finds the just-processed sub-second
+> item forever). Detection (single-item eval + the cross-item check below) is **unchanged** by #1 — this
+> is purely the *ordering + per-source cursor + pacing* layer, so a fresh message spawns an action within
+> a tick or two and tokeniko reads as present in the chat it is in.
 > Still **D1b** (next): *wondering* (the historical-window mode below), theorem **derivation** (necessary
 > truths → KB), and the `eval:true` **novelty split** (redundant → ignore vs a novel KB-bridging truth
 > taught externally → learn).
