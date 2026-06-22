@@ -54,3 +54,11 @@ def test_reflexive_identity_flag(compile_zip, leaves):
 def test_negation_flag(compile_zip, leaves):
     leaf = _first_leaf(compile_zip, leaves, "the cat is not alive")
     assert leaf.negated is True
+
+
+def test_aux_resolving_to_generic_does_not_crash(compile_zip, leaves):
+    # regression: an aux in a malformed embedded clause ("...know how are you") resolves to a
+    # TKGeneric (no .vector) — the parser used to read .vector unguarded and crash /input with
+    # AttributeError. It must now compile cleanly (empty aux vector). Structure-only; no float/sense.
+    zp = compile_zip("I would like to know how are you")
+    assert len(leaves(zp)) >= 1

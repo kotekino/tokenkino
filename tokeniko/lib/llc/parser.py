@@ -535,7 +535,12 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     if aux:
         posAux = TKPosMapper.get_wn_pos(aux.pos_)
         dictAux = parser_getMeaning(aux, posAux)
-        tkAux = TKAux(lemma=aux.lemma_, vector=dictAux.vector, tense=tense)
+        # parser_getMeaning may return a TKGeneric (the aux lemma isn't in the dictionary and no
+        # vector fallback cleared the threshold — e.g. an aux in a malformed embedded clause like
+        # "...know how are you"); TKGeneric carries no .vector, so fall back to an empty vector
+        # (a valid TKAux, same as the no-aux branch below).
+        auxVector = getattr(dictAux, "vector", None) or []
+        tkAux = TKAux(lemma=aux.lemma_, vector=auxVector, tense=tense)
     elif tense:
         # no auxiliary, but stash the predicate verb's own tense for the spacetime time axis
         tkAux = TKAux(tense=tense)
