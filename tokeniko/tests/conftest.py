@@ -88,6 +88,19 @@ def evaluate(_io):
     return _e
 
 
+@pytest.fixture(scope="session")
+def answer(compile_zip):
+    # answer a QUESTION sentence via the parser-free harness: returns the AnswerResult, or None if
+    # the sentence is not interrogative.
+    from lib.core.evaluation_harness import answer_zip
+
+    def _a(sentence):
+        out = answer_zip(compile_zip(sentence))
+        return out["answer"] if out else None
+
+    return _a
+
+
 # --- band-assert helpers ---------------------------------------------------------------------
 # Live in tests/asserts.py so test modules can `from tests.asserts import ...` without depending on
 # conftest being importable as a top-level module. Re-exported here for convenience.

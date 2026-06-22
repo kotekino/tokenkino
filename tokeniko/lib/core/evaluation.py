@@ -27,3 +27,28 @@ class EvaluatorResult(BaseModel):
     # premise chain(s) for a KB-derived verdict (taxonomic subsumption -> truth~1, or kingdom-level
     # refutation -> truth~0). each entry is a human-readable is_a chain / disjointness witness.
     derivation: list[str] = Field(default_factory=list)
+
+
+# --------------------------------------------------
+# answering a QUESTION (interrogative input) — distinct from evaluating an assertion. a question is
+# ANSWERED, not believed: a POLAR question reuses the truth machinery (inconsistent -> a confident NO,
+# true -> YES, false -> NO, insufficient -> I-don't-know); a WH question SOLVES for the gap-role
+# variable X (a value) via a KB query. produced by the evaluator/harness, consumed by the brain.
+# --------------------------------------------------
+class AnswerKind(str, Enum):
+    POLAR = "polar"   # yes/no question
+    WH = "wh"         # solve-for-X question
+
+class AnswerVerdict(str, Enum):
+    YES = "yes"
+    NO = "no"
+    VALUE = "value"        # a wh answer (the solved value rides in `value`)
+    UNKNOWN = "unknown"    # I don't know (insufficient knowledge to answer)
+
+class AnswerResult(BaseModel):
+    kind: AnswerKind
+    verdict: AnswerVerdict
+    value: Optional[str] = None                 # the surfaced wh answer (when verdict == VALUE)
+    confidence: float = Field(default=0.5)      # 1.0 for a logic-certain NO; grounded truth otherwise
+    reason: Optional[str] = None                # why (e.g. "logically inconsistent", "is_a hypernym")
+    derivation: list[str] = Field(default_factory=list)  # supporting chain, when any

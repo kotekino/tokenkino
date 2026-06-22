@@ -17,7 +17,8 @@ from typing import Optional
 from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKRelationDoc, TKTheoremDoc
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
-from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement
+from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
+from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh
 
 
 # the injected is_a graph reader: parents(sense) -> direct is_a hypernyms. the ~150k-triple
@@ -168,7 +169,10 @@ def _extract_facts(axiom_docs) -> list:
 # knows the source text, adds that): {"result", "matchedId", "matchedOriginal", "relationMatch"}.
 # NB: theorems default to archived=True, so the theorem pool is empty until a theorem is promoted
 # (archived=False) — expected with the current model; not worked around here.
-def evaluate_zip(statement: TKZip) -> dict:
+# load the ACTIVE knowledge (archived=False) ONCE: the definition leaf clauses, the axiom/theorem
+# zips + their docs (for id mapping), the injected graph readers, and the forward-chainer rules/facts.
+# shared by evaluate_zip (assertions) and answer_zip (questions) so both pay the load once per call.
+def _load_active_kb() -> dict:
     definition_docs = TKDefinitionDoc.find({"archived": False}).to_list()
     axiom_docs = TKAxiomDoc.find({"archived": False}).to_list()
     theorem_docs = TKTheoremDoc.find({"archived": False}).to_list()
@@ -180,18 +184,28 @@ def evaluate_zip(statement: TKZip) -> dict:
         for d in definition_docs if d.zip is not None
         for leaf in _zip_leaves(d.zip.items)
     ]
-    axiom_zips = [a.zip for a in axiom_docs]
-    theorem_zips = [t.zip for t in theorem_docs]
+    return {
+        "definition_docs": definition_docs,
+        "axiom_docs": axiom_docs,
+        "theorem_docs": theorem_docs,
+        "definitions": definitions,
+        "axiom_zips": [a.zip for a in axiom_docs],
+        "theorem_zips": [t.zip for t in theorem_docs],
+        "relations": _make_relations_reader(),
+        "part_of": _make_partof_reader(),
+        "antonyms": _make_antonym_reader(),
+        "rules": _extract_rules(axiom_docs),
+        "facts": _extract_facts(axiom_docs),
+    }
 
-    relations = _make_relations_reader()
-    part_of = _make_partof_reader()
-    antonyms = _make_antonym_reader()
-    rules = _extract_rules(axiom_docs)
-    facts = _extract_facts(axiom_docs)
+
+def evaluate_zip(statement: TKZip) -> dict:
+    kb = _load_active_kb()
+    axiom_docs, theorem_docs = kb["axiom_docs"], kb["theorem_docs"]
     result = evaluator_evaluateStatement(
-        statement, definitions, axiom_zips, theorem_zips,
-        relations=relations, part_of=part_of, antonyms=antonyms,
-        rules=rules, facts=facts,
+        statement, kb["definitions"], kb["axiom_zips"], kb["theorem_zips"],
+        relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
+        rules=kb["rules"], facts=kb["facts"],
     )
 
     # map the best (kind, index) back to a concrete document
@@ -210,3 +224,52 @@ def evaluate_zip(statement: TKZip) -> dict:
         "matchedOriginal": matchedOriginal,
         "relationMatch": result.relationMatch,
     }
+
+
+# strong-conclusion bands (mirror brain.thinking): a polar question -> YES / NO / I-don't-know.
+_TRUE_FLOOR = 0.85
+_FALSE_CEIL = 0.15
+
+
+# map a grounded EvaluatorResult to a POLAR answer. logic-is-sacred: a self-contradictory polar
+# question ("the cat is dead and alive?") is a definitive, confident NO — not a mid/insufficient.
+def _polar_answer(result: EvaluatorResult) -> AnswerResult:
+    if result.status == EvaluatorStatus.INCONSISTENT:
+        return AnswerResult(
+            kind=AnswerKind.POLAR, verdict=AnswerVerdict.NO, confidence=1.0,
+            reason=result.inconsistency or "logically inconsistent", derivation=list(result.derivation),
+        )
+    if result.status == EvaluatorStatus.RESOLVED:
+        if result.truth > _TRUE_FLOOR:
+            return AnswerResult(kind=AnswerKind.POLAR, verdict=AnswerVerdict.YES,
+                                confidence=result.truth, derivation=list(result.derivation))
+        if result.truth < _FALSE_CEIL:
+            return AnswerResult(kind=AnswerKind.POLAR, verdict=AnswerVerdict.NO,
+                                confidence=1.0 - result.truth, derivation=list(result.derivation))
+    return AnswerResult(kind=AnswerKind.POLAR, verdict=AnswerVerdict.UNKNOWN, confidence=0.5,
+                        reason="insufficient knowledge to answer")
+
+
+# answer a QUESTION zip (mood read from the leaves: dubitative=1 -> question, wh_role -> the gap).
+# returns None when the statement is NOT interrogative (caller uses evaluate_zip instead). a question
+# is ANSWERED, never believed — this stores nothing, and the brain skips the assertion/cross-item
+# paths. POLAR -> reuse the grounded truth (inconsistent -> confident NO); WH -> solve the gap role.
+def answer_zip(statement: TKZip) -> Optional[dict]:
+    leaves = _zip_leaves(statement.items)
+    if not any(getattr(l, "dubitative", 0.5) >= 0.999 for l in leaves):
+        return None  # not interrogative
+    wh_leaf = next((l for l in leaves if getattr(l, "wh_role", None) is not None), None)
+
+    kb = _load_active_kb()
+    result = evaluator_evaluateStatement(
+        statement, kb["definitions"], kb["axiom_zips"], kb["theorem_zips"],
+        relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
+        rules=kb["rules"], facts=kb["facts"],
+    )
+
+    if wh_leaf is None:
+        answer = _polar_answer(result)
+    else:
+        answer = evaluator_solveWh(wh_leaf, kb["axiom_zips"], kb["theorem_zips"], kb["relations"], assertion=result)
+
+    return {"answer": answer, "result": result}

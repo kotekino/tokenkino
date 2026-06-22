@@ -51,3 +51,40 @@ def test_gibberish_insufficient(evaluate):
 
 def test_novel_words_insufficient(evaluate):
     assert_insufficient(evaluate("a wug is a blicket"))
+
+
+# --- questions (P2): a question is ANSWERED, not asserted -------------------------------------
+
+def test_polar_inconsistent_is_loud_no(answer):
+    # a self-contradictory polar question -> a confident NO (logic-is-sacred), conf 1.0.
+    a = answer("the cat is alive and the cat is not alive?")
+    assert a.kind.value == "polar" and a.verdict.value == "no"
+    assert a.confidence == 1.0
+
+
+def test_polar_true_is_yes(answer):
+    a = answer("is a cat a mammal?")
+    assert a.kind.value == "polar" and a.verdict.value == "yes"
+
+
+def test_polar_false_is_no(answer):
+    a = answer("is a cat a fish?")
+    assert a.kind.value == "polar" and a.verdict.value == "no"
+
+
+def test_wh_what_solves_a_value(answer):
+    # "what is a cat?" -> a wh VALUE (the is_a hypernym). band: a non-empty value, not the exact word.
+    a = answer("what is a cat?")
+    assert a.kind.value == "wh" and a.verdict.value == "value"
+    assert a.value
+
+
+def test_wh_unsupported_is_unknown(answer):
+    # an answerable-later wh-type abstains honestly rather than fabricating.
+    a = answer("how do you feel?")
+    assert a.kind.value == "wh" and a.verdict.value == "unknown"
+
+
+def test_declarative_is_not_answered(answer):
+    # a statement is not a question: answer_zip returns None (the brain uses the assertion path).
+    assert answer("a cat is a mammal") is None
