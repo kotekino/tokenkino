@@ -1,13 +1,13 @@
 # The `brain` Module: Tokeniko's Autonomous Engine
 
-The `brain` is tokeniko's autonomous daemon — the **mind**. It consists of three separate,
-continuously running background loops that operate indefinitely (tied to the lifecycle of the main
-process).
+The `brain` is tokeniko's autonomous daemon — the **mind**. It is a **single coordinator loop** (tied
+to the lifecycle of the main process) that, each tick, runs ONE bounded unit of the highest-priority
+phase WITH WORK, then cooperatively yields — the reactive path wins, thinking is the background filler.
 
-The three core loops are:
-1. **Thinking**
+The three cognitive phases (in priority order — Actions > Priorities > Thinking) are:
+1. **Actions**
 2. **Priorities Evaluation**
-3. **Actions**
+3. **Thinking**
 
 > **Cognition vs orchestration.** This document describes the *orchestration* — the loops, the
 > queues, the scheduling. The *cognition* inside Thinking and Priorities (how a `TKZip` is

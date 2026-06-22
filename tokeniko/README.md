@@ -80,13 +80,13 @@ Trusted ground truths (full `TKZip`).
 
 ### Definitions — REST resource
 
-Single-clause semantic statements (`TKZipContent`, not a full `TKZip`). Same shape as axioms.
+Semantic statements defining tokeniko's vocabulary/rules. A definition's meaning is the full compiled `TKZip` (single **OR** multi-clause); same shape as axioms. All WordNet glosses live here.
 
 | Method | Path | Purpose |
 |---|---|---|
-| `POST` | `/api/v1/definitions` | compile a single-clause sentence and store it as a definition |
-| `GET` | `/api/v1/definitions` | list definitions (summary view, no `content`; `?archived=` filter) |
-| `GET` | `/api/v1/definitions/{id}` | fetch a single definition (full document, including `content`) |
+| `POST` | `/api/v1/definitions` | compile a sentence and store it as a definition |
+| `GET` | `/api/v1/definitions` | list definitions (summary view, no `zip`; `?archived=` filter) |
+| `GET` | `/api/v1/definitions/{id}` | fetch a single definition (full document, including `zip`) |
 | `PATCH` | `/api/v1/definitions/{id}` | partial update (recompiles if `tokens` is supplied) |
 | `PUT` | `/api/v1/definitions/{id}` | replacement update (recompile + reset flags) |
 | `DELETE` | `/api/v1/definitions/{id}` | delete a definition |
