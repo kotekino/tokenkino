@@ -178,7 +178,7 @@ class MEMBehaviorRule(BaseModel):
 # and the wondering window, so tokeniko resumes its cycles without gaps (one continuous self).
 class BrainState(BaseModel):
     key: str = "singleton"                      # the singleton key (unique-indexed on the doc)
-    working_memory_cursor: Optional[int] = None  # last-processed memory timestamp (epoch seconds)
+    working_memory_cursor: Optional[float] = None  # last-processed memory ts (epoch seconds, SUB-SECOND: int-truncation re-finds the newest sub-second item every tick → obsessive loop)
     wondering_window: Optional[list[int]] = None  # [lo, hi] of the current wondering window
     last_thinking_at: Optional[int] = None
     last_wondering_at: Optional[int] = None

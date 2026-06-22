@@ -48,6 +48,15 @@ def behavior_for(trigger: str) -> list[TKBehaviorRuleDoc]:
 def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None) -> list[TKIdeaDoc]:
     ideas: list[TKIdeaDoc] = []
     for rule in behavior_for(trigger):
+        # IDEMPOTENCY (the obsessive-thinking guard): never two ideas for the same
+        # (source, trigger, action_token). The same memory item re-reached (a re-eval tick, or later
+        # wondering) must NOT re-emit the SAME conclusion+reflex — that is obsessive looping. A DIFFERENT
+        # outcome (a new trigger because the KB grew = growing wiser) is a different key, so it is allowed.
+        # (No source → can't key it → no dedup; that path is for tests / source-less spawns.)
+        if source is not None and TKIdeaDoc.find_one(
+            {"source": source, "trigger": trigger, "action_token": rule.action}
+        ).run() is not None:
+            continue
         idea = TKIdeaDoc(
             trigger=trigger,
             action_token=rule.action,

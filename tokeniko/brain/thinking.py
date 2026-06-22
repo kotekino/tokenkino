@@ -32,11 +32,14 @@ FALSE_CEIL = 0.15
 
 # memory `timestamp` is stored tz-aware UTC, but the timeseries collection reads it back NAIVE
 # (tzinfo=None). .timestamp() on a naive datetime is interpreted in LOCAL time — a tz-skewed epoch.
-# normalize: a naive ts is UTC, so the cursor (epoch seconds) is consistent regardless of the host tz.
-def _epoch_utc(ts: datetime) -> int:
+# normalize: a naive ts is UTC, so the cursor is consistent regardless of the host tz.
+# KEEP SUB-SECOND precision (float, NOT int): the stored ts has ms precision, so truncating the cursor
+# to whole seconds leaves the just-processed item still `> cursor` (X.7 > X.0) → it is re-found and
+# re-thought every tick (the obsessive loop). A sub-second cursor excludes it (strict `>` at ms).
+def _epoch_utc(ts: datetime) -> float:
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=timezone.utc)
-    return int(ts.timestamp())
+    return ts.timestamp()
 
 
 # map an evaluation result to its reserved eval:* trigger token (the meta-language trigger side).
@@ -75,7 +78,7 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         if latest:
             brain_state.working_memory_cursor = _epoch_utc(latest[0].timestamp)
         else:
-            brain_state.working_memory_cursor = int(datetime.now(timezone.utc).timestamp())
+            brain_state.working_memory_cursor = datetime.now(timezone.utc).timestamp()
         brain_state.save()
         return False
 
