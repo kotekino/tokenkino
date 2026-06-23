@@ -118,65 +118,86 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         key=lambda c: c.timestamp,
     )
 
-    out = evaluate_zip(item.zip)
-    result: EvaluatorResult = out["result"]
-    token = status_to_token(result)
-
-    if token:
-        ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id))
+    # --------------------------------------------------------------
+    # QUESTION vs ASSERTION (#4 D, questions P3): a question is ANSWERED, not believed. answer_zip
+    # returns None for a declarative (a cheap mood check BEFORE any KB load), so the assertion path
+    # below is unchanged. For a question it computes the AnswerResult (polar yes/no/idk reusing the
+    # truth machinery; wh value-solving) and fans an eval:question idea carrying the answer + the
+    # asker (item.sourceId) as the reply target. A question is NOT a belief, so it does NOT run the
+    # assertion eval (no speakup/etc.) and is NOT cross-item-conflict-checked.
+    # --------------------------------------------------------------
+    qout = evaluation_harness.answer_zip(item.zip)
+    if qout is not None:
+        answer = qout["answer"]
+        ideas = behavior.spawn_ideas_for(
+            EvalToken.QUESTION.value,
+            payload=item.zip,
+            source=str(item.id),
+            answer=answer.model_dump(),
+            target=item.sourceId,
+        )
         logger.info(
-            "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
-            str(item.id),
-            result.status.value,
-            result.truth,
-            token,
-            len(ideas),
+            "[thinking] question memory=%s -> answer %s/%s conf=%.2f (%d idea(s))",
+            str(item.id), answer.kind.value, answer.verdict.value, answer.confidence, len(ideas),
         )
     else:
-        logger.info(
-            "[thinking] evaluated memory=%s status=%s truth=%.3f -> no strong conclusion",
-            str(item.id),
-            result.status.value,
-            result.truth,
-        )
+        out = evaluate_zip(item.zip)
+        result: EvaluatorResult = out["result"]
+        token = status_to_token(result)
 
-    # --------------------------------------------------------------
-    # CROSS-ITEM CONSISTENCY (#4 D): besides the single-item eval above, cross-check this item
-    # against the SAME speaker's recent prior items for a contradiction. A cross-item contradiction
-    # is a REVISABLE CONTEXT conflict ("you said the cat is alive, now you say it's dead — which
-    # holds?") — NOT the hardwired logic INCONSISTENT (that is reserved for X∧¬X within ONE
-    # statement). On a conflict, emit eval:conflict (the seeded personality maps it to
-    # tokeniko:clarify). Parser-free: classifyForm over a synthetic union of the two items' clauses.
-    #
-    # DEFERRED: (1) cross-SPEAKER patterns — this is SAME-SPEAKER only; (2) inference-implied
-    # conflicts (e.g. "eating" vs "dead") that need forward-chaining — this catches DIRECT contraries
-    # (X∧¬X / antonym-predicate) only.
-    n_clauses = evaluation_harness._zip_leaves(item.zip.items)
-    priors = (
-        TKMemoryItemDoc.find(
-            {"sourceId": item.sourceId, "timestamp": {"$lt": item.timestamp}}
-        )
-        .sort("-timestamp")
-        .limit(25)
-        .to_list()
-    )
-    for m in priors:
-        if m.zip is None:
-            continue
-        detail = evaluation_harness.cross_item_conflict(
-            n_clauses + evaluation_harness._zip_leaves(m.zip.items)
-        )
-        if detail:
-            behavior.spawn_ideas_for(
-                EvalToken.CONFLICT.value, payload=item.zip, source=str(item.id)
-            )
+        if token:
+            ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id))
             logger.info(
-                "[thinking] cross-item conflict: memory=%s vs %s -> eval:conflict (%s)",
+                "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
                 str(item.id),
-                str(m.id),
-                detail,
+                result.status.value,
+                result.truth,
+                token,
+                len(ideas),
             )
-            break  # one conflict idea per N (idempotent dedups re-ticks anyway)
+        else:
+            logger.info(
+                "[thinking] evaluated memory=%s status=%s truth=%.3f -> no strong conclusion",
+                str(item.id),
+                result.status.value,
+                result.truth,
+            )
+
+        # ----------------------------------------------------------
+        # CROSS-ITEM CONSISTENCY (#4 D): cross-check this ASSERTION against the SAME speaker's recent
+        # priors for a contradiction. A cross-item contradiction is a REVISABLE CONTEXT conflict
+        # ("you said the cat is alive, now you say it's dead — which holds?") — NOT the hardwired
+        # logic INCONSISTENT (X∧¬X within ONE statement). On a conflict, emit eval:conflict (the
+        # seeded personality maps it to tokeniko:clarify). classifyForm over a synthetic union.
+        #
+        # DEFERRED: (1) cross-SPEAKER patterns — SAME-SPEAKER only; (2) inference-implied conflicts
+        # ("eating" vs "dead") needing forward-chaining — DIRECT contraries (X∧¬X / antonym) only.
+        n_clauses = evaluation_harness._zip_leaves(item.zip.items)
+        priors = (
+            TKMemoryItemDoc.find(
+                {"sourceId": item.sourceId, "timestamp": {"$lt": item.timestamp}}
+            )
+            .sort("-timestamp")
+            .limit(25)
+            .to_list()
+        )
+        for m in priors:
+            if m.zip is None:
+                continue
+            detail = evaluation_harness.cross_item_conflict(
+                n_clauses + evaluation_harness._zip_leaves(m.zip.items)
+            )
+            if detail:
+                behavior.spawn_ideas_for(
+                    EvalToken.CONFLICT.value, payload=item.zip, source=str(item.id)
+                )
+                logger.info(
+                    "[thinking] cross-item conflict: memory=%s vs %s -> eval:conflict (%s)",
+                    str(item.id),
+                    str(m.id),
+                    detail,
+                )
+                break  # one conflict idea per N (idempotent dedups re-ticks anyway)
 
     # advance ONLY the focus speaker's cursor past this item (sub-second, so the just-processed item
     # is strictly excluded next tick — the obsessive-loop guard). Other speakers' cursors are untouched,

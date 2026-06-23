@@ -30,6 +30,7 @@ RULES = [
     (EvalToken.UNKNOWN.value,      TokenikoAction.GUESS.value,   0.55, "interpolate a provisional def (the superposition partner)"),
     (EvalToken.TRUE.value,         TokenikoAction.IGNORE.value,  0.2,  "corroboration: usually stay quiet"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
+    (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
 ]
 
 

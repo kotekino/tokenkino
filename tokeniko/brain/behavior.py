@@ -29,6 +29,8 @@ _DISPATCH = {
     # clarify: outward (NOT in _INTERNAL, so targetId=None for now). The actual recipient — the
     # conflicting speaker — is resolved later in D3 / `senses` (from the conflict's source memory item).
     TokenikoAction.CLARIFY.value: ActionType.SEND_MESSAGE,
+    # answer: outward + DIRECTED — the recipient is the asker (idea.target), set on the action below.
+    TokenikoAction.ANSWER.value:  ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
@@ -48,7 +50,8 @@ def behavior_for(trigger: str) -> list[TKBehaviorRuleDoc]:
 
 # the fan-out: for each candidate rule, create+insert an idea carrying that rule's reflex (action_token)
 # and urge. The superposition made concrete — Thinking/D will call this. Returns the created ideas.
-def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None) -> list[TKIdeaDoc]:
+def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
+                    answer: Optional[dict] = None, target: Optional[str] = None) -> list[TKIdeaDoc]:
     ideas: list[TKIdeaDoc] = []
     for rule in behavior_for(trigger):
         # IDEMPOTENCY (the obsessive-thinking guard): never two ideas for the same
@@ -66,6 +69,8 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None) ->
             urge=rule.urge,
             payload=payload,
             source=source,
+            answer=answer,
+            target=target,
         )
         idea.insert()
         ideas.append(idea)
@@ -74,18 +79,31 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None) ->
 
 # map an idea's baked-in tokeniko:Y reflex to a concrete Action. tokeniko:ignore (or a missing /
 # unknown action_token) -> no action (None). guess/learn -> internal (targetId = self = a KB-write
-# intent; the write itself is D); speakup/ask/why/post -> outward (targetId None; senses carries out).
+# intent; the write itself is D); a DIRECTED reflex (answer) -> targetId = idea.target (the asker);
+# speakup/ask/why/clarify/post -> outward (targetId None; `senses` resolves + carries out).
 def dispatch_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[TKActionDoc]:
     token = idea.action_token
     if token == TokenikoAction.IGNORE.value or token not in _DISPATCH:
         return None
 
+    # targetId: self for an internal KB-write reflex; the asker for a directed reply; else None (senses).
+    if token in _INTERNAL:
+        target = tokeniko_uid
+    elif idea.target:
+        target = idea.target
+    else:
+        target = None
+
+    payload = {"action_token": token, "trigger": idea.trigger}
+    if idea.answer is not None:
+        payload["answer"] = idea.answer  # the verdict/value for an answer reflex (senses renders it)
+
     action = TKActionDoc(
         action_type=_DISPATCH[token],
         sourceId=tokeniko_uid,
-        targetId=(tokeniko_uid if token in _INTERNAL else None),
+        targetId=target,
         channel=MEMChannels.INTERNAL,
-        payload={"action_token": token, "trigger": idea.trigger},
+        payload=payload,
         ideaId=str(idea.id),
     )
     action.insert()

@@ -127,6 +127,7 @@ class EvalToken(str, Enum):
     UNKNOWN = "eval:unknown"
     TRUE = "eval:true"
     CONFLICT = "eval:conflict"  # a CROSS-ITEM (revisable CONTEXT) contradiction across a speaker's prior claims — NOT the hardwired logic INCONSISTENT (that is X∧¬X within ONE statement)
+    QUESTION = "eval:question"  # the input is a QUESTION (interrogative) — to be ANSWERED, not asserted/believed/cross-item-checked
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):
@@ -138,6 +139,7 @@ class TokenikoAction(str, Enum):
     POST = "tokeniko:post"
     IGNORE = "tokeniko:ignore"
     CLARIFY = "tokeniko:clarify"  # ask the speaker to reconcile a cross-item context conflict
+    ANSWER = "tokeniko:answer"    # answer a question (verdict/value computed by Thinking, in the idea/action payload)
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a
@@ -149,6 +151,8 @@ class MEMIdea(BaseModel):
     urge: float = Field(default=UrgeLevel.IDEA.value)  # act/don't-act threshold + conflict key
     feasibility: Optional[float] = None         # set later by Priorities (can-it-be-done)
     source: Optional[str] = None                # provenance: the memory/theorem/axiom id that spawned it
+    answer: Optional[dict] = None               # for eval:question — the computed AnswerResult (verdict/value/confidence/reason)
+    target: Optional[str] = None                # a DIRECTED reflex's recipient (e.g. tokeniko:answer → the asker's stakeholder id)
     status: IdeaStatus = Field(default=IdeaStatus.PENDING)
     parsed_by_prio: bool = Field(default=False)  # awaits the Priorities evaluator
     deadline: Optional[int] = None              # optional epoch-seconds deadline
