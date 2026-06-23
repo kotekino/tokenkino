@@ -153,6 +153,14 @@ It reads backwards in time from the most recent entries up to a defined **workin
 > patterns (same-speaker only for now), **inference-implied** conflicts ("eating" vs "dead" — needs
 > forward-chaining; this catches DIRECT contraries `X∧¬X`/antonym-predicate only), and self-authored
 > "realization" memories + working memory.
+>
+> **Questions (built — a question is ANSWERED, not believed).** `think_one` first checks mood: if the
+> memory item is interrogative (`evaluation_harness.answer_zip` returns non-None), it fans an
+> `eval:question` idea carrying the computed answer (polar yes/no/idk reusing the truth machinery; wh
+> value-solving) + the asker as the reply target — and **skips both the assertion eval and the cross-item
+> check** (a question is not a belief). The seeded personality maps `eval:question → tokeniko:answer`,
+> which `dispatch_action` directs at the asker (`targetId`) with the verdict/value in the action payload
+> (`senses` renders + sends it). A declarative falls through to the unchanged assertion path above.
 
 ### Two outputs, by the always/maybe rule
 Thinking does **not** write only to the `Ideas` queue. It has two destinations, selected by *whether

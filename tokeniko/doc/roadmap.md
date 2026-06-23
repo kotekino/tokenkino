@@ -36,22 +36,15 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 - **Cross-item consistency** — same-speaker contradiction → `eval:conflict` → `tokeniko:clarify` (a revisable CONTEXT conflict, never logic INCONSISTENT).
 - **Per-user-grouped scan** — focus the liveliest conversation; `wake_at` boundary + per-speaker `source_cursors`.
 
-**Questions (interrogative mood)**
+**Questions (interrogative mood) — a question is ANSWERED, not believed**
 - **P1 — mood detection** — `dubitative` (statement/question) + `wh_role` (the gap = variable X) carried pipeline-wide; detected via `?` survival + `PronType=Int` + `anchor_whType`.
 - **P2 — answering** — `answer_zip`: POLAR reuses truth (inconsistent→**confident NO**, true→YES, false→NO, else IDK); `e_wh_solve` value-solver (what→is_a hypernym, why→derivation chain; who/where/when/how staged/honest-UNKNOWN).
+- **P3 — brain wiring** — `think_one` branches on mood: a question → `eval:question` → `tokeniko:answer` (verdict/value + the asker as reply target in the payload), **skipping** the assertion-idea + cross-item paths. `MEMIdea.answer/target`; `dispatch_action` directs the reply at the asker. Seed rule `eval:question → tokeniko:answer @ 0.9` (applied).
+- **P4 — verified live** — a question flows through the REAL coordinator (Thinking→Priorities→Actions) to a `tokeniko:answer` action **executed**, targeted at the asker. Plus the **coordinated-predicate conjunct fix** (`#25` + copula-aux follow-up: a conjunct inherits the head clause's subject + aux). Also: the **channel-adapter SDK seam** + per-channel NL/`TKZip` language (`senses/README.md`).
 
 ## 🔭 Next (ordered)
 
-1. **🔧 FIX (FIRST) — coordinated-predicate conjunct loses its subject.** "the cat is dead and alive" →
-   the conjunct leaf ("alive") compiles with `subject=None` (only the head leaf keeps it), so the
-   contradiction kernel can't match same-subject → the form isn't flagged inconsistent. Affects
-   **declaratives** *and* P2's polar loud-NO. Suspect: compiler coordinate handling
-   (`compiler_evaluateCoordinates` / `compiler_modifyContent`). Root-cause + confirm regression-vs-
-   long-standing. *(Task #25.)*
-2. **Questions P3 + P4** — brain wiring: route a question off the assertion path → `eval:question` →
-   `tokeniko:answer` (verdict/value in the payload, **targeted at the asker**), **skip** the
-   assertion-idea + cross-item paths, never stored as belief. Then tests + docs.
-3. **Brain D-phase (continued)** —
+1. **Brain D-phase (continued)** —
    - **D1b**: *wondering* (re-evaluate historical memory as the KB grows); theorem **derivation** → KB;
      `eval:true` **novelty split** (redundant→ignore vs novel KB-bridging→learn) + **two-tier trust**
      (KB-bridging deduction = truth 1.0, speaker-irrelevant; contingent claim = speaker-scoped
