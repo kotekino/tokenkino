@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from lib.llc.parser import parser, parser_diagram, parser_init
 from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individual
 from lib.core.models import TKMemoryItemDoc
+from lib.core.evaluation_harness import zip_senses
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
@@ -392,6 +393,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
             memory_doc: TKMemoryItemDoc = TKMemoryItemDoc(
                 original=tokens,
                 zip=flatResult[1],
+                senses=zip_senses(flatResult[1]),
                 raw=rawResult,
                 sourceId=str(talkerEntity.id),
                 targetId=str(app.state.tokeniko.id),

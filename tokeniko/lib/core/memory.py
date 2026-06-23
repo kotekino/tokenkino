@@ -195,3 +195,10 @@ class BrainState(BaseModel):
     wondering_window: Optional[list[int]] = None  # [lo, hi] of the current wondering window
     last_thinking_at: Optional[int] = None
     last_wondering_at: Optional[int] = None
+    # WONDERING work-queue: memory-item ids pending re-examination, fed by BOTH drivers (associative +
+    # drift), drained ONE per idle tick. Capped (see WONDER_QUEUE_CAP) so pending work is lifespan-bounded.
+    wonder_queue: list[str] = Field(default_factory=list)
+    # associative watermark: the max knowledge `createdAt` already serviced. A KB doc created after this is
+    # a DELTA -> its senses drive the next associative enqueue. Initialized to "now" on first wonder (so the
+    # whole seeded KB is NOT treated as one giant delta), mirroring the wake_at first-run guard.
+    last_wondered_kb_at: int = 0

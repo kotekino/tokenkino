@@ -87,6 +87,19 @@ def _zip_leaves(item) -> list:
     return out
 
 
+# the flat set of every WSD sense referenced anywhere in a zip (across all leaf clauses' role->sense
+# maps), sorted+unique. used to stamp TKMemoryItemDoc.senses at write time so associative wondering can
+# find the memories a KB change is relevant to via an indexable {"senses": {"$in": [...]}} query.
+def zip_senses(statement) -> list[str]:
+    out: set[str] = set()
+    for leaf in _zip_leaves(statement.items):
+        senses = getattr(leaf, "senses", None) or {}
+        for s in senses.values():
+            if s:
+                out.add(s)
+    return sorted(out)
+
+
 # the CROSS-ITEM consistency engine (parser-free). Detect a contradiction across a set of clauses
 # (TKZipContent), treating them as one conjunction. Returns classifyForm's detail string on a
 # contradiction, else None. Used to compare statements from DIFFERENT memory items (e.g. the same
@@ -172,7 +185,34 @@ def _extract_facts(axiom_docs) -> list:
 # load the ACTIVE knowledge (archived=False) ONCE: the definition leaf clauses, the axiom/theorem
 # zips + their docs (for id mapping), the injected graph readers, and the forward-chainer rules/facts.
 # shared by evaluate_zip (assertions) and answer_zip (questions) so both pay the load once per call.
+# a cheap signature of the ACTIVE knowledge — changes whenever a definition/axiom/theorem is added,
+# archived, or re-created (incl. the brain's own materialize_theorem AND an axiom added via the api,
+# since it is DB-derived and cross-process). Used to invalidate the in-process KB cache below.
+def kb_fingerprint() -> str:
+    def _count_and_max(model):
+        n = model.find({"archived": False}).count()
+        newest = model.find({"archived": False}).sort("-createdAt").limit(1).to_list()
+        mx = newest[0].createdAt if newest else 0
+        return n, mx
+    nd, td = _count_and_max(TKDefinitionDoc)
+    na, ta = _count_and_max(TKAxiomDoc)
+    nt, tt = _count_and_max(TKTheoremDoc)
+    return f"{nd}:{td}:{na}:{ta}:{nt}:{tt}"
+
+
+# in-process KB cache, keyed by the cheap fingerprint above. _load_active_kb stays PURE (reads only;
+# the cache is read-state). The reader closures it builds (relations/part_of/antonyms) are safe to
+# persist across ticks — the `relations` WordNet graph is static.
+_kb_cache: Optional[dict] = None
+_kb_cache_fp: Optional[str] = None
+
+
 def _load_active_kb() -> dict:
+    global _kb_cache, _kb_cache_fp
+    fp = kb_fingerprint()
+    if _kb_cache is not None and _kb_cache_fp == fp:
+        return _kb_cache
+
     definition_docs = TKDefinitionDoc.find({"archived": False}).to_list()
     axiom_docs = TKAxiomDoc.find({"archived": False}).to_list()
     theorem_docs = TKTheoremDoc.find({"archived": False}).to_list()
@@ -184,7 +224,7 @@ def _load_active_kb() -> dict:
         for d in definition_docs if d.zip is not None
         for leaf in _zip_leaves(d.zip.items)
     ]
-    return {
+    kb = {
         "definition_docs": definition_docs,
         "axiom_docs": axiom_docs,
         "theorem_docs": theorem_docs,
@@ -197,6 +237,8 @@ def _load_active_kb() -> dict:
         "rules": _extract_rules(axiom_docs),
         "facts": _extract_facts(axiom_docs),
     }
+    _kb_cache, _kb_cache_fp = kb, fp
+    return kb
 
 
 def evaluate_zip(statement: TKZip) -> dict:

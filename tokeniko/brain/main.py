@@ -169,14 +169,17 @@ def priorities_phase() -> bool:
 
 # --------------------------------------------------------------
 # Thinking phase (The Generator) — the lowest-priority background filler ("thinks always, acts
-# maybe"). Runs only when both queues are empty. D1a (IMPLEMENTED): it evaluates ONE stored `memory`
-# TKZip against the current KB via the parser-free harness (brain/thinking.think_one) and fans the
-# eval:* outcome into ideas — closing perceive -> evaluate -> ideas -> priorities -> actions.
-# Returns True iff it processed a memory item this tick (which may have spawned ideas).
-# (D1b — wondering / theorem-derivation / the eval:true novelty split — is still next.)
+# maybe"). Runs only when both queues are empty. Two sub-passes, REACTIVE first:
+#   think_one  (D1a/D1b) — evaluate ONE FRESH `memory` TKZip vs the KB, fan eval:* into ideas + learn
+#                          forward-chained theorems (closing perceive -> evaluate -> ideas -> actions).
+#   wonder_one (D1c)     — only when there is nothing fresh: RE-EXAMINE a past item because the KB has
+#                          grown (associative + drift), silently materializing any newly-derivable
+#                          theorem. The reactive pass wins; wondering fills the idle.
+# Returns True iff EITHER sub-pass did a unit of work this tick (so the coordinator yields briefly
+# rather than taking the long idle sleep).
 # --------------------------------------------------------------
 def thinking_phase(brain_state: TKBrainStateDoc) -> bool:
-    did = thinking.think_one(brain_state)
+    did = thinking.think_one(brain_state) or thinking.wonder_one(brain_state)
     brain_state.last_thinking_at = int(time.time())
     brain_state.save()
     return did

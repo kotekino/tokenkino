@@ -91,6 +91,7 @@ class TKDefinitionDoc(MEMDefinition, Document):
 class TKMemoryItemDoc(MEMItem, Document):
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     metadata: Optional[str] = None
+    senses: list[str] = Field(default_factory=list)  # flat unique WSD senses across the zip leaves (for associative wondering lookup)
 
     class Settings:
         name = "memory"
