@@ -33,11 +33,13 @@ the Discord SDK is the first. The adapter owns the wire; `senses` owns the trans
 tokeniko's world; the **brain stays parser-free and socket-free**. The adapter and `senses` agree on
 **one seam**, so the two can be built independently:
 
-> **Built — the Discord SDK.** The adapter half is implemented at **`lib/discord`** (`DiscordClient` +
-> the seam types `DiscordMessage` / `Destination`), a thin facade over **discord.py** on a **ToS-clean
-> bot account**. It exposes exactly `on_message(handler)` / `send(destination, content, *, kind, polish)`
-> / `fetch_messages(...)` / `start()` / `close()`, and owns the gateway + rate-limits/retries via
-> discord.py. The remaining half is the **`senses`-side wiring** (the `MEMAction`/`memory` translation).
+> **Built + live-verified — the Discord SDK.** The adapter half is implemented at **`lib/discord`**
+> (`DiscordClient` + the seam types `DiscordMessage` / `Destination`), a thin facade over **discord.py**
+> on a **ToS-clean bot account**. It exposes exactly `on_message(handler)` /
+> `send(destination, content, *, kind, polish)` / `fetch_messages(...)` / `start()` / `close()`, and owns
+> the gateway + rate-limits/retries via discord.py. The remaining half is the **`senses`-side wiring**
+> (the `MEMAction`/`memory` translation). **Full SDK reference + the verified-capability matrix:**
+> [`lib/discord/README.md`](../lib/discord/README.md).
 
 - **Outbound.** The brain emits an abstract `MEMAction` (`channel`, `targetId` = a **stakeholder uid**,
   `payload`). `senses` resolves `targetId → destination` (a channel / user / reply-to) and **renders**
@@ -98,11 +100,14 @@ reply-to** — a directed answer (`tokeniko:answer`) naturally threads as a repl
 ## Status
 
 The connectors are **scaffolding**: the task structure, lifecycle, and shutdown are in place. The
-**Discord SDK is built**; the rest awaits wiring —
-- **Discord:** ✅ **SDK built** — `lib/discord` (`DiscordClient`, a facade over **discord.py 2.x** on a
-  ToS-clean **bot account**; `on_message`/`send`/`fetch_messages`/`start`/`close`; verified offline).
-  **Remaining:** wire it into `discord_bot_task` (read → `memory`, send ← `Actions`) + the live smoke
-  once the bot token (`DISCORD_BOT_TOKEN`), Message-Content-Intent, and the server invite are set up.
+**Discord SDK is built + live-verified**; the rest awaits wiring —
+- **Discord:** ✅ **SDK built + live-verified** against *tokeniko's playground* — `lib/discord`
+  (`DiscordClient`, a facade over **discord.py 2.x** on a ToS-clean **bot account**;
+  `on_message`/`send`/`fetch_messages`/`start`/`close`). Live-confirmed: channel + DM send/read,
+  reply-threading, DM round-trip, identity (`is_self`/`is_dm`/distinct `author_id`s), attachments.
+  Token in `.env` as `DISCORD_TOKEN` (gitignored), Message-Content-Intent on, bot invited.
+  **Remaining (senses-side):** wire it into `discord_bot_task` (read → `memory`, send ← `Actions`).
+  Full reference: [`lib/discord/README.md`](../lib/discord/README.md).
 - **ATProto/Bluesky:** subscribe to the Jetstream firehose in `atproto_listener_task`, filtered to
   trusted sources, writing events to `memory`.
 
