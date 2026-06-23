@@ -316,20 +316,22 @@ def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entitie
 
     return result
 
-# a coordinated PREDICATE/clause shares the head clause's SUBJECT, but each predicate conjunct is
-# parsed as its own subjectless sub-statement (the shared subject lives only on the head — e.g. "the
-# cat is dead and alive" → the "alive" sub-statement has no nsubj child). Without the subject the
-# contradiction kernel can't see same-subject, so such a clause is never flagged inconsistent. Inherit
-# the head subject onto any subjectless leaf of the coordinated sub-statement — SUBJECT ONLY, so each
-# predicate keeps its own object ("the cat eats fish and chases mice" stays correct). Per-leaf deepcopy
-# so leaves don't alias one reference.
-def _inherit_subject(items: list[TKLLCItem], subject_ref) -> None:
+# a coordinated PREDICATE/clause shares the head clause's SUBJECT and copula AUX, but each predicate
+# conjunct is parsed as its own sub-statement that lacks both (they attach only to the head — e.g. "the
+# cat is dead and alive": "cat"=nsubj and "is"=cop both hang off "dead", so the "alive" sub-statement
+# has neither). Without the subject the contradiction kernel can't match same-subject; without the aux
+# the leaf renders "cat alive" instead of "cat be alive". Inherit each onto a conjunct leaf ONLY when
+# it lacks it — SUBJECT + predicate AUX only, so each predicate keeps its own object ("the cat eats
+# fish and chases mice" stays correct). Per-leaf deepcopy so leaves don't alias one reference.
+def _inherit_shared(items: list[TKLLCItem], subject_ref, pred_aux) -> None:
     for it in items:
         if isinstance(it.content, TKLLCContent):
-            if it.content.subject is None:
+            if it.content.subject is None and subject_ref is not None:
                 it.content.subject = copy.deepcopy(subject_ref)
+            if pred_aux is not None and it.content.predicate is not None and it.content.predicate.aux is None:
+                it.content.predicate.aux = copy.deepcopy(pred_aux)
         else:
-            _inherit_subject(it.content, subject_ref)
+            _inherit_shared(it.content, subject_ref, pred_aux)
 
 
 # evaluate conjuncts: return the head clause plus one item per coordinated sibling, as a
@@ -347,9 +349,10 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
         if refEntity.payload.entity_type == "statement":
             # a fully coordinated sub-statement (e.g. "... and to make ...")
             subItems = compiler_evaluateStatement(refEntity.payload, statementIdx, statementId + (refEntity.id,), refEntity.payload.clause_type, coordReference.op)
-            # the conjunct is parsed subjectless; share the head clause's subject (see _inherit_subject)
-            if isinstance(mainContent, TKLLCContent) and mainContent.subject is not None:
-                _inherit_subject(subItems, mainContent.subject)
+            # the conjunct sub-statement lacks the shared subject + copula aux; inherit them (see _inherit_shared)
+            if isinstance(mainContent, TKLLCContent):
+                head_aux = mainContent.predicate.aux if mainContent.predicate else None
+                _inherit_shared(subItems, mainContent.subject, head_aux)
             result.extend(subItems)
         else:
             # a coordinated entity: clone the head clause and swap entityId -> this sibling
