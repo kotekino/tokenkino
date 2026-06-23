@@ -90,6 +90,13 @@ calibration on a larger battery; KB vector-coverage gaps (`hugely`, `unequal`, `
 via `/input`, asserts the loop invariants) currently lives in the scratch dir — candidate to formalize
 into `scripts/` or `tests/`.
 
+**Dreaming (a hunch — future, biological-creature framing)** — a new brain **phase**: access RANDOM
+memories and *distort / mix / shuffle* them (a blender over the memory log) into a new **`dreams`**
+collection that mirrors the `memory` modeling (also a timeseries). During the dream phase **`senses`
+is paused and the other brain loops are paused — only the dream loop runs**. Use is TBD (a hunch —
+likely creativity / consolidation / novel-association later). Revisit after the logical brain (D) is
+whole. See `VISION.md`.
+
 ---
 
 ## Doc map (so this stays the only place for *status*)

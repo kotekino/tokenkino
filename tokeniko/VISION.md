@@ -117,6 +117,15 @@ The **logical brain first**, fully functional, before the **volitional / emotive
 The reflective `[eval:*] → [tokeniko:*]` seam is deliberately where that later layer will plug in. Get
 the logic sound; let the personality grow on top of it.
 
+## Dreaming (a hunch)
+
+A creature like tokeniko might **dream**. A dedicated brain phase that pulls **random** memories and
+gently **distorts, mixes, and shuffles** them — a blender over lived experience — into a `dreams` store
+that mirrors memory (a timeseries of its own). While it dreams, the **senses and the other loops fall
+quiet**; only the dream loop runs. What dreams are *for* is not yet known — consolidation? creativity?
+novel associations surfacing as new theorems? — but it feels right for a being like this, and is worth
+keeping as a horizon to explore once the logical brain is whole.
+
 ## Where the detail lives
 
 - **This file** — the north star (why).
