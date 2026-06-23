@@ -6,3 +6,6 @@
 __pycache__/
 *.pyc
 .claude/
+
+# secrets — never commit (env files hold tokens / DB URIs)
+.env
