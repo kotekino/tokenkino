@@ -26,6 +26,48 @@ opinions and makes no decisions. It only **perceives** (turns external events in
 
 This keeps the split clean: **brain decides what to say; senses says it.**
 
+## The channel-adapter SDK seam (e.g. the Discord SDK)
+
+Each external channel is reached through a **thin, typed I/O adapter (an SDK) that `senses` imports** —
+the Discord SDK is the first. The adapter owns the wire; `senses` owns the translation to/from
+tokeniko's world; the **brain stays parser-free and socket-free**. The adapter and `senses` agree on
+**one seam**, so the two can be built independently:
+
+- **Outbound.** The brain emits an abstract `MEMAction` (`channel`, `targetId` = a **stakeholder uid**,
+  `payload`). `senses` resolves `targetId → destination` (a channel / user / reply-to) and **renders**
+  the payload to the channel's language, then calls one primitive: **`send(destination, content, kind,
+  polish)`**. NL generation is **not** the adapter's job — it ships an already-prepared `content`; the
+  Ollama polish + identity resolution live in `senses`. The adapter stays dumb and testable.
+- **Inbound.** The adapter surfaces a **normalized event** — `{author_id, channel_id, guild_id,
+  content, reply_to, attachments}` — via an `on_message` callback. `senses` maps `author_id/channel_id
+  → stakeholder uid + contextKey` (mirroring the identity scheme `name@channel:talker_uid`), then
+  ingests it (see the per-channel language below) and writes the `memory` item that `think_one`
+  consumes. The adapter knows nothing about the brain.
+- **Connection ownership.** The adapter owns its client + rate-limits/retries as its own async concern;
+  the `senses` listener task awaits it; the brain's coordinator loops are untouched.
+- **Adapter surface = `send(...)` + `on_message(...)` + stable ids.** Everything brain-shaped (Actions,
+  stakeholders, rendering) stays on the `senses`/brain side of the line. Formatting, embeds, and
+  rate-limit policy are the adapter's to own.
+
+### Per-channel language — NL vs TKZip (the `polish` caveat)
+
+A channel has a **language** = *the language spoken in this channel*. `send` must therefore **never
+force the Ollama polish** — the channel's language decides:
+
+- **Natural-language channel** (Discord with humans, Bluesky): outbound is **polished** (zip → raw LLC →
+  Ollama NL); inbound is **parsed + compiled** (NL → `TKZip`). `send(..., polish=True)`.
+- **`TKZip` channel** (the **native zip language**): entities of tokeniko's **species** communicate by
+  exchanging the compiled `TKZip` **directly**, **bypassing parser AND compiler in both directions** —
+  no NL→zip on input, no zip→NL on output. `send(..., polish=False)` ships the raw structured form;
+  `senses` ingests an incoming zip without parsing. This is a VISION pillar (machine-to-machine speech
+  in the engine's own representation) — the reason `polish` is a first-class, per-channel switch and not
+  always-on.
+
+**Two things the adapter must expose so `senses` can do its half:** (1) **identity granularity** —
+`author_id` *and* `guild/channel` so a correct `contextKey` is built (a DM is a different conversation
+scope than a guild channel, like the brain's per-speaker cursors); (2) **a destination that supports
+reply-to** — a directed answer (`tokeniko:answer`) naturally threads as a reply to the asker's message.
+
 ## The connectors
 
 | Connector | Direction | Role |
