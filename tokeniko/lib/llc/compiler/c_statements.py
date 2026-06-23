@@ -316,6 +316,22 @@ def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entitie
 
     return result
 
+# a coordinated PREDICATE/clause shares the head clause's SUBJECT, but each predicate conjunct is
+# parsed as its own subjectless sub-statement (the shared subject lives only on the head — e.g. "the
+# cat is dead and alive" → the "alive" sub-statement has no nsubj child). Without the subject the
+# contradiction kernel can't see same-subject, so such a clause is never flagged inconsistent. Inherit
+# the head subject onto any subjectless leaf of the coordinated sub-statement — SUBJECT ONLY, so each
+# predicate keeps its own object ("the cat eats fish and chases mice" stays correct). Per-leaf deepcopy
+# so leaves don't alias one reference.
+def _inherit_subject(items: list[TKLLCItem], subject_ref) -> None:
+    for it in items:
+        if isinstance(it.content, TKLLCContent):
+            if it.content.subject is None:
+                it.content.subject = copy.deepcopy(subject_ref)
+        else:
+            _inherit_subject(it.content, subject_ref)
+
+
 # evaluate conjuncts: return the head clause plus one item per coordinated sibling, as a
 # FLAT list. Returns None when there is nothing to coordinate, so the caller keeps the
 # plain (unwrapped) content instead of nesting it in a single-element list.
@@ -330,7 +346,11 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
         refEntity = next(en for en in entities if en.id == coordReference.id)
         if refEntity.payload.entity_type == "statement":
             # a fully coordinated sub-statement (e.g. "... and to make ...")
-            result.extend(compiler_evaluateStatement(refEntity.payload, statementIdx, statementId + (refEntity.id,), refEntity.payload.clause_type, coordReference.op))
+            subItems = compiler_evaluateStatement(refEntity.payload, statementIdx, statementId + (refEntity.id,), refEntity.payload.clause_type, coordReference.op)
+            # the conjunct is parsed subjectless; share the head clause's subject (see _inherit_subject)
+            if isinstance(mainContent, TKLLCContent) and mainContent.subject is not None:
+                _inherit_subject(subItems, mainContent.subject)
+            result.extend(subItems)
         else:
             # a coordinated entity: clone the head clause and swap entityId -> this sibling
             ef = compiler_evaluateReference(coordReference, statementIdx, statementId)

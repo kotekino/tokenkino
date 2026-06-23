@@ -88,3 +88,15 @@ def test_wh_unsupported_is_unknown(answer):
 def test_declarative_is_not_answered(answer):
     # a statement is not a question: answer_zip returns None (the brain uses the assertion path).
     assert answer("a cat is a mammal") is None
+
+
+def test_coordinated_predicate_antonym_inconsistent(evaluate):
+    # #25: with the conjunct now keeping the shared subject, the COORDINATED-predicate antonym form
+    # ("dead and alive", one subject) is caught — not just the repeated-subject form.
+    assert_inconsistent(evaluate("the cat is dead and alive"))
+
+
+def test_polar_coordinated_contradiction_is_loud_no(answer):
+    # the headline #25 case: a self-contradictory coordinated-predicate polar question -> confident NO.
+    a = answer("the cat is dead and alive?")
+    assert a.kind.value == "polar" and a.verdict.value == "no" and a.confidence == 1.0

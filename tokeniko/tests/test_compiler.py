@@ -90,3 +90,12 @@ def test_aux_resolving_to_generic_does_not_crash(compile_zip, leaves):
     # AttributeError. It must now compile cleanly (empty aux vector). Structure-only; no float/sense.
     zp = compile_zip("I would like to know how are you")
     assert len(leaves(zp)) >= 1
+
+
+def test_coordinated_predicate_keeps_subject(compile_zip, leaves):
+    # #25: a coordinated predicate ("dead and alive") shares ONE subject; every conjunct leaf must
+    # keep it (else the contradiction kernel can't match same-subject). The conjunct is parsed as a
+    # subjectless sub-statement; the compiler inherits the head clause's subject.
+    lvs = leaves(compile_zip("the cat is dead and alive"))
+    assert len(lvs) >= 2
+    assert all("subject" in l.senses for l in lvs)
