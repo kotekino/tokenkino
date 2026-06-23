@@ -24,7 +24,8 @@ dependencies = [
     "ollama",
     "taskipy",
     "word2number",
-    "sacremoses"
+    "sacremoses",
+    "discord.py"
 ]
 
 [project.optional-dependencies]

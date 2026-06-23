@@ -33,6 +33,12 @@ the Discord SDK is the first. The adapter owns the wire; `senses` owns the trans
 tokeniko's world; the **brain stays parser-free and socket-free**. The adapter and `senses` agree on
 **one seam**, so the two can be built independently:
 
+> **Built — the Discord SDK.** The adapter half is implemented at **`lib/discord`** (`DiscordClient` +
+> the seam types `DiscordMessage` / `Destination`), a thin facade over **discord.py** on a **ToS-clean
+> bot account**. It exposes exactly `on_message(handler)` / `send(destination, content, *, kind, polish)`
+> / `fetch_messages(...)` / `start()` / `close()`, and owns the gateway + rate-limits/retries via
+> discord.py. The remaining half is the **`senses`-side wiring** (the `MEMAction`/`memory` translation).
+
 - **Outbound.** The brain emits an abstract `MEMAction` (`channel`, `targetId` = a **stakeholder uid**,
   `payload`). `senses` resolves `targetId → destination` (a channel / user / reply-to) and **renders**
   the payload to the channel's language, then calls one primitive: **`send(destination, content, kind,
@@ -91,9 +97,12 @@ reply-to** — a directed answer (`tokeniko:answer`) naturally threads as a repl
 
 ## Status
 
-The connectors are **scaffolding**: the task structure, lifecycle, and shutdown are in place, but the
-real clients are stubs awaiting wiring —
-- **Discord:** hook a `discord.py` client into `discord_bot_task` (read → `memory`, send ← `Actions`).
+The connectors are **scaffolding**: the task structure, lifecycle, and shutdown are in place. The
+**Discord SDK is built**; the rest awaits wiring —
+- **Discord:** ✅ **SDK built** — `lib/discord` (`DiscordClient`, a facade over **discord.py 2.x** on a
+  ToS-clean **bot account**; `on_message`/`send`/`fetch_messages`/`start`/`close`; verified offline).
+  **Remaining:** wire it into `discord_bot_task` (read → `memory`, send ← `Actions`) + the live smoke
+  once the bot token (`DISCORD_BOT_TOKEN`), Message-Content-Intent, and the server invite are set up.
 - **ATProto/Bluesky:** subscribe to the Jetstream firehose in `atproto_listener_task`, filtered to
   trusted sources, writing events to `memory`.
 
