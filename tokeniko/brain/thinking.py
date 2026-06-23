@@ -8,9 +8,11 @@
 # parser/compiler — so the brain process never loads spaCy/Stanza. One bounded memory item per tick
 # (think_one) keeps Thinking cooperative with the coordinator's Actions/Priorities phases.
 #
-# D1b (still next): wondering (self-prompted derivation over the wondering window), theorem
-# derivation (necessary truths -> KB), and the eval:true novelty split (redundant -> ignore vs a
-# novel KB-bridging truth taught externally -> learn).
+# D1b (landing here): theorem derivation + the eval:true novelty split — a RESOLVED-true input whose
+# derivation carries a FORWARD-CHAINED materialization ("chain: ...") is genuine derived knowledge and
+# is silently materialized as an active theorem (tier-2, speaker-irrelevant). See materialize_theorem.
+# STILL next: wondering (self-prompted derivation over the wondering window), and the tier-1 split (an
+# eval:true that is NOT KB-derivable but taught by a trusted speaker -> learn at teacher trust).
 # --------------------------------------------------------------
 import logging
 from datetime import datetime, timezone
@@ -19,8 +21,9 @@ from typing import Optional
 import lib.core.evaluation_harness as evaluation_harness
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
-from lib.core.memory import EvalToken
-from lib.core.models import TKMemoryItemDoc, TKBrainStateDoc
+from lib.core.io import get_tokeniko
+from lib.core.memory import EvalToken, MEMChannels
+from lib.core.models import TKMemoryItemDoc, TKBrainStateDoc, TKTheoremDoc
 from brain import behavior
 
 logger = logging.getLogger("tokeniko-brain")
@@ -58,6 +61,45 @@ def status_to_token(result: EvaluatorResult) -> Optional[str]:
         if result.truth < FALSE_CEIL:
             return EvalToken.FALSE.value
     return None
+
+
+# the D1b novelty split. A RESOLVED-true input's `derivation` may carry several provenance strings;
+# only a FORWARD-CHAINED materialization is theorem-worthy:
+#   "chain: ..."   — a UNIVERSAL rule fired down the is_a taxonomy to derive a NEW property
+#                    ("all carnivores eat meat" + cat is_a* carnivore => "a cat eats meat"). This is
+#                    knowledge DEMONSTRATED from axioms + the hardwired operator math => a THEOREM.
+#   "subsumed:"/"part_of:" — trivial taxonomy, re-derivable from the graph on demand => NOT a theorem.
+#   "refuted:"/"KB-refuted:" — a refutation (truth~0), not a truth at all => never a theorem.
+# A derived theorem is TIER-2 = speaker-irrelevant (sourceId=tokeniko, trusted 0.9): it follows from
+# the universal KB, not from who said it. TIER-1 (an eval:true that is NOT KB-derivable but taught by
+# a trusted speaker) is DEFERRED — it needs a real KB-novelty signal, which this is not.
+_CHAIN_PREFIX = "chain: "
+
+
+def _derived_theorem(result: EvaluatorResult) -> bool:
+    return any(d.startswith(_CHAIN_PREFIX) for d in (result.derivation or []))
+
+
+# materialize a forward-chained truth as an ACTIVE theorem. SILENT learning (no idea/action) — it
+# grows the KB, it does not speak. Idempotent by `original` (silence = consent: a re-derived truth
+# already known is not re-stored). Caching the demonstrated conclusion lets future evals match it
+# geometrically instead of re-deriving it every time. Returns True iff a NEW theorem was written.
+def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc) -> bool:
+    if item.zip is None or not _derived_theorem(result):
+        return False
+    if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
+        return False  # already a theorem — dedup by original
+    chain = next(d for d in result.derivation if d.startswith(_CHAIN_PREFIX))
+    TKTheoremDoc(
+        original=item.original,
+        zip=item.zip,
+        sourceId=str(get_tokeniko().id),  # tier-2: tokeniko derived it — speaker-irrelevant
+        channel=MEMChannels.INTERNAL,
+        archived=False,                   # ACTIVE (model default is archived=True) -> joins reasoning
+        trusted=0.9,
+    ).save()
+    logger.info("[thinking] derived THEOREM «%s» <- %s", item.original, chain)
+    return True
 
 
 # process ONE memory item (a bounded work-unit for the coordinator). PER-USER-GROUPED scan (#1):
@@ -155,6 +197,9 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                 token,
                 len(ideas),
             )
+            # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
+            if token == EvalToken.TRUE.value:
+                materialize_theorem(result, item)
         else:
             logger.info(
                 "[thinking] evaluated memory=%s status=%s truth=%.3f -> no strong conclusion",

@@ -35,6 +35,7 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 - **Thinking D1a** — reactive `evaluate → ideas` via the parser-free `evaluation_harness.evaluate_zip`.
 - **Cross-item consistency** — same-speaker contradiction → `eval:conflict` → `tokeniko:clarify` (a revisable CONTEXT conflict, never logic INCONSISTENT).
 - **Per-user-grouped scan** — focus the liveliest conversation; `wake_at` boundary + per-speaker `source_cursors`.
+- **D1b — theorem derivation / `eval:true` novelty split** — a RESOLVED-true input whose derivation carries a forward-chained `"chain: "` materialization is silently learned as an **active theorem** (tier-2: `sourceId=tokeniko`, trusted 0.9, speaker-irrelevant, dedup by `original`); trivial taxonomy (`subsumed:`/`part_of:`) + refutations ignored (`materialize_theorem`).
 
 **Questions (interrogative mood) — a question is ANSWERED, not believed**
 - **P1 — mood detection** — `dubitative` (statement/question) + `wh_role` (the gap = variable X) carried pipeline-wide; detected via `?` survival + `PronType=Int` + `anchor_whType`.
@@ -45,10 +46,10 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 ## 🔭 Next (ordered)
 
 1. **Brain D-phase (continued)** —
-   - **D1b**: *wondering* (re-evaluate historical memory as the KB grows); theorem **derivation** → KB;
-     `eval:true` **novelty split** (redundant→ignore vs novel KB-bridging→learn) + **two-tier trust**
-     (KB-bridging deduction = truth 1.0, speaker-irrelevant; contingent claim = speaker-scoped
-     "context-universe" at τ(speaker)). See memory `learning-from-others`.
+   - **D1b remainder**: *wondering* (re-evaluate historical memory as the KB grows); the **tier-1**
+     half of the novelty split — an `eval:true` that is NOT KB-derivable but is taught by a trusted
+     speaker → learn at speaker-scoped trust τ(speaker) ("context-universe"). Needs a real KB-novelty
+     signal (the hard part). See memory `learning-from-others`. (Tier-2 = KB-derived theorem: ✅ landed.)
    - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
    - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
