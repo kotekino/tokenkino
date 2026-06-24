@@ -323,7 +323,7 @@ def evaluator_evaluateStatement(
     # it counts as grounded (not "ungrounded") and a single such clause needs no axiom/theorem match.
     derivation: list[str] = []
     graph_decided: set[int] = set()
-    if relations is not None or part_of is not None or rules:
+    if relations is not None or part_of is not None or rules or facts:
         for i, c in enumerate(contents):
             # a clause is EITHER a part-whole claim OR a taxonomic one — never both. recognize the
             # part-whole pattern FIRST (its predicate is a part-noun "part of" or a meronymic verb
@@ -343,6 +343,13 @@ def evaluator_evaluateStatement(
             if verdict is None and rules:
                 from .e_chaining import evaluator_chainGround
                 verdict = evaluator_chainGround(c, rules, relations, facts or [])
+            # individual-fact grounder: a clause about an INDIVIDUAL subject (identities['subject'])
+            # is decided directly by the stored individual PROPERTY facts ("tokeniko thinks" grounds
+            # a "do you think?" once you->tokeniko corefer) — BEFORE the Pillar-2 individual-abstain,
+            # so a known self-fact decides instead of abstaining. self-gates on identities['subject'].
+            if verdict is None:
+                from .e_chaining import evaluator_groundIndividualFact
+                verdict = evaluator_groundIndividualFact(c, facts or [])
             if verdict is not None:
                 truth, chain = verdict
                 groundings[i] = truth

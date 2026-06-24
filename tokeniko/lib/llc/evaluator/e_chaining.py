@@ -193,3 +193,46 @@ def evaluator_chainGround(
     if net_flip:
         chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
     return truth, chain
+
+
+# ground an INDIVIDUAL-subject clause directly against the stored individual PROPERTY facts (no
+# rules, no closure). "tokeniko thinks" is a stored property fact; a question "do you think?" resolves
+# you -> tokeniko (same uid) and grounds here, deciding it BEFORE the Pillar-2 individual-abstain.
+# returns (truth, chain) on a matching property fact, else None (fall through). matching: same
+# subject uid + same predicate sense, and (the fact has no object OR the input has no object OR the
+# objects match). corroborate/refute by negation parity (mirrors evaluator_chainGround's tail). NB:
+# quantifier net_flip is NOT applied — these are individual facts, not universals.
+def evaluator_groundIndividualFact(
+    content: TKZipContent,
+    facts: list,
+) -> Optional[tuple[float, str]]:
+    identities = getattr(content, "identities", None) or {}
+    senses = getattr(content, "senses", None) or {}
+
+    subject_uid = identities.get("subject")
+    pred = senses.get("predicate")
+    if not subject_uid or not pred:
+        return None
+    obj = senses.get("direct")
+    negated = bool(getattr(content, "negated", False))
+
+    match: Optional[dict] = None
+    for fact in facts:
+        # property facts only: skip membership facts (no "predicate" key / a "klass_sense")
+        if "predicate" not in fact or fact.get("klass_sense"):
+            continue
+        if fact.get("subject_uid") != subject_uid or fact.get("predicate") != pred:
+            continue
+        f_obj = fact.get("object")
+        if f_obj is None or obj is None or f_obj == obj:
+            match = fact
+            break
+
+    if match is None:
+        return None
+
+    fact_negated = bool(match.get("negated", False))
+    original = match.get("original", "")
+    if fact_negated == negated:
+        return _TAXO_TRUE, "fact: " + original
+    return _TAXO_FALSE, "KB-refuted: " + original + " | input negates the fact"

@@ -150,9 +150,15 @@ def _extract_rules(axiom_docs) -> list:
     return rules
 
 
-# extract individual membership FACTS from the active axioms for the forward-chainer. a fact leaf
-# has an entity-linked individual subject (identities['subject']) and a NOUN predicate sense and is
-# NOT universal ("Mari is a human" => mari@... is_a homo.n.02).
+# extract individual FACTS from the active axioms for the forward-chainer + the individual-fact
+# grounder. an individual leaf has an entity-linked subject (identities['subject']) and is NOT
+# universal (universals are RULES, not facts). two fact kinds, both returned in ONE list:
+#   MEMBERSHIP fact — NOUN predicate ("Mari is a human" => mari@... is_a homo.n.02). carries
+#                     `klass_sense` (the chainer keys on this; property facts are ignored by it).
+#   PROPERTY  fact  — non-noun predicate (verb/adj) OR a noun predicate WITH an object ("tokeniko
+#                     thinks", "I value logic"). grounds an individual-subject clause directly via
+#                     evaluator_groundIndividualFact, so a stored self-fact decides its matching
+#                     question instead of abstaining.
 def _extract_facts(axiom_docs) -> list:
     facts: list = []
     for doc in axiom_docs:
@@ -165,13 +171,27 @@ def _extract_facts(axiom_docs) -> list:
             senses = getattr(leaf, "senses", None) or {}
             subject_uid = identities.get("subject")
             predicate = senses.get("predicate")
-            if not subject_uid or not predicate or ".n." not in predicate:
+            if not subject_uid or not predicate:
                 continue
-            facts.append({
-                "subject_uid": subject_uid,
-                "klass_sense": predicate,
-                "original": doc.original,
-            })
+            obj = senses.get("direct")
+            if ".n." in predicate and obj is None:
+                # bare NOUN predication "X is a Y" -> a MEMBERSHIP fact (class membership)
+                facts.append({
+                    "subject_uid": subject_uid,
+                    "klass_sense": predicate,
+                    "original": doc.original,
+                    "kind": "membership",
+                })
+            else:
+                # verb/adj predicate, OR noun-with-object -> a PROPERTY fact
+                facts.append({
+                    "subject_uid": subject_uid,
+                    "predicate": predicate,
+                    "object": obj,
+                    "negated": bool(getattr(leaf, "negated", False)),
+                    "original": doc.original,
+                    "kind": "property",
+                })
     return facts
 
 

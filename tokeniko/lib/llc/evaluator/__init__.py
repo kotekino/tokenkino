@@ -6,7 +6,7 @@ from .e_truth import evaluator_groundContent
 from .e_statement import evaluator_evaluateStatement
 from .e_label import evaluator_assignWord, TKWordLabel
 from .e_consistency import evaluator_classifyForm, FormClass
-from .e_chaining import evaluator_forwardChain, evaluator_chainGround
+from .e_chaining import evaluator_forwardChain, evaluator_chainGround, evaluator_groundIndividualFact
 from .e_wh_solve import evaluator_solveWh
 from .e_relations import (
     relations_isa_ancestors, relations_subsumes, relations_disjoint,
@@ -27,6 +27,7 @@ __all__ = [
     "FormClass",
     "evaluator_forwardChain",
     "evaluator_chainGround",
+    "evaluator_groundIndividualFact",
     "evaluator_solveWh",
     "relations_isa_ancestors",
     "relations_subsumes",
