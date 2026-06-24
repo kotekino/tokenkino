@@ -35,6 +35,10 @@ from .operators import operator_truth
 _GROUNDING_MARGIN = 0.15
 # an axiom/theorem counts as covering the input's relation when the zip similarity clears this.
 _RELATION_MATCH_THRESHOLD = 0.85
+# PILLAR 3 (abstain completion): geometry may AFFIRM a claim only when it is a near-exact definition
+# match clearing this floor; below it (mid-guess) or for a denied claim, geometry must abstain, never
+# refute. "Humble but sure truths over confident guesses."
+_GEOM_AFFIRM = 0.85
 
 # a BARE copular identity claim — "X is a Y" with both X and Y plain noun senses and nothing else
 # (no direct object, no modifiers/extra roles). Its truth is the is_a graph's to decide; geometry must
@@ -376,6 +380,19 @@ def evaluator_evaluateStatement(
         if i in graph_decided:
             continue
         if _has_individual_subject(c) or _is_distinct_individual_identity(c):
+            groundings[i] = 0.5
+
+    # PILLAR 3 (abstain completion, logic-is-sacred): the general case of the same principle — geometry
+    # may only AFFIRM a near-exact definition match, never REFUTE or mid-guess a property/relational
+    # claim it cannot prove. A clause the graph/chainer did NOT decide keeps its geometric grounding ONLY
+    # if it is an AFFIRMATIVE, confident match (>= _GEOM_AFFIRM); a denied clause (geometry can't affirm a
+    # negation from affirmative definitions) or a mid/low score → abstain (0.5 -> INSUFFICIENT). So
+    # "a tiger eats meat" (WSD missed the animal sense → low geometry) abstains instead of being
+    # confidently refuted (it WAS eval:false→speakup); a gloss restatement (near-exact) still grounds.
+    for i, c in enumerate(contents):
+        if i in graph_decided:
+            continue
+        if getattr(c, "negated", False) or groundings[i] < _GEOM_AFFIRM:
             groundings[i] = 0.5
 
     # 2. fold the clause truths through the operator tree -> the statement's overall truth.

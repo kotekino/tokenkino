@@ -78,8 +78,17 @@ don't understand," and the abstain-not-guess grounding fix makes mis-grounds rar
   P2c — distinct names may corefer, abstain not refute); spine + keep-set intact. NB "do you exist?" → IDK
   *until* the self-KB seeds "tokeniko thinks" + the property-cogito → then it DERIVES YES (his first
   theorem). (Places like "Rome is a city" still geo-ground geometric-true — benign, not yet principled.)
-- **📚 Pillar 3 — graph/WSD coverage (data).** Fill is_a gaps (tiger→carnivore) + sense-number
-  canonicalization (bird.n.01≡n.02 for subsumption). Fixes tiger/robin.
+- **📚 Pillar 3 — #1 abstain completion ✅ LANDED; #2 WSD (parked).** Diagnosis: the graph is FINE —
+  the failures are **WSD sense-selection**, not missing edges (tiger compiled to `tiger.n.01` = *a fierce
+  person* not `tiger.n.02` the animal; robin→`bird.n.01` but the predicate "bird"→`bird.n.02`). **#1
+  (landed):** the spine's principle generalized — a clause the graph/chainer did NOT decide keeps its
+  geometric grounding ONLY if it is an AFFIRMATIVE near-exact definition match (`>= _GEOM_AFFIRM` in
+  `e_statement`); a denied clause or a mid/low score → **abstain** (geometry may affirm, never refute or
+  guess). "a tiger eats meat" → INSUFFICIENT (was eval:false→speakup, an active falsehood); the
+  affect-gloss still grounds 1.0; keep-set + cogito intact. **#2 (parked, incremental):** the WSD itself
+  — context-sensitive sense selection (tiger→animal) + sense-number canonicalization for subsumption
+  (robin/bird) — makes claims *provable* (TRUE) rather than just honestly abstained. The hard, general
+  WSD problem; deferred.
 - **🔧 Cleanups.** Cross-item over-fire tightening (S1) · `??`/`!?` + premise-in-question mood (R4a/R4b) ·
   behavior-layer `eval:false` requiring real refutation (falls out of the spine).
 
