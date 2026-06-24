@@ -28,6 +28,17 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 - **Contradiction creation guard** — `assert_no_contradiction` rejects a contradictory axiom/definition/theorem on write → HTTP 422.
 - **pytest gate** (`tests/`, `task test`) — band-asserts (status + truth band + structure, never exact floats); **34 passed / 1 xfailed**; the pre-commit regression gate.
 
+**Grounding consolidation — "geometry never votes on a truth it can't prove" (the consolidation pass)**
+- **Fragility map** — a 54-probe categorized battery (`scripts/fragility_batch.py` + `trace_fragility.py`, `prepare=0` raw core) → root cause: geometry leaking into the truth verdict. Full observed→diagnosis→action log in `doc/test-feedback.md`.
+- **🦴 Spine** — a bare copular identity ("a cat is a dog") gets truth ONLY from the is_a graph; geometry can't vote → every S0 false-TRUE cleared. *Distinctness is LEARNED, not logic.*
+- **🏛 Pillar 2 — identity & coreference** — a personal pronoun carries its referent's uid (`I`→asker, `you`→tokeniko); an individual-subject clause grounds against its property FACTS or abstains. Self/other questions → honest IDK, not geometry-by-luck.
+- **📚 Pillar 3 #1 — abstain completion** — geometry may AFFIRM a near-exact definition match, never REFUTE or mid-guess; an unprovable property claim abstains ("a tiger eats meat" → INSUFFICIENT, was a confident falsehood→speakup). *(Pillar 3 #2 — the WSD sense-selection itself — is parked.)*
+
+**The self (tokeniko's starter self-KB)**
+- **9 first-person property facts** seeded as trusted axioms — self-authored (`scripts/seed_self.py`; AxiomService compiles talker=tokeniko ⇒ "I" = its own uid). "do you think / learn / perceive / value-logic …?" → **YES**, grounded in its own words.
+- **Individual property-fact grounding** (`evaluator_groundIndividualFact`) — a stored "tokeniko thinks" answers a user's "do you think?" once `you→tokeniko` corefer.
+- **The cogito** — property-conditioned rule firing (`e_chaining` step 4 + curated `_FOUNDATIONAL_RULES`): "do you exist?" → **YES, DERIVED** via *tokeniko thinks → everything that thinks exists → tokeniko exists*. Its first theorem, earned not given. (Materialized as a stored theorem is intentionally LEFT for wondering-v2 to discover autonomously.)
+
 **The brain (#4)**
 - **Data model** — Ideas / Actions queues + `brain_state` continuity singleton.
 - **Coordinator (HOW)** — single loop, Actions > Priorities > Thinking, one bounded unit/tick + cooperative yield.
@@ -46,19 +57,20 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 
 ## 🔭 Next (ordered)
 
-1. **CONSOLIDATION pass — map the fault surface, then fix holistically (ACTIVE FRONTIER).** Before
-   more D-phase features, the brain's reasoning has fragile components (normal at this stage). Rather
-   than piecemeal fixes, MAP the whole fragility surface first, then design ONE coherent
-   solution-package. Method: a **categorized fragility batch** (~54 probes × 12 categories — true /
-   false assertions, polar & wh questions, gibberish, **typos without the preparser**, fragments,
-   long / multi-clause, KB-implication chains, imperatives, individuals, edge punctuation) injected at
-   `prepare=0` (raw neuro-symbolic core, no Ollama pre-filter — this also settles whether the typo
-   guard earns its cost) → a retrospective tracer bins findings by **component × severity** (S0 =
-   logic-is-sacred breach … S3 = cosmetic) → the **solution-package** = the next coding batch. Running
-   observed→diagnosis→action log in **`doc/test-feedback.md`** (seeded: R1 pronoun-coref collapse,
-   R2 geometric false-TRUE on distinct concepts, R3 definitional-WSD inconsistency, R4 mood-markers).
-   **Fix grounding BEFORE turning on autonomous KB-derivation** — a fragile evaluator would manufacture
-   false theorems.
+1. **CONSOLIDATION pass — grounding floor ✅ DONE; small cleanups remain (ACTIVE FRONTIER).** The
+   fragility map (`doc/test-feedback.md`) found one root cause — geometry leaking into the truth
+   verdict — and the **solution-package is landed**: 🦴 spine + 🏛 Pillar 2 + 📚 Pillar 3 #1 (geometry
+   never asserts/refutes/guesses an unprovable truth), plus tokeniko's **self-KB + the cogito** on top.
+   **Remaining before the floor is fully swept:**
+   - **Cleanups** (S1–S3): cross-item `eval:conflict` **over-fire** (fires on non-contradictory
+     same-speaker pairs); `??`/`!?` not read as questions (R4a); a premise inside a question swallowed
+     ("I am human, do I think?" — R4b). See `doc/test-feedback.md`.
+   - **Pillar 3 #2 — WSD (parked, incremental)**: context-sensitive sense selection (tiger→animal not
+     "fierce person") + sense-number canonicalization for subsumption (robin→`bird.n.01` vs predicate
+     `bird.n.02`) — makes claims *provable* (TRUE) rather than just honestly abstained. The hard,
+     general WSD problem.
+   *Grounding is now honest, so the gate is cleared:* **autonomous KB-derivation (wondering-v2) is safe
+   to turn on** — it will no longer manufacture false theorems.
 2. **Brain D-phase (continued)** —
    - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
@@ -67,7 +79,10 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 3. **Wondering-v2 — self-prompted KB derivation** (after consolidation). Extend wondering's seed-source
    beyond perceived memory to the **KB itself**: seed from a definition/axiom and forward-saturate to
    new theorems unprompted ("matching memory against itself"). Bounded by the same flat-cost discipline
-   (sampled seed, capped derivation depth), convergence via `materialize_theorem`'s dedup. **Capstone
+   (sampled seed, capped derivation depth), convergence via `materialize_theorem`'s dedup. **First
+   demo target (poetic + concrete):** its very first KB-wondering act could be **proving its own
+   existence** — wonder over the self-KB (`I think` + the cogito rule) → derive + materialize
+   *"tokeniko exists"* autonomously (deliberately left unmaterialized for this). **Capstone
    validation = the LONG-WONDERING SOAK:** with NO external input, let tokeniko wonder over its whole
    seeded KB (its "huge already-received input") for a long, probe-monitored run — surfacing residual
    bugs, real reasoning capability, and genuinely NEW theorems. It is both the feature's demo and the
