@@ -46,7 +46,20 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 
 ## 🔭 Next (ordered)
 
-1. **Brain D-phase (continued)** —
+1. **CONSOLIDATION pass — map the fault surface, then fix holistically (ACTIVE FRONTIER).** Before
+   more D-phase features, the brain's reasoning has fragile components (normal at this stage). Rather
+   than piecemeal fixes, MAP the whole fragility surface first, then design ONE coherent
+   solution-package. Method: a **categorized fragility batch** (~54 probes × 12 categories — true /
+   false assertions, polar & wh questions, gibberish, **typos without the preparser**, fragments,
+   long / multi-clause, KB-implication chains, imperatives, individuals, edge punctuation) injected at
+   `prepare=0` (raw neuro-symbolic core, no Ollama pre-filter — this also settles whether the typo
+   guard earns its cost) → a retrospective tracer bins findings by **component × severity** (S0 =
+   logic-is-sacred breach … S3 = cosmetic) → the **solution-package** = the next coding batch. Running
+   observed→diagnosis→action log in **`doc/test-feedback.md`** (seeded: R1 pronoun-coref collapse,
+   R2 geometric false-TRUE on distinct concepts, R3 definitional-WSD inconsistency, R4 mood-markers).
+   **Fix grounding BEFORE turning on autonomous KB-derivation** — a fragile evaluator would manufacture
+   false theorems.
+2. **Brain D-phase (continued)** —
    - **Tier-1 novelty (its own arc)**: an `eval:true` that is NOT KB-derivable but is taught by a
      trusted speaker → learn at speaker-scoped trust τ(speaker) ("context-universe"). Needs the
      **trust-gradient model** + **evaluator context-scoping** (a speaker-scoped belief must not leak
@@ -56,6 +69,14 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
    - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
      forward-chaining); self-authored "realization" memory + a **working-memory** layer.
+3. **Wondering-v2 — self-prompted KB derivation** (after consolidation). Extend wondering's seed-source
+   beyond perceived memory to the **KB itself**: seed from a definition/axiom and forward-saturate to
+   new theorems unprompted ("matching memory against itself"). Bounded by the same flat-cost discipline
+   (sampled seed, capped derivation depth), convergence via `materialize_theorem`'s dedup. **Capstone
+   validation = the LONG-WONDERING SOAK:** with NO external input, let tokeniko wonder over its whole
+   seeded KB (its "huge already-received input") for a long, probe-monitored run — surfacing residual
+   bugs, real reasoning capability, and genuinely NEW theorems. It is both the feature's demo and the
+   final proof the consolidation held.
 
 ## ⏸️ Parked
 
