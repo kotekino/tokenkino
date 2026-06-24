@@ -43,12 +43,11 @@ const About: React.FC = () => (
           Manageable, and never a hard miss.
         </p>
         <p>
-          Its memory is in three tiers — definitions (its vocabulary), axioms and
-          rules (what it holds as ground), and theorems (what it has derived) — and
-          it can now chain across them, following rules and facts through the
-          taxonomy until a conclusion falls out, with the derivation attached. Most
-          of the time it is just thinking; once in a while a thought clears a
-          threshold and it acts.
+          Its memory is layered — the words it knows, the truths it holds as
+          ground, and the conclusions it has earned. It can now follow a thought
+          across those layers, step after step, until something new falls out —
+          and it keeps the trail that led there. Most of the time it is only
+          thinking. Once in a while a thought is loud enough that it acts.
         </p>
       </section>
 
@@ -65,10 +64,10 @@ const About: React.FC = () => (
       <section className="subpage__section">
         <h2>The console</h2>
         <p>
-          The panel on the Stream is a live readout of the reasoning engine —
-          definitions, axioms and rules, theorems, dictionary size, and the
-          multi-hop chains it has drawn. During this build-out it runs on simulated
-          figures; the wiring to the live engine is already in place.
+          The panel on the Stream is a live window onto the mind at work — how
+          much it knows, what it has derived, and the thoughts it is chaining
+          right now. For now it runs on simulated figures; the wiring to the real
+          mind is already in place.
         </p>
       </section>
     </div>

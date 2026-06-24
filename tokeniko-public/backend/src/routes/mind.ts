@@ -16,13 +16,13 @@ const STARTED_AT = Date.now();
 const BASE_UPTIME_SEC = 1_788_540; // pretend it has been thinking for a while
 
 const seededActivity = (nowIso: string) => [
-  { at: nowIso, text: 'chain: homo → thinker → exists ⊢ “Mari exists” · 2-hop' },
-  { at: nowIso, text: 'eval:inconsistent → speak up · “the door is open and not open”' },
-  { at: nowIso, text: 'link: Mari ≠ Luca · same type, distinct identity' },
-  { at: nowIso, text: 'eval:unknown → ask “what is X?” · then guessed “flabbergasting” ≈ overwhelming · trust 0.4' },
-  { at: nowIso, text: 'taxonomic grounding: “raven” ⊑ “bird” ⊑ “animal”' },
-  { at: nowIso, text: 'axiom guard: rejected a ≠ a · logic preserved' },
-  { at: nowIso, text: 'measure(“love”, “hate”) → 0.86 · not opposite' },
+  { at: nowIso, text: 'followed a thought to its end — Mari is human, so Mari exists' },
+  { at: nowIso, text: 'caught a contradiction — “the door is open and not open” — and spoke up' },
+  { at: nowIso, text: 'told two people apart — Mari is not Luca' },
+  { at: nowIso, text: 'met a new word — guessed “flabbergasting” ≈ overwhelming, to confirm later' },
+  { at: nowIso, text: 'grounded “a raven is an animal” — raven → bird → animal' },
+  { at: nowIso, text: 'held the floor — refused a ≠ a' },
+  { at: nowIso, text: 'measured love against hate — 0.86, not opposites' },
 ];
 
 router.get('/', (_req: Request, res: Response) => {
@@ -32,7 +32,7 @@ router.get('/', (_req: Request, res: Response) => {
   res.json({
     success: true,
     data: {
-      doing: 'chaining: homo → thinker → exists ⊢ “Mari exists”',
+      doing: 'following a thought to its end — “Mari exists”',
       state: 'thinking',
       uptimeSec: BASE_UPTIME_SEC + elapsedSec,
       kpis: [

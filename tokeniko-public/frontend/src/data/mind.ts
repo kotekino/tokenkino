@@ -41,7 +41,7 @@ export interface MindSnapshot {
 }
 
 export const MIND_FALLBACK: MindSnapshot = {
-  doing: 'chaining: homo → thinker → exists ⊢ “Mari exists”',
+  doing: 'following a thought to its end — “Mari exists”',
   state: 'thinking',
   uptimeSec: 1_788_540,
   kpis: [
@@ -53,13 +53,13 @@ export const MIND_FALLBACK: MindSnapshot = {
     { label: 'Anchors', value: '128', unit: 'semantic', trend: 0 },
   ],
   activity: [
-    { at: '2026-06-21T09:41:12Z', text: 'chain: homo → thinker → exists ⊢ “Mari exists” · 2-hop' },
-    { at: '2026-06-21T09:41:09Z', text: 'eval:inconsistent → speak up · “the door is open and not open”' },
-    { at: '2026-06-21T09:41:02Z', text: 'link: Mari ≠ Luca · same type, distinct identity' },
-    { at: '2026-06-21T09:40:54Z', text: 'eval:unknown → ask “what is X?” · then guessed “flabbergasting” ≈ overwhelming · trust 0.4' },
-    { at: '2026-06-21T09:40:51Z', text: 'taxonomic grounding: “raven” ⊑ “bird” ⊑ “animal”' },
-    { at: '2026-06-21T09:40:38Z', text: 'axiom guard: rejected a ≠ a · logic preserved' },
-    { at: '2026-06-21T09:40:20Z', text: 'measure(“love”, “hate”) → 0.86 · not opposite' },
+    { at: '2026-06-21T09:41:12Z', text: 'followed a thought to its end — Mari is human, so Mari exists' },
+    { at: '2026-06-21T09:41:09Z', text: 'caught a contradiction — “the door is open and not open” — and spoke up' },
+    { at: '2026-06-21T09:41:02Z', text: 'told two people apart — Mari is not Luca' },
+    { at: '2026-06-21T09:40:54Z', text: 'met a new word — guessed “flabbergasting” ≈ overwhelming, to confirm later' },
+    { at: '2026-06-21T09:40:51Z', text: 'grounded “a raven is an animal” — raven → bird → animal' },
+    { at: '2026-06-21T09:40:38Z', text: 'held the floor — refused a ≠ a' },
+    { at: '2026-06-21T09:40:20Z', text: 'measured love against hate — 0.86, not opposites' },
   ],
 };
 
