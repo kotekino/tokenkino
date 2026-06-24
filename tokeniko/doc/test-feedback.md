@@ -69,8 +69,15 @@ don't understand," and the abstain-not-guess grounding fix makes mis-grounds rar
   the graph) REJECTED outright** — distinctness is *learned*, not logic (lawyer & husband are both
   human yet the same entity; only world-knowledge separates cat/dog from lawyer/husband). It will come
   from KB meta-axioms + wondering, never a logic patch.
-- **🏛 Pillar 2 — identity & coreference.** Pronoun resolution (`I`→asker, `you`→tokeniko) + individual-
-  subject grounding + apply the `sameIndividual` override on "X is Y". Fixes R1 + Mari-is-Luca.
+- **🏛 Pillar 2 — identity & coreference. ✅ LANDED.** A personal pronoun carries its referent's
+  stakeholder **uid** into `identities` (`I`→asker, `you`→tokeniko; uid-only, `c_entities.py` meta
+  branch), and an **individual-subject clause abstains** (0.5) when no fact/graph decides it
+  (`_has_individual_subject` / `_is_distinct_individual_identity` in `e_statement.py`) — an individual's
+  properties/identity are contingent FACTS, never geometry. **Verified:** "are you human?"/"do you
+  exist?"/"am I alive?" → honest **IDK** (were wrong-confident); "Mari is Luca" → INSUFFICIENT (was 0.98,
+  P2c — distinct names may corefer, abstain not refute); spine + keep-set intact. NB "do you exist?" → IDK
+  *until* the self-KB seeds "tokeniko thinks" + the property-cogito → then it DERIVES YES (his first
+  theorem). (Places like "Rome is a city" still geo-ground geometric-true — benign, not yet principled.)
 - **📚 Pillar 3 — graph/WSD coverage (data).** Fill is_a gaps (tiger→carnivore) + sense-number
   canonicalization (bird.n.01≡n.02 for subsumption). Fixes tiger/robin.
 - **🔧 Cleanups.** Cross-item over-fire tightening (S1) · `??`/`!?` + premise-in-question mood (R4a/R4b) ·

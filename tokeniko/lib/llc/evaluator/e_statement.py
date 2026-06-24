@@ -47,6 +47,32 @@ def _is_bare_identity(content) -> bool:
     subj, pred = senses.get("subject"), senses.get("predicate")
     return bool(subj and pred and ".n." in subj and ".n." in pred and subj != pred)
 
+# P2a/P2c (logic-is-sacred, individual identity): the subject (or any role) of this clause is an
+# INDIVIDUAL — it carries a referential identity uid in `identities` (a named individual like "Mari",
+# OR a personal pronoun "I"/"you" routed to the talker/tokeniko stakeholder uid). meaning=geometry holds
+# for CLASSES, but an individual's properties/identity are CONTINGENT FACTS, never decidable by vector
+# proximity: "are you human?" must not be answered by how close the tokeniko-subject vector sits to
+# "human". So when an individual-subject clause is NOT otherwise decided (no is_a/part_of/chaining
+# verdict, no supporting fact), geometry must abstain.
+def _has_individual_subject(content: TKZipContent) -> bool:
+    identities = getattr(content, "identities", None) or {}
+    return bool(identities.get("subject"))
+
+# P2c: a bare identity claim "X is Y" where BOTH X and Y are individuals with DISTINCT uids. Distinct
+# names MAY corefer ("an entity can have multiple names"), so we can neither assert (geometry) nor
+# refute it — only ABSTAIN. Same uid (a=a) is left to the reflexive path. Look at the subject vs the
+# predicate/direct identity role (the predicate of a copular "X is Y" carries Y's uid).
+def _is_distinct_individual_identity(content: TKZipContent) -> bool:
+    identities = getattr(content, "identities", None) or {}
+    subj = identities.get("subject")
+    if not subj:
+        return False
+    for other_role in ("predicate", "direct"):
+        other = identities.get(other_role)
+        if other and other != subj:
+            return True
+    return False
+
 # collect every leaf TKZipContent of an item tree, in order
 def _collect_contents(item: TKZipItem) -> list[TKZipContent]:
     content = item.content
@@ -329,6 +355,20 @@ def evaluator_evaluateStatement(
     # KB knowledge; distinctness is LEARNED (KB + wondering), never asserted by vector proximity.
     for i, c in enumerate(contents):
         if i not in graph_decided and _is_bare_identity(c):
+            groundings[i] = 0.5
+
+    # SPINE — individual identity (P2a/P2c, logic-is-sacred). An INDIVIDUAL's properties/identity are
+    # contingent FACTS, never decidable by geometry. If a clause about an individual subject was NOT
+    # decided by the graph/forward-chainer (no supporting is_a/part_of/property/membership fact) it must
+    # abstain (0.5 -> INSUFFICIENT) rather than let bare-predicate geometry vote:
+    #   P2a — "are you human?" / "am I alive?": subject is the talker/tokeniko stakeholder (uid-only,
+    #         sense-less) -> abstain absent a self-fact.
+    #   P2c — "Mari is Luca": two individuals with DISTINCT uids -> MAY corefer, cannot refute, only abstain.
+    # Same-uid identity (a=a) is reflexive and is NOT touched here.
+    for i, c in enumerate(contents):
+        if i in graph_decided:
+            continue
+        if _has_individual_subject(c) or _is_distinct_individual_identity(c):
             groundings[i] = 0.5
 
     # 2. fold the clause truths through the operator tree -> the statement's overall truth.

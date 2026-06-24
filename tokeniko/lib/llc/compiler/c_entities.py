@@ -37,6 +37,12 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
             geo = ent.payload.location.coordinates
     elif ent.payload.entity_type == "meta":
         token = ent.payload.who.name
+        # P2a: a personal pronoun resolved to the talker/listener routes to a meta entity (who is the
+        # talker/tokeniko MEMStakeholder). Carry its referential stakeholder uid through to the clause
+        # identity (uid-ONLY -- the subject stays sense-less; we do NOT fabricate a type centroid), so
+        # the evaluator can treat "I"/"you" as a known INDIVIDUAL and abstain on factless self/other
+        # claims instead of letting bare-predicate geometry vote.
+        uid = getattr(ent.payload.who, "uid", None)
     elif ent.payload.entity_type == "num":
         token = str(ent.payload.value)
     elif ent.payload.entity_type == "pronoun":
