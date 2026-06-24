@@ -87,10 +87,9 @@ def evaluator_forwardChain(
             base = f"{subject_uid} is_a {klass} (fact)"
             _add_with_ancestors(klass, base, closure, parents)
 
-    if not closure:
-        return [], []
-
-    # display name for the subject in the chains
+    # display name for the subject in the chains. NB: NO early-return on an empty closure — an
+    # individual (e.g. tokeniko) may have no class membership yet still satisfy a PROPERTY-CONDITIONED
+    # rule via its property facts (the cogito: "tokeniko thinks" -> exists), fired in step 4 below.
     subject_name = subject_uid or subject_sense or "?"
 
     # ---- 2. fixpoint over MEMBERSHIP rules ----
@@ -133,6 +132,40 @@ def evaluator_forwardChain(
             "negated": bool(r.get("negated", False)),
             "chain": chain,
         })
+
+    # ---- 4. fire PROPERTY-CONDITIONED rules ("everything that thinks exists") ----
+    # the subject's KNOWN properties = its property FACTS (uid-keyed) + the properties derived in step 3.
+    # a property-conditioned rule whose CONDITION the subject satisfies derives its CONCLUSION; iterate
+    # to a fixpoint (a derived property can satisfy another rule's condition — the cogito can cascade).
+    pc_rules = [r for r in rules if r.get("kind") == "property_conditioned"]
+    if pc_rules:
+        props: dict[tuple, str] = {}  # (predicate, object) the subject HAS -> the chain explaining why
+        if subject_uid:
+            for f in facts:
+                if (f.get("subject_uid") == subject_uid and f.get("predicate")
+                        and not f.get("klass_sense") and not f.get("negated", False)):
+                    props[(f["predicate"], f.get("object"))] = f"{subject_name} {f['predicate']} (fact)"
+        for d in derived:
+            if not d.get("negated", False):
+                props[(d["predicate"], d.get("object"))] = d["chain"]
+        for _ in range(max_hops):
+            changed = False
+            for r in pc_rules:
+                cond_p, cond_o = r.get("cond_pred"), r.get("cond_obj")
+                concl_p, concl_o = r.get("concl_pred"), r.get("concl_obj")
+                if not cond_p or not concl_p or (concl_p, concl_o) in props:
+                    continue
+                base = next((b for (p, o), b in props.items()
+                             if p == cond_p and (cond_o is None or o is None or o == cond_o)), None)
+                if base is None:
+                    continue
+                chain = base + f" -> all that {cond_p} {concl_p} -> {subject_name} {concl_p}"
+                derived.append({"predicate": concl_p, "object": concl_o,
+                                "negated": bool(r.get("concl_negated", False)), "chain": chain})
+                props[(concl_p, concl_o)] = chain
+                changed = True
+            if not changed:
+                break
 
     return derived, [d["chain"] for d in derived]
 

@@ -120,6 +120,20 @@ def cross_item_conflict(clauses: list) -> Optional[str]:
     return form.detail if form.contradiction else None
 
 
+# FOUNDATIONAL PROPERTY-CONDITIONED rules — fired by the forward-chainer when the SUBJECT HAS the
+# condition property (not when it is in a class): "everything that thinks exists". These cannot yet be
+# seeded from natural language (the parser mangles "everything that thinks exists" — the relative-clause
+# restriction splits off and the quantifier never goes universal), so the near-logical FOUNDATION is
+# curated here; migrate to the KB once the parser handles property-restricted universals. THE COGITO:
+# tokeniko has the property fact "I think" => the chainer derives "exists" => "do you exist?" -> YES,
+# a real `chain:` derivation (its first theorem) rather than a seeded conclusion.
+_FOUNDATIONAL_RULES: list = [
+    {"kind": "property_conditioned", "cond_pred": "think.v.01", "cond_obj": None,
+     "concl_pred": "exist.v.01", "concl_obj": None, "concl_negated": False,
+     "original": "everything that thinks exists"},
+]
+
+
 # extract universal RULES from the active axioms for the forward-chainer. a rule leaf is a
 # UNIVERSAL-quantified clause with a subject sense and a predicate sense ("all carnivores eat
 # meat", "all humans are thinkers"). the predicate POS classifies the rule: a NOUN predicate
@@ -254,7 +268,7 @@ def _load_active_kb() -> dict:
         "relations": _make_relations_reader(),
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
-        "rules": _extract_rules(axiom_docs),
+        "rules": _extract_rules(axiom_docs) + _FOUNDATIONAL_RULES,
         "facts": _extract_facts(axiom_docs),
     }
     _kb_cache, _kb_cache_fp = kb, fp
