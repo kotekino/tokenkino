@@ -60,11 +60,6 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
    **Fix grounding BEFORE turning on autonomous KB-derivation** — a fragile evaluator would manufacture
    false theorems.
 2. **Brain D-phase (continued)** —
-   - **Tier-1 novelty (its own arc)**: an `eval:true` that is NOT KB-derivable but is taught by a
-     trusted speaker → learn at speaker-scoped trust τ(speaker) ("context-universe"). Needs the
-     **trust-gradient model** + **evaluator context-scoping** (a speaker-scoped belief must not leak
-     into global reasoning) — the hard part. See memory `learning-from-others`. (Tier-2 KB-derived
-     theorem + wondering: ✅ landed.)
    - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
    - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
@@ -79,6 +74,10 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
    final proof the consolidation held.
 
 ## ⏸️ Parked
+
+**Tier-1 / KB growing OUTWARD** — genuine *synthetic* learning from trusted testimony (learned axioms
+vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/kb-growing-outward.md`**.
+Needs the trust-gradient; build after the consolidation floor is solid.
 
 **Questions follow-ups** — imperatives (the `imperative` scalar, same mechanism); wh where/when/how
 solving + real self-knowledge for "how do you feel?"; multi-clause / embedded questions.
