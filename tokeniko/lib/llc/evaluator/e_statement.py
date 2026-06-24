@@ -36,6 +36,17 @@ _GROUNDING_MARGIN = 0.15
 # an axiom/theorem counts as covering the input's relation when the zip similarity clears this.
 _RELATION_MATCH_THRESHOLD = 0.85
 
+# a BARE copular identity claim — "X is a Y" with both X and Y plain noun senses and nothing else
+# (no direct object, no modifiers/extra roles). Its truth is the is_a graph's to decide; geometry must
+# not vote (see the SPINE post-pass). A definitional GLOSS ("X is [a Y with modifiers]") carries extra
+# roles, so it is NOT bare and keeps its geometric definition-grounding.
+def _is_bare_identity(content) -> bool:
+    senses = getattr(content, "senses", None) or {}
+    if set(senses.keys()) != {"subject", "predicate"}:
+        return False
+    subj, pred = senses.get("subject"), senses.get("predicate")
+    return bool(subj and pred and ".n." in subj and ".n." in pred and subj != pred)
+
 # collect every leaf TKZipContent of an item tree, in order
 def _collect_contents(item: TKZipItem) -> list[TKZipContent]:
     content = item.content
@@ -311,6 +322,14 @@ def evaluator_evaluateStatement(
                 groundings[i] = truth
                 graph_decided.add(i)
                 derivation.append(chain)
+
+    # SPINE (logic-is-sacred): a BARE copular identity "X is Y" gets its truth ONLY from the is_a graph.
+    # If the graph did not decide it (no subsumption -> TRUE, no tiered-disjointness -> FALSE), geometry
+    # must NOT assert it — abstain (0.5 -> INSUFFICIENT). "a cat is a dog" is logically agnostic absent
+    # KB knowledge; distinctness is LEARNED (KB + wondering), never asserted by vector proximity.
+    for i, c in enumerate(contents):
+        if i not in graph_decided and _is_bare_identity(c):
+            groundings[i] = 0.5
 
     # 2. fold the clause truths through the operator tree -> the statement's overall truth.
     # map each leaf content (by identity) to its grounding; the fold walks the same objects.

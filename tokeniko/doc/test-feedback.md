@@ -59,11 +59,16 @@ safety necessity** → **defer it**; its Ollama cost isn't justified when the fa
 don't understand," and the abstain-not-guess grounding fix makes mis-grounds rarer still.
 
 ### The solution-package (coherent, spine-first) — the next coding batch
-- **🦴 SPINE — grounding-truth overhaul.** An identity/copular claim ("X is Y") gets a verdict ONLY
-  from the relational layer (subsumption / **finer-grained distinctness** — siblings & cousins are
-  distinct, not just cross-kingdom). No graph evidence ⇒ INSUFFICIENT. Geometry stops voting on truth.
-  *Clears every S0 + the tiger S1 + circle/square + imperative-speakup at once; most logic-is-sacred-
-  aligned change available.*
+- **🦴 SPINE — grounding-truth overhaul. ✅ LANDED (Option A).** A **bare** copular noun-identity
+  ("X is Y", senses = exactly `{subject, predicate}`, both nouns) gets its truth ONLY from the is_a
+  graph — subsumption → TRUE, tiered-disjoint → FALSE, **neither → INSUFFICIENT (abstain)**; geometry
+  no longer votes (`_is_bare_identity` gate in `e_statement.py`). A gloss ("X is [a Y with modifiers]")
+  carries extra roles (`predicate_nmod`) → not bare → keeps its definition-match. **Verified:** every S0
+  cleared (cat=dog 0.93→INSUFFICIENT, advice=ad, circle=square, robin=bird→honest abstain); subsumption/
+  disjoint/INCONSISTENT untouched; the affect-gloss stays TRUE 1.0. **Option B (sibling-distinctness in
+  the graph) REJECTED outright** — distinctness is *learned*, not logic (lawyer & husband are both
+  human yet the same entity; only world-knowledge separates cat/dog from lawyer/husband). It will come
+  from KB meta-axioms + wondering, never a logic patch.
 - **🏛 Pillar 2 — identity & coreference.** Pronoun resolution (`I`→asker, `you`→tokeniko) + individual-
   subject grounding + apply the `sameIndividual` override on "X is Y". Fixes R1 + Mari-is-Luca.
 - **📚 Pillar 3 — graph/WSD coverage (data).** Fill is_a gaps (tiger→carnivore) + sense-number
