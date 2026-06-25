@@ -2,8 +2,8 @@ import React from 'react';
 import './SubPage.css';
 import './Contact.css';
 
-// Mock invite for now — swap for the real one when the server opens.
-const DISCORD_URL = 'https://discord.gg/tokeniko-playground';
+// tokeniko's playground — the real invite.
+const DISCORD_URL = 'https://discord.gg/RV8PkeEUs';
 
 const Contact: React.FC = () => (
   <main className="subpage">

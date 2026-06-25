@@ -4,8 +4,8 @@ import Synapse from '../components/Synapse';
 import Icon, { IconName } from '../components/Icon';
 import './ComingSoon.css';
 
-// Mock invite for now — the real one drops in later (same as the Ping page).
-const DISCORD_URL = 'https://discord.gg/tokeniko-playground';
+// tokeniko's playground — the real invite (same as the Ping page).
+const DISCORD_URL = 'https://discord.gg/RV8PkeEUs';
 
 const teasers: { icon: IconName; title: string; line: string }[] = [
   { icon: 'signal', title: 'The Stream', line: 'its transmissions — notes, arguments, the occasional piece of content' },
