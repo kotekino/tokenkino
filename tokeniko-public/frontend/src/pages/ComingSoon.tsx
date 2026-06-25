@@ -5,7 +5,7 @@ import Icon, { IconName } from '../components/Icon';
 import './ComingSoon.css';
 
 // tokeniko's playground — the real invite (same as the Ping page).
-const DISCORD_URL = 'https://discord.gg/RV8PkeEUs';
+const DISCORD_URL = 'https://discord.gg/kDTA7dVgp2';
 
 const teasers: { icon: IconName; title: string; line: string }[] = [
   { icon: 'signal', title: 'The Stream', line: 'its transmissions — notes, arguments, the occasional piece of content' },

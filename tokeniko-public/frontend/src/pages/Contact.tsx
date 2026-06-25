@@ -3,7 +3,7 @@ import './SubPage.css';
 import './Contact.css';
 
 // tokeniko's playground — the real invite.
-const DISCORD_URL = 'https://discord.gg/RV8PkeEUs';
+const DISCORD_URL = 'https://discord.gg/kDTA7dVgp2';
 
 const Contact: React.FC = () => (
   <main className="subpage">
