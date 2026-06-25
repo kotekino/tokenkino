@@ -78,17 +78,19 @@ don't understand," and the abstain-not-guess grounding fix makes mis-grounds rar
   P2c — distinct names may corefer, abstain not refute); spine + keep-set intact. NB "do you exist?" → IDK
   *until* the self-KB seeds "tokeniko thinks" + the property-cogito → then it DERIVES YES (his first
   theorem). (Places like "Rome is a city" still geo-ground geometric-true — benign, not yet principled.)
-- **📚 Pillar 3 — #1 abstain completion ✅ LANDED; #2 WSD (parked).** Diagnosis: the graph is FINE —
-  the failures are **WSD sense-selection**, not missing edges (tiger compiled to `tiger.n.01` = *a fierce
-  person* not `tiger.n.02` the animal; robin→`bird.n.01` but the predicate "bird"→`bird.n.02`). **#1
-  (landed):** the spine's principle generalized — a clause the graph/chainer did NOT decide keeps its
-  geometric grounding ONLY if it is an AFFIRMATIVE near-exact definition match (`>= _GEOM_AFFIRM` in
-  `e_statement`); a denied clause or a mid/low score → **abstain** (geometry may affirm, never refute or
-  guess). "a tiger eats meat" → INSUFFICIENT (was eval:false→speakup, an active falsehood); the
-  affect-gloss still grounds 1.0; keep-set + cogito intact. **#2 (parked, incremental):** the WSD itself
-  — context-sensitive sense selection (tiger→animal) + sense-number canonicalization for subsumption
-  (robin/bird) — makes claims *provable* (TRUE) rather than just honestly abstained. The hard, general
-  WSD problem; deferred.
+- **📚 Pillar 3 — #1 abstain completion ✅ LANDED; #2 WSD canonicalization ✅ LANDED.** Diagnosis: the
+  graph is FINE — the failures are **WSD sense-selection**, not missing edges (tiger compiled to
+  `tiger.n.01` = *a fierce person* not `tiger.n.02` the animal; robin→`bird.n.01` but the predicate
+  "bird"→`bird.n.02`). **#1 (landed):** the spine's principle generalized — a clause the graph/chainer
+  did NOT decide keeps its geometric grounding ONLY if it is an AFFIRMATIVE near-exact definition match
+  (`>= _GEOM_AFFIRM` in `e_statement`); a denied clause or a mid/low score → **abstain** (geometry may
+  affirm, never refute or guess). "a tiger eats meat" → INSUFFICIENT (was eval:false→speakup, an active
+  falsehood); the affect-gloss still grounds 1.0; keep-set + cogito intact. **#2 (landed — see the
+  2026-06-25 WSD session below):** instead of fixing sense-selection in the parser (high regression
+  risk), a **charitable cross-product at the grounding layer** — "subject is_a predicate" is TRUE when
+  SOME sense of the subject-lemma subsumes SOME sense of the predicate-lemma. Fixes tiger + robin,
+  strictly conservative (only upgrades INSUFFICIENT→TRUE on a real taxonomic path; never refutes/
+  fabricates). The harder "store the contextually-right sense everywhere" stays parked.
 - **🔧 Cleanups.** Cross-item over-fire (S1) ✅ DONE (`f1cea3b`) · `??`/`!?` mood (R4a) ✅ DONE · a
   premise inside a question (R4b) → **investigated + PARKED** (see the 2026-06-25 session below — it
   is the doorstep of conditional reasoning, a feature, not a patch) · behavior-layer `eval:false`
@@ -145,6 +147,42 @@ The *real* behavior — **USE** the premise to answer ("given P, is Q?") — is 
 reasoning**, a genuine feature. Decision: do it for real with the question-answering deepening, don't
 cover it with a half-measure. Normal questions and separately-submitted premises are unaffected; the
 trigger (a premise comma-spliced onto a question in one input) is uncommon.
+
+---
+
+## Session 2026-06-25 — Pillar 3 #2 WSD canonicalization (the substantive close of consolidation)
+
+**Reproduced (live, raw core).** `a tiger is an animal` → INSUFFICIENT: subject WSD picked
+`tiger.n.01` ("a fierce person"), whose is_a chain never reaches `animal` (person→organism). `a robin
+is a bird` → INSUFFICIENT: subject `robin.n.01` is fine (its chain reaches `bird.n.01`), but the
+predicate "bird" picked `bird.n.02` (*food*), and `relations_subsumes` is **exact-synset**, so
+`bird.n.02 ⊉ robin`. Two different bugs (wrong subject sense; wrong predicate sense + brittle exact
+match) — one root: the grounder trusts the single WSD-chosen senses.
+
+**Fix — charitable cross-product at the GROUNDING layer (not the parser).** "subject is_a predicate"
+is really "does SOME sense of the subject-lemma have SOME sense of the predicate-lemma in its is_a
+chain?". A new injected `senses_of(sense)→sibling senses` reader (`evaluation_harness`,
+`TKDictionaryDoc` by lemma+POS) + a cross-product fallback in `_ground_relationally` (between the
+exact-subsumption and the disjointness checks): any (subj-sense × pred-sense) pair that subsumes →
+TRUE, with a `subsumed (WSD-canonicalized …)` derivation. **Why the grounding layer, not parser WSD:**
+zero regression risk to the keep-set's *stored* senses (the parser is untouched), and validated to fix
+both. Trade-off: the stored sense stays the WSD pick; only the *verdict* is corrected (the deeper
+"store the right sense" is the general-WSD problem → `parked.md`).
+
+**Safety (the whole point).** Strictly conservative — it ONLY upgrades INSUFFICIENT→TRUE on a REAL
+taxonomic path; it never refutes and never fabricates. Verified on the live KB:
+`tiger`/`robin`/`bat` → TRUE; **keep-set intact** — `a cat is a mammal` TRUE (exact), `a stone is an
+animal` / `a cat is a plant` FALSE (cross-kingdom refute), `a cat is a dog` **still abstains** (the
+cross-product finds no path → falls through to disjoint→agree→abstain), INCONSISTENT + the cogito
+(`do you exist?` → derived YES) untouched. Full pytest gate green (**38 passed / 1 xfailed**).
+
+**Bycatch — a stale test caught by the gate.** `test_polar_false_is_no` asserted `is a cat a fish?` →
+NO. That example predates the spine: cat & fish are both animals (distinct *siblings*, not a
+cross-kingdom boundary), so post-spine it ABSTAINS — by the very *"distinctness is learned, not logic"*
+doctrine that gives `a cat is a dog` → INSUFFICIENT. Swapped the example to `is a cat a plant?` (a real
+refutation → NO) and added `test_polar_sibling_distinctness_abstains` (`is a cat a fish?` → IDK) to
+lock the doctrine for the question path. Process note: the gate must be re-run when grounding changes —
+this red had been sitting since `bea8b52`.
 
 ---
 

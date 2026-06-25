@@ -14,7 +14,7 @@
 # --------------------------------------------------------------
 from typing import Optional
 
-from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKRelationDoc, TKTheoremDoc
+from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKTheoremDoc
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
@@ -55,6 +55,21 @@ def _make_partof_reader():
         return objs
 
     return wholes
+
+
+# the injected "sibling senses" reader: given a synset sense ("tiger.n.01") -> every dictionary sense
+# of the SAME lemma+POS ("tiger.n.01", "tiger.n.02"). lets the is_a grounder try a charitable
+# cross-product when the WSD-chosen sense is wrong but another sense of the same word subsumes.
+def _make_senses_reader():
+    def senses_of(sense: str) -> list[str]:
+        parts = (sense or "").rsplit(".", 2)
+        if len(parts) != 3:
+            return [sense] if sense else []
+        word, pos = parts[0], parts[1]
+        docs = TKDictionaryDoc.find({"word": word, "pos": pos}).to_list()
+        out = [d.sense for d in docs if d.sense]
+        return out or ([sense] if sense else [])
+    return senses_of
 
 
 # the injected antonym reader: antonyms(sense) -> the senses directly antonym-linked to `sense`.
@@ -287,6 +302,7 @@ def _load_active_kb() -> dict:
         "relations": _make_relations_reader(),
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
+        "senses_of": _make_senses_reader(),
         "rules": _extract_rules(axiom_docs) + _FOUNDATIONAL_RULES,
         "facts": _extract_facts(axiom_docs),
     }
@@ -300,6 +316,7 @@ def evaluate_zip(statement: TKZip) -> dict:
     result = evaluator_evaluateStatement(
         statement, kb["definitions"], kb["axiom_zips"], kb["theorem_zips"],
         relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
+        senses_of=kb["senses_of"],
         rules=kb["rules"], facts=kb["facts"],
     )
 
@@ -359,6 +376,7 @@ def answer_zip(statement: TKZip) -> Optional[dict]:
     result = evaluator_evaluateStatement(
         statement, kb["definitions"], kb["axiom_zips"], kb["theorem_zips"],
         relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
+        senses_of=kb["senses_of"],
         rules=kb["rules"], facts=kb["facts"],
     )
 

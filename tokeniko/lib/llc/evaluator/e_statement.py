@@ -243,7 +243,8 @@ def _ground_partof(content: TKZipContent,
 #   net_flip = (quantifier == NEGATIVE) XOR (negated)
 # a NEGATIVE quantifier ("no cat is a plant") or a predicate negation ("a cat is not a plant") flips
 # the base verdict; both together cancel. universal/existential/definite/generic do not flip.
-def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[str]]) -> Optional[tuple[float, str]]:
+def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[str]],
+                         senses_of: Optional[Callable[[str], list[str]]] = None) -> Optional[tuple[float, str]]:
     pair = _isa_senses(content)
     if pair is None:
         return None
@@ -257,7 +258,30 @@ def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[
     if path is not None:
         base = _TAXO_TRUE
         chain = "subsumed: " + " —is_a→ ".join(path)
-    else:
+
+    # CHARITABLE cross-product (WSD-canonicalization): the WSD-chosen senses may be wrong (subject
+    # "tiger" -> tiger.n.01 "a fierce person" not the animal; predicate "bird" -> the food sense), yet
+    # ANOTHER sense of the same lemma genuinely subsumes. try every (subject-sense, object-sense) pair
+    # over the lemmas' dictionary senses; the FIRST real is_a path wins. CONSERVATIVE: this only
+    # UPGRADES to TRUE on a real taxonomic path — it never refutes and never fabricates (no path -> we
+    # fall through to disjointness on the originally-chosen senses, unchanged).
+    if base is None and senses_of is not None:
+        subj_senses = (senses_of(subject_sense) or [subject_sense])[:12]
+        obj_senses = (senses_of(object_sense) or [object_sense])[:12]
+        for ss in subj_senses:
+            for os_ in obj_senses:
+                if ss == subject_sense and os_ == object_sense:
+                    continue  # already tried exactly above
+                p = relations_subsumes(os_, ss, relations)
+                if p is not None:
+                    base = _TAXO_TRUE
+                    chain = (f"subsumed (WSD-canonicalized {subject_sense}->{ss}, "
+                             f"{object_sense}->{os_}): " + " —is_a→ ".join(p))
+                    break
+            if base is not None:
+                break
+
+    if base is None:
         # conservative kingdom-level disjointness: subject ⊥ object  -> base FALSE
         witness = relations_disjoint(subject_sense, object_sense, relations)
         if witness is not None:
@@ -300,6 +324,7 @@ def evaluator_evaluateStatement(
     antonyms: Callable[[str], list[str]] | None = None,
     rules: list | None = None,
     facts: list | None = None,
+    senses_of: Callable[[str], list[str]] | None = None,
 ) -> EvaluatorResult:
     axioms = axioms or []
     theorems = theorems or []
@@ -339,7 +364,7 @@ def evaluator_evaluateStatement(
             if is_partwhole and part_of is not None:
                 verdict = _ground_partof(c, part_of)
             elif not is_partwhole and relations is not None:
-                verdict = _ground_relationally(c, relations)
+                verdict = _ground_relationally(c, relations, senses_of)
             # forward-chaining grounder: a verb/adj-predicate clause (not is_a copular) falls through
             # the relational grounder; the chainer fires universal rules over the subject's is_a
             # closure (membership rules grow it; property rules derive properties) and corroborates

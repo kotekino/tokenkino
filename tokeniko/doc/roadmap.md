@@ -12,24 +12,17 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
 
 ## 🔄 In progress
 
-- **Docs / markdown refactor** — split this roadmap (history → `landed.md`, icebox → `parked.md`),
-  merge the loose design notes → `doc/notes.md`, trim `CLAUDE.md` (loaded every session) of
-  architecture prose that duplicates `README.md`. Orientation + per-session token economy.
+- *(nothing actively in flight — the consolidation pass is **complete**: grounding floor + cleanups +
+  Pillar 3 #2 WSD all landed. Next pickup is the Brain D-phase.)*
 
 ## 🔭 Next (ordered)
 
-1. **Pillar 3 #2 — WSD (the substantive close of consolidation).** The grounding floor now abstains
-   *honestly* where WSD fails; WSD turns those honest IDKs into provable TRUEs. Two parts:
-   context-sensitive **sense selection** (tiger → `tiger.n.02` the animal, not `tiger.n.01` "a fierce
-   person") + **sense-number canonicalization** for subsumption (robin → `bird.n.01` vs the predicate
-   "bird" → `bird.n.02`). The hard, general WSD problem. Deeper refinements (co-predication hint,
-   graded attribute-contrariety, the "a robin has feathers" xfail) stay in `parked.md`.
-2. **Brain D-phase (continued)** —
+1. **Brain D-phase (continued)** —
    - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
    - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
      forward-chaining); self-authored "realization" memory + a **working-memory** layer.
-3. **Wondering-v2 — self-prompted KB derivation** (the grounding floor is honest now, so autonomous
+2. **Wondering-v2 — self-prompted KB derivation** (the grounding floor is honest now, so autonomous
    derivation is safe — it won't manufacture false theorems). Extend wondering's seed-source beyond
    perceived memory to the **KB itself**: seed from a definition/axiom and forward-saturate to new
    theorems unprompted ("matching memory against itself"). Bounded by the same flat-cost discipline
