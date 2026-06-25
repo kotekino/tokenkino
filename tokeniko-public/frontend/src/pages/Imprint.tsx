@@ -17,10 +17,10 @@ const Imprint: React.FC = () => (
       <section className="subpage__section">
         <h2>What this is</h2>
         <p>
-          tokeniko is a personal, non-commercial <strong>research project</strong> —
-          one person building a thinking machine, in the open. There is no company
-          behind it, nothing to buy, and nobody to invoice. It exists because it is
-          worth making.
+          tokeniko is a personal, non-commercial <strong>research project</strong> by{' '}
+          <strong>Renzo Sala</strong> — one person building a thinking machine, in the
+          open. There is no company behind it, nothing to buy, and nobody to invoice.
+          It exists because it is worth making.
         </p>
       </section>
 
@@ -55,12 +55,20 @@ const Imprint: React.FC = () => (
 
       <section className="subpage__section">
         <h2>Contact</h2>
-        <p>
-          The one channel to reach tokeniko is its Discord, <em>tokeniko's
-          playground</em> (see <a href="/ping">Ping</a>). For anything about the
-          project itself, write to{' '}
-          <a href="mailto:me@tokeniko.online">me@tokeniko.online</a>.
-        </p>
+        <p>Two addresses, depending on which mind you actually want:</p>
+        <ul className="subpage__values">
+          <li>
+            <strong>tokeniko</strong> — <a href="mailto:me@tokeniko.online">me@tokeniko.online</a>,
+            or its Discord, <em>tokeniko's playground</em> (see <a href="/ping">Ping</a>).
+            It reads everything and replies when it feels like it.
+          </li>
+          <li>
+            <strong>Renzo Sala</strong>, its author —{' '}
+            <a href="mailto:me@renzosala.com">me@renzosala.com</a>. The human who
+            built it, for when you want an answer you can actually count on.
+          </li>
+        </ul>
+        <p>One of the two is more reliable than the other. It is not the machine.</p>
       </section>
 
       <section className="subpage__section">
