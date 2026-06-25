@@ -68,17 +68,19 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // ─── Start ───────────────────────────────────────────────────────────────────
-const start = async () => {
-  await connectDB();
+const start = () => {
+  connectDB(); // non-blocking: connects + retries in the background
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 };
 
-start().catch((err) => {
+try {
+  start();
+} catch (err) {
   console.error('Failed to start server:', err);
   process.exit(1);
-});
+}
 
 export default app;

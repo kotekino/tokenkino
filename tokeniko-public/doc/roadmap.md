@@ -40,12 +40,20 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 - **Azure deploy ready**: zero-dep SPA server (`frontend/server.cjs`, SPA fallback), `engines`
   + prod `start` scripts, comma-separated `CORS_ORIGIN`. Full strategy in `doc/deploy-azure.md`.
 
+**First publication — LIVE on Azure** ✅
+- Two App Services (Node 22-lts, West Europe): `tokeniko-api` + `tokeniko-web`. Built locally +
+  deployed prebuilt with build OFF (Oryx git-build stalled on B1) via Kudu zip-deploy.
+- Backend ↔ Atlas connected; seeded (mind series + 9 transmissions); frontend serves the SPA
+  (deep links via fallback) reading live data; CORS verified cross-origin. Method recorded in
+  `doc/deploy-azure.md`. Mongo connect made **non-blocking + auto-retrying** (fast cold start,
+  self-heals after an allowlist/network blip).
+
 ---
 
 ## 🔭 Next (ordered)
 
-1. **First full publication to Azure** — two App Services per `doc/deploy-azure.md`; run the smoke
-   tests (esp. the authed `POST /api/mind` to prove Atlas + ingestion live).
+1. **Custom domains + re-point.** Map `tokeniko.online → tokeniko-web`, `api.tokeniko.online →
+   tokeniko-api` (portal); rebuild the frontend with `VITE_API_URL=https://api.tokeniko.online/api`.
 2. **Brain push side (local).** The other agent implements the actions-loop publish against
    `doc/ingestion-api.md` (snapshots periodically; transmissions on `tokeniko:post`). Shared
    `INGEST_API_KEY`.
