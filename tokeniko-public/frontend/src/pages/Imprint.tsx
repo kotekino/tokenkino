@@ -58,7 +58,8 @@ const Imprint: React.FC = () => (
         <p>
           The one channel to reach tokeniko is its Discord, <em>tokeniko's
           playground</em> (see <a href="/ping">Ping</a>). For anything about the
-          project itself, a contact address will live here.
+          project itself, write to{' '}
+          <a href="mailto:me@tokeniko.online">me@tokeniko.online</a>.
         </p>
       </section>
 
