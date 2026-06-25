@@ -68,8 +68,17 @@ def test_polar_true_is_yes(answer):
 
 
 def test_polar_false_is_no(answer):
-    a = answer("is a cat a fish?")
+    # a polar question that genuinely grounds FALSE -> NO. The example must be a REAL refutation
+    # (cross-kingdom: cat=animal ⊥ plant), NOT sibling-distinctness — see the abstain test below.
+    a = answer("is a cat a plant?")
     assert a.kind.value == "polar" and a.verdict.value == "no"
+
+
+def test_polar_sibling_distinctness_abstains(answer):
+    # "distinctness is LEARNED, not logic": cat & fish are both animals (distinct siblings, no
+    # cross-kingdom boundary), so the spine ABSTAINS rather than refuting — an honest IDK, not a NO.
+    a = answer("is a cat a fish?")
+    assert a.kind.value == "polar" and a.verdict.value == "unknown"
 
 
 def test_wh_what_solves_a_value(answer):
