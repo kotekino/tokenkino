@@ -74,31 +74,24 @@ Changing a dimension means updating the constraints in `lib/core/tk.py`, `tkllc.
 
 `api/main.py` defines the FastAPI app — only the lifespan and the thin endpoint handlers. Each handler delegates to a `*Service` and wraps the result in `{"status": "complete", "data": ...}` (and `{"status": "failed", "data": repr(error)}` on a write error). Business logic (sentence compilation + Mongo CRUD) lives in `api/services/` (one `*_service.py` per resource: `axiom_service.py`, `definition_service.py`, `theorem_service.py`, `stakeholder_service.py`, `memory_service.py`, `evaluation_service.py`), re-exported from `api/services/__init__.py` so callers can `from api.services import AxiomService`. Request/response (in/out) Pydantic models and the domain-error→HTTP mapping (`_or_http` + per-resource `*_or_http` helpers) live in `api/schemas.py`. Each service is built once in the lifespan (e.g. `app.state.axiom_service = AxiomService(tokeniko, ai_client)`, `app.state.stakeholder_service = StakeholderService()`, `app.state.memory_service = MemoryService()`) and reused per request; services are framework-agnostic (no FastAPI imports).
 
-Routes (all under `/api/v1`):
-
-- **Axioms — full REST resource** (`AxiomService`):
-  - `POST /axioms` — compile a sentence (`{"tokens": "..."}`) and store it as an axiom
-  - `GET /axioms` — list (summary projection, no `zip`; optional `?archived=` filter)
-  - `GET /axioms/{id}` — single (full document, `zip` included)
-  - `PATCH /axioms/{id}` — partial update (recompiles if `tokens` is supplied)
-  - `PUT /axioms/{id}` — replacement update (recompile + reset flags)
-  - `DELETE /axioms/{id}` — delete
-- **Definitions — full REST resource** (`DefinitionService`): same shape as axioms — a definition's meaning is now the full compiled `TKZip` (`MEMDefinition.zip`, single **OR** multi clause; all WordNet glosses live here). Migrated from the old single-`TKZipContent` shape; `NotASingleClauseError` is gone (multi-clause is legal). `scripts/migrate_glosses.py` performs the one-time re-home (re-derive existing defs `content`→`zip` + move the gloss-axiom batches into definitions).
-  - `POST /definitions`, `GET /definitions` (summary, optional `?archived=`), `GET /definitions/{id}`, `PATCH /definitions/{id}`, `PUT /definitions/{id}`, `DELETE /definitions/{id}`
-- **Theorems — full REST resource** (`TheoremService`): derived knowledge (full `TKZip`); no `readonly` flag.
-  - `POST /theorems`, `GET /theorems` (summary, optional `?archived=`), `GET /theorems/{id}`, `PATCH /theorems/{id}`, `PUT /theorems/{id}`, `DELETE /theorems/{id}`
-- **Stakeholders — list/get only** (`StakeholderService`, read-only):
-  - `GET /stakeholders` — list (summary projection)
-  - `GET /stakeholders/{id}` — single (full document)
-- **Memory — list/get/search/insert, NO update** (`MemoryService`). The `memory` collection is a Mongo **timeseries**, which forbids in-place updates — hence no PATCH/PUT/DELETE; insert is a plain log append (no compilation).
-  - `GET /memory` — recent items, newest first (summary projection, no `zip`); optional `?limit=` (default 100)
-  - `GET /memory/search` — filter the log (declared before `/memory/{id}` so `search` isn't read as an id): `?from=&to=` (epoch **seconds**, converted to UTC datetimes on `timestamp`; `from` is aliased, the keyword), `?source=` (`sourceId`), `?target=` (`targetId`), `?channel=`, `?limit=` — only the supplied filters apply; newest first
-  - `GET /memory/{id}` — single (full document)
-  - `POST /memory` — append a log entry (`original`, `sourceId`, optional `targetId`/`channel`/`metadata`)
-- Domain errors map to HTTP in `main.py` via the `*_or_http` helpers: invalid-id → 400, not-found → 404. **Contradiction creation guard:** axiom/definition/theorem **create/patch/replace** reject a contradictory FORM — `assert_no_contradiction` (`api/services/validation.py`) runs `evaluator_classifyForm` (with the antonym reader) on the compiled zip and raises `InconsistentStatementError` if the form folds to 0 under every crisp assignment (`X∧¬X`, `a≠a`, antonym-predicate); tautologies AND contingent statements are allowed (logic-is-sacred: a logical falsehood can never be trusted knowledge). The guard lives **outside** `compile_fields` (so `scripts/recompile.py` never chokes on a pre-existing bad row). `create_or_http` (`api/schemas.py`) maps `InconsistentStatementError` → 422.
-- **Evaluate — action, not a resource** (`EvaluationService`): `POST /evaluate` (`{"tokens": "..."}`) — compile a sentence and evaluate its truth against tokeniko's knowledge. Grounds each flat clause against the definitions (each definition's `zip` is **flattened into its leaf clauses** in `EvaluationService` — the evaluator still receives a flat `list[TKZipContent]`, unchanged), **folds the clause truths through the operator tree** (fuzzy `[0,1]`, via `operator_truth`), and geometrically matches the whole statement against the active axioms/theorems. Returns an `EvaluatorResult` (`truth`, `status` = resolved/insufficient/inconsistent, `groundings`, `missing`, `relationMatch`, `matchedKind`/`matchedIndex`) plus the resolved `matchedId`/`matchedOriginal`. **Pure — stores nothing.** Loads only active knowledge (`archived=False`; NB theorems default `archived=True`, so the theorem pool is empty until one is promoted).
-- **Utils** (debugging; may be removed later): `GET /utils/dict?token=` (similar-token dictionary lookup), `GET /utils/markers?token=` (base-marker lookup), `GET /utils/polish?tokens=` (typo correction), `GET /utils/prepare?tokens=` (full preparse), `GET /utils/translate?tokens=` (translation), `GET /utils/render?tokens=` (HTML dependency diagram).
-- **Compiler**: `GET /input?tokens=&output=&prepare=&talker=` — run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item. `GET /output?tokens=` — polish a raw LLC string into natural language.
+**The route catalogue (all under `/api/v1`) is in `README.md`** — axioms / definitions / theorems
+(full REST, each a `*Service`), stakeholders (read-only), memory (list/get/search/insert, NO update —
+it's a Mongo **timeseries**), `POST /evaluate`, utils, compiler. Implementation notes README doesn't carry:
+- **Definitions** store the full compiled `TKZip` (`MEMDefinition.zip`, single OR multi-clause; all
+  WordNet glosses). `scripts/migrate_glosses.py` did the one-time re-home (`content`→`zip` + move the
+  gloss-axiom batches into definitions); `NotASingleClauseError` is gone (multi-clause is legal).
+- **`/memory/search`** is declared *before* `/memory/{id}` so `search` isn't read as an id; `?from=`
+  is the aliased keyword (epoch **seconds** → UTC on `timestamp`).
+- **Contradiction creation guard:** axiom/definition/theorem create/patch/replace reject a
+  contradictory FORM — `assert_no_contradiction` (`api/services/validation.py`) runs
+  `evaluator_classifyForm` (with the antonym reader) on the compiled zip and raises
+  `InconsistentStatementError` (→ 422 via `create_or_http`) if it folds to 0 under every crisp
+  assignment (`X∧¬X`, `a≠a`, antonym-predicate); tautologies AND contingent statements pass
+  (logic-is-sacred). Lives **outside** `compile_fields` (so `recompile.py` never chokes on a bad row).
+- **`/evaluate`** flattens each definition `zip` into its leaf clauses (the evaluator still gets a flat
+  `list[TKZipContent]`), folds clause truths through the operator tree, geometrically matches active
+  axioms/theorems → `EvaluatorResult`. **Pure — stores nothing.** Loads only `archived=False` (theorems
+  default archived, so the theorem pool is empty until one is promoted).
 
 Bunnet gotcha (bit us here): `Document.get(id)` and `find_one(...)` return *query* objects — call `.run()` to execute (`.to_list()` for `find(...)`). `AxiomService._resolve` does `TKAxiomDoc.get(oid).run()`; forgetting `.run()` yields a query object that is never `None` and has no `.save()`/`.delete()`.
 
@@ -128,106 +121,65 @@ The recursive models use forward references and **discriminated unions** (`Field
 - **Questions (interrogative mood).** A `?`/wh-word marks an input as a **question** — *answered, not believed*. The pipeline carries the mood: `TKZipContent.dubitative` (statement/question) + `wh_role` (the gap = variable X to solve for), detected in the parser (`?` survival + spaCy `PronType=Int` + the `anchor_whType` resolver). The parser-free `evaluation_harness.answer_zip` produces an `AnswerResult` (`lib/core/evaluation.py`): a POLAR question reuses the truth machinery (inconsistent→a confident **NO**, true→YES, false→NO, else IDK); a WH question is solved by `lib/llc/evaluator/e_wh_solve.py` (role-gap KB query: what→is_a hypernym, why→derivation chain; others staged → honest UNKNOWN). The brain (`brain/thinking.py`) branches on mood: a question fans `eval:question → tokeniko:answer` (the verdict/value + the asker as `target` in the idea/action payload) and **skips the assertion + cross-item paths**; `dispatch_action` directs the reply at the asker. A coordinated predicate shares the head clause's subject + copula aux onto its conjunct leaves (`compiler_evaluateCoordinates._inherit_shared`), so "the cat is dead and alive(?)" is one same-subject contradiction.
 - `parser.py` monkey-patches `torch.load` (`weights_only=False`) to load Stanza models — keep that patch when touching parser imports.
 
-## Roadmap (where the team is heading)
+## Reasoning layer & data-flow (code map)
 
-**Memory model — three epistemic tiers** (see `memory.py` / `models.py`):
-- **definitions** (`MEMDefinition` → `definitions` collection) — *semantic* statements defining
-  tokeniko's vocabulary/rules ("a thing is equal to itself"; "an apple is a fruit with red skin").
-  A definition's meaning is the full compiled `TKZip` (`MEMDefinition.zip`, single **OR** multi
-  clause) — all WordNet glosses live here. Trusted ground truths, no demonstration. (The "full
-  re-home" migration `scripts/migrate_glosses.py` re-derives the old single-`content` defs to `zip`
-  and moves the gloss-axiom batches here, leaving `axioms` = genuine relations + rules only.)
-- **axioms** (`TKZip`) — relations between definitions/vocabulary via operators ("I think because I
-  am") + universal rules/individual facts. Trusted, no demonstration.
-- **theorems** (`TKZip`) — knowledge demonstrated from definitions + axioms + the hardwired operator
-  math.
-- **memory** — the time-series log of inputs/outputs.
+> Code layout of the reasoning phase + the two data-flow bridges. *Status* (what's done/next) is NOT
+> here — see the doc map below. Implementation specifics live in the code; this is the orientation map.
 
-All three resources (axioms/definitions/theorems) are full REST resources backed by a `*Service`
-in `api/services/`; request/response models + domain-error→HTTP mapping live in `api/schemas.py`
-(`main.py` is just lifespan + endpoints).
+**Memory tiers** (conceptual model in `README.md`; types in `memory.py`/`models.py`) — **definitions**
+(semantic vocabulary; full `TKZip`, all WordNet glosses), **axioms** (trusted relations + universal
+rules + individual facts), **theorems** (demonstrated knowledge), **memory** (the time-series log).
+The first three are full REST resources (`api/services/`).
 
-**Evaluator / math phase** — the `lib/llc/evaluator/` package: `operators.py` (fuzzy operator
-truth functions on **`[0,1]`** + `operator_truth(op, a, b)` to combine clause truths + behavioral
-operator similarity), `e_compare.py` (geometric comparison: `evaluator_compareContent` /
-`evaluator_compareItem` / `evaluator_compareZip`, type-routed indirects via the marker gate),
-`e_truth.py` (`evaluator_groundContent`: a clause's truth in `[0,1]` vs the definitions),
-`e_statement.py` (`evaluator_evaluateStatement`: ground each clause, then **fold the clause truths
-through the operator tree** with `operator_truth` — `A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`
-— and geometrically match axioms/theorems → `EvaluatorResult`; it now also takes an optional injected
-`relations=` reader and does **relational grounding/refutation** on an is_a clause — subsumption →
-true, tiered ontological disjointness → false — writing the premise chain to
-`EvaluatorResult.derivation`), `e_relations.py` (pure is_a graph logic: `relations_isa_ancestors` /
-`relations_subsumes` / `relations_disjoint` — BFS is_a closure, subsumption, and CONSERVATIVE tiered
-ontological disjointness), `e_consistency.py`
-(`evaluator_classifyForm` — the intra-statement contradiction kernel: crisp `{0,1}` enumeration over
-atom-clustered clauses, pinning `reflexive`-flagged leaves to a hardwired constant; it also detects a
-**contrary-predicate contradiction** — two clauses predicating same-subject, antonym-linked predicate
-senses ("the cat is alive and the cat is dead") — via an injected `antonyms` reader, modeled as a
-mutual-exclusion constraint in the enumeration (forbids the (1,1) corner only, so a disjunction of
-contraries stays satisfiable and non-tautological); `e_statement` short-circuits to `INCONSISTENT` on a contradiction). `evaluator_evaluateStatement` gained an `antonyms=` reader (alongside `relations=`/`part_of=`) that feeds this check; `EvaluationService` injects it (relation `"antonym"` over `TKRelationDoc`). `e_chaining.py`
-(`evaluator_forwardChain` / `evaluator_chainGround` — the **multi-hop forward-chainer**, priority-2 step c):
-given an input it seeds a class closure from the subject's sense (+ is_a ancestors) and, for an individual
-subject, from the membership FACTS about that uid; fires **MEMBERSHIP rules** (universal, NOUN predicate —
-"all humans are thinkers": subject is_a* S ⇒ subject is_a [predicate class]) to a **fixpoint** to grow the
-closure; then applies **PROPERTY rules** (universal, verb/adj predicate — "all carnivores eat meat") whose
-subject sits in the closure to derive properties. `evaluator_chainGround` (wired into the `e_statement`
-per-clause grounding loop AFTER is_a/part_of, since a verb/adj-predicate clause falls through the is_a
-copular grounder) **corroborates** (truth≈1) or **KB-refutes** the input clause with a derivation chain —
-a KB-refutation is **RESOLVED truth≈0 + a chain, NEVER INCONSISTENT** (that is reserved for logic violations).
-`evaluator_evaluateStatement` gained `rules=`/`facts=`; `EvaluationService` extracts them from the active
-axioms (`_extract_rules`: universal-leaf with subject+predicate senses → rule, classified membership/property
-by predicate POS; `_extract_facts`: an entity-linked individual leaf with a NOUN predicate → fact). The evaluator is DB-agnostic — the
-caller injects definitions/axioms/theorems (and, for the relations graph, a cached `parents(sense)`
-reader — see the sense-bridge below). `EvaluatorResult`/`EvaluatorStatus` live in
-`lib/core/evaluation.py`. `e_label.py` (`evaluator_assignWord`) assigns the single most
-representative dictionary word to a statement — a noun-weighted semantic centroid of the role
-vectors → nearest `TKDictionaryDoc` word via `$vectorSearch`. The HTTP entry point is
-`EvaluationService` (`api/services/evaluation_service.py`) behind `POST /api/v1/evaluate` — the
-DB adapter that loads the active definitions/axioms/theorems and maps the best match to a doc id; it
-also injects a cached `parents(sense)` reader backed by the new **`TKRelationDoc`** (the `relations`
-collection — `{subject, relation, object, pos}`, synset-keyed, ~150k WordNet
-is_a/part_of/antonym/entails/attribute/similar_to triples; registered in `init_io`). The DB-adapter
-part of this (load active definitions/axioms/theorems → build readers + forward-chainer rules/facts →
-evaluate a ready `TKZip` → map the best match to a doc id) is factored into the **parser-free**
-`lib/core/evaluation_harness.py` (`evaluate_zip`), shared by `EvaluationService` (api; adds the
-`_compile_zip` parser step on top) and `brain/thinking.py` (the brain stays spaCy/Stanza-free).
-The brain's Thinking also **cross-checks same-speaker memory for CONTEXT conflicts** — `think_one`
-runs `evaluation_harness.cross_item_conflict` (`evaluator_classifyForm` over an AND-union of two items'
-clauses) against the speaker's recent priors; a cross-item contradiction (NOT the logic `INCONSISTENT`)
-fires `eval:conflict` → `tokeniko:clarify`.
+**`lib/llc/evaluator/` package** — DB-agnostic (the caller injects definitions/axioms/theorems + reader
+callbacks); the parser-free harness wires it to Mongo:
+- `operators.py` — fuzzy operator truth on `[0,1]` + `operator_truth(op, a, b)` (combine clause truths).
+- `e_compare.py` — geometric comparison (`evaluator_compareContent`/`compareItem`/`compareZip`,
+  type-routed indirects via the marker gate); **consumes `evaluator_sameIndividual`** — identity
+  overrides geometry on subject/direct (same uid→1.0, different→0.0, no uid→geometry).
+- `e_truth.py` — `evaluator_groundContent`: a clause's truth in `[0,1]` vs the definitions.
+- `e_statement.py` — `evaluator_evaluateStatement`: ground each clause → **fold the truths through the
+  operator tree** (`A1 IMPLY (A2 AND A3)` → `IMPLY(T1, AND(T2,T3))`) → geometrically match
+  axioms/theorems → `EvaluatorResult`. Does **relational grounding/refutation** on is_a/part_of
+  (subsumption→true, tiered disjointness→false, premise chain in `.derivation`) and **abstains where
+  geometry can't prove** (the grounding-floor post-passes). Injected readers:
+  `relations=`/`part_of=`/`antonyms=`/`rules=`/`facts=`.
+- `e_relations.py` — pure is_a graph logic (`isa_ancestors`/`subsumes`/`disjoint`: BFS closure +
+  CONSERVATIVE tiered ontological disjointness).
+- `e_consistency.py` — `evaluator_classifyForm`: the intra-statement contradiction kernel (crisp
+  `{0,1}` enumeration over atom-clustered clauses; `reflexive` leaves pinned; antonym-predicate
+  contraries via the `antonyms` reader as a mutual-exclusion constraint). `INCONSISTENT` = a logic
+  violation ONLY.
+- `e_chaining.py` — the multi-hop **forward-chainer** (`evaluator_forwardChain`/`chainGround`): seed a
+  class closure from the subject (+ is_a ancestors / membership facts), fire MEMBERSHIP rules to a
+  fixpoint, then PROPERTY + property-conditioned rules; **corroborates** (truth≈1) or **KB-refutes**
+  (RESOLVED truth≈0 + chain, NEVER INCONSISTENT — that's reserved for logic).
+- `e_wh_solve.py` — wh value-solver (what→is_a hypernym, why→derivation chain; others staged).
+- `e_label.py` — `evaluator_assignWord`: the most-representative dictionary word (noun-weighted role
+  centroid → nearest via `$vectorSearch`).
+- `evaluation.py` — `EvaluatorResult`/`EvaluatorStatus`/`AnswerResult`.
 
-**Sense-bridge** — the WSD sense now propagates through the whole pipeline so the evaluator can read
-it: `TKDictionary.sense` (e.g. `cat.n.01`) → `TKLLEntity.sense` (set in `compiler_getEntity`) →
-`TKZipContent.senses` (a role→sense dict, populated in `compiler_zipContent`). Previously the sense was
-dropped at the LLC boundary.
+`EvaluationService` (`api/services/evaluation_service.py`, `POST /evaluate`) is the DB adapter; the
+reusable **parser-free** core (load active KB → build readers + chainer rules/facts → evaluate a ready
+`TKZip` → map best match to a doc id) is `lib/core/evaluation_harness.py`
+(`evaluate_zip`/`answer_zip`/`cross_item_conflict`), shared with `brain/thinking.py` (the brain stays
+spaCy/Stanza-free). The is_a/part_of/antonym/… graph is `TKRelationDoc` (`{subject, relation, object,
+pos}`, ~150k WordNet triples; registered in `init_io`).
 
-**Identity-bridge** (Slice 3a) — named individuals ("Mari", "Rome", "Google") used to compile to a
-ZERO 2925 vector (all collapsing to one point). They now get **two SEPARATE things**: (a) an honest
-SEMANTIC vector = their NER **type centroid** (meaning=geometry — `PERSON→person.n.01`,
-`GPE/LOC/FAC→location.n.01`, `ORG→organization.n.01`, `NORP→group.n.01`,
-`PRODUCT/WORK_OF_ART→artifact.n.01`, `EVENT→event.n.01`; fetched from the `dictionary` collection,
-in-memory cached) and (b) a referential **IDENTITY** = a context-scoped uid `name@channel:talker_uid`
-(identity=symbolic). The two never mix — the grounded 2925 space stays pollution-free (NEVER a
-random/noise vector). Minting is **gated** by NER-type + a real spaCy-lg word vector (parser tokens
-come from stanza, which has no vectors, so the `has_vector` gate is checked against the lg `nlp` vocab
-via `_parser_hasLgVector`), so OOV gibberish (which spaCy mislabels as GPE) never mints an individual;
-a known place still takes the `parser_getPlace` route first (geo-anchored, not an individual). The
-bridge MIRRORS the sense-bridge: `TKName.uid/vector/ner` (minted in `parser_getIndividual`, wired into
-both PROPN sites as `parser_getPlace(token) or parser_getIndividual(token, _talker) or
-TKName(name=...)`) → `TKLLEntity.uid` (set in `compiler_getEntity`; the centroid rides in
-`semantic_vector` and is now consumed for `entity_type=="name"` in `compiler_zipGetEntityVector`) →
-`TKZipContent.identities` (a role→uid dict, populated by `compiler_contentIdentities`/`compiler_refUid`
-in `compiler_zipContent`). An individual is homed in the extended `MEMStakeholder`
-(`kind="individual"`, `ner_type`, `vector`, `contextKey`) via `io.upsert_individual` (get-or-create,
-idempotent) — called ONLY on storing paths (the `/input` handler walks the recursive parse for
-name payloads with a uid), NEVER on `/evaluate` (which stays pure / read-only).
-`evaluator_sameIndividual(a, b, role)` is the demonstrable entity-linking primitive: same uid → True,
-different → False, either missing → None. `evaluator_compareContent` **consumes** it (#1b): for the
-subject/direct roles it overrides the geometric score by identity (same uid → 1.0, different → 0.0, no
-uid → geometry), so same-type individuals are no longer conflated ("Mari is happy" ≠ "Luca is happy")
-while the same individual is recognized across different claims — propagating through
-`compareItem`/`compareZip`/`_best_match` and the consistency-kernel clustering.
+**Sense-bridge** — the WSD sense threads through the pipeline so the evaluator can read it:
+`TKDictionary.sense` (`cat.n.01`) → `TKLLEntity.sense` (`compiler_getEntity`) → `TKZipContent.senses`
+(role→sense dict, `compiler_zipContent`).
+
+**Identity-bridge** — a named individual ("Mari", "Rome", "Google") gets **two SEPARATE things**, never
+mixed: an honest SEMANTIC vector = its NER **type centroid** (`PERSON→person.n.01`,
+`GPE/LOC/FAC→location.n.01`, `ORG→organization.n.01`, …; dictionary-fetched, cached) **and** a
+referential **IDENTITY** uid `name@channel:talker_uid`. The 2925 space stays pollution-free (never a
+noise vector). Minting is gated by NER-type + a real spaCy-lg vector (`_parser_hasLgVector`, since
+stanza tokens have none), so OOV gibberish never mints; a known place takes `parser_getPlace` first.
+Flow mirrors the sense-bridge: `TKName.uid/vector/ner` (`parser_getIndividual`) → `TKLLEntity.uid` →
+`TKZipContent.identities`. Homed in `MEMStakeholder` (`kind="individual"`) via `io.upsert_individual`
+— only on storing paths, NEVER on `/evaluate` (which stays pure/read-only). `evaluator_sameIndividual`
+is the entity-linking primitive (same uid→True, different→False, missing→None).
 
 **Status lives in three sibling files → `doc/roadmap.md`** (the road ahead: in-progress + ordered
 next), **`doc/landed.md`** (what's done), **`doc/parked.md`** (the icebox) — keep them current as items
