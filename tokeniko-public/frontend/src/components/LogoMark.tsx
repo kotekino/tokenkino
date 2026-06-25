@@ -1,45 +1,50 @@
 import React from 'react';
 
 interface Props {
-  /** Pixel size of the square mark. */
+  /** Pixel size of the square emblem. */
   size?: number;
+  /**
+   * Colourway (per the CI):
+   *  · primary — coral tile / paper letters (light surfaces)
+   *  · reverse — paper tile / coral letters (dark surfaces, e.g. the footer)
+   */
+  variant?: 'primary' | 'reverse';
   className?: string;
 }
 
 /**
- * tokeniko's mark — "a persistent mind in a vintage console".
- *
- *  · roundel ........ a self-contained being / appliance face / CRT porthole
- *  · coral core ..... identity, the one fixed point (a = a); the floor
- *  · teal orbit ..... thought in continuous motion — it never stops thinking
- *
- * The bezel uses currentColor so the mark adapts to light (cream header) and
- * dark (ink footer) surfaces; the core and orbit stay brand colours.
+ * tokeniko emblem — the official brand mark: a `tk` monogram in a
+ * Bakelite-rounded console tile, set in Space Mono. Purely geometric, so it
+ * stays legible from a 16px favicon up. Matches ci/ tokeniko-emblem.svg exactly.
  */
-const LogoMark: React.FC<Props> = ({ size = 36, className }) => (
-  <svg
-    className={className}
-    width={size}
-    height={size}
-    viewBox="0 0 64 64"
-    fill="none"
-    role="img"
-    aria-label="tokeniko"
-  >
-    {/* bezel */}
-    <circle cx="32" cy="32" r="29" stroke="currentColor" strokeWidth="3" />
-
-    {/* orbit — a thought circling the self, forever */}
-    <g transform="rotate(-22 32 32)">
-      <ellipse cx="32" cy="32" rx="22" ry="9" stroke="#2F6E63" strokeWidth="2.5" />
-      <circle cx="54" cy="32" r="3.4" fill="#7FB3A1" stroke="currentColor" strokeWidth="1" />
-    </g>
-
-    {/* core — identity, the fixed point (a = a) */}
-    <circle className="logo-core-glow" cx="32" cy="32" r="11" fill="#C24E3A" opacity="0.16" />
-    <circle cx="32" cy="32" r="6.6" fill="#C24E3A" />
-    <circle cx="29.6" cy="29.6" r="2.2" fill="#F2E0C8" opacity="0.85" />
-  </svg>
-);
+const LogoMark: React.FC<Props> = ({ size = 38, variant = 'primary', className }) => {
+  const tile = variant === 'reverse' ? '#F4EEDD' : '#C24E3A';
+  const letters = variant === 'reverse' ? '#C24E3A' : '#F4EEDD';
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 240 240"
+      role="img"
+      aria-label="tokeniko"
+    >
+      <rect x="16" y="16" width="208" height="208" rx="32" fill={tile} />
+      <text
+        x="120"
+        y="128"
+        fontFamily="'Space Mono', 'JetBrains Mono', monospace"
+        fontWeight="700"
+        fontSize="118"
+        letterSpacing="-6"
+        fill={letters}
+        textAnchor="middle"
+        dominantBaseline="central"
+      >
+        tk
+      </text>
+    </svg>
+  );
+};
 
 export default LogoMark;

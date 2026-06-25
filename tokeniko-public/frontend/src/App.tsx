@@ -9,8 +9,6 @@ import About from './pages/About';
 import Blog from './pages/Blog';
 import Contact from './pages/Contact';
 import Imprint from './pages/Imprint';
-import Privacy from './pages/Privacy';
-import Terms from './pages/Terms';
 import NotFound from './pages/NotFound';
 
 // Styles
@@ -27,8 +25,6 @@ const App: React.FC = () => (
             <Route path="/blog" element={<Blog />} />
             <Route path="/ping" element={<Contact />} />
             <Route path="/legal/imprint" element={<Imprint />} />
-            <Route path="/legal/privacy" element={<Privacy />} />
-            <Route path="/legal/terms" element={<Terms />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Layout>

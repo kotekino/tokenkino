@@ -30,7 +30,12 @@
 
 .footer__logo-mark {
   flex-shrink: 0;
-  color: var(--parchment); /* light bezel on the dark footer */
+}
+
+.footer__synapse {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-8) 0 var(--space-4);
 }
 
 .footer__tagline {

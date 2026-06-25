@@ -117,10 +117,10 @@ const CookieBanner: React.FC = () => {
           <div className="cookie-banner__text">
             <span className="cookie-banner__icon">🍪</span>
             <p>
-              We use cookies to improve your experience and analyse site usage. By clicking{' '}
-              <strong>Accept all</strong>, you consent to our use of cookies.{' '}
-              <a href="/legal/privacy" className="cookie-banner__link">
-                Privacy Policy
+              This site may use optional analytics cookies to count visits — nothing more.
+              By clicking <strong>Accept all</strong> you opt in; you can decline freely.{' '}
+              <a href="/legal/imprint" className="cookie-banner__link">
+                Legal notice
               </a>
             </p>
           </div>

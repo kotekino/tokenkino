@@ -27,11 +27,15 @@
 }
 
 .tx__kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   color: var(--paper);
   background: var(--ink-soft);
 }
+.tx__kind-icon { flex-shrink: 0; }
 .tx__kind--note     { background: var(--denim); }
 .tx__kind--argument { background: var(--teal); }
 .tx__kind--content  { background: var(--coral); }

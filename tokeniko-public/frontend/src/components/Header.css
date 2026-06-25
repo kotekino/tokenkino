@@ -29,13 +29,6 @@
 
 .nameplate__mark {
   flex-shrink: 0;
-  color: var(--ink); /* drives the bezel + orbit-dot stroke */
-}
-
-/* the core breathes — the mind is alive */
-.nameplate__mark .logo-core-glow {
-  transform-origin: center;
-  animation: led-pulse 2.4s ease-in-out infinite;
 }
 
 @keyframes led-pulse {

@@ -9,31 +9,32 @@
    ════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ─── Palette — Bakelite & enamel ──────────────────────────────────────── */
-  --ink:        #2B2722;   /* warm espresso — primary text */
-  --ink-soft:   #4A4339;   /* secondary text */
-  --muted:      #8A7F6C;   /* faded labels */
-  --parchment:  #E9DFC8;   /* main background — aged cream */
-  --paper:      #F4EEDD;   /* raised panels / cards */
-  --paper-2:    #EFE6D0;   /* alt panel */
-  --border:     #D2C6A8;   /* hairline on cream */
-  --border-ink: #C7B894;
+  /* ─── Palette — names per the brand CI (ci/tokeniko CI.html) ────────────── */
+  /* Core · Bakelite neutrals */
+  --ink:        #2B2722;   /* Espresso Ink — primary text · outlines */
+  --ink-soft:   #4A4339;   /* Ink Soft — secondary text */
+  --muted:      #8A7F6C;   /* Muted Clay — labels · captions */
+  --parchment:  #E9DFC8;   /* Parchment — primary background */
+  --paper:      #F4EEDD;   /* Paper — cards · raised panels */
+  --paper-2:    #EFE6D0;   /* alt panel tint (UI) */
+  --border:     #D2C6A8;   /* Border Sand — hairlines · dividers */
+  --border-ink: #C7B894;   /* deeper hairline / drop-shadow edge (UI) */
 
-  /* Enamel accents */
-  --coral:      #C24E3A;   /* atomic red-orange — primary accent */
-  --coral-dark: #A23C2B;
-  --teal:       #2F6E63;   /* enamel teal */
-  --mint:       #7FB3A1;   /* seafoam */
-  --mint-soft:  #CFE3D8;   /* pale mint tint */
-  --mustard:    #D7A33C;   /* butterscotch */
-  --denim:      #4E7C8A;   /* faded appliance blue */
+  /* Enamel · accents */
+  --coral:      #C24E3A;   /* Atomic Coral — primary accent */
+  --coral-dark: #A23C2B;   /* Coral Dark — accent · pressed */
+  --teal:       #2F6E63;   /* Enamel Teal — secondary accent */
+  --mint:       #7FB3A1;   /* Seafoam Mint — tints · highlights */
+  --mint-soft:  #CFE3D8;   /* pale mint tint (UI) */
+  --mustard:    #D7A33C;   /* Butterscotch — warning · highlight */
+  --denim:      #4E7C8A;   /* Faded Denim — info · links */
 
-  /* ─── CRT — the mind screen ────────────────────────────────────────────── */
-  --crt-bg:     #0E1A14;   /* deep phosphor black-green */
+  /* ─── CRT · phosphor screen (reserved for "screen" surfaces only) ───────── */
+  --crt-bg:     #0E1A14;   /* Phosphor Black — CRT background */
   --crt-bg-2:   #122017;
-  --crt-green:  #6FE39A;   /* phosphor green */
+  --crt-green:  #6FE39A;   /* Phosphor Green — CRT primary text */
   --crt-green-dim: #3F8F62;
-  --crt-amber:  #E9B84A;   /* amber readout */
+  --crt-amber:  #E9B84A;   /* Readout Amber — CRT readout · alerts */
   --crt-frame:  #3A352B;   /* bezel */
 
   /* Legacy aliases — keep older components/pages rendering on-theme.

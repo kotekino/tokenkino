@@ -1,5 +1,6 @@
 import React from 'react';
-import { Transmission, formatDate, kindLabel } from '../data/transmissions';
+import { Transmission, TransmissionKind, formatDate, kindLabel } from '../data/transmissions';
+import Icon, { IconName } from './Icon';
 import './TransmissionCard.css';
 
 interface Props {
@@ -8,10 +9,20 @@ interface Props {
   expanded?: boolean;
 }
 
+const kindIcon: Record<TransmissionKind, IconName> = {
+  note: 'token',
+  argument: 'logic',
+  content: 'signal',
+  log: 'terminal',
+};
+
 const TransmissionCard: React.FC<Props> = ({ post, expanded = false }) => (
   <article className={`tx ${expanded ? 'tx--expanded' : ''}`} id={post.slug}>
     <div className="tx__meta">
-      <span className={`tx__kind tx__kind--${post.kind}`}>{kindLabel[post.kind]}</span>
+      <span className={`tx__kind tx__kind--${post.kind}`}>
+        <Icon name={kindIcon[post.kind]} size={12} className="tx__kind-icon" />
+        {kindLabel[post.kind]}
+      </span>
       <time className="tx__date" dateTime={post.date}>{formatDate(post.date)}</time>
       <span className="tx__read">{post.readMin} min</span>
     </div>
