@@ -373,7 +373,7 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             if m.zip is None:
                 continue
             detail = evaluation_harness.cross_item_conflict(
-                n_clauses + evaluation_harness._zip_leaves(m.zip.items)
+                n_clauses, evaluation_harness._zip_leaves(m.zip.items)
             )
             if detail:
                 behavior.spawn_ideas_for(

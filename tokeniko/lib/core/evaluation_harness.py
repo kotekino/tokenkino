@@ -100,14 +100,11 @@ def zip_senses(statement) -> list[str]:
     return sorted(out)
 
 
-# the CROSS-ITEM consistency engine (parser-free). Detect a contradiction across a set of clauses
-# (TKZipContent), treating them as one conjunction. Returns classifyForm's detail string on a
-# contradiction, else None. Used to compare statements from DIFFERENT memory items (e.g. the same
-# speaker's prior claims). A cross-item contradiction is a revisable CONTEXT conflict — NOT the
-# hardwired logic INCONSISTENT (that is X∧¬X within ONE statement). The caller keeps the set small
-# (pairwise) to stay under classifyForm's atom cap (_MAX_ATOMS=16).
-def cross_item_conflict(clauses: list) -> Optional[str]:
-    if len(clauses) < 2:
+# classifyForm over a synthetic conjunction of clauses (TKZipContent). Returns classifyForm's detail
+# string on a contradiction, else None. The shared kernel for both the union check and the
+# self-contradiction guards below.
+def _clauses_contradict(clauses: list) -> Optional[str]:
+    if len(clauses) < 1:
         return None
     synthetic = TKZip(
         map=[0.0] * 8,
@@ -118,6 +115,28 @@ def cross_item_conflict(clauses: list) -> Optional[str]:
     )
     form = evaluator_classifyForm(synthetic, antonyms=_make_antonym_reader())
     return form.detail if form.contradiction else None
+
+
+# the CROSS-ITEM consistency engine (parser-free). Compare two memory items' clause-sets (e.g. the
+# same speaker's prior vs new claim) and detect a contradiction that EMERGES from combining them. A
+# genuine cross-item conflict means the UNION is contradictory YET NEITHER item is self-contradictory
+# alone. We exclude the self-contradictory halves so that an internally-INCONSISTENT prior or new item
+# (e.g. "the cat is dead and alive") does NOT poison every pairwise check by making every union
+# trivially contradictory — that case is an intra-statement INCONSISTENT (X∧¬X within ONE statement),
+# handled elsewhere, NOT a revisable context conflict. The cross-item contradiction we keep IS a
+# revisable CONTEXT conflict. The caller keeps each set small (pairwise) to stay under classifyForm's
+# atom cap (_MAX_ATOMS=16).
+def cross_item_conflict(clauses_a: list, clauses_b: list) -> Optional[str]:
+    if len(clauses_a) < 1 or len(clauses_b) < 1:
+        return None
+    union = _clauses_contradict(clauses_a + clauses_b)
+    if union is None:
+        return None
+    if _clauses_contradict(clauses_a) is not None:
+        return None  # intra, not cross
+    if _clauses_contradict(clauses_b) is not None:
+        return None  # poisoned prior
+    return union
 
 
 # FOUNDATIONAL PROPERTY-CONDITIONED rules — fired by the forward-chainer when the SUBJECT HAS the
