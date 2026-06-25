@@ -229,7 +229,8 @@ uid → geometry), so same-type individuals are no longer conflated ("Mari is ha
 while the same individual is recognized across different claims — propagating through
 `compareItem`/`compareZip`/`_best_match` and the consistency-kernel clustering.
 
-**Status & the ordered roadmap live in one place → `doc/roadmap.md`** (the single source of truth:
-landed / in-progress / next / parked — keep it current as items land). The phased execution detail is
-in `doc/plan.md`, the design + empirical findings in `doc/reasoning-engine-brainstorm.md`, and the
-parser/compiler quirks + remaining gaps in `doc/parser-compiler-review.md`.
+**Status lives in three sibling files → `doc/roadmap.md`** (the road ahead: in-progress + ordered
+next), **`doc/landed.md`** (what's done), **`doc/parked.md`** (the icebox) — keep them current as items
+land. The design notes (phased execution detail + reasoning-engine design/findings + parser/compiler
+quirks & gaps) are consolidated in **`doc/notes.md`**; the living empirical fragility log is
+`doc/test-feedback.md`.

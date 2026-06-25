@@ -104,7 +104,7 @@ Legend: ✅ done · 🚧 in progress · 🔭 next · 💭 future / hunch
 | 2 | **Permanent, queryable memory** — definitions / axioms / theorems / the time-series log | ✅ | `lib/core/memory.py`, `models.py`, `api/services/` |
 | 3 | **Logic as the hardwired first axiom** — fuzzy `[0,1]` operators + `operator_truth` | ✅ | `lib/llc/evaluator/operators.py` |
 | 4 | **Evaluation** — ground clauses vs definitions, fold truths through the operator tree, match axioms/theorems | ✅ | `lib/llc/evaluator/`, `POST /api/v1/evaluate` |
-| 5 | **Reasoning / inconsistency** — detect logical contradictions; report the premise + identification set | 🚧 | `e_statement.py` (`INCONSISTENT` path) — design in `doc/reasoning-engine-brainstorm.md` |
+| 5 | **Reasoning / inconsistency** — detect logical contradictions; report the premise + identification set | 🚧 | `e_statement.py` (`INCONSISTENT` path) — design in `doc/notes.md` |
 | 6 | **Inference by chaining** — soft-unify + forward-chain across memory ("all felines are carnivores" ⊥ "my cat eats only lettuce") | 🔭 | reasoning engine, stage 2 |
 | 7 | **Discriminative perception** — distinct vectors for named individuals; antonyms (vectorless-entities work) | 🔭 | roadmap #2 — gates the *matching* layer (individual identity) |
 | 8 | **Constantly thinks** — the persistent perceive → evaluate → act loop | 🚧 | `brain/` daemon (idle loop today; doesn't yet exercise the pipeline) |
