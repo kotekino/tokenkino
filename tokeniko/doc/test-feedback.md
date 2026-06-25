@@ -89,8 +89,62 @@ don't understand," and the abstain-not-guess grounding fix makes mis-grounds rar
   — context-sensitive sense selection (tiger→animal) + sense-number canonicalization for subsumption
   (robin/bird) — makes claims *provable* (TRUE) rather than just honestly abstained. The hard, general
   WSD problem; deferred.
-- **🔧 Cleanups.** Cross-item over-fire tightening (S1) · `??`/`!?` + premise-in-question mood (R4a/R4b) ·
-  behavior-layer `eval:false` requiring real refutation (falls out of the spine).
+- **🔧 Cleanups.** Cross-item over-fire (S1) ✅ DONE (`f1cea3b`) · `??`/`!?` mood (R4a) ✅ DONE · a
+  premise inside a question (R4b) → **investigated + PARKED** (see the 2026-06-25 session below — it
+  is the doorstep of conditional reasoning, a feature, not a patch) · behavior-layer `eval:false`
+  requiring real refutation (falls out of the spine).
+
+---
+
+## Session 2026-06-25 — consolidation cleanups (S1 + R4a landed; R4b investigated → parked)
+
+### S1 — cross-item `eval:conflict` over-fire ✅ FIXED (`f1cea3b`)
+Root cause: the cross-item check unions the new item's clauses with a prior's and asks
+`classifyForm` "is the union contradictory?" — but **any internally-INCONSISTENT half makes the union
+trivially contradictory**. So a single self-contradiction in a speaker's history (probe #5 "the cat is
+dead and alive") **poisoned every later pairwise check** with that speaker → ~7 false `eval:conflict`
+fires ("many ben items"). Fix: `cross_item_conflict(clauses_a, clauses_b)` now fires only if the
+**union contradicts yet NEITHER half is self-contradictory alone** — the contradiction must EMERGE
+from the combination. Verified on the live baseline zips: poison pairs OLD=FIRE→none; a genuine
+flip-flop (each side consistent, union contrary "dead/alive") still fires correctly. The intra
+INCONSISTENT kernel is untouched.
+
+### R4a — `??` / `?!` / `!?` not read as questions ✅ FIXED
+Stanza glues a multi-char terminal like `??`/`?!`/`!?` into ONE PUNCT token, so the parser's exact
+`t.text == "?"` test missed it (the input fell through to a declarative). Fix (one line,
+`parser.py`): the `?` test is now a **substring** (`"?" in t.text`). Verified: `??`/`?!`/`!?` → polar
+question; single `?` and wh-`??` still work; `!` and plain declaratives unchanged (no regression).
+
+### R4b — a premise inside a question is swallowed → ⏸ PARKED (it is a FEATURE, not a patch)
+**Re-confirmed and SHARPENED.** Post grounding-floor, the old wrong **NO** for "I am human, do I
+think?" is now an honest **IDK** — but the bug still has teeth in one direction:
+- `"a stone is an animal, is a cat an animal?"` → **NO, conf 1.0** (WRONG — the *question* is true).
+  A **false premise** (`stone is_a animal` = 0.0) is **AND-folded** into the polar verdict and drags
+  it to a confident-wrong NO — a creed violation (never confidently wrong).
+- `"the cat is a dog, is a cat an animal?"` → IDK (an abstaining premise drags a provable question
+  down). Same mechanism, milder.
+
+**Root cause (mapped to the dep tree).** Stanza subordinates the premise as a **`ccomp` under the
+question's ROOT** ("am"/"is".head = the question verb) — the *"this clause is a co-submitted premise,
+not the asked thing"* signal genuinely exists upstream (the dep relation, `TKLLCContent.clause_type`)
+— **but it is DROPPED at the zip layer**: every leaf arrives `clause_type=None`, `dubitative=1.0`
+(`_stamp_mood` blankets *all* leaves). So `answer_zip` can't tell premise from question and
+`_polar_answer` reads `result.truth` = the **whole-statement** AND-fold → the premise corrupts it.
+
+**Why no heuristic shortcut exists.** "A false leaf ⇒ the fold is honest" is wrong: for a genuine
+**conjunctive** question — `"is a cat an animal and a stone?"` — a false leaf (stone) *should* yield
+NO. Only a **premise** leaf must be excluded. Distinguishing them *requires* propagating the
+main-vs-subordinate signal to the zip; there is no safe shortcut.
+
+**The proper fix (parked, = the doorstep of conditional reasoning).** Two parts: (1) propagate a
+"asked question vs co-submitted premise" discriminator onto `TKZipContent` and set it in the compiler
+(main clause = question; an independent `ccomp` with its own subject = premise) — i.e. **per-clause
+mood**, not the blanket `_stamp_mood`; (2) have `_polar_answer` fold **only the question leaves**.
+That is the *floor* (answer Q on the KB alone, premise can't corrupt it → honest IDK / correct YES).
+The *real* behavior — **USE** the premise to answer ("given P, is Q?") — is **hypothetical/conditional
+reasoning**, a genuine feature. Decision: do it for real with the question-answering deepening, don't
+cover it with a half-measure. Normal questions and separately-submitted premises are unaffected; the
+trigger (a premise comma-spliced onto a question in one input) is uncommon.
 
 ---
 

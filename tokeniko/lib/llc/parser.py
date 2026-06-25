@@ -662,9 +662,11 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # "?" survives as a PUNCT token, and every wh-word carries PronType=Int in its morph (regardless of
     # POS — PRON who/what, ADV how/where/why, DET which). polar = "?" with no wh-word; wh = a wh-word
     # whose lemma maps to the gap role (anchor_whType). carried on the statement -> dubitative + wh_role.
+    # NB the "?" test is a SUBSTRING (not ==): stanza glues "??"/"?!"/"!?" into one PUNCT token, so an
+    # exact match would miss them (R4a) — a "?" anywhere in a token's text marks the interrogative.
     # ----------------------------------------
     whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")), None)
-    if whToken is not None or any(t.text == "?" for t in tokens):
+    if whToken is not None or any("?" in t.text for t in tokens):
         tkMain.dubitative = 1.0
         if whToken is not None:
             tkMain.wh_role = anchor_whType(whToken.lemma_)

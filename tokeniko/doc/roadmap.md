@@ -62,21 +62,33 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
    verdict — and the **solution-package is landed**: 🦴 spine + 🏛 Pillar 2 + 📚 Pillar 3 #1 (geometry
    never asserts/refutes/guesses an unprovable truth), plus tokeniko's **self-KB + the cogito** on top.
    **Remaining before the floor is fully swept:**
-   - **Cleanups** (S1–S3): cross-item `eval:conflict` **over-fire** (fires on non-contradictory
-     same-speaker pairs); `??`/`!?` not read as questions (R4a); a premise inside a question swallowed
-     ("I am human, do I think?" — R4b). See `doc/test-feedback.md`.
+   - **Cleanups** (S1–S3) ✅ DONE: cross-item `eval:conflict` **over-fire** fixed (fires only when the
+     contradiction is GENUINELY cross-item — neither half self-contradictory; `f1cea3b`); `??`/`!?`/`!?`
+     read as questions (R4a, substring `?` test). A premise inside a question (R4b) is the **one
+     remaining edge — PARKED** (the false-premise confident-wrong-NO is the doorstep of conditional
+     reasoning, a feature — see Parked + `doc/test-feedback.md` 2026-06-25). Grounding floor + cleanups
+     ⇒ the consolidation pass is **complete**.
    - **Pillar 3 #2 — WSD (parked, incremental)**: context-sensitive sense selection (tiger→animal not
      "fierce person") + sense-number canonicalization for subsumption (robin→`bird.n.01` vs predicate
      `bird.n.02`) — makes claims *provable* (TRUE) rather than just honestly abstained. The hard,
      general WSD problem.
    *Grounding is now honest, so the gate is cleared:* **autonomous KB-derivation (wondering-v2) is safe
    to turn on** — it will no longer manufacture false theorems.
-2. **Brain D-phase (continued)** —
+2. **Docs / markdown refactor** (orientation + per-session token economy; do as its own focused pass
+   AFTER the cleanups land). Split `roadmap.md` → keep *only* next/in-progress here; move history to
+   `landed.md`, the icebox to `parked.md`. Merge the loose design notes (`reasoning-engine-brainstorm`
+   + `parser-compiler-review` + the now-historical `plan.md`) into ONE `notes.md`. **Keep separate:**
+   `test-feedback.md` (living empirical log), `paper_outline.md` (external artifact),
+   `kb-growing-outward.md` (standalone parked design — `parked.md` points to it). **Biggest win:** trim
+   `CLAUDE.md` (loaded EVERY session) of deep-architecture prose that duplicates README.md → leave it
+   commands + conventions + gotchas + pointers; README.md owns the architecture. (`brain/README.md`
+   verbosity is cheap — only read when working on the brain — lower priority.)
+3. **Brain D-phase (continued)** —
    - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
    - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
      forward-chaining); self-authored "realization" memory + a **working-memory** layer.
-3. **Wondering-v2 — self-prompted KB derivation** (after consolidation). Extend wondering's seed-source
+4. **Wondering-v2 — self-prompted KB derivation** (after consolidation). Extend wondering's seed-source
    beyond perceived memory to the **KB itself**: seed from a definition/axiom and forward-saturate to
    new theorems unprompted ("matching memory against itself"). Bounded by the same flat-cost discipline
    (sampled seed, capped derivation depth), convergence via `materialize_theorem`'s dedup. **First
@@ -96,6 +108,15 @@ Needs the trust-gradient; build after the consolidation floor is solid.
 
 **Questions follow-ups** — imperatives (the `imperative` scalar, same mechanism); wh where/when/how
 solving + real self-knowledge for "how do you feel?"; multi-clause / embedded questions.
+
+**Conditional reasoning / premise-in-question (R4b)** — "given P, is Q?" where a premise is submitted
+*with* the question (stanza subordinates it as a `ccomp` under the question ROOT). Today the premise's
+truth AND-folds into the polar verdict → a **false premise gives a confident-wrong NO**
+("a stone is an animal, is a cat an animal?" → NO). The *floor* fix: propagate a "question vs
+co-submitted premise" discriminator onto `TKZipContent` (per-clause mood, not blanket `_stamp_mood`) +
+fold only the question leaves in `_polar_answer` (→ honest IDK/correct YES). The *real* behavior — USE
+the premise hypothetically — is conditional reasoning, built with the question-answering deepening.
+Full diagnosis in `doc/test-feedback.md` (2026-06-25). Trigger is uncommon; normal questions unaffected.
 
 **Performance (optimize-later)** — `evaluate_zip` reloads the full active KB on every call → ~12s/item
 brain throughput; cache the active KB across ticks. Dual `en_core_web_lg` load (`parser.nlp` +
