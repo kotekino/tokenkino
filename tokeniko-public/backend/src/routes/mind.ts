@@ -1,51 +1,89 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
+import { MindSnapshot } from '../models/MindSnapshot';
+import { MindCurrent } from '../models/MindCurrent';
+import { requireIngestKey } from '../middleware/auth';
+import { buildDerived, parseMindBody, MOCK_MIND, SERIES_METRIC } from '../services/mind';
 
 /**
- * GET /api/mind — a snapshot of tokeniko's mind for the public CRT panel.
+ * /api/mind — the public "MIND MONITOR" + "SIGNAL SCOPE", fed one-way by the
+ * brain's actions loop.
  *
- * MOCK PHASE: figures are simulated here. When the reasoning engine is wired
- * in, this handler will read live counts (axioms, dictionary, memory, …) and
- * the recent activity log. The response SHAPE is the contract the frontend
- * already consumes (see frontend/src/data/mind.ts) — keep it stable.
+ *   GET  /api/mind            → the current snapshot the frontend renders [public]
+ *   GET  /api/mind/history    → the raw archive, for stats / charts        [public]
+ *   POST /api/mind            → ingest one snapshot                        [auth]
  */
 
 const router = Router();
 
-// Process start, so uptime climbs realistically while the server is up.
-const STARTED_AT = Date.now();
-const BASE_UPTIME_SEC = 1_788_540; // pretend it has been thinking for a while
+const TREND_WINDOW = Math.max(2, Number(process.env.MIND_TREND_WINDOW) || 12);
 
-const seededActivity = (nowIso: string) => [
-  { at: nowIso, text: 'followed a thought to its end — Mari is human, so Mari exists' },
-  { at: nowIso, text: 'caught a contradiction — “the door is open and not open” — and spoke up' },
-  { at: nowIso, text: 'told two people apart — Mari is not Luca' },
-  { at: nowIso, text: 'met a new word — guessed “flabbergasting” ≈ overwhelming, to confirm later' },
-  { at: nowIso, text: 'grounded “a raven is an animal” — raven → bird → animal' },
-  { at: nowIso, text: 'held the floor — refused a ≠ a' },
-  { at: nowIso, text: 'measured love against hate — 0.86, not opposites' },
-];
+// ─── GET current ─────────────────────────────────────────────────────────────
+// Falls back to the seeded mock when the archive is empty or the DB hiccups, so
+// the public window always shows something honest.
+router.get('/', async (_req: Request, res: Response) => {
+  try {
+    const current = await MindCurrent.findOne({ key: 'current' }).lean();
+    res.json({ success: true, data: (current?.data as unknown) ?? MOCK_MIND });
+  } catch (err) {
+    console.warn('[mind] current read failed, serving mock:', err);
+    res.json({ success: true, data: MOCK_MIND });
+  }
+});
 
-router.get('/', (_req: Request, res: Response) => {
-  const elapsedSec = Math.floor((Date.now() - STARTED_AT) / 1000);
-  const now = new Date().toISOString();
+// ─── GET history (archive) ───────────────────────────────────────────────────
+router.get('/history', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 200, 1), 1000);
+    const range: Record<string, Date> = {};
+    if (req.query.from) range.$gte = new Date(Number(req.query.from) * 1000);
+    if (req.query.to) range.$lte = new Date(Number(req.query.to) * 1000);
+    const filter = Object.keys(range).length ? { capturedAt: range } : {};
 
-  res.json({
-    success: true,
-    data: {
-      doing: 'following a thought to its end — “Mari exists”',
-      state: 'thinking',
-      uptimeSec: BASE_UPTIME_SEC + elapsedSec,
-      kpis: [
-        { label: 'Definitions', value: '3,235', unit: 'vocabulary', trend: 1 },
-        { label: 'Axioms & rules', value: '14', unit: 'ground truths', trend: 1 },
-        { label: 'Theorems', value: '6', unit: 'derived', trend: 1 },
-        { label: 'Dictionary', value: '2,925', unit: 'base vectors', trend: 0 },
-        { label: 'Chains', value: '4,902', unit: 'multi-hop', trend: 1 },
-        { label: 'Anchors', value: '128', unit: 'semantic', trend: 0 },
-      ],
-      activity: seededActivity(now),
-    },
-  });
+    const items = await MindSnapshot.find(filter)
+      .sort({ capturedAt: -1 })
+      .limit(limit)
+      .lean();
+
+    res.json({ success: true, data: items, count: items.length });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// ─── POST ingest ─────────────────────────────────────────────────────────────
+router.post('/', requireIngestKey, async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const raw = parseMindBody(req.body);
+
+    // previous snapshot's metrics = the ▲/▼ trend baseline (read before overwrite)
+    const prev = await MindCurrent.findOne({ key: 'current' }).lean();
+    const prevMetrics = (prev?.metrics as Record<string, number>) ?? {};
+
+    // append to the append-only archive
+    await MindSnapshot.create(raw);
+
+    // recent series (incl. this one), oldest → newest, for the sparkline
+    const recent = await MindSnapshot.find()
+      .sort({ capturedAt: -1 })
+      .limit(TREND_WINDOW)
+      .lean();
+    const inferenceTrend = recent
+      .map((s) => (s.metrics as Record<string, number>)?.[SERIES_METRIC])
+      .filter((n): n is number => typeof n === 'number' && Number.isFinite(n))
+      .reverse();
+
+    const data = buildDerived(raw, prevMetrics, inferenceTrend);
+
+    await MindCurrent.findOneAndUpdate(
+      { key: 'current' },
+      { key: 'current', capturedAt: raw.capturedAt, metrics: raw.metrics, data },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    );
+
+    res.status(201).json({ success: true, data: { capturedAt: raw.capturedAt.toISOString() } });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;
