@@ -9,6 +9,9 @@
     "start": "node dist/index.js",
     "lint": "eslint src/**/*.ts"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

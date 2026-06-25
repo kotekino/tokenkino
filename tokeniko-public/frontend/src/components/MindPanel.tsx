@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MindSnapshot, MIND_FALLBACK } from '../data/mind';
+import { MindSnapshot } from '../data/mind';
 import './MindPanel.css';
-
-const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 const formatUptime = (totalSec: number): string => {
   const d = Math.floor(totalSec / 86_400);
@@ -22,31 +20,21 @@ const formatClock = (iso: string) =>
 
 const trendGlyph = (t?: number) => (t === 1 ? '▲' : t === -1 ? '▼' : '·');
 
-const MindPanel: React.FC = () => {
-  const [mind, setMind] = useState<MindSnapshot>(MIND_FALLBACK);
-  const [live, setLive] = useState(false);
-  const baseUptime = useRef(MIND_FALLBACK.uptimeSec);
+interface Props {
+  mind: MindSnapshot;
+  /** true when the snapshot came from the live API (vs the seeded fallback). */
+  live: boolean;
+}
+
+const MindPanel: React.FC<Props> = ({ mind, live }) => {
+  const baseUptime = useRef(mind.uptimeSec);
   const [tick, setTick] = useState(0);
 
-  // Pull the live snapshot; fall back silently to the mock shape.
+  // Re-seed the uptime clock whenever a fresh snapshot arrives.
   useEffect(() => {
-    let cancelled = false;
-    fetch(`${API_URL}/mind`)
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((payload) => {
-        const data: MindSnapshot = payload?.data ?? payload;
-        if (cancelled || !data?.kpis) return;
-        baseUptime.current = data.uptimeSec ?? baseUptime.current;
-        setMind(data);
-        setLive(true);
-      })
-      .catch(() => {
-        /* offline / mock phase — keep fallback */
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    baseUptime.current = mind.uptimeSec;
+    setTick(0);
+  }, [mind.uptimeSec]);
 
   // Let the uptime clock breathe so the screen feels alive.
   useEffect(() => {

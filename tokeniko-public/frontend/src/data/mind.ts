@@ -25,6 +25,19 @@ export interface MindActivity {
   text: string;
 }
 
+export interface MindBar {
+  label: string;
+  /** 0–100 share for the bar width. */
+  value: number;
+}
+
+export interface MindCharts {
+  /** Inferences per cycle over the recent window — drives the sparkline. */
+  inferenceTrend: number[];
+  /** How held beliefs split across domains — drives the mini bars. */
+  beliefsByDomain: MindBar[];
+}
+
 export interface MindSnapshot {
   /** What tokeniko is doing right now, one line. */
   doing: string;
@@ -38,6 +51,8 @@ export interface MindSnapshot {
   uptimeSec: number;
   kpis: MindKpi[];
   activity: MindActivity[];
+  /** The Signal Scope readout (sparkline + domain bars). */
+  charts: MindCharts;
 }
 
 export const MIND_FALLBACK: MindSnapshot = {
@@ -61,31 +76,13 @@ export const MIND_FALLBACK: MindSnapshot = {
     { at: '2026-06-21T09:40:38Z', text: 'held the floor — refused a ≠ a' },
     { at: '2026-06-21T09:40:20Z', text: 'measured love against hate — 0.86, not opposites' },
   ],
-};
-
-/* ─── Charts (mock) ─────────────────────────────────────────────────────────
-   A second, separate readout below the monitor. Same idea as the KPIs: the
-   shape is the contract, the numbers are simulated during build-out. */
-
-export interface MindBar {
-  label: string;
-  /** 0–100 share for the bar width. */
-  value: number;
-}
-
-export interface MindCharts {
-  /** Inferences per cycle over the recent window — drives a sparkline. */
-  inferenceTrend: number[];
-  /** How held beliefs split across domains — drives mini bars. */
-  beliefsByDomain: MindBar[];
-}
-
-export const MIND_CHARTS_FALLBACK: MindCharts = {
-  inferenceTrend: [38, 41, 36, 52, 48, 63, 59, 71, 66, 80, 77, 92],
-  beliefsByDomain: [
-    { label: 'vocabulary', value: 88 },
-    { label: 'taxonomy', value: 61 },
-    { label: 'logic', value: 47 },
-    { label: 'self', value: 24 },
-  ],
+  charts: {
+    inferenceTrend: [38, 41, 36, 52, 48, 63, 59, 71, 66, 80, 77, 92],
+    beliefsByDomain: [
+      { label: 'vocabulary', value: 88 },
+      { label: 'taxonomy', value: 61 },
+      { label: 'logic', value: 47 },
+      { label: 'self', value: 24 },
+    ],
+  },
 };

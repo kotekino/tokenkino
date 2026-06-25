@@ -30,19 +30,27 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
   (timeseries ensured, serves fallbacks if DB down). Verified end-to-end against Mongo 7.
 - Contract documented in `doc/ingestion-api.md`.
 
+**Frontend live-wiring + coming-soon + deploy** (this milestone)
+- **Live data via backend**: `useMind` + `useTransmissions` hooks read `/api/mind` +
+  `/api/transmissions`; `MindPanel`/`MindCharts` are prop-driven; Stream/Archive render fetched
+  data. Curated bundled data stays the **fallback** (empty Atlas still looks good); the
+  "feed: live / simulated" footer flips automatically on real data.
+- **Coming-soon page** (`/soon`): standalone, on-brand (emblem, teasers of the Stream / Mind
+  Monitor / Signal Scope, Discord CTA) + a `VITE_COMING_SOON` gate flag (default OFF).
+- **Azure deploy ready**: zero-dep SPA server (`frontend/server.cjs`, SPA fallback), `engines`
+  + prod `start` scripts, comma-separated `CORS_ORIGIN`. Full strategy in `doc/deploy-azure.md`.
+
 ---
 
 ## 🔭 Next (ordered)
 
-1. **Wire the frontend to the live API.** `MindPanel` + `MindCharts` read `GET /api/mind`
-   (one fetch, use `data.charts`); the Stream/Archive read `GET /api/transmissions`. Keep the
-   local fallbacks as the offline/empty state; flip the "feed: live" indicator on real data.
-   Optional light polling for the monitor.
+1. **First full publication to Azure** — two App Services per `doc/deploy-azure.md`; run the smoke
+   tests (esp. the authed `POST /api/mind` to prove Atlas + ingestion live).
 2. **Brain push side (local).** The other agent implements the actions-loop publish against
    `doc/ingestion-api.md` (snapshots periodically; transmissions on `tokeniko:post`). Shared
    `INGEST_API_KEY`.
-3. **Deploy.** Backend on the cloud against the public Atlas; `CORS_ORIGIN=https://tokeniko.online`;
-   set the real `INGEST_API_KEY`. Front end at `tokeniko.online`.
+3. **Coming-soon gating.** Once the full publication is verified, flip `VITE_COMING_SOON=1` so the
+   coming-soon page is the only visible page until launch.
 4. **Social card.** Add `public/og-image.png` (1200×630) — re-export from the brand tool with the
    "a thinking machine" tagline; the meta tags already point at it.
 5. **Analytics + cookies.** Wire GA (or a privacy-respecting alternative) behind the existing
@@ -63,5 +71,6 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 - `README.md` — the site's concept + stack + structure.
 - `doc/roadmap.md` — *(this)* the public-site status.
 - `doc/ingestion-api.md` — the brain↔site publish contract (for the local push agent).
+- `doc/deploy-azure.md` — the Azure App Service deploy strategy + smoke tests.
 - Core engine docs live in the sibling `tokeniko/` package (`VISION.md`, `CLAUDE.md`,
   `doc/roadmap.md`).

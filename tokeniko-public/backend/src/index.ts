@@ -17,12 +17,23 @@ const PORT = process.env.PORT || 4000;
 
 // ─── Security Middleware ────────────────────────────────────────────────────
 app.use(helmet());
+
+// CORS_ORIGIN may be a comma-separated list (e.g. the *.azurewebsites.net URL
+// AND the custom domain). Requests with no Origin (curl, the brain's push,
+// same-origin) are allowed through.
+const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin(origin, cb) {
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      cb(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   })
 );
 

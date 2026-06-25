@@ -16,10 +16,13 @@
     "vite": "^5.3.1"
   },
   "scripts": {
-    "start": "vite",
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "start": "node server.cjs",
     "type-check": "tsc --noEmit"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }

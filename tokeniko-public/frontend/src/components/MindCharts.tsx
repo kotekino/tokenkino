@@ -1,20 +1,19 @@
 import React from 'react';
-import { MIND_CHARTS_FALLBACK } from '../data/mind';
+import { MindCharts as MindChartsData } from '../data/mind';
 import './MindCharts.css';
-
-const { inferenceTrend, beliefsByDomain } = MIND_CHARTS_FALLBACK;
 
 // Build an SVG sparkline (area + line) from the trend series.
 const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
   const W = 240;
   const H = 56;
+  if (data.length === 0) return <svg className="charts__spark" viewBox={`0 0 ${W} ${H}`} />;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const span = max - min || 1;
-  const step = W / (data.length - 1);
+  const step = data.length > 1 ? W / (data.length - 1) : 0;
 
   const points = data.map((v, i) => {
-    const x = i * step;
+    const x = data.length > 1 ? i * step : W / 2;
     const y = H - ((v - min) / span) * (H - 6) - 3;
     return [x, y] as const;
   });
@@ -44,27 +43,33 @@ const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
   );
 };
 
-const MindCharts: React.FC = () => (
+interface Props {
+  charts: MindChartsData;
+  /** true when the data came from the live API (vs the seeded fallback). */
+  live?: boolean;
+}
+
+const MindCharts: React.FC<Props> = ({ charts, live = false }) => (
   <section className="charts" aria-label="Mind trends">
     <div className="charts__screen">
       <div className="charts__scanlines" aria-hidden="true" />
 
       <header className="charts__head">
         <span className="charts__title">SIGNAL&nbsp;SCOPE</span>
-        <span className="charts__hint">last 12 cycles</span>
+        <span className="charts__hint">last {charts.inferenceTrend.length} cycles</span>
       </header>
 
       {/* Inference trend */}
       <div className="charts__block">
         <div className="charts__label">INFERENCES / CYCLE</div>
-        <Sparkline data={inferenceTrend} />
+        <Sparkline data={charts.inferenceTrend} />
       </div>
 
       {/* Beliefs by domain */}
       <div className="charts__block">
         <div className="charts__label">BELIEFS BY DOMAIN</div>
         <ul className="charts__bars" role="list">
-          {beliefsByDomain.map((b) => (
+          {charts.beliefsByDomain.map((b) => (
             <li className="charts__bar-row" key={b.label}>
               <span className="charts__bar-name">{b.label}</span>
               <span className="charts__bar-track">
@@ -75,7 +80,7 @@ const MindCharts: React.FC = () => (
         </ul>
       </div>
 
-      <footer className="charts__foot">scope: simulated · mock phase</footer>
+      <footer className="charts__foot">{live ? 'scope: live' : 'scope: simulated · mock phase'}</footer>
     </div>
   </section>
 );
