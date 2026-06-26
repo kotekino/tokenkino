@@ -50,8 +50,19 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
        (D3) is parked; the brain→API seam (sync delegation, idle-time) is the SAME seam
        `speakup`/`post`/`answer` will use, so wonder_one calling the materialize path autonomously is
        built WITH D3 — not reaching into a parked phase from here.
-  4. **General KB-seeding driver.** Seed wondering from definitions/axioms (not just memory):
-     associative (KB-change-gated) + drift, same flat-cost discipline.
+  4. **General KB-seeding driver.** Seed wondering from the KB itself, not just memory — forward-saturate
+     what the KB IMPLIES but no one asserted ("matching memory against itself").
+     - **1d-A ✅ LANDED — the seed-driver `kb_wonder` (parser-free).** Enumerates seeds (individuals
+       with facts + rule-subject classes; flat-cost, bounded by the small rule/fact counts) →
+       forward-chains each → **novelty gate: ≥2 premises** (a genuine COMBINATION of KB items, never a
+       single-rule restatement like "bird has feathers") → semantic dedup → the genuinely-new
+       conclusions with chains + premises. `scripts/wonder_kb.py` = the read-only breadth diagnostic
+       (the soak's dry-run). Verified: 4 new theorems surface (tokeniko/Mari/human exist, Mari mortal);
+       the 1-premise restatements (bird/carnivore/fish) are correctly dropped.
+     - **1d-B (next) — the general renderer.** NLG to verbalize ANY derived conclusion round-trippably
+       (copula-vs-verb, person/number, individual-by-name, class-word) — round-trip already proven
+       viable for all subject types. Unlocks materializing the full breadth (today's `render_conclusion`
+       is first-person-only + breaks on adjectives). Autonomous-in-loop materialization → D3.
   5. **Capstone — the LONG-WONDERING SOAK.** No external input; let tokeniko wonder over its whole KB,
      probe-monitored → surface residual bugs + real capability + genuinely NEW theorems. Both the
      feature's demo and the proof the consolidation held. (Then actions get wired — only once the

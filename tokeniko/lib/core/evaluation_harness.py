@@ -18,7 +18,7 @@ from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRela
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
-from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh
+from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh, evaluator_forwardChain
 
 
 # the injected is_a graph reader: parents(sense) -> direct is_a hypernyms. the ~150k-triple
@@ -391,6 +391,70 @@ def _load_active_kb() -> dict:
     }
     _kb_cache, _kb_cache_fp = kb, fp
     return kb
+
+
+# ------------------------------------------------------------------------------------------------
+# KB-WONDERING (wondering-v2 1d) — the parser-free SEED DRIVER for self-prompted KB derivation.
+# Where memory-wondering re-examines stored ASSERTIONS, KB-wondering forward-SATURATES the KB itself:
+# it seeds the forward-chainer from every entity tokeniko knows and derives what the KB collectively
+# IMPLIES but no one ever asserted ("matching memory against itself"). The genuinely-new theorems.
+#
+# SEEDS (flat-cost — bounded by the small rule/fact counts, NEVER the 150k-edge graph):
+#   INDIVIDUALS — every uid that has a fact (tokeniko, Mari, …): forward-chain from the uid. Yields
+#       concrete derivations ("Mari is mortal" = the membership fact + the mortality rule).
+#   CLASSES — every sense that is a rule subject (carnivore, homo, …): forward-chain from the sense.
+#
+# NOVELTY GATE — materialize ONLY a derivation that COMBINES >= 2 KB premises. A 1-premise derivation
+# is a single rule fired on its own subject class ("all birds have feathers" -> "bird has feathers"),
+# a restatement that adds nothing; >= 2 premises means genuine inference across KB items. (Stricter
+# than 1b's >=1 "not pure-taxonomic" floor — this is the "is it WORTH keeping" bar.) DEDUP by the
+# semantic conclusion signature (subject, predicate, object, negated) so each truth surfaces once.
+#
+# RETURNS the genuinely-new conclusions: {subject, subject_kind, predicate, object, negated, chain,
+# premises}. PURE — derives only; rendering + materialization is the caller's (1d-B renderer + the API).
+_NOVELTY_MIN_PREMISES = 2
+
+def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
+    kb = kb or _load_active_kb()
+    rules, facts, parents = kb["rules"], kb["facts"], kb["relations"]
+
+    # seeds: (subject, subject_uid, subject_sense, kind). individuals chain from the uid; classes
+    # from the sense. dedup the seed set itself (a uid/sense appears in many facts/rules).
+    seeds: list[tuple] = []
+    seen_seeds: set = set()
+    for f in facts:
+        uid = f.get("subject_uid")
+        if uid and uid not in seen_seeds:
+            seen_seeds.add(uid)
+            seeds.append((uid, uid, None, "individual"))
+    for r in rules:
+        cs = r.get("subject")
+        if cs and cs not in seen_seeds:
+            seen_seeds.add(cs)
+            seeds.append((cs, None, cs, "class"))
+
+    out: list[dict] = []
+    seen_conclusions: set = set()
+    for subject, uid, sense, kind in seeds:
+        derived, _ = evaluator_forwardChain(sense, uid, rules, parents, facts)
+        for d in derived:
+            premises = d.get("premises", [])
+            if len(premises) < _NOVELTY_MIN_PREMISES:
+                continue  # novelty gate: a single-rule restatement is not a new theorem
+            sig = (subject, d["predicate"], d.get("object"), bool(d.get("negated", False)))
+            if sig in seen_conclusions:
+                continue  # semantic dedup across seeds
+            seen_conclusions.add(sig)
+            out.append({
+                "subject": subject,
+                "subject_kind": kind,
+                "predicate": d["predicate"],
+                "object": d.get("object"),
+                "negated": bool(d.get("negated", False)),
+                "chain": d["chain"],
+                "premises": premises,
+            })
+    return out
 
 
 def evaluate_zip(statement: TKZip) -> dict:
