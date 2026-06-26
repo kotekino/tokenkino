@@ -17,15 +17,15 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
   perceived memory to the **KB itself**; forward-saturate to new theorems unprompted; flat-cost
   (sampled seed, capped depth); convergence via dedup. Built in this order — **untangle before
   layering** ([[everything-is-kb-untangle-first]]), each step dry-run-verified:
-  1. **Fork ii — property-restricted universals (UNTANGLE FIRST).** Today "everything that thinks
-     exists" mis-compiles to `AND(∅, thinks, exists)` (quant generic, relcl split). Target: quant
-     **UNIVERSAL** + **`IMPLY(cond, concl)`** (subject-less, bound-variable predications) — the exact
-     shape `_FOUNDATIONAL_RULES` hand-writes in code. **A** indefinite-pronoun quantifier
-     (everything/everyone→universal); **B** compiler: relcl-restricted-universal → `IMPLY`, drop the
-     bare subject leaf (mirrors `compiler_implicationOperands`); **C** `_extract_rules` recognizes the
-     universal-IMPLY → `property_conditioned`. Then **SEED it as a KB axiom and DELETE
-     `_FOUNDATIONAL_RULES`** — no load-bearing knowledge hidden in code. Unlocks property-restricted
-     universals generally.
+  1. **Fork ii — property-restricted universals ✅ LANDED (untangle done).** "everything that thinks
+     exists" now compiles to quant **UNIVERSAL** + **`IMPLY(think, exist)`** (sense-less bound-variable
+     predications) — the exact shape `_FOUNDATIONAL_RULES` hand-wrote. **A** indefinite-pronoun
+     quantifier (everything/everyone→universal, subject-token fallback); **B1** parser re-root (Stanza
+     mangles it — roots on the pronoun, demotes the real verb to a ccomp; re-rooted to the clean
+     2-leaf shape); **B2** compiler: universal + sense-less subject + MAIN+ACLRELCL → `IMPLY(condition,
+     conclusion)`; **C** `_extract_rules` recognizes the universal-IMPLY → `property_conditioned`.
+     **SEEDED as a KB axiom + `_FOUNDATIONAL_RULES` DELETED** — the cogito now derives end-to-end from
+     the KB alone (no load-bearing knowledge in code). Unlocks property-restricted universals generally.
   2. **Structured provenance from birth.** Chainer emits `premises` = the **KB-doc ids** the derivation
      rests on (WordNet is_a edges are bedrock substrate, NOT premises) + the readable chain;
      `MEMProvenance{premises, chain, derived_by}` on theorems; thread `EvaluatorResult` too (full

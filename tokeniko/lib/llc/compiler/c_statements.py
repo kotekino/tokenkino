@@ -404,6 +404,18 @@ def compiler_implicationOperands(statement: TKStatement, matrixVerb: str, statem
     consequent.op = TKOperator.IMPLY
     return items
 
+# is the SUBJECT of a content SENSE-LESS? — an indefinite pronoun like everything/everyone/everybody
+# carries NO resolved dictionary WSD sense, whereas a class noun ("cat" in "all cats that bark") does.
+# this is the discriminator that separates a property-restricted universal ("everything that thinks")
+# from a class universal ("all cats that bark"). mirrors compiler_refSense's _entities id->sense read.
+def compiler_subjectIsSenseLess(content: TKLLCContent) -> bool:
+    if not content.subject:
+        return False
+    entity = next((e for e in _entities if content.subject.id == e.entity.id), None)
+    if entity is None:
+        return False
+    return not entity.entity.sense
+
 # stamp the utterance's interrogative mood onto EVERY leaf of a compiled statement. mood is a property
 # of the whole sentence ("the cat is dead and alive?" → both clauses are the question), but leaves are
 # produced by several paths (head clause, coordinated entities, coordinated SUB-statements, subordinates),
@@ -508,6 +520,26 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # standalone clause); otherwise it seeds the result as usual.
     if not suppressMatrixLeaf:
         result.insert(0, TKLLCItem(op=operator,content=mainContent))
+
+    # property-restricted universal -> IMPLY rule. "everything that thinks exists" compiles to a
+    # clean 2-leaf shape: a MAIN conclusion (everything exists) + an ACLRELCL condition (everything
+    # thinks), joined by AND. logically it is a RULE: ∀x: think(x) ⟹ exist(x). rewrite the AND fold
+    # into IMPLY(condition, conclusion) = IMPLY(thinks, exists) by mirroring compiler_implicationOperands
+    # (antecedent seeds the fold with op=AND; consequent carries op=IMPLY; ordered [antecedent, consequent]).
+    # the SENSE-LESS universal subject (an indefinite pronoun "everything"/"everyone", no resolved WSD
+    # sense) is the discriminator vs a CLASS universal ("all cats that bark" — subject "cat" HAS a sense),
+    # so the latter stays an intersective AND. tight signature: universal + sense-less subject + EXACTLY
+    # one MAIN leaf and one ACLRELCL leaf and no other content leaves.
+    if not suppressMatrixLeaf and isinstance(mainContent, TKLLCContent) and mainContent.quantifier == TKQuantifier.UNIVERSAL and compiler_subjectIsSenseLess(mainContent):
+        mainLeaves = [it for it in result if isinstance(it.content, TKLLCContent) and it.content.clause_type == TKClauseType.MAIN]
+        relclLeaves = [it for it in result if isinstance(it.content, TKLLCContent) and it.content.clause_type == TKClauseType.ACLRELCL]
+        otherLeaves = [it for it in result if isinstance(it.content, TKLLCContent) and it.content.clause_type not in (TKClauseType.MAIN, TKClauseType.ACLRELCL)]
+        if len(mainLeaves) == 1 and len(relclLeaves) == 1 and len(otherLeaves) == 0:
+            conclusion = mainLeaves[0]   # the MAIN leaf  ("everything exists") -> consequent
+            condition = relclLeaves[0]   # the ACLRELCL leaf ("everything thinks") -> antecedent
+            condition.op = TKOperator.AND     # antecedent seeds the fold
+            conclusion.op = TKOperator.IMPLY  # consequent carries IMPLY -> IMPLY(T_condition, T_conclusion)
+            result = [condition, conclusion]
 
     # interrogative mood (a question is ANSWERED, not asserted): stamp the parser-detected
     # dubitative/wh_role onto every leaf of this utterance. only for questions — declaratives

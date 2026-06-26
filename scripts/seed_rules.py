@@ -31,6 +31,10 @@ RULES = [
     "all humans are mortal",     # logic/syllogism (chains with "Mari is a human" -> "Mari is mortal")
     "all humans are thinkers",   # MEMBERSHIP rule (human is_a thinker) — enables the 2-hop chain
     "all thinkers exist",        # identity/self (cogito-flavored) — fires on the derived "thinker" class
+    "everything that thinks exists",  # THE COGITO — property-conditioned rule (HAS think.v.01 property
+                                      # => exist), distinct from the membership rule above. fires on
+                                      # tokeniko's "I think" self-fact => derives "tokeniko exists".
+                                      # replaces the old hardcoded _FOUNDATIONAL_RULES (fork ii landed).
 ]
 
 # individual membership FACTS (priority-2 step c): an entity-linked individual asserted into a class.

@@ -102,6 +102,20 @@ def _zip_leaves(item) -> list:
     return out
 
 
+# like _zip_leaves, but returns the leaf-level TKZipItem WRAPPERS (which carry the .op) rather than the
+# bare contents — needed to read the operator (AND/IMPLY/...) a leaf folds with. used to recognize the
+# IMPLY pattern of a property-conditioned rule (see _extract_property_conditioned).
+def _zip_leaf_items(item) -> list:
+    c = item.content
+    if isinstance(c, TKZipContent):
+        return [item]
+    out = []
+    if isinstance(c, list):
+        for child in c:
+            out += _zip_leaf_items(child)
+    return out
+
+
 # the flat set of every WSD sense referenced anywhere in a zip (across all leaf clauses' role->sense
 # maps), sorted+unique. used to stamp TKMemoryItemDoc.senses at write time so associative wondering can
 # find the memories a KB change is relevant to via an indexable {"senses": {"$in": [...]}} query.
@@ -154,20 +168,6 @@ def cross_item_conflict(clauses_a: list, clauses_b: list) -> Optional[str]:
     return union
 
 
-# FOUNDATIONAL PROPERTY-CONDITIONED rules — fired by the forward-chainer when the SUBJECT HAS the
-# condition property (not when it is in a class): "everything that thinks exists". These cannot yet be
-# seeded from natural language (the parser mangles "everything that thinks exists" — the relative-clause
-# restriction splits off and the quantifier never goes universal), so the near-logical FOUNDATION is
-# curated here; migrate to the KB once the parser handles property-restricted universals. THE COGITO:
-# tokeniko has the property fact "I think" => the chainer derives "exists" => "do you exist?" -> YES,
-# a real `chain:` derivation (its first theorem) rather than a seeded conclusion.
-_FOUNDATIONAL_RULES: list = [
-    {"kind": "property_conditioned", "cond_pred": "think.v.01", "cond_obj": None,
-     "concl_pred": "exist.v.01", "concl_obj": None, "concl_negated": False,
-     "original": "everything that thinks exists"},
-]
-
-
 # extract universal RULES from the active axioms for the forward-chainer. a rule leaf is a
 # UNIVERSAL-quantified clause with a subject sense and a predicate sense ("all carnivores eat
 # meat", "all humans are thinkers"). the predicate POS classifies the rule: a NOUN predicate
@@ -195,7 +195,50 @@ def _extract_rules(axiom_docs) -> list:
                 "kind": kind,
                 "original": doc.original,
             })
+        # PROPERTY-CONDITIONED rule: a universal IMPLY over two sense-less-subject predications
+        # ("everything that thinks exists" => think ⟹ exist). Recognized from the compiled IMPLY form
+        # rather than per-leaf (the leaves carry no subject sense), so it is NL-seedable as a real KB
+        # axiom — no hardcoded foundational rule.
+        pc = _extract_property_conditioned(doc.zip)
+        if pc is not None:
+            rules.append({**pc, "original": doc.original})
     return rules
+
+
+# detect a property-conditioned rule in a compiled zip: a universal IMPLY(antecedent, consequent) whose
+# operands are both SENSE-LESS-subject predications (an indefinite universal "everything/everyone that
+# <cond> <concl>"). returns {kind, cond_pred, cond_obj, concl_pred, concl_obj, concl_negated} or None.
+# the antecedent leaf folds with op=AND (seeds), the consequent leaf carries op=IMPLY (see the compiler's
+# property-restricted-universal transform). mirrors the shape the old _FOUNDATIONAL_RULES hand-wrote.
+def _extract_property_conditioned(statement) -> Optional[dict]:
+    items = _zip_leaf_items(statement.items)
+    concl_item = next((it for it in items if it.op == TKOperator.IMPLY), None)
+    if concl_item is None:
+        return None
+    idx = items.index(concl_item)
+    if idx == 0:
+        return None
+    consequent = concl_item.content
+    antecedent = items[idx - 1].content
+    # both operands must be UNIVERSAL and SENSE-LESS-subject (bound variable, no class noun) — that is
+    # what distinguishes "everything that thinks exists" from an intersective class universal.
+    for leaf in (antecedent, consequent):
+        if getattr(leaf, "quantifier", None) != TKQuantifier.UNIVERSAL:
+            return None
+        if (getattr(leaf, "senses", None) or {}).get("subject"):
+            return None
+    cond_pred = (getattr(antecedent, "senses", None) or {}).get("predicate")
+    concl_pred = (getattr(consequent, "senses", None) or {}).get("predicate")
+    if not cond_pred or not concl_pred:
+        return None
+    return {
+        "kind": "property_conditioned",
+        "cond_pred": cond_pred,
+        "cond_obj": (getattr(antecedent, "senses", None) or {}).get("direct"),
+        "concl_pred": concl_pred,
+        "concl_obj": (getattr(consequent, "senses", None) or {}).get("direct"),
+        "concl_negated": bool(getattr(consequent, "negated", False)),
+    }
 
 
 # extract individual FACTS from the active axioms for the forward-chainer + the individual-fact
@@ -303,7 +346,7 @@ def _load_active_kb() -> dict:
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
-        "rules": _extract_rules(axiom_docs) + _FOUNDATIONAL_RULES,
+        "rules": _extract_rules(axiom_docs),
         "facts": _extract_facts(axiom_docs),
     }
     _kb_cache, _kb_cache_fp = kb, fp

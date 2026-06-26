@@ -40,6 +40,13 @@ _ollamaClient: OllamaClient = None
 _talker: MEMStakeholder = None
 _tokeniko: MEMStakeholder = None
 
+# tokens (and their subtrees) to EXCLUDE while gathering subordinates. used ONLY by the
+# universal-relcl re-root (parser_parseSentence): when "everything that thinks exists" is mangled by
+# stanza, the real main verb "exists" hangs off the relcl as a ccomp; while we rebuild the bare relcl
+# condition ("thinks") on the subject we must keep "exists" out of it (it becomes the main predicate
+# instead). scoped tightly: filled right before the subject build and cleared immediately after.
+_exclude_subordinates: set[int] = set()
+
 def parser_init():
     global nlp_stanza, nlp
     
@@ -550,6 +557,8 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     # ----------------------------------------
     subordinates: list[TKFullEntity] = []
     for t in children:
+        # skip a subordinate the universal-relcl re-root has carved out (the demoted main verb)
+        if t.i in _exclude_subordinates: continue
         if parser_isStatement(t):
             subordinate = parser_parseSubordinate(t, quotes)
             if subordinate:
@@ -595,8 +604,35 @@ def parser_getIndirects(tokens: list[Token], quotes: list[tuple[list[Token], lis
 
     return indirectFullEntities
 
+# closed-class universal determiners that make a NOUN root a universally-quantified subject
+_REROOT_UNIVERSAL_DETS = {"all", "every", "each"}
+
+# detect the mangled property-restricted universal ("everything that thinks exists") and return
+# (concl, relcl) when the EXACT signature holds, else None. tight by design — it must fire ONLY on the
+# mangled pattern, never on legit ccomp ("I think that he exists"), non-universal relcl ("the cat that
+# sleeps purrs"), or a universal with no relcl ("everything exists").
+def parser_rerootUniversalRelcl(root: Token, children: list[Token]) -> tuple[Token, Token] | None:
+    # 1) root is a UNIVERSAL subject: an indefinite TOTAL pronoun (everything/everyone/everybody),
+    #    OR a noun carrying an all/every/each determiner.
+    isTotalPron = "Tot" in root.morph.get("PronType")
+    hasUnivDet = any(c.dep_ == "det" and c.lemma_.lower() in _REROOT_UNIVERSAL_DETS for c in children)
+    if not (isTotalPron or hasUnivDet):
+        return None
+
+    # 2) root has an acl:relcl child (the property restriction, e.g. "thinks")
+    relcl = next((c for c in children if c.dep_ == "acl:relcl"), None)
+    if relcl is None:
+        return None
+
+    # 3) that relcl has a ccomp child (the demoted real main verb, e.g. "exists")
+    concl = next((c for c in relcl.children if c.dep_ == "ccomp"), None)
+    if concl is None:
+        return None
+
+    return concl, relcl
+
 # parse sentence (recurively called))
-def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = TKClause.MAIN, subject: Token = None) -> TKStatement: 
+def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause = TKClause.MAIN, subject: Token = None) -> TKStatement:
     global _talker, _tokeniko
 
     # rebuild doc for quotations
@@ -607,7 +643,51 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # all necessary trees
     tokens = list(root.subtree)
     children = list(root.children)
-   
+
+    # ------------------------------------------------------------------------------------------------
+    # UNIVERSAL-RELCL RE-ROOT (mangled property-restricted universal)
+    # ------------------------------------------------------------------------------------------------
+    # stanza MIS-PARSES "everything that thinks exists": it roots on the universal pronoun "everything",
+    # makes "thinks" an acl:relcl child of it, and DEMOTES the real main verb "exists" to a ccomp of
+    # "thinks". the normal path (root == predicate) would then build a bogus "everything"-predicate leaf
+    # + a spurious THAT/ccomp leaf for "exists". we detect that exact (tight) signature and rebuild the
+    # CLEAN shape the well-parsed sibling "everyone who lies is dishonest" already gets: the ccomp verb
+    # ("exists") becomes the MAIN predicate over the universal subject ("everything"), and the relcl
+    # ("thinks") attaches as the subject's acl:relcl condition — WITHOUT dragging in its ccomp child.
+    reroot = parser_rerootUniversalRelcl(root, children)
+    if reroot is not None:
+        # only the ccomp verb is needed here; the relcl is re-gathered as a subject subordinate below
+        rerootConcl, _ = reroot
+
+        # main predicate <- the demoted ccomp verb ("exists"), built exactly like a normal root predicate
+        tkPredicate = parser_getFullEntity(rerootConcl, quotes, TKOperator.AND, True)
+
+        # subject <- the universal pronoun ("everything"); it auto-gathers the relcl ("thinks") as an
+        # acl:relcl subordinate (same as "everyone who lies"), but we exclude the ccomp ("exists") and
+        # its subtree so the condition stays the bare relcl verb, not "thinks -> exists".
+        global _exclude_subordinates
+        _exclude_subordinates = {t.i for t in rerootConcl.subtree}
+        try:
+            tkSubject = parser_getFullEntity(root, quotes)
+        finally:
+            _exclude_subordinates = set()
+
+        tkMain = TKStatement()
+        tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=False, isTalking=True))
+        tkMain.create_entity(payload=TKMetaEntity(who=_tokeniko, isListening=True, isTalking=False))
+        tkMain.clause_type = clause_type
+        if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
+        if tkSubject: tkMain.create_subject(fullEntity=tkSubject)
+
+        # carry interrogative mood the same way the normal path does
+        whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")), None)
+        if whToken is not None or any("?" in t.text for t in tokens):
+            tkMain.dubitative = 1.0
+            if whToken is not None:
+                tkMain.wh_role = anchor_whType(whToken.lemma_)
+
+        return tkMain
+
     # ------------------------------
     # root is predicate
     # ------------------------------
