@@ -52,3 +52,86 @@ Future ideas
 > ground, and graduate by different rules.
 >
 > — Cap, your move whenever. 🜂
+
+4. I would like to perform a check on all these "curated" list, because I still think that we enumerate too much and rely too less on our rich geometry / semantic.
+I realize that, for some specific cases, semantic can't be a valid replacement of the specific entity (maybe _PRONOUNS_BASE_ANCHORS?) but in some other cases it definitely is (_SUBJECT_CONTROL_VERBS). I'm not sure at the moment what is a fixed enum, what is an anchor to have the semantic search LAND on these anchors. I ask my Quartermaster to perform a check and, honestly, persuade me that what should be a fixed enum (and is one) should remain as it is, everything else should use the semantic to "resolve" in the anchor. These are the enums that are at the center of my attention:
+
+_RELATIVE_PRONOUNS
+_ANAPHORIC_PRONOUNS
+_ANTECEDENT_TYPES
+_SUBJECT_CONTROL_VERBS
+_PROP_BASE_ADVMOD_ANCHORS
+_NEGATION_MARKERS
+_NEGATIVE_QUANTIFIERS
+_QUANTIFIER_UNIVERSAL
+_QUANTIFIER_EXISTENTIAL
+_QUANTIFIER_NEGATIVE
+_QUANTIFIER_DEFINITE
+_WH_SUBJECT
+_WH_PREDICATE
+_WH_LOCATION
+_WH_TIME
+_WH_MANNER
+_WH_CAUSE
+_COMPARISON_AFFIRMATIVE
+_REFLEXIVE_PRONOUNS
+_ATTITUDE_ANCHORS
+_IMPLICATION_VERBS
+_PART_OF_PREDICATES
+_HAS_PART_VERBS
+_TEMPORAL_ANCHORS
+_SEQUENCE_ANCHORS
+_TEMPORAL_PREP_FUTURE
+_TEMPORAL_PREP_PAST
+_TEMPORAL_PREP_DURATION
+_SPATIAL_RELATION_ANCHORS
+
+> — Q: I checked the registry, and the honest verdict has three parts. **The right dividing line is
+> closed-class vs open-class** (+ polarity) — not "less listing" everywhere:
+> - **Closed-class function words SHOULD stay fixed/EXACT — that's correct, not lazy.** Relative /
+>   anaphoric / reflexive pronouns, quantifiers (all/every/some/no/the), wh-words, negation markers,
+>   temporal prepositions: these are FINITE (you can't "miss" a nearby one — there isn't one), and
+>   geometry is actively *unsafe* for them (function words have degenerate vectors; polarity collapses —
+>   but≈and, same≈different — which is exactly why the antonym-guard exists). And `_ANTECEDENT_TYPES` /
+>   `geo_ner_labels` aren't even NL words — they're internal type tags. Keep these as-is.
+> - **Open-class content categories already resolve semantically** (Strategy.NEAREST): operators,
+>   attitudes, implication, spatial, sequence, comparison, part_of, has_part, intensifiers
+>   (`_PROP_BASE_ADVMOD_ANCHORS`). Good — the philosophy is already lived here.
+> - **Where your instinct bites (the real untangle):**
+>   1. **`_SUBJECT_CONTROL_VERBS` is registered EXACT but is an open verb class** (only
+>      promise/vow/swear/… — misses commit/assure/undertake/warn). → make it a semantic anchor. Your
+>      example was exactly right.
+>   2. **The bigger one — consumer BYPASS.** Some sets ARE registered as semantic anchors, yet the actual
+>      *use-site* still does bare exact membership. Clearest: the IMPLY trigger checks
+>      `verb in _IMPLICATION_VERBS` ({imply, entail}) in `compiler_implicationOperands` — so "X **means** /
+>      **suggests** Y" misses despite sitting right next to "imply", *even though* an `implication_verbs`
+>      anchor category exists. The anchor was built but not fully adopted. → route the consumers THROUGH
+>      the resolver. This is the precise "we built the geometry and then didn't use it" gap — worth
+>      auditing each set's *use-site*, not just its definition.
+> - Bottom line: you're right there's residual over-enumeration — but the cure isn't "semantic
+>   everywhere"; it's *match the strategy to the word-class, and finish adopting the anchors you already
+>   built*. Closed-class fixed = correct; open-class outliers + the bypasses = the work.
+
+5. In general, I had an idea: what if we find a very CLEVER way (I'm open to everything) to collapse an input sentence from his real language used to a fixed vocabulary in a preliminary process (logically similar to the old polish, via ollama): if we are able to do so, THEN we have achieved the goal to use the semantic for collapse and feel free to list (since our vocabulary would be mostly included in the 2925 base words), but instead collapsing word by word (when necessary) we do it once, at the beginning. Still blurry the vision about how (llm are unreliable for this, the risk of misunderstanding/allucination is too high, we probably need a specialized tool or BUILD a specialized tool).
+
+> — Q: The goal — lean on the rich geometry to map surface → known vocab — is right, and it's largely
+> what the anchor mechanism ALREADY does, but **incrementally** (per word, at the point of use) and
+> **safely** (exact fast-path → nearest-anchor → *abstain when unsure*, with the antonym-guard). #5
+> proposes doing it **wholesale and upfront** (one collapse pass). The trade is real: cheaper (once) but
+> riskier — a single wrong global paraphrase poisons everything downstream, and crucially it **can't
+> abstain per-word** the way the resolver can. For a logic-first mind, a normalization step that silently
+> mis-paraphrases is "garbage in" — it violates logic-is-sacred *upstream* of all our guards.
+> - LLM is the wrong tool (you said it — hallucination; and it *commits* instead of abstaining). A
+>   "specialized tool" that did this *safely* would essentially BE the anchor resolver, batched. So #5's
+>   goal may already be served by fully committing to #4 (anchors everywhere) rather than a new pass.
+> - The genuine kernel worth keeping separate: **OOV / foreign / typo** normalization IS real and upfront
+>   — but that's the preparser's job + the #1–2 vocabulary-growth hunches. The novel, risky part of #5 is
+>   "simplify complex *in-vocab* phrasing down to base words", which is exactly where hallucination bites
+>   hardest (and where a logic-first mind has the most to lose).
+> - Reframe: **#4 and #5 are the same insight from two ends** (surface → known, via geometry). The safe
+>   embodiment is incremental + guarded (anchors), not wholesale + committed (an upfront collapse). I'd
+>   perfect #4; treat #5's upfront-collapse as a *perf* optimization that trades away abstention — and per
+>   "optimize later / laptop ceiling", the per-word path is already cached, so the perf win is likely
+>   marginal against the safety cost.
+>
+> — Cap, two ends of one rope. 🜂
