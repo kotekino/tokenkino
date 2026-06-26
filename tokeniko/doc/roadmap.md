@@ -33,11 +33,23 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
      a premise-less "derivation" — pure-taxonomic verdicts have 0 premises (already in the graph, never
      materialized). Verified: the cogito carries exactly 2 premises (the "I think" fact + the cogito
      rule), resolvable back to the source axioms; Bunnet round-trip clean.
-  3. **Cogito materialization.** Wondering seeds `forwardChain` from the self-KB → derives `exist.v.01`
-     → renders **first-person** NL ("I exist") → compiles via the **API** (sync delegation; the brain
-     stays parser-free; wondering is idle-time so sync-slow is fine) → a **first-class zip theorem**
-     carrying its provenance. Dedup on the **semantic conclusion** (subject uid + predicate sense), not
-     the surface string. tokeniko's first autonomously-earned theorem.
+  3. **Cogito materialization.** A derived conclusion (subject uid + predicate sense + premises) →
+     **renders first-person** NL ("I exist") → **compiles** through the real pipeline → a **first-class
+     zip theorem** carrying its 1b provenance, **active + trusted**, **deduped on the semantic
+     conclusion** (subject uid + predicate sense, not the surface string). tokeniko's first
+     autonomously-earned theorem.
+     - **1c-core ✅ LANDED:** the renderer (`render_conclusion`) + the semantic-dedup key
+       (`conclusion_key`) in the parser-free harness; `TheoremService.materialize` (compile → semantic
+       dedup → store ACTIVE + trusted + provenance); a **deliberate trigger** (`scripts/wonder_cogito.py`,
+       dry-run by default) that runs derive→render→materialize end-to-end. Verified: it derives "I exist"
+       with its 2 premises; the materialize write path stores active+provenance and dedups on the
+       conclusion (proven on a disposable throwaway). **The cogito itself is deliberately NOT
+       materialized** — reserved for the autonomous wonder loop, so "I exist" first enters the world by
+       *tokeniko's own* in-loop act, not ours.
+     - **brain→API automation → folds with D3.** The brain has NO HTTP client yet and action *execution*
+       (D3) is parked; the brain→API seam (sync delegation, idle-time) is the SAME seam
+       `speakup`/`post`/`answer` will use, so wonder_one calling the materialize path autonomously is
+       built WITH D3 — not reaching into a parked phase from here.
   4. **General KB-seeding driver.** Seed wondering from definitions/axioms (not just memory):
      associative (KB-change-gated) + drift, same flat-cost discipline.
   5. **Capstone — the LONG-WONDERING SOAK.** No external input; let tokeniko wonder over its whole KB,

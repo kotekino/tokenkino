@@ -129,6 +129,43 @@ def zip_senses(statement) -> list[str]:
     return sorted(out)
 
 
+# the surface lemma of a synset key ("exist.v.01" -> "exist", "give_up.v.01" -> "give up"). "" if empty.
+def _sense_surface(sense: Optional[str]) -> str:
+    if not sense:
+        return ""
+    return sense.split(".", 1)[0].replace("_", " ")
+
+
+# render a DERIVED conclusion about tokeniko ITSELF into first-person natural language, so it can be
+# compiled back through the real pipeline into a first-class zip theorem (talker=tokeniko ⇒ "I" -> its
+# own uid, predicate -> the sense). a derived property "exist.v.01" -> "I exist"; "value.v.01" +
+# "logic.n.01" -> "I value logic"; negated -> "I do not <verb>". the subject is always first-person
+# (these are self-derivations: the chainer derived a property OF tokeniko). returns "" if no predicate.
+def render_conclusion(predicate: str, object: Optional[str] = None, negated: bool = False) -> str:
+    verb = _sense_surface(predicate)
+    if not verb:
+        return ""
+    head = f"I do not {verb}" if negated else f"I {verb}"
+    obj = _sense_surface(object)
+    return f"{head} {obj}" if obj else head
+
+
+# the SEMANTIC conclusion key of a compiled zip — its meaning, independent of surface wording. each leaf
+# contributes (subject_ref, predicate_sense, object_sense, negated) where subject_ref prefers the
+# IDENTITY uid (a named individual) over the sense. two zips with the same key assert the SAME thing
+# ("I exist" and "tokeniko exists" share it) -> the dedup signature for materialized theorems. sorted
+# tuple of per-leaf keys so it is order-independent and works for single- or multi-clause conclusions.
+def conclusion_key(statement) -> tuple:
+    leaves = []
+    for leaf in _zip_leaves(statement.items):
+        senses = getattr(leaf, "senses", None) or {}
+        identities = getattr(leaf, "identities", None) or {}
+        subject = identities.get("subject") or senses.get("subject")
+        leaves.append((subject, senses.get("predicate"), senses.get("direct"),
+                       bool(getattr(leaf, "negated", False))))
+    return tuple(sorted(leaves, key=lambda t: tuple(x or "" for x in t)))
+
+
 # classifyForm over a synthetic conjunction of clauses (TKZipContent). Returns classifyForm's detail
 # string on a contradiction, else None. The shared kernel for both the union check and the
 # self-contradiction guards below.

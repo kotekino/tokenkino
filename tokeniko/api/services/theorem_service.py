@@ -13,10 +13,11 @@ from lib.llc.parser import parser
 from lib.llc.compiler import compiler_compile
 from lib.llc.decompiler import decompiler_raw
 from lib.core.models import TKTheoremDoc
-from lib.core.memory import MEMChannels
+from lib.core.memory import MEMChannels, MEMProvenance
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
+from lib.core.evaluation_harness import conclusion_key
 from api.services.validation import assert_no_contradiction
 
 
@@ -67,6 +68,35 @@ class TheoremService:
     # single theorem (full document, zip included)
     def get(self, object_id: str) -> TKTheoremDoc:
         return self._resolve(object_id)
+
+    # MATERIALIZE a DERIVED conclusion as a first-class theorem (wondering-v2 1c). Unlike create()
+    # (manual authoring: archived, no provenance), this stores the theorem tokeniko DERIVED himself:
+    # ACTIVE (archived=False -> joins reasoning), trusted, carrying its PROOF (MEMProvenance from the
+    # chainer). `tokens` is the rendered first-person NL ("I exist"); it is compiled through the real
+    # pipeline (talker=tokeniko ⇒ "I" -> its own uid) so the theorem is a genuine zip, not a fabricated
+    # one. DEDUP is on the SEMANTIC conclusion (subject uid + predicate sense), not the surface string,
+    # so a truth already held is not re-stored under different wording -> wondering converges. Returns
+    # the existing theorem (no write) when the conclusion is already known, else the newly-stored one.
+    def materialize(self, tokens: str, provenance: MEMProvenance, trusted: float = 0.9) -> TKTheoremDoc:
+        fields = self.compile_fields(tokens)
+        assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
+        key = conclusion_key(fields["zip"])
+        for existing in TKTheoremDoc.find({"archived": False}).to_list():
+            if existing.zip is not None and conclusion_key(existing.zip) == key:
+                return existing  # the conclusion is already held (semantic dedup) — converge, no write
+        theorem = TKTheoremDoc(
+            original=fields["original"],
+            zip=fields["zip"],
+            raw=fields["raw"],
+            sourceId=str(self._tokeniko.id),   # tier-2: tokeniko derived it — speaker-irrelevant
+            targetId=str(self._tokeniko.id),
+            channel=MEMChannels.INTERNAL,
+            archived=False,                    # ACTIVE -> joins reasoning (model default is archived=True)
+            trusted=trusted,
+            provenance=provenance,             # the proof: premises + chain + derived_by
+        )
+        theorem.insert()
+        return theorem
 
     # insert a new theorem from a sentence
     def create(self, tokens: str) -> TKTheoremDoc:
