@@ -53,7 +53,7 @@ def main():
 
     print(f"  tokeniko derived {len(derived)} conclusion(s) from its self-KB:")
     for d in derived:
-        nl = H.render_conclusion(d["predicate"], d.get("object"), d.get("negated", False))
+        nl = H.render_conclusion("tokeniko", d["predicate"], d.get("object"), d.get("negated", False), "individual")
         print(f"    • {nl!r}  <-  {d['chain']}")
         print(f"        premises ({len(d['premises'])}): {d['premises']}")
         for pid in d["premises"]:
@@ -66,7 +66,7 @@ def main():
 
     print()
     for d in derived:
-        nl = H.render_conclusion(d["predicate"], d.get("object"), d.get("negated", False))
+        nl = H.render_conclusion("tokeniko", d["predicate"], d.get("object"), d.get("negated", False), "individual")
         if not nl:
             continue
         # the proof rides with the theorem (1b provenance).

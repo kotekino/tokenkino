@@ -14,6 +14,7 @@
 # --------------------------------------------------------------
 from typing import Optional
 
+from lib.core.constants import _ME_UID
 from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKTheoremDoc
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
@@ -136,18 +137,105 @@ def _sense_surface(sense: Optional[str]) -> str:
     return sense.split(".", 1)[0].replace("_", " ")
 
 
-# render a DERIVED conclusion about tokeniko ITSELF into first-person natural language, so it can be
-# compiled back through the real pipeline into a first-class zip theorem (talker=tokeniko ⇒ "I" -> its
-# own uid, predicate -> the sense). a derived property "exist.v.01" -> "I exist"; "value.v.01" +
-# "logic.n.01" -> "I value logic"; negated -> "I do not <verb>". the subject is always first-person
-# (these are self-derivations: the chainer derived a property OF tokeniko). returns "" if no predicate.
-def render_conclusion(predicate: str, object: Optional[str] = None, negated: bool = False) -> str:
-    verb = _sense_surface(predicate)
-    if not verb:
+# conjugate a base verb to its 3rd-person-singular form ("exist" -> "exists", "carry" -> "carries",
+# "go" -> "goes", "kiss" -> "kisses"). irregulars handled explicitly. used to render a conclusion
+# about a third-person-singular subject (a named individual or a generic class).
+_IRREGULAR_3SG = {"have": "has", "be": "is", "do": "does"}
+_VOWELS = "aeiou"
+
+
+def _verb_3sg(base: str) -> str:
+    if base in _IRREGULAR_3SG:
+        return _IRREGULAR_3SG[base]
+    if not base:
+        return base
+    if base.endswith(("s", "x", "z", "ch", "sh")):
+        return base + "es"
+    if base.endswith("y") and len(base) >= 2 and base[-2] not in _VOWELS:
+        return base[:-1] + "ies"
+    if base.endswith("o"):
+        return base + "es"
+    return base + "s"
+
+
+# pick a SINGULAR, natural dictionary word for a class sense, for the "a <word>" generic subject.
+# query the dictionary for every word mapped to this sense, drop the plurals (an "-s" word that has a
+# non-"-s" sibling), then PREFER the longest remaining singular (favours "human" over "homo"). cheap
+# single DB query; parser-free. falls back to the synset lemma surface if nothing is found.
+def _class_word(sense: str) -> str:
+    if not sense:
         return ""
-    head = f"I do not {verb}" if negated else f"I {verb}"
+    docs = TKDictionaryDoc.find({"sense": sense}).to_list()
+    words = [d.word for d in docs if getattr(d, "word", None)]
+    if not words:
+        return _sense_surface(sense)
+    word_set = set(words)
+    # drop a plural "-s" form when its singular sibling is also a candidate
+    singulars = [w for w in words if not (w.endswith("s") and w[:-1] in word_set)]
+    candidates = singulars or words
+    # prefer the longest -> "human" over "homo"
+    return max(candidates, key=len)
+
+
+# render a DERIVED conclusion about ANY subject into round-trippable natural language, so it can be
+# compiled back through the real pipeline into a first-class zip theorem that re-yields the SAME
+# (subject, predicate, object, negated). subject is one of: tokeniko's uid (-> first-person "I"), an
+# individual uid like "mari@internal:tokeniko" (-> the capitalized name, 3rd-sing), or a class sense
+# like "homo.n.02" (-> a generic "a <word>", 3rd-sing). the predicate POS is read off the sense key
+# (".v." verb, ".a."/".s." adjective, ".n." noun) and drives the verbalization + agreement:
+#   verb     -> conjugated ("I exist", "Mari exists"); negated -> "do/does not <base>".
+#   adjective-> copula + adjective ("I am finite", "Mari is mortal"); negated -> "is not <adj>".
+#   noun     -> copula + article + noun ("Mari is a human"); negated -> "is not a <noun>".
+# returns "" if no predicate.
+def render_conclusion(subject: str, predicate: str, object: Optional[str] = None,
+                      negated: bool = False, subject_kind: Optional[str] = None) -> str:
+    word = _sense_surface(predicate)
+    if not word:
+        return ""
+
+    # ---- subject phrase + grammatical agreement (person/number) ----
+    if subject == _ME_UID:
+        subject_text, first_person = "I", True
+    elif subject_kind == "individual":
+        name = (subject or "").split("@", 1)[0]
+        subject_text = (name[:1].upper() + name[1:]) if name else subject
+        first_person = False
+    elif subject_kind == "class":
+        subject_text = "a " + _class_word(subject)
+        first_person = False
+    else:
+        # fallback: looks like a noun sense -> treat as a generic class, else surface it
+        if subject and ".n." in subject:
+            subject_text = "a " + _class_word(subject)
+        else:
+            subject_text = _sense_surface(subject) or subject
+        first_person = False
+
+    base_copula = "am" if first_person else "is"
     obj = _sense_surface(object)
-    return f"{head} {obj}" if obj else head
+
+    # ---- predicate verbalization, POS-driven ----
+    if ".v." in (predicate or ""):
+        if first_person:
+            verb = f"do not {word}" if negated else word
+        else:
+            verb = f"does not {word}" if negated else _verb_3sg(word)
+        head = f"{subject_text} {verb}"
+        return f"{head} {obj}" if obj else head
+
+    if ".a." in (predicate or "") or ".s." in (predicate or ""):
+        adj = f"not {word}" if negated else word
+        head = f"{subject_text} {base_copula} {adj}"
+        return f"{head} {obj}" if obj else head
+
+    if ".n." in (predicate or ""):
+        article = "an" if word[:1].lower() in _VOWELS else "a"
+        comp = f"not {article} {word}" if negated else f"{article} {word}"
+        head = f"{subject_text} {base_copula} {comp}"
+        return f"{head} {obj}" if obj else head
+
+    # unknown POS: best-effort surface
+    return f"{subject_text} {word}"
 
 
 # the SEMANTIC conclusion key of a compiled zip — its meaning, independent of surface wording. each leaf

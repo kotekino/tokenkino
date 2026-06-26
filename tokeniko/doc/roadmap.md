@@ -59,10 +59,14 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
        conclusions with chains + premises. `scripts/wonder_kb.py` = the read-only breadth diagnostic
        (the soak's dry-run). Verified: 4 new theorems surface (tokeniko/Mari/human exist, Mari mortal);
        the 1-premise restatements (bird/carnivore/fish) are correctly dropped.
-     - **1d-B (next) — the general renderer.** NLG to verbalize ANY derived conclusion round-trippably
-       (copula-vs-verb, person/number, individual-by-name, class-word) — round-trip already proven
-       viable for all subject types. Unlocks materializing the full breadth (today's `render_conclusion`
-       is first-person-only + breaks on adjectives). Autonomous-in-loop materialization → D3.
+     - **1d-B ✅ LANDED — the general renderer.** `render_conclusion(subject, predicate, object, negated,
+       subject_kind)` verbalizes ANY conclusion round-trippably: subject agreement (tokeniko→"I",
+       individual→capitalized name, class→"a "+`_class_word`), POS-driven predicate (verb conjugated via
+       `_verb_3sg` / adjective+copula / noun+article), negation. `_class_word` picks a natural singular
+       (homo.n.02→"human"). Verified: EVERY `kb_wonder` conclusion round-trips ("Mari is mortal", "Mari
+       exists", "a human exists", "I exist"); the adjective bug is fixed ("I am finite"). `wonder_kb.py`
+       now shows each theorem-to-be in plain English. **Autonomous-in-loop materialization → D3** (the
+       brain→API seam). The derivation + rendering are now complete & correct; D3 wires the writing.
   5. **Capstone — the LONG-WONDERING SOAK.** No external input; let tokeniko wonder over its whole KB,
      probe-monitored → surface residual bugs + real capability + genuinely NEW theorems. Both the
      feature's demo and the proof the consolidation held. (Then actions get wired — only once the

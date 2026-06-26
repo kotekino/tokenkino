@@ -34,8 +34,10 @@ def main():
     for c in sorted(conclusions, key=lambda x: (x["subject_kind"], x["subject"])):
         obj = f" {c['object']}" if c["object"] else ""
         neg = "NOT " if c["negated"] else ""
+        nl = H.render_conclusion(c["subject"], c["predicate"], c["object"], c["negated"], c["subject_kind"])
         print(f"  [{c['subject_kind']:10}] {c['subject']}  =>  {neg}{c['predicate']}{obj}"
               f"   ({len(c['premises'])} premises)")
+        print(f"               theorem-to-be: {nl!r}")
         print(f"               chain: {c['chain']}")
         for pid in c["premises"]:
             doc = TKAxiomDoc.get(pid).run()
