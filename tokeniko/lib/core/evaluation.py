@@ -27,6 +27,10 @@ class EvaluatorResult(BaseModel):
     # premise chain(s) for a KB-derived verdict (taxonomic subsumption -> truth~1, or kingdom-level
     # refutation -> truth~0). each entry is a human-readable is_a chain / disjointness witness.
     derivation: list[str] = Field(default_factory=list)
+    # PROVENANCE: the KB-DOC ids the derivation rests on (the seed facts' source axioms + the rule
+    # axioms fired) — the union across all graph-decided clauses. NOT the WordNet is_a edges walked
+    # (bedrock substrate). empty for a pure-taxonomic verdict; non-empty for a rule/fact derivation.
+    premises: list[str] = Field(default_factory=list)
 
 
 # --------------------------------------------------

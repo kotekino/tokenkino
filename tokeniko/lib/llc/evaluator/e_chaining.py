@@ -47,24 +47,38 @@ def _is_noun_sense(sense: Optional[str]) -> bool:
 
 
 # add `sense` and its is_a ancestors to the closure C, recording provenance for each newly-added
-# class. `base_chain` is the provenance of how `sense` itself entered C (e.g. the seed fact, or a
-# membership rule). closure[c] holds the human-readable chain explaining why c is in C.
-def _add_with_ancestors(sense: str, base_chain: str, closure: dict[str, str], parents: Parents) -> bool:
+# class. `base_chain` is the human-readable provenance of how `sense` itself entered C (e.g. the seed
+# fact, or a membership rule); `base_premises` is the SET of KB-doc ids that entry rests on. closure[c]
+# holds the chain; closure_premises[c] holds the premise-id set. NB: the is_a ANCESTORS inherit
+# base_premises UNCHANGED — walking the WordNet graph adds NO premise (is_a edges are bedrock substrate,
+# never a retractable KB premise). that is the integrity invariant, enforced here at the source.
+def _add_with_ancestors(sense: str, base_chain: str, closure: dict[str, str], parents: Parents,
+                        base_premises: frozenset, closure_premises: dict[str, frozenset]) -> bool:
     added = False
     if sense not in closure:
         closure[sense] = base_chain
+        closure_premises[sense] = base_premises
         added = True
     for anc, path in relations_isa_ancestors(sense, parents).items():
         if anc not in closure:
             closure[anc] = base_chain + " -> " + " —is_a→ ".join(path)
+            closure_premises[anc] = base_premises  # is_a edges are bedrock, NOT premises
             added = True
     return added
 
 
+# a rule/fact's source axiom id as a 1-element premise set (empty if it carries none — defensive).
+def _premise_of(rule_or_fact: dict) -> frozenset:
+    sid = rule_or_fact.get("source_id")
+    return frozenset({sid}) if sid else frozenset()
+
+
 # run the forward-chainer for one subject (a sense and/or an individual uid). returns
 # (derived_props, chains) where derived_props is a list of dicts
-#   {predicate, object, negated, chain}
-# and `chains` is the list of all property-derivation chains (same as the per-prop chains).
+#   {predicate, object, negated, chain, premises}
+# `premises` is the sorted list of KB-doc ids that conclusion rests on (the seed facts' source axioms +
+# the rule axioms fired to reach it — NEVER the is_a edges walked, which are bedrock). `chains` is the
+# list of all property-derivation chains (same as the per-prop chains).
 def evaluator_forwardChain(
     subject_sense: Optional[str],
     subject_uid: Optional[str],
@@ -73,10 +87,12 @@ def evaluator_forwardChain(
     facts: list,
     max_hops: int = 6,
 ) -> tuple[list[dict], list[str]]:
-    # ---- 1. seed the class closure C (sense -> provenance chain) ----
+    # ---- 1. seed the class closure C (sense -> provenance chain; sense -> premise-id set) ----
     closure: dict[str, str] = {}
+    closure_premises: dict[str, frozenset] = {}
     if subject_sense:
-        _add_with_ancestors(subject_sense, subject_sense, closure, parents)
+        # the subject's OWN sense comes from the INPUT clause, not a KB doc -> no premise.
+        _add_with_ancestors(subject_sense, subject_sense, closure, parents, frozenset(), closure_premises)
     if subject_uid:
         for fact in facts:
             if fact.get("subject_uid") != subject_uid:
@@ -85,7 +101,8 @@ def evaluator_forwardChain(
             if not klass:
                 continue
             base = f"{subject_uid} is_a {klass} (fact)"
-            _add_with_ancestors(klass, base, closure, parents)
+            # the membership fact rests on its source axiom.
+            _add_with_ancestors(klass, base, closure, parents, _premise_of(fact), closure_premises)
 
     # display name for the subject in the chains. NB: NO early-return on an empty closure — an
     # individual (e.g. tokeniko) may have no class membership yet still satisfy a PROPERTY-CONDITIONED
@@ -107,7 +124,9 @@ def evaluator_forwardChain(
                     + f" -> all {r_subj} are {r_pred}"
                     + f" -> {subject_name} is_a {r_pred}"
                 )
-                if _add_with_ancestors(r_pred, base, closure, parents):
+                # the new class rests on what put r_subj in C PLUS this rule's axiom.
+                base_prem = closure_premises[r_subj] | _premise_of(r)
+                if _add_with_ancestors(r_pred, base, closure, parents, base_prem, closure_premises):
                     changed = True
         if not changed:
             break  # fixpoint reached
@@ -131,6 +150,7 @@ def evaluator_forwardChain(
             "object": r.get("object"),
             "negated": bool(r.get("negated", False)),
             "chain": chain,
+            "premises": closure_premises[r_subj] | _premise_of(r),
         })
 
     # ---- 4. fire PROPERTY-CONDITIONED rules ("everything that thinks exists") ----
@@ -139,15 +159,17 @@ def evaluator_forwardChain(
     # to a fixpoint (a derived property can satisfy another rule's condition — the cogito can cascade).
     pc_rules = [r for r in rules if r.get("kind") == "property_conditioned"]
     if pc_rules:
-        props: dict[tuple, str] = {}  # (predicate, object) the subject HAS -> the chain explaining why
+        # (predicate, object) the subject HAS -> (chain explaining why, premise-id set behind it).
+        props: dict[tuple, tuple[str, frozenset]] = {}
         if subject_uid:
             for f in facts:
                 if (f.get("subject_uid") == subject_uid and f.get("predicate")
                         and not f.get("klass_sense") and not f.get("negated", False)):
-                    props[(f["predicate"], f.get("object"))] = f"{subject_name} {f['predicate']} (fact)"
+                    props[(f["predicate"], f.get("object"))] = (
+                        f"{subject_name} {f['predicate']} (fact)", _premise_of(f))
         for d in derived:
             if not d.get("negated", False):
-                props[(d["predicate"], d.get("object"))] = d["chain"]
+                props[(d["predicate"], d.get("object"))] = (d["chain"], d["premises"])
         for _ in range(max_hops):
             changed = False
             for r in pc_rules:
@@ -155,30 +177,39 @@ def evaluator_forwardChain(
                 concl_p, concl_o = r.get("concl_pred"), r.get("concl_obj")
                 if not cond_p or not concl_p or (concl_p, concl_o) in props:
                     continue
-                base = next((b for (p, o), b in props.items()
+                base = next(((b, prem) for (p, o), (b, prem) in props.items()
                              if p == cond_p and (cond_o is None or o is None or o == cond_o)), None)
                 if base is None:
                     continue
-                chain = base + f" -> all that {cond_p} {concl_p} -> {subject_name} {concl_p}"
+                base_chain, base_prem = base
+                chain = base_chain + f" -> all that {cond_p} {concl_p} -> {subject_name} {concl_p}"
+                # the conclusion rests on the condition-property's premises PLUS this rule's axiom.
+                concl_prem = base_prem | _premise_of(r)
                 derived.append({"predicate": concl_p, "object": concl_o,
-                                "negated": bool(r.get("concl_negated", False)), "chain": chain})
-                props[(concl_p, concl_o)] = chain
+                                "negated": bool(r.get("concl_negated", False)),
+                                "chain": chain, "premises": concl_prem})
+                props[(concl_p, concl_o)] = (chain, concl_prem)
                 changed = True
             if not changed:
                 break
+
+    # surface premises as a sorted list per conclusion (frozensets are an internal accumulation detail).
+    for d in derived:
+        d["premises"] = sorted(d.get("premises", frozenset()))
 
     return derived, [d["chain"] for d in derived]
 
 
 # the grounding hook (mirrors _ground_relationally in e_statement): decide the input clause via the
-# chaining engine. returns (truth, chain) when chaining decides it, else None (fall through). a
-# KB-refutation is a RESOLVED truth~0 with a chain — NOT inconsistent.
+# chaining engine. returns (truth, chain, premises) when chaining decides it, else None (fall through).
+# `premises` = the KB-doc ids the derivation rests on (provenance). a KB-refutation is a RESOLVED
+# truth~0 with a chain — NOT inconsistent.
 def evaluator_chainGround(
     content: TKZipContent,
     rules: list,
     parents: Parents,
     facts: list,
-) -> Optional[tuple[float, str]]:
+) -> Optional[tuple[float, str, list]]:
     senses = getattr(content, "senses", None) or {}
     identities = getattr(content, "identities", None) or {}
 
@@ -207,6 +238,7 @@ def evaluator_chainGround(
     if match is None:
         return None  # chaining doesn't decide -> fall through
 
+    premises = match.get("premises", [])
     if match["negated"] == negated:
         base = _TAXO_TRUE
         chain = "chain: " + match["chain"]
@@ -225,20 +257,21 @@ def evaluator_chainGround(
     chain += f" | quantifier={quantifier.value} negated={negated}"
     if net_flip:
         chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
-    return truth, chain
+    return truth, chain, premises
 
 
 # ground an INDIVIDUAL-subject clause directly against the stored individual PROPERTY facts (no
 # rules, no closure). "tokeniko thinks" is a stored property fact; a question "do you think?" resolves
 # you -> tokeniko (same uid) and grounds here, deciding it BEFORE the Pillar-2 individual-abstain.
-# returns (truth, chain) on a matching property fact, else None (fall through). matching: same
-# subject uid + same predicate sense, and (the fact has no object OR the input has no object OR the
-# objects match). corroborate/refute by negation parity (mirrors evaluator_chainGround's tail). NB:
-# quantifier net_flip is NOT applied — these are individual facts, not universals.
+# returns (truth, chain, premises) on a matching property fact, else None (fall through). `premises` =
+# the fact's source-axiom id. matching: same subject uid + same predicate sense, and (the fact has no
+# object OR the input has no object OR the objects match). corroborate/refute by negation parity
+# (mirrors evaluator_chainGround's tail). NB: quantifier net_flip is NOT applied — these are individual
+# facts, not universals.
 def evaluator_groundIndividualFact(
     content: TKZipContent,
     facts: list,
-) -> Optional[tuple[float, str]]:
+) -> Optional[tuple[float, str, list]]:
     identities = getattr(content, "identities", None) or {}
     senses = getattr(content, "senses", None) or {}
 
@@ -266,6 +299,7 @@ def evaluator_groundIndividualFact(
 
     fact_negated = bool(match.get("negated", False))
     original = match.get("original", "")
+    premises = [match["source_id"]] if match.get("source_id") else []
     if fact_negated == negated:
-        return _TAXO_TRUE, "fact: " + original
-    return _TAXO_FALSE, "KB-refuted: " + original + " | input negates the fact"
+        return _TAXO_TRUE, "fact: " + original, premises
+    return _TAXO_FALSE, "KB-refuted: " + original + " | input negates the fact", premises

@@ -194,6 +194,7 @@ def _extract_rules(axiom_docs) -> list:
                 "negated": bool(getattr(leaf, "negated", False)),
                 "kind": kind,
                 "original": doc.original,
+                "source_id": str(doc.id),  # provenance: the KB axiom this rule comes from
             })
         # PROPERTY-CONDITIONED rule: a universal IMPLY over two sense-less-subject predications
         # ("everything that thinks exists" => think ⟹ exist). Recognized from the compiled IMPLY form
@@ -201,7 +202,7 @@ def _extract_rules(axiom_docs) -> list:
         # axiom — no hardcoded foundational rule.
         pc = _extract_property_conditioned(doc.zip)
         if pc is not None:
-            rules.append({**pc, "original": doc.original})
+            rules.append({**pc, "original": doc.original, "source_id": str(doc.id)})
     return rules
 
 
@@ -272,6 +273,7 @@ def _extract_facts(axiom_docs) -> list:
                     "klass_sense": predicate,
                     "original": doc.original,
                     "kind": "membership",
+                    "source_id": str(doc.id),  # provenance: the KB axiom this fact comes from
                 })
             else:
                 # verb/adj predicate, OR noun-with-object -> a PROPERTY fact
@@ -282,6 +284,7 @@ def _extract_facts(axiom_docs) -> list:
                     "negated": bool(getattr(leaf, "negated", False)),
                     "original": doc.original,
                     "kind": "property",
+                    "source_id": str(doc.id),  # provenance: the KB axiom this fact comes from
                 })
     return facts
 

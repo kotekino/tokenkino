@@ -26,11 +26,13 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
      conclusion)`; **C** `_extract_rules` recognizes the universal-IMPLY → `property_conditioned`.
      **SEEDED as a KB axiom + `_FOUNDATIONAL_RULES` DELETED** — the cogito now derives end-to-end from
      the KB alone (no load-bearing knowledge in code). Unlocks property-restricted universals generally.
-  2. **Structured provenance from birth.** Chainer emits `premises` = the **KB-doc ids** the derivation
-     rests on (WordNet is_a edges are bedrock substrate, NOT premises) + the readable chain;
-     `MEMProvenance{premises, chain, derived_by}` on theorems; thread `EvaluatorResult` too (full
-     consistency, both paths). **Integrity invariant:** materialize ONLY rule/fact-derived conclusions
-     (never pure-taxonomic — already in the graph) ⇒ every materialized theorem has non-empty premises.
+  2. **Structured provenance from birth ✅ LANDED.** The chainer emits `premises` = the **KB-doc ids**
+     the derivation rests on (rule/fact source axioms; WordNet is_a edges are bedrock, NOT premises) +
+     the readable chain; `MEMProvenance{premises, chain, derived_by}` on theorems; `EvaluatorResult`
+     threads premises too (both paths). **Integrity invariant enforced:** `materialize_theorem` refuses
+     a premise-less "derivation" — pure-taxonomic verdicts have 0 premises (already in the graph, never
+     materialized). Verified: the cogito carries exactly 2 premises (the "I think" fact + the cogito
+     rule), resolvable back to the source axioms; Bunnet round-trip clean.
   3. **Cogito materialization.** Wondering seeds `forwardChain` from the self-KB → derives `exist.v.01`
      → renders **first-person** NL ("I exist") → compiles via the **API** (sync delegation; the brain
      stays parser-free; wondering is idle-time so sync-slow is fine) → a **first-class zip theorem**

@@ -204,7 +204,7 @@ def _partof_senses(content: TKZipContent) -> Optional[tuple[str, str]]:
 # the base verdict is then combined with the clause's quantifier + predicate negation (same net_flip
 # as is_a): net_flip = (quantifier == NEGATIVE) XOR negated.
 def _ground_partof(content: TKZipContent,
-                   part_of: Callable[[str], list[str]]) -> Optional[tuple[float, str]]:
+                   part_of: Callable[[str], list[str]]) -> Optional[tuple[float, str, list]]:
     pair = _partof_senses(content)
     if pair is None:
         return None
@@ -234,7 +234,7 @@ def _ground_partof(content: TKZipContent,
     chain += f" | quantifier={quantifier.value} negated={negated}"
     if net_flip:
         chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
-    return truth, chain
+    return truth, chain, []  # taxonomic verdict: is_a/part_of edges are bedrock, not premises
 
 # try to decide a clause taxonomically via the injected is_a graph. returns (truth, chain) when the
 # graph decides it (subject —is_a*→ predicate ⇒ base TRUE; subject ⊥ predicate at the kingdom level
@@ -244,7 +244,7 @@ def _ground_partof(content: TKZipContent,
 # a NEGATIVE quantifier ("no cat is a plant") or a predicate negation ("a cat is not a plant") flips
 # the base verdict; both together cancel. universal/existential/definite/generic do not flip.
 def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[str]],
-                         senses_of: Optional[Callable[[str], list[str]]] = None) -> Optional[tuple[float, str]]:
+                         senses_of: Optional[Callable[[str], list[str]]] = None) -> Optional[tuple[float, str, list]]:
     pair = _isa_senses(content)
     if pair is None:
         return None
@@ -299,7 +299,7 @@ def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[
     chain += f" | quantifier={quantifier.value} negated={negated}"
     if net_flip:
         chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
-    return truth, chain
+    return truth, chain, []  # taxonomic verdict: is_a/part_of edges are bedrock, not premises
 
 
 # evaluate an input statement. definitions are the grounding set (TKZipContent each); axioms and
@@ -352,6 +352,7 @@ def evaluator_evaluateStatement(
     # it counts as grounded (not "ungrounded") and a single such clause needs no axiom/theorem match.
     derivation: list[str] = []
     graph_decided: set[int] = set()
+    premises_acc: set[str] = set()  # PROVENANCE: the KB-doc ids the graph-decided verdicts rest on
     if relations is not None or part_of is not None or rules or facts:
         for i, c in enumerate(contents):
             # a clause is EITHER a part-whole claim OR a taxonomic one — never both. recognize the
@@ -380,10 +381,11 @@ def evaluator_evaluateStatement(
                 from .e_chaining import evaluator_groundIndividualFact
                 verdict = evaluator_groundIndividualFact(c, facts or [])
             if verdict is not None:
-                truth, chain = verdict
+                truth, chain, prem = verdict
                 groundings[i] = truth
                 graph_decided.add(i)
                 derivation.append(chain)
+                premises_acc.update(prem)  # provenance: KB-doc ids this clause's verdict rests on
 
     # SPINE (logic-is-sacred): a BARE copular identity "X is Y" gets its truth ONLY from the is_a graph.
     # If the graph did not decide it (no subsumption -> TRUE, no tiered-disjointness -> FALSE), geometry
@@ -454,7 +456,7 @@ def evaluator_evaluateStatement(
         return EvaluatorResult(
             truth=0.5, status=EvaluatorStatus.INSUFFICIENT, groundings=groundings, missing=missing,
             relationMatch=relationMatch, matchedKind=matchedKind, matchedIndex=matchedIndex,
-            derivation=derivation,
+            derivation=derivation, premises=sorted(premises_acc),
         )
 
     # RESOLVED — clauses grounded (by definitions and/or the is_a graph) and (if relational) a known
@@ -462,5 +464,5 @@ def evaluator_evaluateStatement(
     return EvaluatorResult(
         truth=folded, status=EvaluatorStatus.RESOLVED, groundings=groundings,
         relationMatch=relationMatch, matchedKind=matchedKind, matchedIndex=matchedIndex,
-        derivation=derivation,
+        derivation=derivation, premises=sorted(premises_acc),
     )

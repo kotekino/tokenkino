@@ -26,7 +26,7 @@ import lib.core.evaluation_harness as evaluation_harness
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
-from lib.core.memory import EvalToken, MEMChannels
+from lib.core.memory import EvalToken, MEMChannels, MEMProvenance
 from lib.core.models import (
     TKAxiomDoc,
     TKBrainStateDoc,
@@ -99,8 +99,15 @@ def _derived_theorem(result: EvaluatorResult) -> bool:
 # grows the KB, it does not speak. Idempotent by `original` (silence = consent: a re-derived truth
 # already known is not re-stored). Caching the demonstrated conclusion lets future evals match it
 # geometrically instead of re-deriving it every time. Returns True iff a NEW theorem was written.
-def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc) -> bool:
+def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_by: str = "thinking") -> bool:
     if item.zip is None or not _derived_theorem(result):
+        return False
+    # INTEGRITY INVARIANT: a derived theorem MUST rest on KB premises — only RULE/FACT derivations are
+    # materialized (pure-taxonomic verdicts are already in the graph, never theorems). a premise-less
+    # "derivation" should be structurally impossible; refuse it rather than store an unprovenanced
+    # theorem. this keeps the proof object honest: every stored theorem can point back at what it rests on.
+    if not result.premises:
+        logger.warning("[thinking] refusing to materialize «%s» — derived but NO premises (invariant breach)", item.original)
         return False
     if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
         return False  # already a theorem — dedup by original
@@ -112,8 +119,9 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc) -> bool:
         channel=MEMChannels.INTERNAL,
         archived=False,                   # ACTIVE (model default is archived=True) -> joins reasoning
         trusted=0.9,
+        provenance=MEMProvenance(premises=result.premises, chain=chain, derived_by=derived_by),
     ).save()
-    logger.info("[thinking] derived THEOREM «%s» <- %s", item.original, chain)
+    logger.info("[thinking] derived THEOREM «%s» <- %s (premises=%s)", item.original, chain, result.premises)
     return True
 
 
@@ -241,7 +249,7 @@ def wonder_one(brain_state: TKBrainStateDoc) -> bool:
     out = evaluate_zip(item.zip)  # fingerprint-cached KB load
     result: EvaluatorResult = out["result"]
     if status_to_token(result) == EvalToken.TRUE.value:
-        materialize_theorem(result, item)  # SILENT: knowledge only, no idea/action
+        materialize_theorem(result, item, derived_by="wondering")  # SILENT: knowledge only, no idea/action
     return True
 
 
@@ -342,7 +350,7 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             )
             # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
             if token == EvalToken.TRUE.value:
-                materialize_theorem(result, item)
+                materialize_theorem(result, item, derived_by="thinking")
         else:
             logger.info(
                 "[thinking] evaluated memory=%s status=%s truth=%.3f -> no strong conclusion",

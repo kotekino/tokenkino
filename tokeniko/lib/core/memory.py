@@ -56,12 +56,26 @@ class MEMAxiom(MEMItem, MEMItemProperties):
     archivedAt: Optional[int] = None # timestamp of archiving (if archived, the axiom is not used for reasoning and deriving new knowledge)
     trusted: float = Field(default=1)
 
+# PROVENANCE of a derived theorem = its proof. for a logic-first mind a theorem's justification IS the
+# theorem; storing it structurally makes derived knowledge AUDITABLE (how does tokeniko know this),
+# RE-CHECKABLE (replay the inference) and REVISABLE (if a premise axiom is later archived, find every
+# theorem that rests on it). `premises` are the KB-DOC ids the derivation rests on (the seed facts'
+# source axioms + the rule axioms) — NOT the WordNet is_a edges it walks (those are bedrock substrate,
+# captured in the readable `chain`, never retracted). INVARIANT: a materialized theorem has non-empty
+# premises (only RULE/FACT-derived conclusions are materialized; pure-taxonomic ones are already in the
+# graph). `derived_by` is the faculty that produced it (wondering | thinking).
+class MEMProvenance(BaseModel):
+    premises: list[str] = Field(default_factory=list)  # KB-doc ids the derivation rests on
+    chain: str                                         # the human-readable proof
+    derived_by: str = "wondering"                      # the faculty that produced it
+
 # theorem
 class MEMTheorem(MEMItem, MEMItemProperties):
     archived: bool = Field(default=True) # if archived, the theorem is not used for reasoning and deriving new knowledge
     createdAt: int = Field(default_factory=lambda: int(time.time())) # timestamp of creation
     archivedAt: Optional[int] = None # timestamp of archiving (if archived, the theorem is not used for reasoning and deriving new knowledge)
     trusted: float = Field(default=0.9)
+    provenance: Optional["MEMProvenance"] = None # the proof, when this theorem was DERIVED (not taught)
 
 # definition: a semantic statement defining tokeniko's vocabulary/rules ("a thing is equal to
 # itself"; "an apple is a fruit with red skin and sweet flesh"). its meaning is the full compiled
