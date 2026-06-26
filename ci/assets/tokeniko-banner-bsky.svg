@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="500" viewBox="0 0 1500 500"><defs></defs>
+  <defs>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#0E1A14"></rect><rect y="3" width="4" height="1" fill="#6FE39A" opacity="0.06"></rect></pattern>
+    <filter id="glow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="3" result="b"></feGaussianBlur><feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter>
+  </defs>
+
+  <rect x="0" y="0" width="960" height="500" fill="#0E1A14"></rect>
+  <rect x="0" y="0" width="960" height="500" fill="url(#scan)"></rect>
+  <text x="480" y="150" font-family="&#39;JetBrains Mono&#39;,monospace" font-weight="400" font-size="15" letter-spacing="3" fill="#3F8F62" text-anchor="middle" dominant-baseline="central">// TRANSMISSION 04 — ONLINE</text>
+  <g filter="url(#glow)" fill="#6FE39A" font-family="&#39;Space Mono&#39;,monospace" font-weight="700" font-size="42" text-anchor="middle">
+    <text x="480" y="224" dominant-baseline="central">geometry to recognise,</text>
+    <text x="480" y="284" dominant-baseline="central">algebra to conclude.</text>
+  </g>
+  <g stroke="#6FE39A" stroke-width="2.6" fill="none" transform="translate(434,340)">
+    <line x1="2" y1="22" x2="46" y2="22"></line><line x1="46" y1="22" x2="74" y2="2"></line><line x1="46" y1="22" x2="92" y2="22"></line>
+    <circle cx="2" cy="22" r="5" fill="#0E1A14"></circle><circle cx="46" cy="22" r="6.5" fill="#6FE39A"></circle><circle cx="74" cy="2" r="5" fill="#0E1A14"></circle><circle cx="92" cy="22" r="5" fill="#0E1A14"></circle>
+  </g>
+
+  <rect x="960" y="0" width="540" height="500" fill="#C24E3A"></rect>
+  <rect x="1164" y="120" width="132" height="132" rx="20" fill="#F4EEDD"></rect>
+  <text x="1230" y="190" font-family="&#39;Space Mono&#39;,monospace" font-weight="700" font-size="74" letter-spacing="-3" fill="#C24E3A" text-anchor="middle" dominant-baseline="central">tk</text>
+  <text x="1230" y="320" font-family="&#39;Space Mono&#39;,monospace" font-weight="700" font-size="60" letter-spacing="-3" fill="#F4EEDD" text-anchor="middle" dominant-baseline="central">tokeniko</text>
+  <text x="1230" y="366" font-family="&#39;JetBrains Mono&#39;,monospace" font-weight="400" font-size="15" letter-spacing="8" fill="#F4EEDD" opacity="0.85" text-anchor="middle" dominant-baseline="central">A THINKING MACHINE</text>
+</svg>

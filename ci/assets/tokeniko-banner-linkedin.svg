@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1584" height="396" viewBox="0 0 1584 396"><defs></defs>
+  <defs>
+    <pattern id="scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="4" fill="#0E1A14"></rect><rect y="3" width="4" height="1" fill="#6FE39A" opacity="0.06"></rect></pattern>
+    <filter id="glow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="3" result="b"></feGaussianBlur><feMerge><feMergeNode in="b"></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge></filter>
+  </defs>
+  <rect width="1584" height="396" fill="#E9DFC8"></rect>
+  <rect x="0" y="0" width="600" height="396" fill="#C24E3A"></rect>
+  <rect x="72" y="140" width="116" height="116" rx="18" fill="#F4EEDD"></rect>
+  <text x="130" y="202" font-family="&#39;Space Mono&#39;,monospace" font-weight="700" font-size="66" letter-spacing="-3" fill="#C24E3A" text-anchor="middle" dominant-baseline="central">tk</text>
+  <text x="212" y="216" font-family="&#39;Space Mono&#39;,monospace" font-weight="700" font-size="60" letter-spacing="-3" fill="#F4EEDD" dominant-baseline="central">tokeniko</text>
+  <text x="216" y="272" font-family="&#39;JetBrains Mono&#39;,monospace" font-weight="400" font-size="15" letter-spacing="8" fill="#F4EEDD" opacity="0.85" dominant-baseline="central">A THINKING MACHINE</text>
+  <rect x="600" y="0" width="984" height="396" fill="#0E1A14"></rect>
+  <rect x="600" y="0" width="984" height="396" fill="url(#scan)"></rect>
+  <text x="664" y="118" font-family="&#39;JetBrains Mono&#39;,monospace" font-weight="400" font-size="14" letter-spacing="3" fill="#3F8F62" dominant-baseline="central">// TRANSMISSION 04 — ONLINE</text>
+  <g filter="url(#glow)" fill="#6FE39A" font-family="&#39;Space Mono&#39;,monospace" font-weight="700" font-size="38">
+    <text x="664" y="188" dominant-baseline="central">geometry to recognise,</text>
+    <text x="664" y="238" dominant-baseline="central">algebra to conclude.</text>
+  </g>
+  <g stroke="#6FE39A" stroke-width="2.4" fill="none" transform="translate(664,294)">
+    <line x1="2" y1="22" x2="46" y2="22"></line><line x1="46" y1="22" x2="74" y2="2"></line><line x1="46" y1="22" x2="92" y2="22"></line>
+    <circle cx="2" cy="22" r="5" fill="#0E1A14"></circle><circle cx="46" cy="22" r="6.5" fill="#6FE39A"></circle><circle cx="74" cy="2" r="5" fill="#0E1A14"></circle><circle cx="92" cy="22" r="5" fill="#0E1A14"></circle>
+  </g>
+</svg>
