@@ -100,9 +100,13 @@ _NEGATIVE_QUANTIFIERS = {"nobody", "no one", "no-one", "noone", "nothing", "none
 # EXACT match only (no fuzzy: "all" must never fuzzy-match "tall"). a bare/no determiner -> GENERIC.
 # NB "no"/"none"/"neither" are ALSO in _NEGATION_MARKERS; as a subject determiner they are
 # RECLASSIFIED to the NEGATIVE *quantifier* (so they do not also trip the predicate `negated` flag).
-_QUANTIFIER_UNIVERSAL = {"all", "every", "each"}
-_QUANTIFIER_EXISTENTIAL = {"a", "an", "some", "any", "several"}
-_QUANTIFIER_NEGATIVE = {"no", "none", "neither"}
+# Each set holds BOTH the determiner forms ("all cats") AND the indefinite-pronoun-as-subject forms
+# ("everything that thinks") — the latter quantify themselves (no determiner), read via the subject-token
+# fallback in compiler_contentQuantifier. The table-gating keeps it safe: a non-quantifier subject
+# ("cat", "I") is absent here and falls through to GENERIC.
+_QUANTIFIER_UNIVERSAL = {"all", "every", "each", "everything", "everyone", "everybody"}
+_QUANTIFIER_EXISTENTIAL = {"a", "an", "some", "any", "several", "something", "someone", "somebody"}
+_QUANTIFIER_NEGATIVE = {"no", "none", "neither", "nothing", "nobody"}
 _QUANTIFIER_DEFINITE = {"the", "this", "that", "these", "those"}
 
 # wh-words (interrogative pronouns/adverbs/determiners) -> the GAP ROLE = the variable X a wh-question

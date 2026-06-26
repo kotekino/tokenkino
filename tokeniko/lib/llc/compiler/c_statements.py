@@ -80,9 +80,16 @@ def compiler_subjectDeterminer(content: TKLLCContent) -> str:
             return compiler_entityToken(p.id)
     return ""
 
-# the clause's quantifier, read off the subject's determiner ("" / bare -> GENERIC).
+# the clause's quantifier. read off the subject's DETERMINER ("all cats"); if the subject has none, fall
+# back to the subject's OWN token, so an indefinite pronoun subject quantifies itself ("everything that
+# thinks" -> UNIVERSAL, "nothing" -> NEGATIVE). anchor_quantifier's table gates it: a normal bare noun /
+# personal pronoun ("cat", "I") is not a quantifier word -> GENERIC, exactly as before.
 def compiler_contentQuantifier(content: TKLLCContent) -> TKQuantifier:
-    return anchor_quantifier(compiler_subjectDeterminer(content))
+    det = compiler_subjectDeterminer(content)
+    if det:
+        return anchor_quantifier(det)
+    subject_word = compiler_entityToken(content.subject.id) if content.subject else ""
+    return anchor_quantifier(subject_word)
 
 # does a property carry a negation marker, EXCLUDING a subject det that is a NEGATIVE quantifier?
 # "no"/"none"/"neither" sit in _NEGATION_MARKERS, but as the SUBJECT's determiner they are
