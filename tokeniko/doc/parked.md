@@ -35,12 +35,8 @@ Next.)*
 **Parser / Stanza** — concessive + resultative clause types (`although`→OTHER, `so`→AND today); D3a
 relative-clause matrix subject (Stanza mis-root); `imply`→IMPLY parataxis robustness; clausal-subject
 support ("to err is human"); negative-quantifier subject rewrite ("nobody").
-- **Property-restricted universal rules (cogito fork ii) — IOU.** The parser can't parse "everything
-  that thinks exists" into a clean universal property-conditioned rule (the relative-clause restriction
-  splits into its own leaf, the quantifier stays `generic`, and "that" injects a spurious doxastic
-  `THAT`). Until fixed, the cogito rule is **curated in code** (`evaluation_harness._FOUNDATIONAL_RULES`,
-  property-conditioned `thinks ⟹ exists`). Fix the parse → migrate the foundational rule(s) into the KB
-  so they're NL-seeded like everything else (and unlock property-restricted universals generally).
+- *(Property-restricted universal rules / cogito fork ii — **UN-PARKED**: now `roadmap.md`
+  In-progress 1a, the untangle-first step of wondering-v2.)*
 
 **Evaluator** — geometric negation-awareness in `compareContent`; quantifier effect on the *geometric*
 grounding; axiom/theorem `≡1` tautology creation guard; intrinsic comparison grounding (eq/noteq);

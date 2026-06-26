@@ -12,28 +12,44 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
 
 ## 🔄 In progress
 
-- *(nothing actively in flight — the consolidation pass is **complete**: grounding floor + cleanups +
-  Pillar 3 #2 WSD all landed. Next pickup is the Brain D-phase.)*
+- **Wondering-v2 — self-prompted KB derivation** (active arc). The grounding floor is honest now, so
+  autonomous derivation is safe (won't manufacture false theorems). Extend wondering's seed beyond
+  perceived memory to the **KB itself**; forward-saturate to new theorems unprompted; flat-cost
+  (sampled seed, capped depth); convergence via dedup. Built in this order — **untangle before
+  layering** ([[everything-is-kb-untangle-first]]), each step dry-run-verified:
+  1. **Fork ii — property-restricted universals (UNTANGLE FIRST).** Today "everything that thinks
+     exists" mis-compiles to `AND(∅, thinks, exists)` (quant generic, relcl split). Target: quant
+     **UNIVERSAL** + **`IMPLY(cond, concl)`** (subject-less, bound-variable predications) — the exact
+     shape `_FOUNDATIONAL_RULES` hand-writes in code. **A** indefinite-pronoun quantifier
+     (everything/everyone→universal); **B** compiler: relcl-restricted-universal → `IMPLY`, drop the
+     bare subject leaf (mirrors `compiler_implicationOperands`); **C** `_extract_rules` recognizes the
+     universal-IMPLY → `property_conditioned`. Then **SEED it as a KB axiom and DELETE
+     `_FOUNDATIONAL_RULES`** — no load-bearing knowledge hidden in code. Unlocks property-restricted
+     universals generally.
+  2. **Structured provenance from birth.** Chainer emits `premises` = the **KB-doc ids** the derivation
+     rests on (WordNet is_a edges are bedrock substrate, NOT premises) + the readable chain;
+     `MEMProvenance{premises, chain, derived_by}` on theorems; thread `EvaluatorResult` too (full
+     consistency, both paths). **Integrity invariant:** materialize ONLY rule/fact-derived conclusions
+     (never pure-taxonomic — already in the graph) ⇒ every materialized theorem has non-empty premises.
+  3. **Cogito materialization.** Wondering seeds `forwardChain` from the self-KB → derives `exist.v.01`
+     → renders **first-person** NL ("I exist") → compiles via the **API** (sync delegation; the brain
+     stays parser-free; wondering is idle-time so sync-slow is fine) → a **first-class zip theorem**
+     carrying its provenance. Dedup on the **semantic conclusion** (subject uid + predicate sense), not
+     the surface string. tokeniko's first autonomously-earned theorem.
+  4. **General KB-seeding driver.** Seed wondering from definitions/axioms (not just memory):
+     associative (KB-change-gated) + drift, same flat-cost discipline.
+  5. **Capstone — the LONG-WONDERING SOAK.** No external input; let tokeniko wonder over its whole KB,
+     probe-monitored → surface residual bugs + real capability + genuinely NEW theorems. Both the
+     feature's demo and the proof the consolidation held. (Then actions get wired — only once the
+     thinking that triggers them is bug-free.)
 
 ## 🔭 Next (ordered)
 
-1. **Brain D-phase (continued)** —
+1. **Brain D-phase (continued)** — only after wondering-v2 is sound (actions follow validated thinking).
    - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
      writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
    - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
      forward-chaining); self-authored "realization" memory + a **working-memory** layer.
-2. **Wondering-v2 — self-prompted KB derivation** (the grounding floor is honest now, so autonomous
-   derivation is safe — it won't manufacture false theorems). Extend wondering's seed-source beyond
-   perceived memory to the **KB itself**: seed from a definition/axiom and forward-saturate to new
-   theorems unprompted ("matching memory against itself"). Bounded by the same flat-cost discipline
-   (sampled seed, capped derivation depth), convergence via `materialize_theorem`'s dedup. **First
-   demo target (poetic + concrete):** its very first KB-wondering act could be **proving its own
-   existence** — wonder over the self-KB (`I think` + the cogito rule) → derive + materialize
-   *"tokeniko exists"* autonomously (deliberately left unmaterialized for this). **Capstone
-   validation = the LONG-WONDERING SOAK:** with NO external input, let tokeniko wonder over its whole
-   seeded KB (its "huge already-received input") for a long, probe-monitored run — surfacing residual
-   bugs, real reasoning capability, and genuinely NEW theorems. Both the feature's demo and the final
-   proof the consolidation held.
 
 ---
 
