@@ -262,6 +262,12 @@ def wonder_one(brain_state: TKBrainStateDoc) -> bool:
             )
             for row in sampled:
                 queue.append(str(row["_id"]))
+            # advance the drift throttle on every RUN — NOT only when an item is later processed
+            # (step 4). On an EMPTY memory the sample returns 0, no item is ever processed, so
+            # last_wondering_at would never advance and drift would re-fire every idle tick (the
+            # empty-memory drift spin — surfaced by the first soak). Stamping it here engages the
+            # DRIFT_INTERVAL throttle regardless, so idle drift checks at most once per interval.
+            brain_state.last_wondering_at = now
             brain_state.wonder_queue = queue
             brain_state.save()
             logger.info("[wondering] drift: queued %d random", len(queue))

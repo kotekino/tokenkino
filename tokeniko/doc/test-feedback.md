@@ -18,6 +18,41 @@ is a no-op), inject, wait for full drain (per-speaker cursors caught up — NOT 
 
 ---
 
+## Session 2026-06-29 — the first long-wondering SOAK (clean-slate self-derivation)
+
+Wiped `memory`/`ideas`/`actions`/`theorems` to **KB-only** (axioms/definitions/behavior_rules +
+stakeholders kept), then ran the brain unprompted. It re-derived its self-knowledge from the KB alone.
+Full structured account via **`scripts/soak_report.py <brain_log>`** (the new soak analyzer: performance
+· results · churn/convergence · errors-by-layer · DB integrity · expected-coverage · verdict).
+
+### Result — CLEAN (the consolidation held; the loop lives)
+- **Full coverage, no spurious extras.** Re-derived exactly the 4 ≥2-premise theorems
+  (`I exist`, `Mari exists`, `Mari is mortal`, `a human exists`) — chaining sound (no false conclusions).
+- **Converges, no churn.** Each conclusion materialized **exactly once** → quiet; no obsessive loop.
+- **No errors at any layer.** Zero API/compile failures (parser/compiler clean on every rendered NL),
+  zero chaining errors, integrity intact (all premises resolvable back to source axioms).
+- **The cogito re-born in-loop** — «I exist» derived by tokeniko's own act (`I think → all that think
+  exist → I exist`), carrying its 2 premises.
+- **Performance:** materialize ~15.6s avg/theorem (10–21s; the sync render→API-compile→POST cost);
+  brain RSS **~3 GB** (the in-memory active KB — 3,235 definitions × 3,237-dim, fingerprint-cached).
+
+### Observed → diagnosis → action
+- **Empty-memory drift spin (S3 — fixed).** *Observed:* with memory empty, the wondering DRIFT driver
+  logged `drift: queued 0 random` **every idle tick** (~20× in 5 min) instead of once per
+  `DRIFT_INTERVAL` (60s). *Diagnosis:* the throttle keys off `brain_state.last_wondering_at`, which only
+  advances in step 4 (an item is *processed*); on empty memory the `$sample` returns 0, no item is
+  processed, so the timestamp never advances and `now - last >= DRIFT_INTERVAL` is always true → a
+  needless `$sample` + log every tick. Harmless (no churn, converges) but wasteful + noisy. *Action:*
+  **FIXED** — `wonder_one` stamps `last_wondering_at = now` whenever drift RUNS, so the throttle engages
+  regardless of whether anything was queued. Verified: drift dropped to ≤1 firing / 50s.
+
+### Open (not defects — known limits, await KB growth)
+- The tiny KB (7 rules / 10 facts) converges instantly → this soak is a **robustness test + the cogito
+  birth, not a knowledge explosion**. The *rich* soak (cascades, genuinely-new theorems) needs KB growth.
+- Perf candidates when it matters: async materialize (un-block the idle tick); the ~3 GB resident KB.
+
+---
+
 ## Session 2026-06-24 — the 54-probe fragility batch (12 categories, 4 speakers)
 
 ### The root cause behind most of it

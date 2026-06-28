@@ -70,12 +70,13 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
        now shows each theorem-to-be in plain English. **Autonomous-in-loop materialization ✅ LANDED
        (D3a)** — the brain→API seam wires the writing; `wonder_one` derives→renders→POSTs and «I exist»
        was born in-loop. The derivation + rendering + autonomous materialization are now complete.
-  5. **Capstone — the LONG-WONDERING SOAK** (UNBLOCKED — autonomous derivation now writes itself in-loop).
-     No external input; let tokeniko wonder over its whole KB, probe-monitored → surface residual bugs +
-     real capability + genuinely NEW theorems. On the CURRENT tiny KB this converges instantly (7 rules /
-     10 facts → 4 theorems, no cascade), so it is a **robustness test + the cogito's birth, NOT a
-     knowledge explosion** — the rich soak waits for KB growth. Scheduled AFTER the rest of the D-phase
-     (D3b → D2), per the agreed order (actions wired only once the thinking that triggers them is sound).
+  5. **Capstone — the LONG-WONDERING SOAK ✅ LANDED (first soak, clean).** From a clean slate
+     (KB-only — memory/ideas/actions/theorems wiped), the brain re-derived its self-knowledge unprompted:
+     the 4 ≥2-premise theorems incl. the cogito «I exist», **converged (no churn), zero errors, integrity
+     intact** (`scripts/soak_report.py` = the read-only analyzer). Surfaced + fixed one S3 (empty-memory
+     drift spin). On the CURRENT tiny KB this is a **robustness test + the cogito's birth, NOT a knowledge
+     explosion** — the RICH soak (cascades, genuinely-new theorems) awaits KB growth. Full account:
+     `doc/test-feedback.md` (Session 2026-06-29). **The wondering-v2 arc (1a–1e) is complete.**
 
 ## 🔭 Next (ordered)
 
@@ -97,9 +98,9 @@ listener + live send — see D3b).*
    two axes are real: `plan_action`→`score_feasibility` (carrier / content / addressable recipient; lean
    binary), keep iff urge≥WISH AND feasible, and `_collapse_siblings` fires ONE reflex per decision point
    (eval:unknown → WHY, GUESS superseded). Deferred: redundancy/permission scoring, fuzzy + stochastic collapse.
-4. **The long-wondering SOAK** (wondering-v2 capstone #5 above) — the loop is closed; now let it RUN.
-   Pre-soak: WIPE the disposable memory/ideas/actions (raw pymongo — timeseries `.find().delete()` is a
-   no-op); keep-set = seeded KB + behavior_rules + the 54-probe baseline.
+4. **The long-wondering SOAK ✅ LANDED (first soak)** — clean-slate self-derivation validated (see the
+   capstone above + `doc/test-feedback.md`). The RICH soak (real cascades, new theorems) re-runs once the
+   KB grows; `scripts/soak_report.py` is the reusable monitor.
 
 ### Going live — embodied I/O (core TK v1, NOT vision)
 
