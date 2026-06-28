@@ -80,14 +80,17 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
 ## 🔭 Next (ordered)
 
 The D-phase fills the two remaining STUBS so the core autonomous loop (perceive→think→decide→ACT→learn)
-closes — "it lives" = the v1 PoC. Agreed order: **D3a ✅ → D3b → D2 → soak**.
+closes — "it lives" = the v1 PoC. Agreed order: **D3a ✅ → D3b ✅ → D2 → soak**.
 
 1. **D3a — brain→API write seam ✅ LANDED** (see `landed.md` / the wondering arc above). The brain can
-   now WRITE its derivations (autonomous materialization). The same `brain/api_client.py` seam D3b extends.
-2. **D3b — brain→senses outbound (action execution, the reply path).** Replace `actions_phase`'s
-   `logger.info("would execute…")` stub with real I/O: a kept Action → `senses` carries it out
-   (`speakup`/`ask`/`why`/`clarify`/`answer`/`post` → Discord / ATProto). The brain names a channel +
-   target; `senses` touches the socket. (`guess`/`learn` → low-trust KB writes reuse the D3a API seam.)
+   now WRITE its derivations (autonomous materialization). The same outbound-seam discipline D3b mirrors.
+2. **D3b — brain→senses outbound (the reply path) ✅ LANDED** (Discord, dry-run; see `landed.md`). The
+   brain DECIDES + COMPOSES the stance (`dispatch_action` resolves channel + recipient; `brain/compose.py`
+   the raw text); `actions_phase` is now INTERNAL-only; `senses/outbound.py` CARRIES + DECOMPILES
+   (raw→fluent English via Ollama) and delivers via `DiscordClient.send`. Verified end-to-end (dry-run).
+   **Remaining to go fully live:** the **inbound** Discord listener (connect the live `DiscordClient`,
+   `on_message`→ compile-via-API → memory) + flip `SENSES_DELIVER_DRYRUN=0` with a connected `sender`;
+   ATProto send adapter. (`guess`/`learn` → low-trust KB writes reuse the D3a API seam — still a stub.)
 3. **D2 — priorities feasibility scoring.** Replace `priorities_phase`'s `feasibility = 1.0` stub with a
    real scorer (resources / allowlist / reachable channel / derivable proof) + collapse-arbitration over
    multiple kept candidates.

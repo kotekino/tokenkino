@@ -8,6 +8,8 @@ import signal
 import sys
 from dotenv import load_dotenv
 from lib.core.io import init_io
+from lib.llc.decompiler import decompiler_init
+from senses.outbound import outbound_executor_task
 
 load_dotenv()
 
@@ -44,9 +46,11 @@ async def discord_bot_task():
 async def main():
     logger.info("🚀 Init tokeniko: senses")
     
-    # 1. Init
+    # 1. Init — senses needs Mongo (the action queue) + Ollama (the decompiler, raw -> fluent English).
+    #    No spaCy/Stanza pipeline: the brain compiled the input; senses only DECOMPILES the reply.
     db, db_memory, ai_client = init_io()
-    
+    await decompiler_init(ai_client)
+
     # 2. Graceful Shutdown
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
@@ -65,14 +69,18 @@ async def main():
             # Creiamo i processi paralleli che gireranno contemporaneamente
             atproto_task = tg.create_task(atproto_listener_task())
             discord_task = tg.create_task(discord_bot_task())
-            
+            # D3b: the outbound actions executor — carries the brain's decisions to Discord (dry-run
+            # by default; sender=None until a live DiscordClient is connected with the inbound listener).
+            outbound_task = tg.create_task(outbound_executor_task())
+
             # Waiting for sigterms
             await stop_event.wait()
-            
+
             # Gently shutdown
             logger.info("Shutting down sub threads...")
             atproto_task.cancel()
             discord_task.cancel()
+            outbound_task.cancel()
             
     except* Exception as eg:
         logger.error(f"❌ Critical error: {eg}")

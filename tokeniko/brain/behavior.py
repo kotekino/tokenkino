@@ -11,8 +11,11 @@
 # --------------------------------------------------------------
 from typing import Optional
 
-from lib.core.models import TKBehaviorRuleDoc, TKIdeaDoc, TKActionDoc
+from bson import ObjectId
+
+from lib.core.models import TKBehaviorRuleDoc, TKIdeaDoc, TKActionDoc, TKMemoryItemDoc
 from lib.core.memory import TokenikoAction, ActionType, MEMChannels
+from brain import compose
 
 
 # the HARDWIRED dispatch registry: tokeniko:Y reflex -> concrete ActionType. Code today, but a plain
@@ -26,8 +29,8 @@ _DISPATCH = {
     TokenikoAction.POST.value:    ActionType.POST_CONTENT,
     TokenikoAction.GUESS.value:   ActionType.SEND_MESSAGE,   # internal (targetId=self) — see below
     TokenikoAction.LEARN.value:   ActionType.SEND_MESSAGE,   # internal (targetId=self)
-    # clarify: outward (NOT in _INTERNAL, so targetId=None for now). The actual recipient — the
-    # conflicting speaker — is resolved later in D3 / `senses` (from the conflict's source memory item).
+    # clarify: outward, recipient = the conflicting speaker (resolved in dispatch_action from the
+    # source memory item's sourceId, since clarify is not _INTERNAL and carries no idea.target).
     TokenikoAction.CLARIFY.value: ActionType.SEND_MESSAGE,
     # answer: outward + DIRECTED — the recipient is the asker (idea.target), set on the action below.
     TokenikoAction.ANSWER.value:  ActionType.SEND_MESSAGE,
@@ -77,32 +80,66 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
     return ideas
 
 
+# the memory item that spawned the idea (idea.source), or None. The reply path reads its CHANNEL (where
+# to answer — a Discord question is answered on Discord) and its sourceId (who to answer = the speaker).
+def _source_memory(idea: TKIdeaDoc) -> Optional[TKMemoryItemDoc]:
+    if not idea.source:
+        return None
+    try:
+        return TKMemoryItemDoc.get(ObjectId(idea.source)).run()  # Bunnet: .run() executes the query
+    except Exception:
+        return None
+
+
 # map an idea's baked-in tokeniko:Y reflex to a concrete Action. tokeniko:ignore (or a missing /
-# unknown action_token) -> no action (None). guess/learn -> internal (targetId = self = a KB-write
-# intent; the write itself is D); a DIRECTED reflex (answer) -> targetId = idea.target (the asker);
-# speakup/ask/why/clarify/post -> outward (targetId None; `senses` resolves + carries out).
+# unknown action_token) -> no action (None). The action carries the OUTBOUND addressing the carrier
+# (`senses`) needs — resolved here, the brain NAMING channel + target (it never touches the socket):
+#   - CHANNEL: the source memory's channel (a Discord question -> a Discord reply); INTERNAL for a
+#     KB-write reflex (guess/learn) and as the fallback when there is no source. `actions_phase`
+#     executes INTERNAL itself; `senses` polls its own channel (discord/atproto).
+#   - TARGET: self for an internal KB-write; idea.target (the asker) for a DIRECTED reply (answer);
+#     else the speaker (the source memory's sourceId) for an outward reflex (speakup/clarify/ask/why).
+#   - payload["raw"]: the terse decision text (compose) -> senses decompiles it to fluent English.
 def dispatch_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[TKActionDoc]:
     token = idea.action_token
     if token == TokenikoAction.IGNORE.value or token not in _DISPATCH:
         return None
 
-    # targetId: self for an internal KB-write reflex; the asker for a directed reply; else None (senses).
+    src = _source_memory(idea)
+
+    # channel: INTERNAL for a KB-write reflex; else the source memory's channel (carrier = senses).
+    if token in _INTERNAL:
+        channel = MEMChannels.INTERNAL
+    else:
+        channel = MEMChannels.INTERNAL
+        if src is not None and src.channel:
+            try:
+                channel = MEMChannels(src.channel)
+            except ValueError:
+                channel = MEMChannels.INTERNAL
+
+    # target: self (internal KB-write) / the asker (directed answer) / the speaker (outward reply).
     if token in _INTERNAL:
         target = tokeniko_uid
     elif idea.target:
         target = idea.target
+    elif src is not None:
+        target = src.sourceId
     else:
         target = None
 
     payload = {"action_token": token, "trigger": idea.trigger}
     if idea.answer is not None:
-        payload["answer"] = idea.answer  # the verdict/value for an answer reflex (senses renders it)
+        payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
+    raw = compose.compose_raw(token, idea.trigger, idea.answer)
+    if raw:
+        payload["raw"] = raw             # the decision text -> senses decompiles -> fluent English
 
     action = TKActionDoc(
         action_type=_DISPATCH[token],
         sourceId=tokeniko_uid,
         targetId=target,
-        channel=MEMChannels.INTERNAL,
+        channel=channel,
         payload=payload,
         ideaId=str(idea.id),
     )

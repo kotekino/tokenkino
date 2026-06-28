@@ -11,6 +11,7 @@ from lib.core.models import TKIdeaDoc, TKActionDoc, TKBrainStateDoc
 from lib.core.memory import (
     IdeaStatus,
     ActionStatus,
+    MEMChannels,
     UrgeLevel,
 )
 from brain import behavior
@@ -64,8 +65,13 @@ def get_or_create_brain_state() -> TKBrainStateDoc:
 # Returns True if it processed an action this tick, False if the queue was empty.
 # --------------------------------------------------------------
 def actions_phase() -> bool:
+    # INTERNAL channel ONLY (D3b): outward actions (discord/atproto) are carried out by `senses`, which
+    # polls its OWN channel — the brain must NOT consume them (disjoint channel filters = no cross-process
+    # race, no new status). INTERNAL = the KB-write reflexes (guess/learn) the brain executes itself.
     pending = (
-        TKActionDoc.find({"status": ActionStatus.PENDING.value})
+        TKActionDoc.find(
+            {"status": ActionStatus.PENDING.value, "channel": MEMChannels.INTERNAL.value}
+        )
         .sort("createdAt")
         .limit(1)
         .to_list()
@@ -80,11 +86,10 @@ def actions_phase() -> bool:
     action.status = ActionStatus.PROCESSING
     action.save()
 
-    # STUB (D): execute the action. brain DECIDES, `senses` CARRIES OUT the real I/O (Discord /
-    # ATProto / cURL). The brain never touches a socket — it only names a channel + target.
+    # STUB (D): execute the INTERNAL action (guess/learn -> low-trust KB writes via the D3a API seam).
+    # Outward I/O is senses' job; this branch only ever sees INTERNAL actions now.
     logger.info(
-        "[actions] would execute %s on channel=%s target=%s "
-        "(senses carries out — TODO)",
+        "[actions] would execute %s on channel=%s target=%s (internal KB-write — TODO)",
         action.action_type,
         action.channel,
         action.targetId,
