@@ -101,6 +101,36 @@ def actions_phase() -> bool:
     return True
 
 
+# COLLAPSE ARBITRATION (#4 D2): a decision point = the ideas sharing (source, trigger) — the
+# superposition of candidate reflexes one evaluation fanned out (e.g. eval:unknown -> {why, guess}).
+# When one is acted on, its still-pending siblings are SUPERSEDED (discarded) so tokeniko fires ONE
+# reflex per decision, not every candidate. The winner is the highest-urge feasible one (ideas are
+# pulled urge-desc, so the first KEPT idea of a group is its winner). Returns how many were superseded.
+def _collapse_siblings(winner: TKIdeaDoc) -> int:
+    if not winner.source:
+        return 0  # no decision-point key (test / source-less spawn) -> nothing to collapse
+    siblings = (
+        TKIdeaDoc.find(
+            {
+                "source": winner.source,
+                "trigger": winner.trigger,
+                "parsed_by_prio": False,
+                "status": IdeaStatus.PENDING.value,
+            }
+        )
+        .to_list()
+    )
+    n = 0
+    for s in siblings:
+        if s.id == winner.id:
+            continue
+        s.status = IdeaStatus.DISCARDED
+        s.parsed_by_prio = True
+        s.save()
+        n += 1
+    return n
+
+
 # --------------------------------------------------------------
 # Priorities phase (The Filter) — urge x feasibility gatekeeper. Pull the oldest pending UNPARSED
 # idea, score it, and either yield an Action (keep) or discard it. One idea per tick.
@@ -125,50 +155,51 @@ def priorities_phase() -> bool:
     idea.status = IdeaStatus.PROCESSING
     idea.save()
 
-    # STUB (D): score feasibility. The real scorer (resources / allowlist / reachable channel /
-    # derivable proof) lands with the reasoning engine. Placeholder = always feasible.
-    feasibility = 1.0
+    # PLAN the action this idea's reflex would yield (C: the reserved-token behavior layer — the
+    # meta-language [eval:X] -> [tokeniko:Y], KB-driven personality). None = tokeniko:ignore / no reflex
+    # -> a deliberate NO-OP (kept, nothing to execute), not a discard.
+    plan = behavior.plan_action(idea, _tokeniko_uid)
+    if plan is None:
+        idea.feasibility = 0.0
+        idea.parsed_by_prio = True
+        idea.status = IdeaStatus.DONE
+        idea.save()
+        logger.info(
+            "[priorities] idea trigger=%s action_token=%s -> ignore/no-op",
+            idea.trigger, idea.action_token,
+        )
+        return True
 
-    # decision: keep iff urge clears the threshold AND it is feasible; else discard.
+    # D2 — the TWO axes (brain/README "urge vs feasibility"). URGE (how much it wants it) must clear the
+    # threshold AND FEASIBILITY (can it actually be done) must be positive. Ties/conflicts -> urge.
+    feasibility = behavior.score_feasibility(plan)
+    idea.feasibility = feasibility
+    idea.parsed_by_prio = True
     keep = idea.urge >= URGE_THRESHOLD and feasibility > 0
 
     if keep:
-        # C (IMPLEMENTED): idea -> action mapping via the reserved-token behavior layer (the
-        # meta-language: [eval:X] -> [tokeniko:Y], KB-driven personality — see brain/behavior.py).
-        # The idea already carries its baked-in tokeniko:Y reflex (action_token); dispatch maps it to
-        # a concrete Action (or None for tokeniko:ignore / no reflex). The feasibility SCORING +
-        # collapse-arbitration over multiple kept candidates remain D / parked.
-        action = behavior.dispatch_action(idea, _tokeniko_uid)
-
-        idea.feasibility = feasibility
-        idea.parsed_by_prio = True
+        action = behavior.dispatch_action(idea, _tokeniko_uid, plan=plan)
         idea.status = IdeaStatus.DONE
-        if action is None:
-            logger.info(
-                "[priorities] kept idea trigger=%s action_token=%s -> ignore/no-op",
-                idea.trigger,
-                idea.action_token,
-            )
-        else:
-            logger.info(
-                "[priorities] kept idea trigger=%s action_token=%s -> action %s (%s)",
-                idea.trigger,
-                idea.action_token,
-                str(action.id),
-                action.action_type.value,
-            )
-    else:
-        idea.feasibility = feasibility
-        idea.parsed_by_prio = True
-        idea.status = IdeaStatus.DISCARDED
+        idea.save()
+        # COLLAPSE the superposition: this kept idea WON its decision point (highest-urge feasible,
+        # pulled first) -> supersede its still-pending sibling candidates so tokeniko fires ONE reflex,
+        # not every candidate (e.g. eval:unknown -> WHY wins, GUESS superseded). Stochastic = future.
+        superseded = _collapse_siblings(idea)
         logger.info(
-            "[priorities] discarded idea trigger=%s urge=%s (below threshold %s)",
-            idea.trigger,
-            idea.urge,
-            URGE_THRESHOLD,
+            "[priorities] kept idea trigger=%s action_token=%s urge=%s feas=%s -> action %s (%s); superseded %d sibling(s)",
+            idea.trigger, idea.action_token, idea.urge, feasibility,
+            str(action.id) if action else None,
+            action.action_type.value if action else None,
+            superseded,
         )
-
-    idea.save()
+    else:
+        idea.status = IdeaStatus.DISCARDED
+        idea.save()
+        reason = "below urge threshold" if idea.urge < URGE_THRESHOLD else "infeasible"
+        logger.info(
+            "[priorities] discarded idea trigger=%s action_token=%s urge=%s feas=%s (%s)",
+            idea.trigger, idea.action_token, idea.urge, feasibility, reason,
+        )
     return True
 
 

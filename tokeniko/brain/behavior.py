@@ -13,9 +13,20 @@ from typing import Optional
 
 from bson import ObjectId
 
-from lib.core.models import TKBehaviorRuleDoc, TKIdeaDoc, TKActionDoc, TKMemoryItemDoc
+from lib.core.models import (
+    TKBehaviorRuleDoc,
+    TKIdeaDoc,
+    TKActionDoc,
+    TKMemoryItemDoc,
+    TKMemoryStakeholdersDoc,
+)
 from lib.core.memory import TokenikoAction, ActionType, MEMChannels
 from brain import compose
+
+# the channels tokeniko can currently ACT on (deliver an outward action). HARDWIRED for v1 (a 2-entry
+# set isn't worth a table yet) — externalize to a channel-capability KB record later (everything-is-KB):
+# INTERNAL = self KB-writes; DISCORD has a senses carrier; ATPROTO has NO send adapter yet -> infeasible.
+_ACTABLE_CHANNELS = {MEMChannels.INTERNAL, MEMChannels.DISCORD}
 
 
 # the HARDWIRED dispatch registry: tokeniko:Y reflex -> concrete ActionType. Code today, but a plain
@@ -91,16 +102,17 @@ def _source_memory(idea: TKIdeaDoc) -> Optional[TKMemoryItemDoc]:
         return None
 
 
-# map an idea's baked-in tokeniko:Y reflex to a concrete Action. tokeniko:ignore (or a missing /
-# unknown action_token) -> no action (None). The action carries the OUTBOUND addressing the carrier
-# (`senses`) needs — resolved here, the brain NAMING channel + target (it never touches the socket):
+# PLAN the concrete action an idea's reflex would yield — WITHOUT persisting it — so Priorities can
+# score its feasibility BEFORE committing (D2). tokeniko:ignore (or a missing/unknown action_token) ->
+# None (no reflex). The plan carries the OUTBOUND addressing the carrier (`senses`) needs, the brain
+# NAMING channel + target (it never touches the socket):
 #   - CHANNEL: the source memory's channel (a Discord question -> a Discord reply); INTERNAL for a
 #     KB-write reflex (guess/learn) and as the fallback when there is no source. `actions_phase`
 #     executes INTERNAL itself; `senses` polls its own channel (discord/atproto).
 #   - TARGET: self for an internal KB-write; idea.target (the asker) for a DIRECTED reply (answer);
 #     else the speaker (the source memory's sourceId) for an outward reflex (speakup/clarify/ask/why).
 #   - payload["raw"]: the terse decision text (compose) -> senses decompiles it to fluent English.
-def dispatch_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[TKActionDoc]:
+def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
     token = idea.action_token
     if token == TokenikoAction.IGNORE.value or token not in _DISPATCH:
         return None
@@ -135,12 +147,63 @@ def dispatch_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[TKActionDoc]
     if raw:
         payload["raw"] = raw             # the decision text -> senses decompiles -> fluent English
 
+    return {
+        "action_token": token,
+        "action_type": _DISPATCH[token],
+        "channel": channel,
+        "target": target,
+        "payload": payload,
+    }
+
+
+# is the planned outward action's recipient ADDRESSABLE? explicit per-message coords always are; else
+# the target stakeholder must resolve to a route on the channel (discord: a platform id in contextKey).
+def _addressable(target: Optional[str], payload: dict, channel: MEMChannels) -> bool:
+    if isinstance(payload.get("destination"), dict):
+        return True
+    if not target:
+        return False
+    sh = TKMemoryStakeholdersDoc.find_one({"uid": target}).run()  # Bunnet: .run() executes the query
+    if sh is None:
+        return False
+    if channel == MEMChannels.DISCORD:
+        return bool(sh.contextKey and ":" in sh.contextKey)  # "channel:talker_uid" carries the discord id
+    return True
+
+
+# FEASIBILITY (#4 D2) — *can the planned action actually be done* (the second axis, distinct from urge).
+# v1 is lean + honest, binary {0.0, 1.0}: every check is a REAL capability gap, never a speculative score.
+#   - internal KB-write reflex (guess/learn) -> always feasible (the write itself is a separate D-stub).
+#   - outward: needs a carrier for its channel (atproto has none yet), something to say (a raw text),
+#     and an addressable recipient. Any missing -> infeasible.
+# (redundancy/no-op + permission-allowlist scoring deferred; fuzzy degrees are future.)
+def score_feasibility(plan: dict) -> float:
+    token = plan["action_token"]
+    if token in _INTERNAL:
+        return 1.0
+    channel = plan["channel"]
+    if channel not in _ACTABLE_CHANNELS:
+        return 0.0  # no carrier for this channel (e.g. ATProto) -> honestly infeasible
+    if not plan["payload"].get("raw"):
+        return 0.0  # nothing to say
+    if not _addressable(plan["target"], plan["payload"], channel):
+        return 0.0  # unreachable recipient
+    return 1.0
+
+
+# map an idea's reflex to a concrete Action and PERSIST it. Pass a precomputed `plan` (from plan_action)
+# to avoid re-resolving; otherwise it plans here. Returns None for a no-reflex idea (ignore/unknown).
+def dispatch_action(idea: TKIdeaDoc, tokeniko_uid: str, plan: Optional[dict] = None) -> Optional[TKActionDoc]:
+    if plan is None:
+        plan = plan_action(idea, tokeniko_uid)
+    if plan is None:
+        return None
     action = TKActionDoc(
-        action_type=_DISPATCH[token],
+        action_type=plan["action_type"],
         sourceId=tokeniko_uid,
-        targetId=target,
-        channel=channel,
-        payload=payload,
+        targetId=plan["target"],
+        channel=plan["channel"],
+        payload=plan["payload"],
         ideaId=str(idea.id),
     )
     action.insert()
