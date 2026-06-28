@@ -124,7 +124,19 @@ speaks. Each carries an **open design question** that needs a brainstorm before 
 
 ### Later
 
-5. **D-phase enhancements (after the loop closes).** Cross-**speaker** patterns (userA≈userB realization);
+5. **Definitions-as-rules — the RICH-SOAK fuel (KB richness).** Today wondering chains over only ~17 items
+   (7 rules + 10 facts); the ~3,235 **definitions** are *grounding-only* — the chainer never sees them.
+   Mine each compiled definition into **membership + property** assertions (a `definition → rules/facts`
+   extractor, the mirror of `_extract_rules` over axioms) so wondering can chain the whole vocabulary.
+   Key shape: taxonomic content ("apple **is a** fruit") is ~redundant with the 150k is_a graph (gated/
+   deduped) — the GENERATIVE fuel is **property** content ("apple **has** red skin / sweet flesh") meeting
+   other definitions + universal rules (≥2 premises). The yield scales ≈ *definitions × rules*, so **grow
+   the universal-rule set too**. These are **analytic** truths (the vocabulary's deductive closure) — the
+   analytic half of [`doc/kb-growing-outward.md`]'s analytic/synthetic cut. Caveats: perf (3,235 ×
+   chaining × ~15s/theorem materialize → async + throughput), and gloss-quality noise (lean on
+   `soak_report.py`'s spurious-extras + integrity checks; logic-floor + ≥2-premise gate keep truth safe).
+   *This is the concrete path from "converges in 75s with 4 theorems" to the real knowledge explosion.*
+6. **D-phase enhancements (after the loop closes).** Cross-**speaker** patterns (userA≈userB realization);
    **inference-implied** conflicts (needs forward-chaining); self-authored "realization" memory + a
    **working-memory** layer.
 
