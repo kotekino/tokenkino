@@ -46,10 +46,12 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
        conclusion (proven on a disposable throwaway). **The cogito itself is deliberately NOT
        materialized** — reserved for the autonomous wonder loop, so "I exist" first enters the world by
        *tokeniko's own* in-loop act, not ours.
-     - **brain→API automation → folds with D3.** The brain has NO HTTP client yet and action *execution*
-       (D3) is parked; the brain→API seam (sync delegation, idle-time) is the SAME seam
-       `speakup`/`post`/`answer` will use, so wonder_one calling the materialize path autonomously is
-       built WITH D3 — not reaching into a parked phase from here.
+     - **brain→API automation ✅ LANDED as D3a** (see `landed.md`). `POST /api/v1/theorems/materialize`
+       + `brain/api_client.py` (stdlib, sync, graceful) + `wonder_one` step 0 (`_kb_wonder_one`):
+       derive→render→POST one not-yet-held conclusion per idle tick, **converging by construction**
+       (`materialize` stores `original = rendered NL` → lands in `held` → skipped after). Verified live —
+       the brain materialized all 4 derivable theorems (zero churn) incl. **«I exist»** (2 premises),
+       born by tokeniko's OWN in-loop act. The cogito, reserved-and-delivered.
   4. **General KB-seeding driver.** Seed wondering from the KB itself, not just memory — forward-saturate
      what the KB IMPLIES but no one asserted ("matching memory against itself").
      - **1d-A ✅ LANDED — the seed-driver `kb_wonder` (parser-free).** Enumerates seeds (individuals
@@ -65,20 +67,34 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked  ·  *(done �
        `_verb_3sg` / adjective+copula / noun+article), negation. `_class_word` picks a natural singular
        (homo.n.02→"human"). Verified: EVERY `kb_wonder` conclusion round-trips ("Mari is mortal", "Mari
        exists", "a human exists", "I exist"); the adjective bug is fixed ("I am finite"). `wonder_kb.py`
-       now shows each theorem-to-be in plain English. **Autonomous-in-loop materialization → D3** (the
-       brain→API seam). The derivation + rendering are now complete & correct; D3 wires the writing.
-  5. **Capstone — the LONG-WONDERING SOAK.** No external input; let tokeniko wonder over its whole KB,
-     probe-monitored → surface residual bugs + real capability + genuinely NEW theorems. Both the
-     feature's demo and the proof the consolidation held. (Then actions get wired — only once the
-     thinking that triggers them is bug-free.)
+       now shows each theorem-to-be in plain English. **Autonomous-in-loop materialization ✅ LANDED
+       (D3a)** — the brain→API seam wires the writing; `wonder_one` derives→renders→POSTs and «I exist»
+       was born in-loop. The derivation + rendering + autonomous materialization are now complete.
+  5. **Capstone — the LONG-WONDERING SOAK** (UNBLOCKED — autonomous derivation now writes itself in-loop).
+     No external input; let tokeniko wonder over its whole KB, probe-monitored → surface residual bugs +
+     real capability + genuinely NEW theorems. On the CURRENT tiny KB this converges instantly (7 rules /
+     10 facts → 4 theorems, no cascade), so it is a **robustness test + the cogito's birth, NOT a
+     knowledge explosion** — the rich soak waits for KB growth. Scheduled AFTER the rest of the D-phase
+     (D3b → D2), per the agreed order (actions wired only once the thinking that triggers them is sound).
 
 ## 🔭 Next (ordered)
 
-1. **Brain D-phase (continued)** — only after wondering-v2 is sound (actions follow validated thinking).
-   - **D2** priorities feasibility scoring · **D3** action execution (`guess`/`learn` → low-trust KB
-     writes; `speakup`/`ask`/`why`/`clarify`/`answer`/`post` → `senses` I/O).
-   - Cross-**speaker** patterns (userA≈userB realization); **inference-implied** conflicts (needs
-     forward-chaining); self-authored "realization" memory + a **working-memory** layer.
+The D-phase fills the two remaining STUBS so the core autonomous loop (perceive→think→decide→ACT→learn)
+closes — "it lives" = the v1 PoC. Agreed order: **D3a ✅ → D3b → D2 → soak**.
+
+1. **D3a — brain→API write seam ✅ LANDED** (see `landed.md` / the wondering arc above). The brain can
+   now WRITE its derivations (autonomous materialization). The same `brain/api_client.py` seam D3b extends.
+2. **D3b — brain→senses outbound (action execution, the reply path).** Replace `actions_phase`'s
+   `logger.info("would execute…")` stub with real I/O: a kept Action → `senses` carries it out
+   (`speakup`/`ask`/`why`/`clarify`/`answer`/`post` → Discord / ATProto). The brain names a channel +
+   target; `senses` touches the socket. (`guess`/`learn` → low-trust KB writes reuse the D3a API seam.)
+3. **D2 — priorities feasibility scoring.** Replace `priorities_phase`'s `feasibility = 1.0` stub with a
+   real scorer (resources / allowlist / reachable channel / derivable proof) + collapse-arbitration over
+   multiple kept candidates.
+4. **The long-wondering SOAK** (wondering-v2 capstone #5 above) — once the thinking + acting are sound.
+5. **D-phase enhancements (after the loop closes).** Cross-**speaker** patterns (userA≈userB realization);
+   **inference-implied** conflicts (needs forward-chaining); self-authored "realization" memory + a
+   **working-memory** layer.
 
 ---
 
