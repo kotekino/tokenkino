@@ -34,7 +34,7 @@ from lib.core.models import (
     TKMemoryItemDoc,
     TKTheoremDoc,
 )
-from brain import behavior
+from brain import api_client, behavior
 
 logger = logging.getLogger("tokeniko-brain")
 
@@ -156,7 +156,48 @@ def _kb_max_createdat() -> int:
     return mx
 
 
+# KB-WONDERING (#4 D3a) — the autonomous-derivation half of wondering. Where memory-wondering (below)
+# re-examines lived MEMORY because the KB grew, KB-wondering forward-saturates the KB ITSELF — deriving
+# what the rules+facts IMPLY but no one asserted ("matching memory against itself"). kb_wonder() returns
+# the genuinely-new (>=2-premise, deduped) conclusions; each is RENDERED to NL and POSTed to the API,
+# which compiles it into a first-class zip theorem carrying its proof. This is the seam by which "I
+# exist" enters the world by tokeniko's OWN in-loop act (the reserved cogito), not by our hand.
+#
+# SILENT: a direct API call, NOT via the Actions phase — wondering grows knowledge, it does not speak.
+# CONVERGENCE is by construction: materialize stores original = the rendered NL, so once a conclusion is
+# materialized its render lands in `held` and is skipped forever after. ONE conclusion per tick (bounded,
+# cooperative). FLAT-COST on the small KB; a future optimization can watermark-gate the re-saturation so
+# it only runs when the KB changed (mirrors the associative driver) — not needed at current KB size.
+#
+# Returns True iff it materialized one new theorem this tick. On an unreachable/failed API it returns
+# False (leave the conclusion for next tick — never advances past it, never churns a stored theorem).
+def _kb_wonder_one() -> bool:
+    conclusions = evaluation_harness.kb_wonder()
+    if not conclusions:
+        return False
+    held = {t.original for t in TKTheoremDoc.find({"archived": False}).to_list()}
+    for c in conclusions:
+        nl = evaluation_harness.render_conclusion(
+            c["subject"], c["predicate"], c.get("object"), c.get("negated", False), c["subject_kind"]
+        )
+        if not nl or nl in held:
+            continue  # unrenderable, or this conclusion is already a held theorem -> converged
+        chain = _CHAIN_PREFIX + c["chain"]  # same proof convention as the memory-wondering path
+        resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering")
+        if resp is None or resp.get("status") != "complete":
+            logger.warning("[wondering] KB-derive «%s» — API unavailable/failed, will retry", nl)
+            return False  # leave it for next tick (not in `held`, so it is re-attempted)
+        logger.info("[wondering] KB-derived THEOREM «%s» <- %s (premises=%s)", nl, chain, c["premises"])
+        return True  # one bounded unit per tick
+    return False  # every derivable conclusion already held -> KB-wondering is quiet
+
+
 def wonder_one(brain_state: TKBrainStateDoc) -> bool:
+    # 0. KB-WONDERING FIRST — derive what the KB implies and materialize ONE new theorem (the cogito's
+    #    autonomous birth). When it has nothing new (converged), fall through to memory-wondering below.
+    if _kb_wonder_one():
+        return True
+
     # 1. FIRST-RUN GUARD. Anchor the associative watermark at "now" so the entire seeded KB is not
     #    one giant delta on first wonder (mirrors think_one's wake_at first-run guard). No work yet.
     if brain_state.last_wondered_kb_at == 0:

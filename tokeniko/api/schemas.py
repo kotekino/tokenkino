@@ -87,6 +87,12 @@ class TheoremReplace(BaseModel):
     trusted: float = 0.9
     archived: bool = True
 
+class TheoremMaterializeIn(BaseModel):
+    tokens: str                                         # rendered NL of the derived conclusion (e.g. "I exist")
+    premises: list[str] = Field(default_factory=list)   # KB-doc ids the derivation rests on
+    chain: str                                          # the human-readable proof
+    derived_by: str = "wondering"                       # the faculty that produced it
+
 class TheoremSummary(BaseModel):  # listing view (no zip)
     id: PydanticObjectId = Field(alias="_id")
     original: str

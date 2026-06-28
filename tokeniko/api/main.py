@@ -13,14 +13,14 @@ from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarToken
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.tk import TKStatements
 from lib.core.tkllc import TKLLC
-from lib.core.memory import MEMChannels
+from lib.core.memory import MEMChannels, MEMProvenance
 from lib.llc.compiler import compiler_compile, compiler_zipGetBaseMarker
 from lib.core.tkzip import TKZip
 from api.services import AxiomService, DefinitionService, TheoremService, StakeholderService, MemoryService, EvaluationService
 from api.schemas import (
     AxiomIn, AxiomPatch, AxiomReplace, AxiomSummary, axiom_or_http,
     DefinitionIn, DefinitionPatch, DefinitionReplace, DefinitionSummary, definition_or_http,
-    TheoremIn, TheoremPatch, TheoremReplace, TheoremSummary, theorem_or_http,
+    TheoremIn, TheoremPatch, TheoremReplace, TheoremMaterializeIn, TheoremSummary, theorem_or_http,
     EvaluateIn,
     StakeholderSummary, stakeholder_or_http,
     MemoryIn, MemorySummary, memory_or_http,
@@ -200,6 +200,21 @@ async def get_theorem(object_id: str):
 async def create_theorem(payload: TheoremIn):
     try:
         theorem = create_or_http(lambda: app.state.theorem_service.create(payload.tokens))
+        return {"status": "complete", "data": theorem}
+    except HTTPException:
+        raise
+    except Exception as error:
+        return {"status": "failed", "data": repr(error)}
+
+# MATERIALIZE a DERIVED conclusion as a first-class theorem (wondering-v2 / brain→API seam): ACTIVE +
+# trusted, carrying its provenance (premises + chain), deduped on the SEMANTIC conclusion. The brain
+# (parser-free) renders a derived conclusion to NL and POSTs it here; the service compiles it through
+# the real pipeline. Returns the existing theorem (no write) when the conclusion is already held.
+@app.post("/api/v1/theorems/materialize")
+async def materialize_theorem(payload: TheoremMaterializeIn):
+    provenance = MEMProvenance(premises=payload.premises, chain=payload.chain, derived_by=payload.derived_by)
+    try:
+        theorem = create_or_http(lambda: app.state.theorem_service.materialize(payload.tokens, provenance))
         return {"status": "complete", "data": theorem}
     except HTTPException:
         raise
