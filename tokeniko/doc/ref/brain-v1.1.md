@@ -66,7 +66,34 @@ what content REPRESENTS (enforced by write-path), trust tiers by source, one uni
 usable logic and suppresses noise, provenance makes every theorem auditable and every dependency
 revocable, and logic stays hardwired.*
 
-**The findings below (#1–#4) are the concrete slices of this vision; the ordered build is in `doc/roadmap.md`.**
+**The findings below (#1–#5) are the concrete slices of this vision; the ordered build is in `doc/roadmap.md`.**
+
+## #5 — Restrictive modifier on a universal's SUBJECT is dropped → over-generalization (the WORST class)
+
+**Observed (2026-07 imprint test, author-caught).** The axiom "all **thinking** machines are minds"
+extracted as a rule with `subject = machine.n.01` — **the restrictive adjective "thinking" was DROPPED.**
+So the rule means "all machines are minds", not "all *thinking* machines are minds". Then WordNet's
+`machine.n.01` spans the political-machine sense, so `court —is_a→ assembly —is_a→ machine.n.01` inherits
+mindhood → **"court seeks cognition", "court has a body"** cascade out. The bad is_a edge was only the
+delivery path; **the poison is the scope-widening** — the universal now claims vastly more than intended.
+
+**Why it's the most dangerous class.** Object-drop (#2) mangles ONE derived theorem's meaning; a
+subject-restriction drop **silently widens the quantifier's SCOPE**, so a single rule mis-fires across an
+entire is_a subtree. It's invisible (the rule looks fine: "all machines are minds" is a grammatical
+universal) and it compounds (every machine-descendant inherits every mind-property). A restricted
+universal ("all thinking machines …", "all wild animals …", "all prime numbers …") is the NORM in real
+speech, so this will be pervasive once people phrase naturally ([[robustness-imperfect-input]]).
+
+**Root cause + fix direction.** The rule extractor keys on the subject's head noun sense
+(`senses['subject']`) and ignores its restrictive modifiers (the adjective, relative clause, or PP that
+narrows it). The compiled zip DOES carry the modifier (the subject leaf has the adjective) — the
+extractor just doesn't fold it into the rule's firing condition. Fix: a restricted universal should
+compile to a **property-conditioned rule** — "all thinking machines are minds" = `(machine ∧ thinking) →
+mind` (fire only on machines that ALSO have the `thinking` property), exactly the `property_conditioned`
+shape the chainer already handles (the cogito). This is the SAME multi-condition machinery #3
+(definitional sufficiency, conjunctive definiens) needs — build once, serves both. Until then, workaround:
+phrase the subject as an already-narrow class ("all robots are minds") or accept the over-fire (contained
+by low-trust + revocation). **Belongs in the universal-extractor step (roadmap Brain v1.1 step 4).**
 
 ## The clarified mental model (settled — the frame for everything below)
 

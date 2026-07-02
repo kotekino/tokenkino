@@ -31,8 +31,21 @@ _TRUST = 0.3
 
 def main():
     apply = "--apply" in sys.argv
+    clear = "--clear" in sys.argv     # remove this method's tier edges and STOP (no re-insert)
     init_io(os.getenv("MONGO_URI"), os.getenv("MONGO_DB_NAME"),
             os.getenv("MONGO_DB_NAME_MEMORY"), os.getenv("OLLAMA_HOST"))
+
+    # --clear: drop the definition-derived is_a tier so it stops fuelling CHAINING (the decision-A
+    # amplification: abstract-class rules cascade over these edges → e.g. court→...→machine→mind →
+    # "court seeks cognition"). Grounding loses the definition edges too; acceptable while the
+    # trust-tiered reader split (Brain v1.1) is unbuilt. DRY-RUN unless --apply.
+    if clear:
+        n = TKDerivedRelationDoc.find({"method": _METHOD}).count()
+        print(f"\nCLEAR {_METHOD} tier: {n} edges {'-> DELETING' if apply else '(dry-run — re-run with --apply)'}")
+        if apply and n:
+            TKDerivedRelationDoc.find({"method": _METHOD}).delete()
+            print(f"  deleted {n} edges. tier now holds {TKDerivedRelationDoc.find({'method': _METHOD}).count()}.")
+        return
 
     docs = TKDefinitionDoc.find({"archived": False}).to_list()
     bedrock = _make_relations_reader()  # gate against the TRUSTED graph only (never the union)
