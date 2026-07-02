@@ -178,11 +178,13 @@ def _kb_wonder_one() -> bool:
     if not conclusions:
         return False
     held = {t.original for t in TKTheoremDoc.find({"archived": False}).to_list()}
+    n_held_skip = 0
     for c in conclusions:
         nl = evaluation_harness.render_conclusion(
             c["subject"], c["predicate"], c.get("object"), c.get("negated", False), c["subject_kind"]
         )
         if not nl or nl in held:
+            n_held_skip += 1
             continue  # unrenderable, or this conclusion is already a held theorem -> converged
         chain = _CHAIN_PREFIX + c["chain"]  # same proof convention as the memory-wondering path
         resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering",
@@ -192,6 +194,8 @@ def _kb_wonder_one() -> bool:
             return False  # leave it for next tick (not in `held`, so it is re-attempted)
         logger.info("[wondering] KB-derived THEOREM «%s» <- %s (premises=%s)", nl, chain, c["premises"])
         return True  # one bounded unit per tick
+    logger.info("[wondering] KB-wonder quiet: %d conclusions, all %d already held (converged)",
+                len(conclusions), n_held_skip)
     return False  # every derivable conclusion already held -> KB-wondering is quiet
 
 
@@ -298,7 +302,9 @@ def wonder_one(brain_state: TKBrainStateDoc) -> bool:
 
     out = evaluate_zip(item.zip)  # fingerprint-cached KB load
     result: EvaluatorResult = out["result"]
-    if status_to_token(result) == EvalToken.TRUE.value:
+    tok = status_to_token(result)
+    logger.info("[wondering] memory-item «%s» -> %s (truth=%.2f)", item.original, tok, result.truth)
+    if tok == EvalToken.TRUE.value:
         materialize_theorem(result, item, derived_by="wondering")  # SILENT: knowledge only, no idea/action
     return True
 

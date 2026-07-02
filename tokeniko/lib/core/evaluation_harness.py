@@ -12,6 +12,8 @@
 # evaluator package is parser-free, so the brain reuses this harness directly. The single parser step
 # (sentence -> TKZip) stays in EvaluationService._compile_zip and is the only api-only piece.
 # --------------------------------------------------------------
+import logging
+import os
 from typing import Optional
 
 from lib.core.constants import _ME_UID
@@ -20,6 +22,16 @@ from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
 from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh, evaluator_forwardChain
+
+# verbose wondering trace — shares the brain's "tokeniko-brain" logger/handler so it prints to the
+# console when the brain runs. Gated by WONDER_VERBOSE (default ON while we debug the enriched soak;
+# set WONDER_VERBOSE=0 to silence). The API never calls kb_wonder, so this stays brain-only in practice.
+logger = logging.getLogger("tokeniko-brain")
+_WONDER_VERBOSE = os.getenv("WONDER_VERBOSE", "1").strip().lower() not in ("0", "false", "no", "")
+
+
+def _short(sense: Optional[str]) -> str:
+    return (sense or "?").split(".", 1)[0]
 
 
 # the injected is_a graph reader: parents(sense) -> direct is_a hypernyms over the BEDROCK ~150k-triple
@@ -239,10 +251,18 @@ def _class_word(sense: str) -> str:
     if not words:
         return _sense_surface(sense)
     word_set = set(words)
+    # PREFER the sense's OWN lemma (the canonical, round-trip-stable name for THIS exact synset) — so
+    # chat.n.01 renders "chat", not the longest synonym "confabulation" (which reads as a different
+    # sense and misleads). This is round-trip-correct (the lemma re-parses back to this sense) and
+    # honest even when the subject WSD is itself wrong (a bad "chat.n.01" edge reads plausibly as "chat"
+    # rather than screaming "confabulation"). Only when the lemma isn't a stored word do we fall back to
+    # the longest-singular heuristic.
+    lemma = _sense_surface(sense)
+    if lemma in word_set:
+        return lemma
     # drop a plural "-s" form when its singular sibling is also a candidate
     singulars = [w for w in words if not (w.endswith("s") and w[:-1] in word_set)]
     candidates = singulars or words
-    # prefer the longest -> "human" over "homo"
     return max(candidates, key=len)
 
 
@@ -619,18 +639,34 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
             seen_seeds.add(cs)
             seeds.append((cs, None, cs, "class"))
 
+    if _WONDER_VERBOSE:
+        n_ind = sum(1 for s in seeds if s[3] == "individual")
+        n_cls = len(seeds) - n_ind
+        n_derived_rules = sum(1 for r in rules if str(r.get("source_id", "")).startswith("rule:"))
+        logger.info(
+            "[kb_wonder] seeds=%d (%d individuals, %d classes) | rules=%d (%d axiom + %d differentia) | facts=%d",
+            len(seeds), n_ind, n_cls, len(rules), len(rules) - n_derived_rules, n_derived_rules, len(facts),
+        )
+
     out: list[dict] = []
     seen_conclusions: set = set()
+    n_1prem = 0    # dropped by the novelty gate (single-rule restatement)
+    n_dup = 0      # dropped by semantic dedup
+    n_total_derived = 0
     for subject, uid, sense, kind in seeds:
         derived, _ = evaluator_forwardChain(sense, uid, rules, parents, facts, edge_source=edge_source)
+        n_total_derived += len(derived)
         for d in derived:
             premises = d.get("premises", [])
             if len(premises) < _NOVELTY_MIN_PREMISES:
+                n_1prem += 1
                 continue  # novelty gate: a single-rule restatement is not a new theorem
             sig = (subject, d["predicate"], d.get("object"), bool(d.get("negated", False)))
             if sig in seen_conclusions:
+                n_dup += 1
                 continue  # semantic dedup across seeds
             seen_conclusions.add(sig)
+            trust = _conclusion_trust(premises)
             out.append({
                 "subject": subject,
                 "subject_kind": kind,
@@ -641,8 +677,21 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
                 "premises": premises,
                 # min-trust inheritance: a conclusion resting on a low-trust tier edge is stored honestly
                 # low-trust + revisable, never laundered to the 0.9 default (truth ⟂ trust).
-                "trust": _conclusion_trust(premises),
+                "trust": trust,
             })
+            if _WONDER_VERBOSE:
+                obj = f" {_short(d.get('object'))}" if d.get("object") else ""
+                logger.info(
+                    "[kb_wonder]   NEW  %s(%s) %s%s%s  | trust=%.2f premises=%d  chain=%s",
+                    _short(subject), kind, "NOT " if d.get("negated") else "",
+                    _short(d["predicate"]), obj, trust, len(premises), d["chain"],
+                )
+    if _WONDER_VERBOSE:
+        logger.info(
+            "[kb_wonder] done: %d NEW conclusions | %d derivations across %d seeds "
+            "| dropped(1-premise=%d, dup=%d)",
+            len(out), n_total_derived, len(seeds), n_1prem, n_dup,
+        )
     return out
 
 
