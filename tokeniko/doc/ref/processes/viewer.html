@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tokeniko — process maps</title>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+      fontSize: "14px",
+      primaryColor: "#1f2733",
+      primaryTextColor: "#e6edf3",
+      primaryBorderColor: "#3d4a5c",
+      lineColor: "#7d8ba1",
+      clusterBkg: "#161b22",
+      clusterBorder: "#30363d",
+      tertiaryColor: "#161b22",
+    },
+    flowchart: { curve: "basis", nodeSpacing: 40, rankSpacing: 48, htmlLabels: true },
+  });
+</script>
+<style>
+  :root { --bg:#0d1117; --panel:#161b22; --border:#30363d; --fg:#e6edf3; --muted:#8b949e; --accent:#58a6ff; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg);
+         font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, sans-serif; display:flex; }
+  nav { width:270px; min-width:270px; height:100vh; overflow:auto; position:sticky; top:0;
+        background:var(--panel); border-right:1px solid var(--border); padding:20px 16px; }
+  nav h1 { font-size:15px; margin:0 0 4px; letter-spacing:.5px; }
+  nav .sub { color:var(--muted); font-size:12px; margin-bottom:18px; }
+  nav a { display:block; color:var(--fg); text-decoration:none; padding:8px 10px; border-radius:7px;
+          font-size:13px; margin-bottom:3px; border:1px solid transparent; }
+  nav a:hover { background:#1f2733; border-color:var(--border); }
+  nav a .tag { color:var(--accent); font-weight:700; margin-right:8px; }
+  nav a.soon { color:var(--muted); }
+  nav a.soon .tag { color:var(--muted); }
+  nav .legend { margin-top:22px; font-size:11px; color:var(--muted); line-height:1.7; border-top:1px solid var(--border); padding-top:14px; }
+  nav .legend b { color:var(--fg); }
+  main { flex:1; padding:32px 40px 120px; overflow:auto; height:100vh; }
+  section { margin-bottom:64px; }
+  section h2 { font-size:20px; margin:0 0 4px; }
+  section .desc { color:var(--muted); font-size:13px; max-width:820px; line-height:1.6; margin-bottom:20px; }
+  .mermaid { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:24px; overflow-x:auto; }
+  .pill { display:inline-block; font-size:11px; padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:middle; }
+  .pill.now { background:#1b4332; color:#7ee2a8; }
+  .pill.soon { background:#3d2f10; color:#e5c07b; }
+  footer { color:var(--muted); font-size:12px; border-top:1px solid var(--border); padding-top:14px; }
+</style>
+</head>
+<body>
+<nav>
+  <h1>tokeniko · process maps</h1>
+  <div class="sub">the journey of information across the components</div>
+  <a href="#A"><span class="tag">A</span>API compilation pipeline</a>
+  <a href="#B"><span class="tag">B</span>/evaluate</a>
+  <a href="#C"><span class="tag">C</span>Brain coordinator tick</a>
+  <a href="#D"><span class="tag">D</span>Reactive loop (perceive→act)</a>
+  <a href="#E"><span class="tag">E</span>Wondering</a>
+  <a href="#F"><span class="tag">F</span>KB ingestion &amp; tiers</a>
+  <a href="#G"><span class="tag">G</span>Senses I/O + public</a>
+  <div class="legend">
+    <b>lanes</b> = stakeholders (Client · API · Parser · Compiler · DB)<br/>
+    <b>▸ green</b> start · <b>▸ grey</b> end · <b>◆ amber</b> gateway/fork<br/>
+    <b>solid</b> = data flow · <b>dotted</b> = reads/side-lookup<br/><br/>
+    Mermaid swim-lane flowcharts (not BPMN2 XML). Source of truth: this file.
+  </div>
+</nav>
+
+<main>
+  <section id="A">
+    <h2>A · API compilation pipeline <span class="pill now">as-is</span></h2>
+    <p class="desc">
+      How a natural-language sentence becomes a stored, queryable memory item. A client POSTs a
+      sentence to an axiom/definition/theorem resource; the <code>*Service</code> parses it (spaCy+Stanza
+      → recursive AST, with word-sense &amp; identity disambiguation against the KB), compiles it to the
+      flat <code>TKLLC</code> + the numeric <code>TKZip</code> (running the graph-constrained genus
+      untangle in-pass), gates it against the contradiction guard (logic-is-sacred), and stores it. The
+      one fork: a form that folds to 0 under every crisp assignment is rejected (422); tautologies and
+      contingent statements pass.
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef endd fill:#21262d,stroke:#484f58,color:#adbac7;
+    classDef gate fill:#3d2f10,stroke:#e5c07b,color:#e5c07b;
+    classDef store fill:#0d2b45,stroke:#58a6ff,color:#9cd2ff;
+
+    subgraph CLIENT["🧑 Client"]
+        A0(["POST /api/v1/axioms · definitions · theorems<br/>body: tokens = a sentence"]):::start
+        AOK(["200 · status:complete · data: stored doc"]):::endd
+        AERR(["422 · InconsistentStatementError"]):::endd
+    end
+
+    subgraph API["⚙️ API · *Service"]
+        A1["handler → create_or_http( Service.create tokens )"]
+        A2["compile_fields( tokens )"]
+        GUARD{"assert_no_contradiction<br/>classifyForm: folds to 0 under<br/>EVERY crisp assignment?"}:::gate
+        A9["wrap result → {status, data}"]
+    end
+
+    subgraph PARSER["🔤 Parser (spaCy + Stanza)"]
+        P1["preparser (optional, prepare=1)<br/>typo · lang-detect · translate"]
+        P2["dep-parse → recursive TKStatements AST"]
+        P3["WSD: Lesk → centroid → freq-prior<br/>sense-bridge (TKDictionary.sense)"]
+        P4["identity-bridge: name → uid<br/>+ NER type-centroid vector"]
+    end
+
+    subgraph COMPILER["🧮 Compiler"]
+        C1["resolve entities · subordinates · statements"]
+        C2["spacetime resolve + normalize"]
+        C3["TKLLC (flat: entities + refs)"]
+        C4["genus UNTANGLE — graph-constrained WSD<br/>(swaps sense + 2925-vector in place)"]
+        C5["zip build · fuzzy fusion · tanh → TKZip"]
+        C6["decompiler_raw → raw string"]
+    end
+
+    subgraph DB["🗄️ MongoDB"]
+        KB[("KB db: dictionary · names · places · relations")]
+        MEM[("memory db: axioms · definitions · theorems")]:::store
+    end
+
+    A0 -->|sentence| A1 --> A2
+    A2 -->|"parser(tokens, tokeniko)"| P1 --> P2 --> P3 --> P4
+    P3 -.reads senses.-> KB
+    P4 -.reads names/places.-> KB
+    P4 -->|TKStatements| C1 --> C2 --> C3 --> C4 --> C5
+    C4 -.reads is_a graph.-> KB
+    C3 --> C6
+    C5 -->|"(TKLLC, TKZip, raw)"| GUARD
+    GUARD -->|"folds to 0 → reject"| AERR
+    GUARD -->|"consistent / tautology / contingent"| MEM
+    MEM -->|saved doc| A9 --> AOK
+    </div>
+  </section>
+
+  <section id="B">
+    <h2>B · /evaluate <span class="pill now">as-is</span></h2>
+    <p class="desc">
+      Judging a claim (grounding), <b>read-only — stores nothing</b>. The statement compiles the same way
+      as A, then the parser-free evaluator runs: first the intra-statement contradiction kernel
+      (logic-is-sacred); then each clause is decided by whichever path proves it — relational (is_a
+      subsumption / tiered-disjointness), forward-chaining (rules + facts), or a near-exact geometric
+      definition match (affirm only); the clause truths fold through the operator tree; finally a
+      geometric best-match against active axioms/theorems. The active KB is loaded once (fingerprint-cached).
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef endd fill:#21262d,stroke:#484f58,color:#adbac7;
+    classDef gate fill:#3d2f10,stroke:#e5c07b,color:#e5c07b;
+
+    subgraph CLIENT["🧑 Client"]
+        B0(["POST /api/v1/evaluate<br/>body: tokens = a statement"]):::start
+        BOUT(["200 · EvaluatorResult<br/>status · truth · derivation · premises · match"]):::endd
+    end
+    subgraph API["⚙️ API · EvaluationService"]
+        B1["_compile_zip(tokens) — same parse+compile as A"]
+        B2["evaluate_zip(zip) · PURE (read-only)"]
+        B9["wrap → status:complete · data"]
+    end
+    subgraph EVAL["🧠 Evaluator (parser-free)"]
+        E1{"classifyForm<br/>intra-statement X and not-X?"}:::gate
+        EI(["INCONSISTENT · truth 0"]):::endd
+        E2["ground each clause vs DEFINITIONS"]
+        E3{"per clause: which path decides truth?"}:::gate
+        E3a["relational — is_a subsumes / tiered-disjoint"]
+        E3b["chain — forward-chainer (rules + facts)"]
+        E3c["geometry — near-exact definition match (AFFIRM only)"]
+        E4["fold clause truths through the operator tree"]
+        E5["geometric best-match vs axioms / theorems<br/>relationMatch · matchedKind"]
+    end
+    subgraph KB["🗄️ MongoDB — active KB (fingerprint-cached)"]
+        DEFS[("definitions")]
+        AX[("axioms → rules + facts")]
+        TH[("theorems")]
+        REL[("relations: bedrock ∪ derived tier")]
+    end
+
+    B0 -->|statement| B1 --> B2 --> E1
+    E1 -->|contradiction| EI
+    E1 -->|consistent| E2
+    E2 -.reads.-> DEFS
+    E2 --> E3
+    E3 --> E3a
+    E3 --> E3b
+    E3 --> E3c
+    E3a -.reads is_a.-> REL
+    E3b -.reads rules+facts.-> AX
+    E3c -.reads.-> DEFS
+    E3a --> E4
+    E3b --> E4
+    E3c --> E4
+    E4 --> E5
+    E5 -.reads.-> AX
+    E5 -.reads.-> TH
+    E5 -->|EvaluatorResult| B9 --> BOUT
+    </div>
+  </section>
+
+  <section id="C">
+    <h2>C · Brain coordinator tick <span class="pill now">as-is</span></h2>
+    <p class="desc">
+      The single loop, dynamic priority routing: each tick drains <b>Actions</b> before
+      <b>Priorities</b> before <b>Thinking</b> — the reactive path wins, thinking is the background
+      filler. One bounded unit per phase, then a cooperative yield; only true idle takes the long sleep.
+      Event-driven interruption falls out for free (a new idea/action is picked up next tick).
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef gate fill:#3d2f10,stroke:#e5c07b,color:#e5c07b;
+
+    subgraph COORD["🔁 Coordinator (one tick)"]
+        T0(["tick"]):::start
+        GA{"Actions: pending INTERNAL action?"}:::gate
+        GP{"Priorities: pending idea?"}:::gate
+        GT{"Thinking: fresh memory or wondering work?"}:::gate
+        YB["yield · BUSY_YIELD"]
+        YS["sleep · IDLE_INTERVAL"]
+    end
+    subgraph PHASES["⚙️ Phases — one bounded unit each"]
+        AP["actions_phase() → execute INTERNAL action"]
+        PP["priorities_phase() → plan · score · collapse → action"]
+        TP["thinking_phase() → think_one() OR wonder_one()"]
+    end
+    subgraph Q["🗄️ queues (Mongo)"]
+        AQ[("actions")]
+        IQ[("ideas")]
+        MEM[("memory / theorems")]
+    end
+
+    T0 --> GA
+    GA -->|yes| AP -->|done| YB
+    GA -->|no| GP
+    GP -->|yes| PP -->|done| YB
+    GP -->|no| GT
+    GT -->|yes| TP -->|did work| YB
+    GT -->|no| YS
+    YB --> T0
+    YS --> T0
+    AP -.consumes.-> AQ
+    PP -.reads.-> IQ
+    PP -.mints.-> AQ
+    TP -.reads / writes.-> MEM
+    </div>
+  </section>
+
+  <section id="D">
+    <h2>D · Reactive loop — perceive → think → decide → act <span class="pill now">as-is</span> <span class="pill soon">senses-out dry-run</span></h2>
+    <p class="desc">
+      The whole reactive arc across three phases. Thinking picks the liveliest speaker's fresh item and
+      branches on mood: a <b>question</b> is answered (not believed); a <b>declarative</b> is evaluated,
+      fanned into <code>eval:*</code> ideas via the behavior rules, cross-checked against the speaker's
+      priors, and (if forward-chain-true) silently materialized. Priorities scores each idea on urge ×
+      feasibility and collapses siblings to one reflex per decision. Actions executes: INTERNAL by the
+      brain, outward via senses (dry-run today).
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef gate fill:#3d2f10,stroke:#e5c07b,color:#e5c07b;
+    classDef endd fill:#21262d,stroke:#484f58,color:#adbac7;
+    classDef store fill:#0d2b45,stroke:#58a6ff,color:#9cd2ff;
+
+    subgraph MEM["🗄️ Memory"]
+        M0(["new memory item past wake_at"]):::start
+    end
+    subgraph THINK["🧠 Thinking (think_one)"]
+        D1["per-user-grouped scan → liveliest speaker's item"]
+        DM{"mood?"}:::gate
+        DQ["question → answer_zip (verdict / value)"]
+        DA["declarative → evaluate_zip"]
+        DTOK["status_to_token → eval:* token"]
+        DSPAWN["spawn_ideas_for(eval:*) via behavior_rules"]
+        DLEARN["eval:true + forward-chain → materialize_theorem (silent)"]
+        DX["cross-item conflict vs same-speaker priors → eval:conflict"]
+    end
+    subgraph EVAL["🧩 Evaluator"]
+        EV["ground · chain · classify → EvaluatorResult"]
+    end
+    subgraph PRIO["🎚️ Priorities (priorities_phase)"]
+        PL["plan_action(idea)"]
+        PS{"urge ≥ WISH AND feasible?<br/>carrier · content · recipient"}:::gate
+        PC["_collapse_siblings → ONE reflex per decision"]
+        PDROP(["discard: below-urge / infeasible"]):::endd
+    end
+    subgraph ACT["⚡ Actions + Senses"]
+        AI["INTERNAL → brain executes (KB-write)"]
+        AS["discord → senses/outbound → decompile → deliver (dry-run)"]
+    end
+    subgraph DB["🗄️ queues"]
+        IDEAS[("ideas")]:::store
+        ACTIONS[("actions")]:::store
+        TH[("theorems")]:::store
+    end
+
+    M0 --> D1 --> DM
+    DM -->|question| DQ --> DSPAWN
+    DM -->|declarative| DA --> EV --> DTOK --> DSPAWN
+    DA --> DX
+    DTOK -.->|"eval:true"| DLEARN --> TH
+    DX -.->|conflict| DSPAWN
+    DSPAWN --> IDEAS --> PL --> PS
+    PS -->|yes| PC --> ACTIONS
+    PS -->|no| PDROP
+    ACTIONS --> AI
+    ACTIONS --> AS
+    </div>
+  </section>
+
+  <section id="E">
+    <h2>E · Wondering — autonomous derivation <span class="pill now">as-is</span></h2>
+    <p class="desc">
+      The idle filler that grows knowledge silently. First KB-wondering: seed the chainer from everything
+      tokeniko knows, keep only genuinely-new (≥2-premise) conclusions, render + POST them as first-class
+      theorems (min-trust, provenance) — this is how «I exist» was born in-loop. When that's converged,
+      fall to memory-wondering: an associative driver (KB-delta senses pick touched memories) and a
+      throttled random drift, processing one past item per tick and materializing anything newly-derivable.
+      Convergence is by construction (a materialized conclusion lands in <code>held</code>).
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef gate fill:#3d2f10,stroke:#e5c07b,color:#e5c07b;
+    classDef endd fill:#21262d,stroke:#484f58,color:#adbac7;
+    classDef store fill:#0d2b45,stroke:#58a6ff,color:#9cd2ff;
+
+    subgraph BRAIN["🧠 wonder_one (idle filler)"]
+        W0(["idle tick → wonder_one"]):::start
+        WK{"KB-wonder: a NEW ≥2-premise conclusion not yet held?"}:::gate
+        WKR["render_conclusion → NL"]
+        WA{"associative: KB delta since watermark?"}:::gate
+        WAE["delta senses → touched memory items → wonder_queue"]
+        WD{"drift throttle elapsed?"}:::gate
+        WDE["sample random items → wonder_queue"]
+        WP["process ONE queued memory item"]
+        WQUIET(["quiet · converged"]):::endd
+    end
+    subgraph EVAL["🧩 Evaluator"]
+        KBW["kb_wonder: seed individuals + classes + tier-subjects<br/>→ forwardChain → ≥2-premise gate → dedup"]
+        EZ["evaluate_zip → EvaluatorResult"]
+    end
+    subgraph API["⚙️ API"]
+        MAT["POST /theorems/materialize (min-trust · provenance)"]
+    end
+    subgraph DB["🗄️ MongoDB"]
+        TH[("theorems · active")]:::store
+        MEMS[("memory")]
+    end
+
+    W0 --> WK
+    WK -.calls.-> KBW
+    WK -->|yes| WKR --> MAT --> TH
+    WK -->|no| WA
+    WA -->|yes| WAE --> WP
+    WA -->|no| WD
+    WD -->|yes| WDE --> WP
+    WD -->|no| WQUIET
+    WP --> EZ
+    WP -.reads.-> MEMS
+    EZ -.->|"eval:true → silent"| TH
+    MAT -.->|"converges: original lands in held"| WK
+    </div>
+  </section>
+
+  <section id="F">
+    <h2>F · KB ingestion &amp; the tiers (definitions-as-rules) <span class="pill now">as-is</span></h2>
+    <p class="desc">
+      How the vocabulary feeds reasoning. At compile time every definition's genus is <b>untangled</b>
+      (graph-constrained WSD → sense faithful to the subject's taxonomy). Batch extractors then mine the
+      clean definitions into two <b>low-trust, revocable</b> tiers — is_a edges and property rules — each
+      strictly gated against the bedrock graph. The reasoning readers split cleanly: <b>grounding</b> uses
+      the rich definitions; <b>chaining</b> uses bedrock ∪ the derived tiers, held honest by the step-4
+      net. Per decision A, the noisy WordNet auto-rules are not bulk-applied — quality comes from curated fuel.
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef store fill:#0d2b45,stroke:#58a6ff,color:#9cd2ff;
+    classDef endd fill:#21262d,stroke:#484f58,color:#adbac7;
+
+    subgraph ING["🧮 Ingestion (compile-time)"]
+        F0(["definition stored via pipeline A"]):::start
+        FU["genus UNTANGLE — graph-constrained WSD"]
+    end
+    subgraph EXT["⛏️ Extractors — batch, --apply, gated"]
+        FE1["extract_definitions → is_a edges<br/>gate: redundant · placeholder · cycle · reliable-tier-disjoint"]
+        FE2["extract_differentia → property rules<br/>gate: abstract-genus · noun · verb-no-obj · circular"]
+    end
+    subgraph TIERS["🗄️ KB tiers (Mongo)"]
+        DEFS[("definitions — rich gloss")]
+        BED[("relations — WordNet bedrock · trust 1.0")]
+        DR[("derived_relations — is_a tier · trust 0.3")]:::store
+        DRU[("derived_rules — property tier · trust 0.3")]:::store
+    end
+    subgraph USE["🧩 Reasoning readers"]
+        RG["GROUNDING ← definitions (rich)"]
+        RC["CHAINING ← bedrock ∪ derived_relations<br/>+ rules = axiom ∪ derived_rules"]
+        RNET["step-4 net: min-trust · provenance · revocable"]
+        FA(["decision A: WordNet auto-rules NOT bulk-applied → curated fuel"]):::endd
+    end
+
+    F0 --> FU --> DEFS
+    DEFS -->|batch mine| FE1 --> DR
+    DEFS -->|batch mine| FE2 --> DRU
+    FE1 -.gate vs.-> BED
+    FE2 -.gate vs.-> BED
+    DEFS --> RG
+    BED --> RC
+    DR --> RC
+    DRU --> RC
+    RC --> RNET --> FA
+    </div>
+  </section>
+
+  <section id="G">
+    <h2>G · Senses I/O + public window <span class="pill soon">as-will-be</span></h2>
+    <p class="desc">
+      tokeniko's I/O to the world — mostly projectual (drawn ahead to force forward-consistency; purple =
+      not built yet). <b>Inbound</b> (planned): a Discord/ATProto listener routes each message to memory,
+      with the open question of overheard-vs-directed. <b>Outbound</b> (built, dry-run): the brain mints a
+      channel=discord action; senses resolves the recipient, decompiles the raw stance to fluent English,
+      and delivers (dry-run by default until a live sender lands). <b>Public window</b> (mock): the brain's
+      actions loop one-way-publishes transmissions + hardware/cycle stats to a separate public Atlas.
+    </p>
+    <div class="mermaid">
+flowchart TB
+    classDef start fill:#1b4332,stroke:#2ea043,color:#7ee2a8;
+    classDef gate fill:#3d2f10,stroke:#e5c07b,color:#e5c07b;
+    classDef endd fill:#21262d,stroke:#484f58,color:#adbac7;
+    classDef store fill:#0d2b45,stroke:#58a6ff,color:#9cd2ff;
+    classDef soon fill:#2d2233,stroke:#b083c9,color:#dcc2ec;
+
+    subgraph EXT["🌐 Outside world"]
+        G0(["Discord DM / channel message"]):::start
+        GA0(["ATProto / Bluesky · parked"]):::soon
+        GBLOG(["Blog · tokeniko.online · mock"]):::soon
+    end
+    subgraph SENSES["👂 Senses"]
+        SI["INBOUND listener → on_message<br/>OPEN Q: overheard vs directed?"]:::soon
+        SO["OUTBOUND: poll PENDING discord actions"]
+        SORES["_resolve_destination — payload coords / contextKey DM"]
+        SOEN["_to_english = decompiler_decompile (Ollama)"]
+        SOSEND{"SENSES_DELIVER_DRYRUN?"}:::gate
+        SODRY(["dry-run: log would-send → DONE"]):::endd
+        SOLIVE(["live: DiscordClient.send → DONE"]):::endd
+    end
+    subgraph BRAIN["🧠 Brain / DB"]
+        BMEM[("memory · stakeholder=user · channel")]:::store
+        BACT[("actions · channel=discord")]:::store
+        BPUB["actions loop → publish transmissions + push stats"]:::soon
+    end
+    subgraph PUB["📡 Public Atlas (cloud · one-way)"]
+        PMIND[("/api/mind — transmissions + KPIs · mock")]:::soon
+    end
+
+    G0 -->|inbound| SI -->|compile via API| BMEM
+    GA0 -.->|"inbound (later)"| SI
+    BACT --> SO --> SORES --> SOEN --> SOSEND
+    SOSEND -->|dry-run default| SODRY
+    SOSEND -->|live + sender| SOLIVE
+    SOLIVE -->|reply| G0
+    BPUB -->|one-way publish| PMIND
+    PMIND -.serves.-> GBLOG
+    </div>
+  </section>
+
+  <footer>
+    tokeniko process maps · A–G. "as-is" = the code today; "as-will-be" (purple) = projectual (senses
+    going-live). Source of truth: this file. Convention + index: <code>doc/ref/processes/README.md</code>.
+  </footer>
+</main>
+</body>
+</html>
