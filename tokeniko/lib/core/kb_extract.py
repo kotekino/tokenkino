@@ -22,7 +22,7 @@
 from collections import Counter
 
 from lib.core.evaluation_harness import _zip_leaves
-from lib.llc.evaluator.e_relations import relations_subsumes, relations_disjoint
+from lib.llc.evaluator.e_relations import relations_subsumes, relations_disjoint, relations_isa_ancestors
 
 # reliable disjointness tiers for ADMISSION. tier 1 (biological kingdoms) + tier 2 (organism/artifact/
 # substance) are trustworthy; tier 3 (physical⊥abstract) is NOT — WordNet arbitrarily files polysemous
@@ -43,6 +43,107 @@ def _is_noun(sense) -> bool:
 
 def _genus_lemma(sense: str) -> str:
     return (sense or "").split(".", 1)[0]
+
+
+def _pos(sense: str) -> str:
+    for tag in (".n.", ".v.", ".a.", ".s.", ".r."):
+        if sense and tag in sense:
+            return tag.strip(".")
+    return "?"
+
+
+# ================================================================================================
+# DIFFERENTIA → universal PROPERTY RULES (definitions-as-rules, step 5). Mine "an X is a <genus> that
+# <differentia>" into the rule "all X <differentia>", gated STRICTLY (a false rule poisons every
+# subclass it fires on). The gate, validated in the step-5.1 dry-run (scripts/probe_differentia.py):
+#   ABSTRACT genus  — genus under abstraction.n.06 (not physical_entity) -> the differentia describes
+#                     the BEARER, not X ("an ability is the QUALITY of being able to PERFORM").
+#   NOUN differentia — a genus-disjunction alt ("a structure OR object") / appositive -> noise.
+#   VERB w/o object  — a passive reduced-relative ("equipped WITH") or unconfirmed intransitive; agency
+#                      isn't recoverable from the zip -> drop (verb recovery is PARKED: parser voice).
+#   CIRCULAR         — predicate ~ X ("ability -> able").
+# An AGENTIVE transitive verb carries its direct object ("eat MEAT"); an adjective is "X is <adj>".
+# ================================================================================================
+_ABSTRACTION_ROOT = "abstraction.n.06"
+_PHYSICAL_ROOT = "physical_entity.n.01"
+
+
+def _make_is_abstract(parents):
+    cache: dict[str, bool] = {}
+
+    def is_abstract(sense: str) -> bool:
+        if sense not in cache:
+            anc = set(relations_isa_ancestors(sense, parents).keys()) | {sense}
+            cache[sense] = (_ABSTRACTION_ROOT in anc) and (_PHYSICAL_ROOT not in anc)
+        return cache[sense]
+
+    return is_abstract
+
+
+# the gate verdict for one differentia candidate. Returns "abstract" | "circular" | "noun" |
+# "verb_noobj" | "accept".
+def gate_differentia(X: str, genus: str, pred: str, obj, is_abstract) -> str:
+    if is_abstract(genus):
+        return "abstract"
+    if _genus_lemma(pred)[:4] and _genus_lemma(pred)[:4] == _genus_lemma(X)[:4]:
+        return "circular"
+    pos = _pos(pred)
+    if pos == "n":
+        return "noun"
+    if pos == "v" and not obj:
+        return "verb_noobj"
+    return "accept"
+
+
+# extract the ACCEPTED low-trust universal property RULES from the definitions' differentia, gated
+# against the bedrock is_a graph (`parents`). Returns (rules, stats):
+#   rules = [{subject, predicate, object, negated, source_id, source_original}, ...]  (kind=property; caller adds trust/method)
+#   stats = Counter {candidate, abstract, circular, noun, verb_noobj, accept}
+def extract_differentia_rules(definition_docs, parents) -> tuple[list[dict], Counter]:
+    is_abstract = _make_is_abstract(parents)
+    stats: Counter = Counter()
+    rules: list[dict] = []
+    seen: set = set()
+    for d in definition_docs:
+        leaves = _zip_leaves(d.zip.items) if d.zip else []
+        X = genus = genus_leaf = None
+        for lf in leaves:
+            s = getattr(lf, "senses", None) or {}
+            subj, pred = s.get("subject"), s.get("predicate")
+            if subj and pred and ".n." in subj and ".n." in pred and subj != pred:
+                X, genus, genus_leaf = subj, pred, lf
+                break
+        if not X or not genus:
+            continue
+        for lf in leaves:
+            if lf is genus_leaf:
+                continue
+            s = getattr(lf, "senses", None) or {}
+            if s.get("subject") != X:
+                continue
+            pred = s.get("predicate")
+            if not pred or pred == genus:
+                continue
+            obj = s.get("direct")
+            stats["candidate"] += 1
+            verdict = gate_differentia(X, genus, pred, obj, is_abstract)
+            stats[verdict] += 1
+            if verdict != "accept":
+                continue
+            negated = bool(getattr(lf, "negated", False))
+            key = (X, pred, obj, negated)
+            if key in seen:
+                continue
+            seen.add(key)
+            rules.append({
+                "subject": X,
+                "predicate": pred,
+                "object": obj,
+                "negated": negated,
+                "source_id": str(d.id),
+                "source_original": d.original,
+            })
+    return rules, stats
 
 
 def _disjoint_tier(note: str) -> int:

@@ -88,6 +88,26 @@ class TKDerivedRelationDoc(Document):
     class Settings:
         name = "derived_relations"
 
+# the LOW-TRUST, revocable universal PROPERTY-RULE tier mined from the definitions' DIFFERENTIA
+# (definitions-as-rules, step 5): "a carnivore is an animal that eats meat" -> the rule "all carnivores
+# eat meat", which cascades DOWN the is_a hierarchy to subclasses. Same separate-collection + provenance
+# discipline as the edge tier (never pollutes the seeded axioms; revocable; trust-tiered). The evaluator
+# UNIONS these into the forward-chainer's rule set; a theorem derived through one inherits its low trust
+# (min-trust) and names it as a premise (revocability). kind is always "property" (subject HAS predicate).
+class TKDerivedRuleDoc(Document):
+    subject: str                       # the definiendum class X (a noun sense)
+    predicate: str                     # the differentia predicate (verb / adjective sense)
+    object: Optional[str] = None       # the differentia's direct object, if any
+    negated: bool = False              # carried from the differentia leaf ("no ability to roar")
+    kind: str = "property"
+    source_id: str                     # the definition doc id this rule was mined from
+    source_original: str               # the definition text (for audit / revocation review)
+    trust: float = 0.3                 # low-trust tier (bedrock axioms are implicitly 1.0)
+    method: str = "differentia-v1"     # extractor version — a full rebuild replaces one method's rules
+
+    class Settings:
+        name = "derived_rules"
+
 # --------------------------------------------------------------
 # tokeniko memory
 # --------------------------------------------------------------

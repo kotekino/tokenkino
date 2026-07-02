@@ -15,7 +15,7 @@
 from typing import Optional
 
 from lib.core.constants import _ME_UID
-from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKDerivedRelationDoc, TKTheoremDoc
+from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKDerivedRelationDoc, TKDerivedRuleDoc, TKTheoremDoc
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
@@ -91,26 +91,22 @@ def _make_edge_source_reader():
 
 
 # a derived theorem is only as trustworthy as its WEAKEST premise (min-trust inheritance — truth and
-# trust are orthogonal: a chain through a 0.3 tier edge is validly derived, truth 1.0, but only
-# 0.3-trustworthy). axiom/rule/fact premises are Mongo ids (bedrock-trusted, >= the 0.9 default); a TIER
-# edge premise is a "subj|is_a|obj" key -> it lowers the conclusion's trust to that edge's trust. so a
+# trust are orthogonal: a chain through a definition-derived item is validly derived, truth 1.0, but
+# only as trustworthy as that item). axiom/rule/fact premises are Mongo ids (bedrock-trusted, the 0.9
+# default); a DEFINITION-DERIVED premise is a stable "|"-bearing key — a tier EDGE ("subj|is_a|obj") or
+# a differentia RULE ("rule:subj|pred|obj") — and lowers the conclusion to the low-trust tier. so a
 # definition-derived theorem is stored honestly LOW-TRUST + revisable, never laundered to full trust.
+# (all derived items share the tier trust by construction; if per-item trust is ever needed, resolve
+# the key against derived_relations/derived_rules here.)
 _DERIVED_DEFAULT_TRUST = 0.9
+_DERIVED_TIER_TRUST = 0.3
 
 
 def _conclusion_trust(premise_ids) -> float:
-    trust = _DERIVED_DEFAULT_TRUST
     for pid in (premise_ids or []):
-        if "|" not in (pid or ""):
-            continue  # an axiom/rule/fact id (bedrock-trusted) — does not lower trust
-        parts = pid.split("|")
-        if len(parts) != 3:
-            continue
-        subj, _rel, obj = parts
-        e = TKDerivedRelationDoc.find_one({"subject": subj, "object": obj, "relation": "is_a"}).run()
-        if e is not None and e.trust < trust:
-            trust = e.trust
-    return trust
+        if "|" in (pid or ""):
+            return _DERIVED_TIER_TRUST  # rests on a definition-derived (low-trust) edge or rule
+    return _DERIVED_DEFAULT_TRUST
 
 
 # the injected part_of (meronymy) graph reader: wholes(sense) -> direct part_of wholes (the
@@ -536,6 +532,26 @@ def _load_active_kb() -> dict:
         for d in definition_docs if d.zip is not None
         for leaf in _zip_leaves(d.zip.items)
     ]
+
+    # UNION the low-trust definition-derived PROPERTY rules (differentia, step 5) into the chainer's
+    # rule set. source_id is a stable "rule:subj|pred|obj" key (contains "|") so a derived rule a
+    # derivation fires is recorded as a revocable premise AND lowers the conclusion's trust (via
+    # _conclusion_trust's "|" test), exactly like a tier edge.
+    axiom_rules = _extract_rules(axiom_docs)
+    derived_rules = [
+        {
+            "subject": r.subject, "predicate": r.predicate, "object": r.object,
+            "negated": r.negated, "kind": r.kind, "original": r.source_original,
+            "source_id": f"rule:{r.subject}|{r.predicate}" + (f"|{r.object}" if r.object else ""),
+        }
+        for r in TKDerivedRuleDoc.find({}).to_list()
+    ]
+    # every DISTINCT subject of a derived (definition) rule/edge is a wondering SEED, so the differentia
+    # cascade fires from the vocabulary itself (a subclass inherits a superclass's differentia via a
+    # tier edge -> >=2 premises), not only from axiom-rule subjects + individuals.
+    tier_subjects = sorted({e.subject for e in TKDerivedRelationDoc.find({}).to_list()}
+                           | {r["subject"] for r in derived_rules})
+
     kb = {
         "definition_docs": definition_docs,
         "axiom_docs": axiom_docs,
@@ -548,8 +564,9 @@ def _load_active_kb() -> dict:
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
-        "rules": _extract_rules(axiom_docs),
+        "rules": axiom_rules + derived_rules,
         "facts": _extract_facts(axiom_docs),
+        "tier_subjects": tier_subjects,
     }
     _kb_cache, _kb_cache_fp = kb, fp
     return kb
@@ -592,6 +609,12 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
             seeds.append((uid, uid, None, "individual"))
     for r in rules:
         cs = r.get("subject")
+        if cs and cs not in seen_seeds:
+            seen_seeds.add(cs)
+            seeds.append((cs, None, cs, "class"))
+    # + every definition-derived (tier) subject, so the differentia cascade fires from the vocabulary
+    # itself: a subclass reaching a superclass rule via a tier edge yields a >=2-premise theorem.
+    for cs in kb.get("tier_subjects", []):
         if cs and cs not in seen_seeds:
             seen_seeds.add(cs)
             seeds.append((cs, None, cs, "class"))

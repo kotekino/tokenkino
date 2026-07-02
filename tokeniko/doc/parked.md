@@ -21,6 +21,14 @@ disjointness), so these were deferred: reject **circular nominalization** genera
 and **flag-the-middle** (surface borderline extracted edges for review rather than silently accept).
 Promote only if the enriched soak shows them biting.
 
+**Ingestion-time differentia extraction (definitions-as-rules, step-5 follow-on)** — today
+`extract_differentia.py` is a BATCH tool over all definitions. To make the author's live-injected
+curated definitions cascade automatically, wire the same gated extraction at INGESTION (a definition
+create → its clean differentia rule appears in `derived_rules`, scoped to that one def), mirroring how
+the genus untangle runs at compile time (write-gated to storing paths, never `/evaluate`). Then feeding
+a definition via `ingest.py` makes it wondering-fuel with no manual re-run. (Batch stays for bulk;
+NOT auto-run on the noisy WordNet 3,235 — decision A.)
+
 **Differentia-rule VERB recovery (definitions-as-rules, step-5 residual)** — the strict differentia
 gate (step 5.1) keeps only reliably-clean rules zip-only: adjective differentia ("all apples sweet") +
 transitive verbs WITH a direct object ("all bathrooms contain a bathtub"). It conservatively DROPS the

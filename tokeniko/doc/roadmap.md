@@ -10,28 +10,21 @@ Legend: 🔄 in progress · 🔭 next · ✅ done  ·  *(done → `landed.md` ·
 
 ---
 
-## 🔄 In progress — Definitions-as-rules (the rich-soak fuel)
+## 🔄 In progress — the CURATED-FUEL soak (the digital twin's first breath)
 
-The ~3,235 **definitions** are *grounding-only* today — the chainer reasons over only ~17 items
-(7 rules + 10 facts) and never sees the vocabulary. This arc makes the definitions FUEL wondering, so
-tokeniko reasons across his whole KB (the "rich soak"). Built **untangle-first**
-([[everything-is-kb-untangle-first]]) — clean the senses before mining them — each step
-**dry-run-verified before it lands**. Governing principle: **asymmetric risk → reject-on-doubt** (a
-false is_a edge poisons ALL downstream reasoning).
+The **definitions-as-rules arc (steps 1–5) is complete** — see `landed.md`. Definitions fuel GROUNDING
+(the 582-edge tier) and the enriched-soak MACHINERY is built + proven + safe (differentia → low-trust
+property rules → cascade, held at trust 0.3 + revocable). The step-5 dry-run's **key finding**: a
+cascade over WordNet-wide is_a *amplifies* the graph's errors (a good rule + a bad edge = a
+confident-wrong theorem), so the noisy WordNet auto-rules are **not** bulk-applied — quality comes from
+**curated fuel**, the digital-twin direction ([[tokeniko-vision]]).
 
-- ✅ **Steps 1–4 (genus untangle + recompile; extractor + 582-edge low-trust tier + reader union; the
-  wondering NET — provenance-aware chaining, min-trust inheritance, revocability) — done; see
-  `landed.md`.** Definitions now fuel GROUNDING and the tier is SAFE to reason through (any tier-derived
-  theorem is honestly low-trust, auditable, and retractable). Chaining fuel is still latent until step 5.
-  *(Deferred structural-net polish — circular-nominalization reject, flag-the-middle — is in `parked.md`
-  if it ever bites; the ingestion gate is already conservative.)*
-- 🔄 **Step 5 — the enriched soak** (the real knowledge explosion). **Grow the universal-rule set** —
-  yield scales ~ *edges × rules*, and the GENERATIVE fuel is **property** content ("apple has red skin")
-  meeting rules at ≥2 premises, not the ~redundant taxonomic content. Re-run `probe_definitions.py`
-  before/after; the rich cascade the whole arc has built toward. These are **analytic** truths (the
-  vocabulary's deductive closure — the analytic half of `doc/ref/kb-growing-outward.md`). Caveats: perf
-  (async materialize throughput at scale) and gloss-quality noise (logic-floor + ≥2-premise gate +
-  `soak_report.py` integrity checks keep truth safe).
+- 🔄 **The curated-fuel soak (the author's test).** Launch the brain on a **cleaned memory** → watch it
+  self-derive from the seed KB (the cogito and kin) → then **inject curated fuel** (kotekino's
+  first-person personality axioms + selected clean definitions) via `scripts/ingest.py` → watch a
+  *clean* cascade + the net holding. This is where the machinery shines (clean fuel over a clean local
+  taxonomy = no errors to amplify) and where tokeniko starts to *take shape* as the twin. Driven by the
+  author; the engine is ready.
 
 ## 🔭 Next (ordered) — going live (embodied I/O)
 
