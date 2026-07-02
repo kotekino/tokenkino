@@ -65,6 +65,54 @@ def _make_relations_reader_union():
     return parents
 
 
+# the TIER-EDGE PROVENANCE reader: edge_source(subject, object) -> a stable premise KEY
+# ("subject|is_a|object") when "subject is_a object" is a LOW-TRUST tier edge (definition-derived),
+# else None. Lets the chainer record a tier edge it walks as a revocable premise (bedrock edges ->
+# None -> stay substrate). The key is DETERMINISTIC (not the Mongo ObjectId) so it survives the
+# extractor's delete-then-insert rebuilds, and self-documenting (a proof premise reads
+# "air.n.01|is_a|mixture.n.01"). cached per call.
+def _edge_key(subject: str, object: str) -> str:
+    return f"{subject}|is_a|{object}"
+
+
+def _make_edge_source_reader():
+    cache: dict[tuple, Optional[str]] = {}
+
+    def edge_source(subject: str, object: str) -> Optional[str]:
+        key = (subject, object)
+        if key in cache:
+            return cache[key]
+        e = TKDerivedRelationDoc.find_one(
+            {"subject": subject, "object": object, "relation": "is_a"}).run()
+        cache[key] = _edge_key(subject, object) if e else None
+        return cache[key]
+
+    return edge_source
+
+
+# a derived theorem is only as trustworthy as its WEAKEST premise (min-trust inheritance — truth and
+# trust are orthogonal: a chain through a 0.3 tier edge is validly derived, truth 1.0, but only
+# 0.3-trustworthy). axiom/rule/fact premises are Mongo ids (bedrock-trusted, >= the 0.9 default); a TIER
+# edge premise is a "subj|is_a|obj" key -> it lowers the conclusion's trust to that edge's trust. so a
+# definition-derived theorem is stored honestly LOW-TRUST + revisable, never laundered to full trust.
+_DERIVED_DEFAULT_TRUST = 0.9
+
+
+def _conclusion_trust(premise_ids) -> float:
+    trust = _DERIVED_DEFAULT_TRUST
+    for pid in (premise_ids or []):
+        if "|" not in (pid or ""):
+            continue  # an axiom/rule/fact id (bedrock-trusted) — does not lower trust
+        parts = pid.split("|")
+        if len(parts) != 3:
+            continue
+        subj, _rel, obj = parts
+        e = TKDerivedRelationDoc.find_one({"subject": subj, "object": obj, "relation": "is_a"}).run()
+        if e is not None and e.trust < trust:
+            trust = e.trust
+    return trust
+
+
 # the injected part_of (meronymy) graph reader: wholes(sense) -> direct part_of wholes (the
 # senses Y such that `sense` is part_of Y). kept SEPARATE from the is_a reader — is_a and part_of
 # are different relations with different truth semantics. cached per evaluate_zip() call, same shape.
@@ -496,6 +544,7 @@ def _load_active_kb() -> dict:
         "axiom_zips": [a.zip for a in axiom_docs],
         "theorem_zips": [t.zip for t in theorem_docs],
         "relations": _make_relations_reader_union(),  # evaluator/chainer see bedrock ∪ derived tier
+        "edge_source": _make_edge_source_reader(),     # tier-edge provenance (revocable premises)
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
@@ -530,6 +579,7 @@ _NOVELTY_MIN_PREMISES = 2
 def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
     kb = kb or _load_active_kb()
     rules, facts, parents = kb["rules"], kb["facts"], kb["relations"]
+    edge_source = kb.get("edge_source")
 
     # seeds: (subject, subject_uid, subject_sense, kind). individuals chain from the uid; classes
     # from the sense. dedup the seed set itself (a uid/sense appears in many facts/rules).
@@ -549,7 +599,7 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
     out: list[dict] = []
     seen_conclusions: set = set()
     for subject, uid, sense, kind in seeds:
-        derived, _ = evaluator_forwardChain(sense, uid, rules, parents, facts)
+        derived, _ = evaluator_forwardChain(sense, uid, rules, parents, facts, edge_source=edge_source)
         for d in derived:
             premises = d.get("premises", [])
             if len(premises) < _NOVELTY_MIN_PREMISES:
@@ -566,6 +616,9 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
                 "negated": bool(d.get("negated", False)),
                 "chain": d["chain"],
                 "premises": premises,
+                # min-trust inheritance: a conclusion resting on a low-trust tier edge is stored honestly
+                # low-trust + revisable, never laundered to the 0.9 default (truth ⟂ trust).
+                "trust": _conclusion_trust(premises),
             })
     return out
 
@@ -577,7 +630,7 @@ def evaluate_zip(statement: TKZip) -> dict:
         statement, kb["definitions"], kb["axiom_zips"], kb["theorem_zips"],
         relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
         senses_of=kb["senses_of"],
-        rules=kb["rules"], facts=kb["facts"],
+        rules=kb["rules"], facts=kb["facts"], edge_source=kb["edge_source"],
     )
 
     # map the best (kind, index) back to a concrete document
@@ -637,7 +690,7 @@ def answer_zip(statement: TKZip) -> Optional[dict]:
         statement, kb["definitions"], kb["axiom_zips"], kb["theorem_zips"],
         relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
         senses_of=kb["senses_of"],
-        rules=kb["rules"], facts=kb["facts"],
+        rules=kb["rules"], facts=kb["facts"], edge_source=kb["edge_source"],
     )
 
     if wh_leaf is None:

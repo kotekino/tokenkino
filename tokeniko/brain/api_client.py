@@ -48,8 +48,10 @@ def _post_json(path: str, body: dict) -> dict | None:
 # rendered first-person NL ("I exist"); premises/chain/derived_by are its provenance (the proof). The
 # API compiles it (talker=tokeniko ⇒ "I" → its own uid), semantic-dedups, and stores it ACTIVE +
 # trusted. Returns the {status, data} dict (data = the theorem, existing or new), or None on failure.
-def materialize_theorem(tokens: str, premises: list[str], chain: str, derived_by: str = "wondering") -> dict | None:
+def materialize_theorem(tokens: str, premises: list[str], chain: str, derived_by: str = "wondering",
+                        trusted: float = 0.9) -> dict | None:
     return _post_json(
         "/api/v1/theorems/materialize",
-        {"tokens": tokens, "premises": premises, "chain": chain, "derived_by": derived_by},
+        {"tokens": tokens, "premises": premises, "chain": chain, "derived_by": derived_by,
+         "trusted": trusted},
     )

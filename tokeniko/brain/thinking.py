@@ -118,7 +118,9 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
         sourceId=str(get_tokeniko().id),  # tier-2: tokeniko derived it — speaker-irrelevant
         channel=MEMChannels.INTERNAL,
         archived=False,                   # ACTIVE (model default is archived=True) -> joins reasoning
-        trusted=0.9,
+        # min-trust inheritance: a derivation through a low-trust tier edge is stored honestly low-trust,
+        # never laundered to the 0.9 default (truth ⟂ trust).
+        trusted=evaluation_harness._conclusion_trust(result.premises),
         provenance=MEMProvenance(premises=result.premises, chain=chain, derived_by=derived_by),
     ).save()
     logger.info("[thinking] derived THEOREM «%s» <- %s (premises=%s)", item.original, chain, result.premises)
@@ -183,7 +185,8 @@ def _kb_wonder_one() -> bool:
         if not nl or nl in held:
             continue  # unrenderable, or this conclusion is already a held theorem -> converged
         chain = _CHAIN_PREFIX + c["chain"]  # same proof convention as the memory-wondering path
-        resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering")
+        resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering",
+                                              trusted=c.get("trust", 0.9))
         if resp is None or resp.get("status") != "complete":
             logger.warning("[wondering] KB-derive «%s» — API unavailable/failed, will retry", nl)
             return False  # leave it for next tick (not in `held`, so it is re-attempted)

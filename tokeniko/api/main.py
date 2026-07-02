@@ -214,7 +214,7 @@ async def create_theorem(payload: TheoremIn):
 async def materialize_theorem(payload: TheoremMaterializeIn):
     provenance = MEMProvenance(premises=payload.premises, chain=payload.chain, derived_by=payload.derived_by)
     try:
-        theorem = create_or_http(lambda: app.state.theorem_service.materialize(payload.tokens, provenance))
+        theorem = create_or_http(lambda: app.state.theorem_service.materialize(payload.tokens, provenance, trusted=payload.trusted))
         return {"status": "complete", "data": theorem}
     except HTTPException:
         raise

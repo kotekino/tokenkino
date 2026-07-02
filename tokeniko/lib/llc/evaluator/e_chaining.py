@@ -46,14 +46,32 @@ def _is_noun_sense(sense: Optional[str]) -> bool:
     return bool(sense) and ".n." in sense
 
 
+# the ids of any TIER (definition-derived, low-trust) is_a edges walked along `path` — the consecutive
+# (child, parent) pairs. `edge_source(child, parent)` returns the tier edge's id if that edge is NOT
+# bedrock, else None. returns a frozenset (empty when no reader / all-bedrock). This is the refinement
+# of the integrity invariant: BEDROCK is_a edges are substrate (never a premise); a TIER edge walked in
+# a derivation IS a revocable premise, so a theorem resting on it can be audited + retracted (step 4).
+def _tier_premises_on_path(path: list[str], edge_source) -> frozenset:
+    if edge_source is None:
+        return frozenset()
+    ids = set()
+    for child, parent in zip(path, path[1:]):
+        eid = edge_source(child, parent)
+        if eid:
+            ids.add(eid)
+    return frozenset(ids)
+
+
 # add `sense` and its is_a ancestors to the closure C, recording provenance for each newly-added
 # class. `base_chain` is the human-readable provenance of how `sense` itself entered C (e.g. the seed
 # fact, or a membership rule); `base_premises` is the SET of KB-doc ids that entry rests on. closure[c]
-# holds the chain; closure_premises[c] holds the premise-id set. NB: the is_a ANCESTORS inherit
-# base_premises UNCHANGED — walking the WordNet graph adds NO premise (is_a edges are bedrock substrate,
-# never a retractable KB premise). that is the integrity invariant, enforced here at the source.
+# holds the chain; closure_premises[c] holds the premise-id set. `edge_source` (optional) makes the walk
+# provenance-aware: a BEDROCK is_a edge adds NO premise (WordNet substrate), but a TIER edge walked to
+# reach an ancestor is recorded as a premise (revocable). When edge_source is None the behaviour is the
+# original bedrock-only invariant (backward compatible).
 def _add_with_ancestors(sense: str, base_chain: str, closure: dict[str, str], parents: Parents,
-                        base_premises: frozenset, closure_premises: dict[str, frozenset]) -> bool:
+                        base_premises: frozenset, closure_premises: dict[str, frozenset],
+                        edge_source=None) -> bool:
     added = False
     if sense not in closure:
         closure[sense] = base_chain
@@ -62,7 +80,7 @@ def _add_with_ancestors(sense: str, base_chain: str, closure: dict[str, str], pa
     for anc, path in relations_isa_ancestors(sense, parents).items():
         if anc not in closure:
             closure[anc] = base_chain + " -> " + " —is_a→ ".join(path)
-            closure_premises[anc] = base_premises  # is_a edges are bedrock, NOT premises
+            closure_premises[anc] = base_premises | _tier_premises_on_path(path, edge_source)
             added = True
     return added
 
@@ -77,8 +95,10 @@ def _premise_of(rule_or_fact: dict) -> frozenset:
 # (derived_props, chains) where derived_props is a list of dicts
 #   {predicate, object, negated, chain, premises}
 # `premises` is the sorted list of KB-doc ids that conclusion rests on (the seed facts' source axioms +
-# the rule axioms fired to reach it — NEVER the is_a edges walked, which are bedrock). `chains` is the
-# list of all property-derivation chains (same as the per-prop chains).
+# the rule axioms fired to reach it + any TIER is_a edges walked — bedrock is_a edges are substrate and
+# add no premise). `chains` is the list of all property-derivation chains (same as the per-prop chains).
+# `edge_source` (optional): sense-pair -> tier-edge id, makes the is_a walk provenance-aware (definition-
+# derived edges become revocable premises); None keeps the original bedrock-only behaviour.
 def evaluator_forwardChain(
     subject_sense: Optional[str],
     subject_uid: Optional[str],
@@ -86,13 +106,15 @@ def evaluator_forwardChain(
     parents: Parents,
     facts: list,
     max_hops: int = 6,
+    edge_source=None,
 ) -> tuple[list[dict], list[str]]:
     # ---- 1. seed the class closure C (sense -> provenance chain; sense -> premise-id set) ----
     closure: dict[str, str] = {}
     closure_premises: dict[str, frozenset] = {}
     if subject_sense:
         # the subject's OWN sense comes from the INPUT clause, not a KB doc -> no premise.
-        _add_with_ancestors(subject_sense, subject_sense, closure, parents, frozenset(), closure_premises)
+        _add_with_ancestors(subject_sense, subject_sense, closure, parents, frozenset(), closure_premises,
+                            edge_source)
     if subject_uid:
         for fact in facts:
             if fact.get("subject_uid") != subject_uid:
@@ -102,7 +124,8 @@ def evaluator_forwardChain(
                 continue
             base = f"{subject_uid} is_a {klass} (fact)"
             # the membership fact rests on its source axiom.
-            _add_with_ancestors(klass, base, closure, parents, _premise_of(fact), closure_premises)
+            _add_with_ancestors(klass, base, closure, parents, _premise_of(fact), closure_premises,
+                                edge_source)
 
     # display name for the subject in the chains. NB: NO early-return on an empty closure — an
     # individual (e.g. tokeniko) may have no class membership yet still satisfy a PROPERTY-CONDITIONED
@@ -126,7 +149,8 @@ def evaluator_forwardChain(
                 )
                 # the new class rests on what put r_subj in C PLUS this rule's axiom.
                 base_prem = closure_premises[r_subj] | _premise_of(r)
-                if _add_with_ancestors(r_pred, base, closure, parents, base_prem, closure_premises):
+                if _add_with_ancestors(r_pred, base, closure, parents, base_prem, closure_premises,
+                                       edge_source):
                     changed = True
         if not changed:
             break  # fixpoint reached
@@ -209,6 +233,7 @@ def evaluator_chainGround(
     rules: list,
     parents: Parents,
     facts: list,
+    edge_source=None,
 ) -> Optional[tuple[float, str, list]]:
     senses = getattr(content, "senses", None) or {}
     identities = getattr(content, "identities", None) or {}
@@ -224,7 +249,8 @@ def evaluator_chainGround(
     obj = senses.get("direct")
     negated = bool(getattr(content, "negated", False))
 
-    derived, _ = evaluator_forwardChain(subject_sense, subject_uid, rules, parents, facts)
+    derived, _ = evaluator_forwardChain(subject_sense, subject_uid, rules, parents, facts,
+                                        edge_source=edge_source)
 
     # find a derived property matching the input predicate (object must match, or the rule had none)
     match: Optional[dict] = None

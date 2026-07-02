@@ -15,6 +15,12 @@ atproto-outward infeasible. Promote when Discord + blog are live.
 realization); **inference-implied** conflicts (needs forward-chaining, not just literal contradiction);
 self-authored "realization" memory + a **working-memory** layer.
 
+**Wondering-net structural polish (definitions-as-rules, step-4 residual)** — the ingestion extractor
+gate is already conservative (main-clause genus only + redundancy/placeholder/cycle/reliable-tier
+disjointness), so these were deferred: reject **circular nominalization** genera ("management→manage"),
+and **flag-the-middle** (surface borderline extracted edges for review rather than silently accept).
+Promote only if the enriched soak shows them biting.
+
 **Tier-1 / KB growing OUTWARD** — genuine *synthetic* learning from trusted testimony (learned axioms
 vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/ref/kb-growing-outward.md`**.
 Needs the trust-gradient; build after the consolidation floor is solid.

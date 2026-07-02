@@ -19,16 +19,13 @@ tokeniko reasons across his whole KB (the "rich soak"). Built **untangle-first**
 **dry-run-verified before it lands**. Governing principle: **asymmetric risk → reject-on-doubt** (a
 false is_a edge poisons ALL downstream reasoning).
 
-- ✅ **Steps 1–3 (genus untangle + recompile; the extractor + 582-edge low-trust tier + reader union)
-  — done; see `landed.md`.** Definitions now fuel GROUNDING; chaining fuel is latent until step 5.
-- 🔄 **Step 4 — the wondering NET** (the residual meaning-level safety net + the tier's revocability
-  machinery). Structural (main-clause genus only, no circular nominalization "management→manage"),
-  graph-consistency hard-reject (disjoint/cycle — already at ingestion; extend to the net),
-  **trust-tiering** (an extracted edge should weigh less than bedrock in a grounding verdict) +
-  **provenance-revocability** (retract an edge → archive every theorem whose premises include it; the
-  chainer must record a NON-bedrock edge as a premise, unlike bedrock is_a). flag-the-middle.
-  *(Geometry dropped — the wrong signal for is_a validity, [[geometry-not-isa-validity]].)*
-- 🔭 **Step 5 — the enriched soak** (the real knowledge explosion). **Grow the universal-rule set** —
+- ✅ **Steps 1–4 (genus untangle + recompile; extractor + 582-edge low-trust tier + reader union; the
+  wondering NET — provenance-aware chaining, min-trust inheritance, revocability) — done; see
+  `landed.md`.** Definitions now fuel GROUNDING and the tier is SAFE to reason through (any tier-derived
+  theorem is honestly low-trust, auditable, and retractable). Chaining fuel is still latent until step 5.
+  *(Deferred structural-net polish — circular-nominalization reject, flag-the-middle — is in `parked.md`
+  if it ever bites; the ingestion gate is already conservative.)*
+- 🔄 **Step 5 — the enriched soak** (the real knowledge explosion). **Grow the universal-rule set** —
   yield scales ~ *edges × rules*, and the GENERATIVE fuel is **property** content ("apple has red skin")
   meeting rules at ≥2 premises, not the ~redundant taxonomic content. Re-run `probe_definitions.py`
   before/after; the rich cascade the whole arc has built toward. These are **analytic** truths (the
@@ -52,6 +49,18 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   the **wondering/reflection** phase: an **urge to post** → an action to post to the blog. **OPEN Q —
   what triggers a post:** a freshly-discovered theorem is one source, *but not only* (novelty?
   significance? a periodic reflection digest?) — needs an idea on the urge model.
+
+### 🔭 Consolidation checkpoint — process maps (AFTER the enriched soak)
+
+- **BPMN-style process maps (Mermaid).** Isolate + diagram every information journey across the
+  components — the API compilation pipeline, the brain coordinator + phases + wondering/materialize
+  seam, senses inbound/outbound, the DB tiers, the evaluator/chainer — as **swim-lane** diagrams
+  (stakeholders as lanes: users / brain / evaluator / DB / senses / …; start + end; cross-lane messages;
+  forks). Mermaid (subgraph lanes + sequence diagrams for cross-lane messages), self-contained HTML
+  visualizer(s), homed in **`doc/ref/processes/`**. Deliberately a **post-soak beat** — the system is
+  then both stable and freshly-observed — and it carries **forward "as-will-be" projections** (senses
+  going-live) as *projectual* reference, to force forward-consistency. NOT strict BPMN2 XML
+  (over-formal + token-draining for an internal map).
 
 ---
 

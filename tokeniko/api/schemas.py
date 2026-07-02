@@ -92,6 +92,7 @@ class TheoremMaterializeIn(BaseModel):
     premises: list[str] = Field(default_factory=list)   # KB-doc ids the derivation rests on
     chain: str                                          # the human-readable proof
     derived_by: str = "wondering"                       # the faculty that produced it
+    trusted: float = 0.9                                # min-trust inheritance (low when it rests on a tier edge)
 
 class TheoremSummary(BaseModel):  # listing view (no zip)
     id: PydanticObjectId = Field(alias="_id")
