@@ -21,6 +21,16 @@ disjointness), so these were deferred: reject **circular nominalization** genera
 and **flag-the-middle** (surface borderline extracted edges for review rather than silently accept).
 Promote only if the enriched soak shows them biting.
 
+**Differentia-rule VERB recovery (definitions-as-rules, step-5 residual)** — the strict differentia
+gate (step 5.1) keeps only reliably-clean rules zip-only: adjective differentia ("all apples sweet") +
+transitive verbs WITH a direct object ("all bathrooms contain a bathtub"). It conservatively DROPS the
+verbs it can't disambiguate from the zip alone — **passive-voice reduced relatives** ("an airfield
+**equipped** with…" → the class is the patient, not "airport equips") and **intransitive agentive
+verbs** ("trained **to compete**"). Separating these needs **parser-level voice/agency detection** (the
+reduced-participle vs finite-relative-with-nsubj distinction), adjacent to the parked D3a
+subject-rebinding work. Would recover the verb bulk (~300 candidates) as clean differentia rules and
+substantially grow the enriched-soak fuel. Promote when the parser voice signal is built.
+
 **Tier-1 / KB growing OUTWARD** — genuine *synthetic* learning from trusted testimony (learned axioms
 vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/ref/kb-growing-outward.md`**.
 Needs the trust-gradient; build after the consolidation floor is solid.
