@@ -12,7 +12,7 @@ The three cognitive phases (in priority order — Actions > Priorities > Thinkin
 > **Cognition vs orchestration.** This document describes the *orchestration* — the loops, the
 > queues, the scheduling. The *cognition* inside Thinking and Priorities (how a `TKZip` is
 > reasoned over, how an idea is scored) is the **reasoning engine** (see `doc/roadmap.md` /
-> `doc/notes.md`); the brain is the runtime that drives it. Where the text below says "evaluates" or
+> `doc/ref/notes.md`); the brain is the runtime that drives it. Where the text below says "evaluates" or
 > "scores", read "runs the reasoning engine".
 
 ## Build order (A → B → C → D)

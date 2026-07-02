@@ -49,6 +49,6 @@
 *   **Honest bottlenecks:** KB-reload cost, WSD/graph-coverage gaps, identity-context fragility — reported, not hidden.
 
 ## 8. Future Horizons & Conclusion
-*   **Trusted learning (KB growing outward) & dreams:** synthetic axioms from trusted testimony + stochastic dream recombination — the foreseen anti-drain organs (see `doc/kb-growing-outward.md`).
+*   **Trusted learning (KB growing outward) & dreams:** synthetic axioms from trusted testimony + stochastic dream recombination — the foreseen anti-drain organs (see `doc/ref/kb-growing-outward.md`).
 *   **The species horizon (a hypothesis, not a claim):** many bodies sharing a logic floor + abstract KB, diverging into individuals — the *experiment* we get to run if the single self proves real.
 *   **Conclusion:** a proof-of-concept and an open research program for logical, persistent AI entities — offered with its failures attached, because the failures are the map.

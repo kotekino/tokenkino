@@ -181,8 +181,28 @@ Flow mirrors the sense-bridge: `TKName.uid/vector/ner` (`parser_getIndividual`) 
 — only on storing paths, NEVER on `/evaluate` (which stays pure/read-only). `evaluator_sameIndividual`
 is the entity-linking primitive (same uid→True, different→False, missing→None).
 
-**Status lives in three sibling files → `doc/roadmap.md`** (the road ahead: in-progress + ordered
-next), **`doc/landed.md`** (what's done), **`doc/parked.md`** (the icebox) — keep them current as items
-land. The design notes (phased execution detail + reasoning-engine design/findings + parser/compiler
-quirks & gaps) are consolidated in **`doc/notes.md`**; the living empirical fragility log is
-`doc/test-feedback.md`.
+**Status lives in three sibling files in `doc/` → `doc/roadmap.md`** (the road ahead: in-progress +
+ordered next), **`doc/landed.md`** (what's done), **`doc/parked.md`** (the icebox — deliberately
+deferred). Everything else in `doc/` is **reference material, homed under `doc/ref/`** (extended
+context per task + future-reference to fill the roadmap): the consolidated design notes
+(`doc/ref/notes.md` — phased execution detail + reasoning-engine design/findings + parser/compiler
+quirks & gaps), the living empirical fragility log (`doc/ref/test-feedback.md`), and the rest
+(`kb-growing-outward.md`, `paper_outline.md`, `captain-hunches.md`).
+
+**Status-doc invariants (STRICT — these three docs are the single source of truth for status).** An
+item has exactly ONE status and lives in exactly ONE of the three docs:
+1. **One item, one status.** Never list the same task under two statuses (e.g. in `roadmap.md` Next
+   *and* `parked.md`, or `landed.md` *and* `roadmap.md`). Its current status decides the one doc it
+   belongs to: in-flight/next → `roadmap.md`; done → `landed.md`; deferred → `parked.md`.
+2. **No cross-doc duplication.** The same item never appears in two of {`roadmap.md`, `landed.md`,
+   `parked.md`}. When an item moves status, **MOVE it** (delete from the old doc, add to the new) —
+   never copy. A one-line *pointer* is allowed (e.g. `roadmap.md` may say "steps 1–2 ✅ — see
+   `landed.md`") but the pointer carries no status detail of its own — it references, it does not
+   duplicate.
+3. **Reconcile at every commit.** Before each commit, check all three against the code reality and
+   update them so they reflect it with precision: land what the commit finished (roadmap→landed), park
+   what the commit deferred (roadmap→parked), add any newly-surfaced next work to `roadmap.md`. The
+   roadmap is the road *ahead* only — nothing landed, nothing parked lingers in it.
+
+`doc/ref/notes.md` (design reference) and `doc/ref/test-feedback.md` (empirical log) are NOT status docs — they
+are exempt from the invariants above (an item may be discussed there *and* have a status entry).

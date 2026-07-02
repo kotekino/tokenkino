@@ -3,7 +3,7 @@
 # For each `memory` item: join its batch-manifest entry (category/severity/expected), RE-RUN the
 # stored zip to recover the eval rationale (status/truth/senses/derivation OR the question answer),
 # join the ideas it spawned (idea.source == memory.id) + their actions, and auto-flag S0 breaches.
-# Pair with scripts/fragility_batch.py. See doc/test-feedback.md.  Run AFTER the brain fully drains
+# Pair with scripts/fragility_batch.py. See doc/ref/test-feedback.md.  Run AFTER the brain fully drains
 # (per-speaker cursors caught up — not a premature lull).
 #   python scripts/trace_fragility.py
 # ------------------------------------------------------------------------------------------------

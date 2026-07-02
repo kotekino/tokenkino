@@ -2,7 +2,7 @@
 # fragility_batch.py — the categorized fragility-probe matrix + injector (the consolidation harness).
 # Each probe: (category, speaker, sentence, expected, severity_if_fail). Injected via GET
 # /api/v1/input at prepare=0 (NO preparser/typo-guard -> exercises the raw neuro-symbolic core).
-# Pair with scripts/trace_fragility.py to analyze the brain's reaction. See doc/test-feedback.md.
+# Pair with scripts/trace_fragility.py to analyze the brain's reaction. See doc/ref/test-feedback.md.
 #
 #   python scripts/fragility_batch.py --list            # print the matrix, inject nothing
 #   python scripts/fragility_batch.py --wipe            # wipe disposable (memory/ideas/actions)

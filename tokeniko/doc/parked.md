@@ -6,8 +6,17 @@
 
 ---
 
+**ATProto / Bluesky — a `senses` I/O channel (inbound carrier AND outbound)** — the account exists
+(**@tokeniko.online**; app password to come) so wiring is quick later, but deferred behind Discord +
+blog (the going-live `roadmap.md` Next). Today: no send adapter; `score_feasibility` already marks
+atproto-outward infeasible. Promote when Discord + blog are live.
+
+**D-phase enhancements (after the embodied loop is live)** — cross-**speaker** patterns (userA≈userB
+realization); **inference-implied** conflicts (needs forward-chaining, not just literal contradiction);
+self-authored "realization" memory + a **working-memory** layer.
+
 **Tier-1 / KB growing OUTWARD** — genuine *synthetic* learning from trusted testimony (learned axioms
-vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/kb-growing-outward.md`**.
+vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/ref/kb-growing-outward.md`**.
 Needs the trust-gradient; build after the consolidation floor is solid.
 
 **Questions follow-ups** — imperatives (the `imperative` scalar, same mechanism); wh where/when/how
@@ -20,7 +29,7 @@ truth AND-folds into the polar verdict → a **false premise gives a confident-w
 co-submitted premise" discriminator onto `TKZipContent` (per-clause mood, not blanket `_stamp_mood`) +
 fold only the question leaves in `_polar_answer` (→ honest IDK/correct YES). The *real* behavior — USE
 the premise hypothetically — is conditional reasoning, built with the question-answering deepening.
-Full diagnosis in `doc/test-feedback.md` (2026-06-25). Trigger is uncommon; normal questions unaffected.
+Full diagnosis in `doc/ref/test-feedback.md` (2026-06-25). Trigger is uncommon; normal questions unaffected.
 
 **Performance (optimize-later)** — `evaluate_zip` reloads the full active KB on every call → ~12s/item
 brain throughput; cache the active KB across ticks. Dual `en_core_web_lg` load (`parser.nlp` +

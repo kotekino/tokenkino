@@ -45,7 +45,7 @@ Future ideas
 > — Q (cross-cutting): These three aren't separate — they're **one arc: open-world growth** (the mind
 > enlarging its own *vocabulary* and *knowledge* from outside, trust-gated, logic-reconciled). And the
 > reassuring part for *today*: every one of them leans on machinery we're already building closed-world
-> — the **trust-gradient** (`doc/kb-growing-outward.md`) and **wondering**. So they're downstream
+> — the **trust-gradient** (`doc/ref/kb-growing-outward.md`) and **wondering**. So they're downstream
 > *extensions*, not new subsystems; the foundation we're laying now is the right one. The one thing
 > I'd hold firm on if these ever leave the ice: keep **new concept**, **synonym/translation link**, and
 > **typo alias** as THREE distinct mechanisms — they *feel* like one ("a new word"), but they grow,
