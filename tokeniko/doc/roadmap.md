@@ -10,32 +10,39 @@ Legend: 🔄 in progress · 🔭 next · ✅ done  ·  *(done → `landed.md` ·
 
 ---
 
-## 🔄 In progress — BPMN-style process maps (the consolidation checkpoint)
+## 🔄 In progress — Brain v1.1: the Unified KB (the CENTER — nothing matters more)
 
-The **definitions-as-rules arc (steps 1–5) is complete** — see `landed.md`. The author's live
-**curated-fuel test** validated the machinery AND surfaced the next round of refinements (→ **Brain
-v1.1**, below). We deliberately pause building to draw the system's process maps first — the checkpoint
-we agreed to run *after* the enriched-soak machinery landed, now active. It keeps the direction crystal:
-each Brain-v1.1 fix will show exactly which lane it lives in.
+The definitions-as-rules arc + the BPMN process maps are **done** (see `landed.md`). The author's live
+**curated-fuel test** validated the machinery AND matured into a single reframe — *the conceptual center
+of the brain.* **Vision + design: `doc/ref/brain-v1.1.md`.** In one line: *everything compilable to a
+`TKZip` is reasoned over; collections denote what content REPRESENTS (enforced by write-path), trust
+tiers by source, one universal gate extracts usable logic + suppresses noise, provenance makes every
+theorem auditable + every dependency revocable, logic stays hardwired.* The ordered build:
 
-- 🔄 **BPMN-style process maps (Mermaid).** Isolate + diagram every information journey across the
-  components — the API compilation pipeline, the brain coordinator + phases + wondering/materialize seam,
-  senses inbound/outbound, the DB tiers, the evaluator/chainer, the definitions-as-rules ingestion — as
-  **swim-lane** diagrams (stakeholders as lanes: users / brain / evaluator / DB / senses / …; start +
-  end; cross-lane messages; forks). Mermaid (subgraph lanes + sequence diagrams for cross-lane
-  messages), self-contained HTML visualizer, homed in **`doc/ref/processes/`**. Carries forward
-  **"as-will-be" projections** (senses going-live) as *projectual* reference, to force
-  forward-consistency. NOT strict BPMN2 XML (over-formal + token-draining for an internal map).
+1. 🔭 **Write-path invariant** — hardwire the collection semantics at ingestion: **definitions
+   design-time-only** (never runtime), **axioms runtime-writable**, **theorems derived-only**. This is
+   what makes "can't rely on content" *true* — it closes the runtime pollution channel at the door
+   (experience can never touch common knowledge). Small (API/ingestion guards); the safety bedrock.
+2. 🔭 **Generic taxonomy chains (universal-extractor v0)** — copular "a X is a Y" → an is_a edge,
+   **source-trusted** (axiom = high 0.9 / definition = low 0.3), unioned into the chainer reader on a
+   source-agnostic seam. Reuses the step-3/4 machinery. **Unblocks the live personality-imprint test
+   NOW** (the natural-taxonomy gap the author hit). Dry-run → build.
+3. 🔭 **Provenance + transitive cascade** — extend provenance to record **theorem** premises; revocation
+   recurses (archive a premise → its dependent theorems → theirs). The precondition for *theorems
+   breeding theorems* + clean revocation.
+4. 🔭 **The universal extractor (the antidote — the core build)** — ONE source-agnostic
+   `TKZip → usable logic` extractor + gate, folding the per-collection paths (axiom rules/facts,
+   definition edges/differentia) into one, trust-tiered by source. Adds **definitional SUFFICIENCY**
+   (the sufficient direction — "has merit → valuable"; operator-tree-aware; the generative unlock that
+   sidesteps the is_a-amplification trap). Dry-run heavy.
+5. 🔭 **Reason over everything** — definitions rejoin chaining via the universal extractor (low-trust,
+   gated) → the rich soak done right. Includes **subject-WSD hardening** (the noise antidote that makes
+   definitions safe to chain — the chat-zombie root).
+
+*(Deepest pole, parked → `parked.md`: **predicate-complement capture** — prepositional/control complements
+dropped, "run in a hardware" → "run" — and complex-definition parser fidelity. Workarounds exist.)*
 
 ## 🔭 Next (ordered)
-
-- **Brain v1.1 — grounding/chaining refinements → `doc/ref/brain-v1.1.md`.** The gaps the curated-fuel
-  test surfaced (detail + brainstorming in the ref doc): **#1** generic "a X is a Y" taxonomy must chain
-  (extract is_a from copular axioms, high-trust tier — the natural-taxonomy gap); **#3** definitional
-  *sufficiency* (the sufficient direction of a definition — "has merit → valuable"; the generative unlock
-  that sidesteps the is_a-amplification trap); **#4** revocation durability + subject-WSD (the
-  chat-zombie). **#2** predicate-complement capture is parked (parser-level; workaround exists). Priority
-  when it resumes: #1 → #3 → #4.
 
 ### Going live — embodied I/O (core TK v1)
 
@@ -65,7 +72,7 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
 - **`doc/parked.md`** — the icebox (deferred ideas + known gaps).
 
 **Reference docs (`doc/ref/` — extended context per task + future-reference material; NOT status):**
-- **`doc/ref/brain-v1.1.md`** — the Brain v1.1 backlog + brainstorming (grounding/chaining refinements from the curated-fuel test).
+- **`doc/ref/brain-v1.1.md`** — the Brain v1.1 **vision + design** (the Unified-KB reframe: everything-is-reasoned-over-TKZip, write-path invariant, universal gate, trust-by-source; + the #1–#4 findings). The conceptual center.
 - **`doc/ref/notes.md`** — design notes & findings (phased plan + reasoning-engine brainstorm + parser/compiler review).
 - **`doc/ref/test-feedback.md`** — the living empirical fragility log (observed → diagnosis → action).
 - **`doc/ref/kb-growing-outward.md`** — the "synthetic learning" design (analytic/synthetic cut).

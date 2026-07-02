@@ -1,10 +1,72 @@
-# Brain v1.1 — grounding/chaining refinements (reference)
+# Brain v1.1 — the Unified KB (reference)
 
-> The backlog + detailed brainstorming for the **Brain v1.1** roadmap item. Surfaced by the author's
-> live **curated-fuel test** (2026-07 soak): feeding tokeniko real axioms/definitions and watching the
-> wondering loop, several gaps appeared between the connections a human sees and the theorems the engine
-> derives. This doc holds the *why* and the *proposed approaches*; the roadmap carries only the pointer.
-> NOT a status doc — items here are discussed in detail and tracked as ONE "Brain v1.1" roadmap item.
+> The vision + backlog for the **Brain v1.1** arc — *the center of the brain; nothing matters more.* It
+> began as a set of grounding/chaining gaps surfaced by the author's live **curated-fuel test** (2026-07
+> soak) and matured into a single reframe: **everything compilable to a `TKZip` is reasoned over;
+> collections denote what content REPRESENTS (enforced by write-path), not whether the brain may reason.**
+> This doc holds the *why* + the *design*; the ordered implementation steps live in `doc/roadmap.md`.
+> NOT a status doc.
+
+## The vision — the Unified KB (the reframe)
+
+> Settled in the 2026-07 brainstorm. The conceptual spine the whole v1.1 arc hangs from.
+
+**The founding invariant, recovered.** Everything compilable to a `TKZip` is an object of reasoning.
+Definitions, axioms, and theorems are the SAME container (a stored `TKZip` + `original` + trust +
+provenance; theorems merely add the derivation history — same outward `TKZip`). So the brain must reason
+over ALL of them. Gating reasoning on WHICH COLLECTION an item sits in is arbitrary — it was our
+decision, not a property of the data — and it is the flaw behind the misuse failures (a chaining-worthy
+fact filed as a definition never fires; noise filed as an axiom poisons a deduction).
+
+**Reasoner vs extraction — where the noise actually lives.** The reasoner (forward-chainer, operators,
+trust-inheritance, provenance, revocation) is abstract, general, and CORRECT — feed it clean
+rules/edges and it never lies. The noise is born earlier, in the **EXTRACTION / parser front-end** (NL →
+`TKZip` → usable rules/edges): subject-WSD errors, complex-definition parsing, amplifying is_a edges. So
+"improve the machinery to suppress noise" means hardening this **front-end gate** — never the reasoner.
+
+**Collections denote REPRESENTATION, enforced by WRITE-PATH (not reasoning-eligibility).** The
+distinction is real but *epistemic* — it should gate TRUST + WRITE-ACCESS, never whether the brain may
+reason:
+
+| Collection | Represents | Write path (HARDWIRED) | Trust |
+|---|---|---|---|
+| **definitions** | common knowledge (analytic; accepted across humanity) | **design/compile-time ONLY — never runtime** | dictionary-grade for grounding; LOW as chaining-fuel (WordNet-noisy) |
+| **axioms** | tokeniko's personality + beliefs (synthetic; DNA/imprinting + trusted experience) | **runtime-writable** (+ design seeds) | source-trust (curated = high; learned = teacher-trust) |
+| **theorems** | synthetic consequences (always derived, always dependent) | **derived-only** (materialize) | min-trust inherited from premises |
+
+Because runtime CANNOT write definitions, experience can never pollute the common-knowledge layer — the
+misuse channel is closed **at the door**. What remains is design-time curation quality (our
+responsibility — *"who we build", not "how it works"*), not a runtime vulnerability. This maps onto the
+analytic/synthetic cut (`kb-growing-outward.md`): anything learned at runtime is synthetic → an **axiom**
+(trust-tiered by who taught it), never a redefinition of the language. It also resolves the parked
+"unknown → ask → learn" loop: learned meanings write **axioms**, not definitions. Developmental arc:
+**DNA (definitions, design-time) → experience (axioms, runtime) → synthesis (theorems, derived).**
+
+**The lever maps to the layer.** "Can't rely on content" = the engine must be correct regardless of
+input. Two levers, each owning a layer:
+- **Personality (axioms)** → **CURATE the data** (hand-pick beliefs = imprinting; correct BY DESIGN,
+  forever — not a workaround).
+- **Common knowledge (definitions/WordNet)** → **GATE via the machinery** (can't hand-curate at scale →
+  the front-end gate MUST suppress the noise). The permanent, principled investment (the "antidote").
+
+**The universal gate + trust-by-source.** ONE source-agnostic extractor turns any `TKZip` into usable
+logic (is_a edges, necessary + sufficient rules, facts), gating the noise and tiering trust by source.
+Definitions rejoin chaining safely — low-trust + gated — which **generalizes** decision A
+([[cascade-amplifies-isa-noise]]), it does not reverse it.
+
+**Provenance + cascade.** Provenance records every premise (incl. **theorem** premises); revocation is
+**transitive** (archive a premise → its dependent theorems → theirs). This is the precondition for what
+the gut says is inevitable: **theorems will breed theorems** — the deductive closure compounding.
+
+**The one immovable:** the logic floor (operators + the contradiction kernel) stays HARDWIRED
+([[logic-is-sacred]]). "Everything is reasoned-over KB" applies to KNOWLEDGE, never to LOGIC itself.
+
+**The model, in one line:** *Everything is a `TKZip` and everything is reasoned over; collections denote
+what content REPRESENTS (enforced by write-path), trust tiers by source, one universal gate extracts
+usable logic and suppresses noise, provenance makes every theorem auditable and every dependency
+revocable, and logic stays hardwired.*
+
+**The findings below (#1–#4) are the concrete slices of this vision; the ordered build is in `doc/roadmap.md`.**
 
 ## The clarified mental model (settled — the frame for everything below)
 
