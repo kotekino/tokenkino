@@ -68,6 +68,26 @@ class TKRelationDoc(Document):
     class Settings:
         name = "relations"
 
+# the LOW-TRUST, revocable is_a tier mined from the definitions (definitions-as-rules, step 3). Kept in
+# a SEPARATE collection so the pristine ~150k-edge WordNet `relations` bedrock is NEVER polluted:
+# revoking the whole tier = dropping this collection, and every edge carries its provenance (the source
+# definition + trust + extractor method) so a single edge — and any theorem resting on it — is
+# retractable (step 4). The evaluator's is_a reader UNIONS bedrock ∪ this tier; the ingestion untangle
+# does NOT (it must disambiguate against the trusted graph only). Same {subject, relation, object, pos}
+# shape as bedrock + the provenance fields.
+class TKDerivedRelationDoc(Document):
+    subject: str
+    relation: str
+    object: str
+    pos: Optional[str] = None
+    source_id: str                     # the definition doc id this edge was mined from
+    source_original: str               # the definition text (for audit / revocation review)
+    trust: float = 0.3                 # low-trust tier (bedrock is implicitly 1.0)
+    method: str = "genus-extract-v1"   # extractor version — a full rebuild replaces one method's edges
+
+    class Settings:
+        name = "derived_relations"
+
 # --------------------------------------------------------------
 # tokeniko memory
 # --------------------------------------------------------------

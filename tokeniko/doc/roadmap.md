@@ -19,17 +19,15 @@ tokeniko reasons across his whole KB (the "rich soak"). Built **untangle-first**
 **dry-run-verified before it lands**. Governing principle: **asymmetric risk → reject-on-doubt** (a
 false is_a edge poisons ALL downstream reasoning).
 
-- ✅ **Steps 1–2 (genus untangle + recompile) and the step-3 dry-run probe — done; see `landed.md`.**
-- 🔄 **Step 3 build — the definition→is_a extractor + low-trust tier.** Mine the 650 clean edges into a
-  **revocable, low-trust tier** (a source/trust-tagged relation record, SEPARATE from the 150k bedrock
-  WordNet graph — never pollute it); the relations-reader **unions** bedrock ∪ tier; provenance so any
-  edge + every theorem resting on it is retractable. *This is what finally lets definitions fuel the
-  chainer.* Gate (validated in the probe): redundancy-drop + reliable-tier disjointness + structural
-  placeholder filter + cycle.
-- 🔭 **Step 4 — the wondering NET** (the residual meaning-level safety net). Structural (main-clause
-  genus only, no circular nominalization "management→manage"), graph-consistency hard-reject
-  (disjoint/cycle), trust-tiering, provenance-revocability (retract an edge + every theorem on it),
-  flag-the-middle. *(Geometry dropped — the wrong signal for is_a validity, [[geometry-not-isa-validity]].)*
+- ✅ **Steps 1–3 (genus untangle + recompile; the extractor + 582-edge low-trust tier + reader union)
+  — done; see `landed.md`.** Definitions now fuel GROUNDING; chaining fuel is latent until step 5.
+- 🔄 **Step 4 — the wondering NET** (the residual meaning-level safety net + the tier's revocability
+  machinery). Structural (main-clause genus only, no circular nominalization "management→manage"),
+  graph-consistency hard-reject (disjoint/cycle — already at ingestion; extend to the net),
+  **trust-tiering** (an extracted edge should weigh less than bedrock in a grounding verdict) +
+  **provenance-revocability** (retract an edge → archive every theorem whose premises include it; the
+  chainer must record a NON-bedrock edge as a premise, unlike bedrock is_a). flag-the-middle.
+  *(Geometry dropped — the wrong signal for is_a validity, [[geometry-not-isa-validity]].)*
 - 🔭 **Step 5 — the enriched soak** (the real knowledge explosion). **Grow the universal-rule set** —
   yield scales ~ *edges × rules*, and the GENERATIVE fuel is **property** content ("apple has red skin")
   meeting rules at ≥2 premises, not the ~redundant taxonomic content. Re-run `probe_definitions.py`

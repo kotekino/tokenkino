@@ -15,16 +15,19 @@
 from typing import Optional
 
 from lib.core.constants import _ME_UID
-from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKTheoremDoc
+from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKDerivedRelationDoc, TKTheoremDoc
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
 from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh, evaluator_forwardChain
 
 
-# the injected is_a graph reader: parents(sense) -> direct is_a hypernyms. the ~150k-triple
-# `relations` collection is never loaded wholesale — only the per-sense edges actually touched.
-# cached per evaluate_zip() call (rebuilt below) so repeated lookups during one BFS hit memory.
+# the injected is_a graph reader: parents(sense) -> direct is_a hypernyms over the BEDROCK ~150k-triple
+# `relations` collection (never loaded wholesale — only the per-sense edges actually touched). cached
+# per evaluate_zip() call (rebuilt below) so repeated lookups during one BFS hit memory. This is the
+# TRUSTED graph: the definitions-as-rules extractor + its dry-run probe GATE candidate edges against it
+# (never against the union below — else already-inserted edges would look "redundant"), and the
+# ingestion untangle disambiguates against it too.
 def _make_relations_reader():
     cache: dict[str, list[str]] = {}
 
@@ -34,6 +37,28 @@ def _make_relations_reader():
             return hit
         edges = TKRelationDoc.find({"subject": sense, "relation": "is_a"}).to_list()
         objs = [e.object for e in edges]
+        cache[sense] = objs
+        return objs
+
+    return parents
+
+
+# the EVALUATOR's is_a reader: bedrock UNION the LOW-TRUST `derived_relations` tier (definition-mined
+# is_a edges, definitions-as-rules step 3), so definitions finally fuel grounding + chaining — without
+# ever polluting bedrock (the tier is a physically separate, revocable collection). Only `_load_active_kb`
+# wires this into the evaluator/chainer; the gate + untangle deliberately keep the bedrock-only reader.
+def _make_relations_reader_union():
+    cache: dict[str, list[str]] = {}
+
+    def parents(sense: str) -> list[str]:
+        hit = cache.get(sense)
+        if hit is not None:
+            return hit
+        edges = TKRelationDoc.find({"subject": sense, "relation": "is_a"}).to_list()
+        objs = [e.object for e in edges]
+        for e in TKDerivedRelationDoc.find({"subject": sense, "relation": "is_a"}).to_list():
+            if e.object not in objs:
+                objs.append(e.object)
         cache[sense] = objs
         return objs
 
@@ -470,7 +495,7 @@ def _load_active_kb() -> dict:
         "definitions": definitions,
         "axiom_zips": [a.zip for a in axiom_docs],
         "theorem_zips": [t.zip for t in theorem_docs],
-        "relations": _make_relations_reader(),
+        "relations": _make_relations_reader_union(),  # evaluator/chainer see bedrock ∪ derived tier
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
