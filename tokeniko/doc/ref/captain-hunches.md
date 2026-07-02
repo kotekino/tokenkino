@@ -135,3 +135,5 @@ _SPATIAL_RELATION_ANCHORS
 >   marginal against the safety cost.
 >
 > — Cap, two ends of one rope. 🜂
+
+6. When a theorem is materialized, tokeniko will feel the urge to make a post on his website (https://tokeniko.online), which is now just a draft
