@@ -66,7 +66,27 @@ what content REPRESENTS (enforced by write-path), trust tiers by source, one uni
 usable logic and suppresses noise, provenance makes every theorem auditable and every dependency
 revocable, and logic stays hardwired.*
 
-**The findings below (#1–#5) are the concrete slices of this vision; the ordered build is in `doc/roadmap.md`.**
+**The findings below (#1–#6) are the concrete slices of this vision; the ordered build is in `doc/roadmap.md`.**
+
+## #6 — A lowercase known name mints NO identity → the axiom is a silent no-op
+
+**Observed (2026-07-03, step-2 census probe).** Three of the most personal imprint axioms —
+"**kotekino** is my creator", "kotekino is my family", "kotekino loves his family" — compiled with **no
+subject at all**: no identity uid, no subject sense. The leaves fall into no extraction bucket (not a
+fact — `_extract_facts` needs `identities['subject']`; not a rule — no class sense), so they are inert
+in the chain layer. tokeniko was told who his creator is and it never reached his mind.
+
+**Root cause.** Identity minting (`parser_getIndividual`) is gated on NER-type + a real spaCy-lg
+vector; lowercase OOV "kotekino" passes neither (NER misses uncapitalized proper nouns; the lemma has
+no lg vector). The gate is CORRECT for unknown gibberish (it keeps the 2925 space pollution-free) —
+but "kotekino" is not unknown: he exists in `MEMStakeholder` (tokeniko has already MET him).
+
+**Fix direction (small, high value).** Before the NER gate, check the surface form against the KNOWN
+stakeholders/individuals (exactly like `parser_getPlace` consults the places KB): a case-insensitive
+match on an existing `MEMStakeholder` name → reuse its uid + type centroid. Never mints new identities
+(the NER gate still guards creation), only RECOGNIZES already-met ones — so the messy-input risk is
+nil and [[robustness-imperfect-input]] gains its cheapest win: people rarely capitalize in chat.
+Workaround until then: capitalize names in curated axioms ("Kotekino is my creator") — and REBATCH.
 
 ## #5 — Restrictive modifier on a universal's SUBJECT is dropped → over-generalization (the WORST class)
 
@@ -111,7 +131,7 @@ skeleton for chaining, the rich gloss for grounding (the same source, two organs
 
 ---
 
-## #1 — Generic "a X is a Y" doesn't chain (the natural-taxonomy gap) — HIGHEST PRIORITY
+## #1 — Generic "a X is a Y" doesn't chain (the natural-taxonomy gap) — ✅ landed (step 2, see `landed.md`)
 
 **Observed.** The author stated a taxonomy the natural way and the chain snapped:
 - `I am a thinking machine` (fact ✓) — but `a thinking machine is a thinker` compiled with

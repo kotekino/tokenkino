@@ -47,6 +47,13 @@ reduced-participle vs finite-relative-with-nsubj distinction), adjacent to the p
 subject-rebinding work. Would recover the verb bulk (~300 candidates) as clean differentia rules and
 substantially grow the enriched-soak fuel. Promote when the parser voice signal is built.
 
+**Negated-copular DISJOINTNESS extraction (Brain v1.1 step-2 residual)** — "a dog is not a cat" /
+"no machine is a human" (a negated/NEGATIVE copular noun-noun generic) is a **disjointness claim**, not
+an is_a edge and not a property rule — today the step-2 extractor counts it (`negated_skip`) and moves
+on. A future extractor could mine these into pairwise-disjoint assertions feeding
+`relations_disjoint` (the refutation side), symmetric to how affirmative copulars feed subsumption.
+Promote when curated fuel starts stating exclusions.
+
 **Tier-1 / KB growing OUTWARD** — genuine *synthetic* learning from trusted testimony (learned axioms
 vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/ref/kb-growing-outward.md`**.
 Needs the trust-gradient; build after the consolidation floor is solid.

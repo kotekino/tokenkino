@@ -19,14 +19,11 @@ of the brain.* **Vision + design: `doc/ref/brain-v1.1.md`.** In one line: *every
 tiers by source, one universal gate extracts usable logic + suppresses noise, provenance makes every
 theorem auditable + every dependency revocable, logic stays hardwired.* The ordered build:
 
-1. 🔭 **Write-path invariant** — hardwire the collection semantics at ingestion: **definitions
-   design-time-only** (never runtime), **axioms runtime-writable**, **theorems derived-only**. This is
-   what makes "can't rely on content" *true* — it closes the runtime pollution channel at the door
-   (experience can never touch common knowledge). Small (API/ingestion guards); the safety bedrock.
-2. 🔭 **Generic taxonomy chains (universal-extractor v0)** — copular "a X is a Y" → an is_a edge,
-   **source-trusted** (axiom = high 0.9 / definition = low 0.3), unioned into the chainer reader on a
-   source-agnostic seam. Reuses the step-3/4 machinery. **Unblocks the live personality-imprint test
-   NOW** (the natural-taxonomy gap the author hit). Dry-run → build.
+1. ✅ **Write-path invariant** + 2. ✅ **Generic taxonomy chains (universal-extractor v0)** — landed
+   2026-07-03 (INDEFINITE quantifier split, in-memory axiom is_a edges, generic/negative rule widening,
+   per-premise min-trust, design-time definitions guard, the sandbox test gate) — see `landed.md`.
+   *Surfaced for later steps:* finding **#6** (lowercase known-name identity minting — the kotekino
+   no-op; fix beside the parser work) + the imprint **REBATCH** (recompiles "a/an" zips to INDEFINITE).
 3. 🔭 **Provenance + transitive cascade** — extend provenance to record **theorem** premises; revocation
    recurses (archive a premise → its dependent theorems → theirs). The precondition for *theorems
    breeding theorems* + clean revocation.
@@ -72,7 +69,7 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
 - **`doc/parked.md`** — the icebox (deferred ideas + known gaps).
 
 **Reference docs (`doc/ref/` — extended context per task + future-reference material; NOT status):**
-- **`doc/ref/brain-v1.1.md`** — the Brain v1.1 **vision + design** (the Unified-KB reframe: everything-is-reasoned-over-TKZip, write-path invariant, universal gate, trust-by-source; + the #1–#4 findings). The conceptual center.
+- **`doc/ref/brain-v1.1.md`** — the Brain v1.1 **vision + design** (the Unified-KB reframe: everything-is-reasoned-over-TKZip, write-path invariant, universal gate, trust-by-source; + the #1–#6 findings). The conceptual center.
 - **`doc/ref/notes.md`** — design notes & findings (phased plan + reasoning-engine brainstorm + parser/compiler review).
 - **`doc/ref/test-feedback.md`** — the living empirical fragility log (observed → diagnosis → action).
 - **`doc/ref/kb-growing-outward.md`** — the "synthetic learning" design (analytic/synthetic cut).

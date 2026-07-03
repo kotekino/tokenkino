@@ -129,6 +129,20 @@ async def delete_axiom(object_id: str):
 # DEFINITIONS resource (/api/v1/definitions) — semantic statements (single OR multi clause; TKZip)
 # ------------------------
 # list definitions (summary view, no zip); optional filter by archived
+# WRITE-PATH INVARIANT (Brain v1.1 step 1): definitions are the DESIGN-TIME vocabulary — no runtime
+# path may write them (runtime learning writes AXIOMS; theorems are derived-only via /materialize).
+# TOKENIKO_DESIGN_TIME=0 locks every mutating /definitions route (403) so an embodied, live tokeniko
+# physically cannot have its vocabulary edited through the API; unset/1 (the default) keeps the
+# design bench open. Reads are always allowed.
+def _require_design_time():
+    if os.getenv("TOKENIKO_DESIGN_TIME", "1").lower() in ("0", "false", "no"):
+        raise HTTPException(
+            status_code=403,
+            detail="definitions are design-time only (write-path invariant); "
+                   "runtime learning writes axioms — set TOKENIKO_DESIGN_TIME=1 to edit the vocabulary",
+        )
+
+
 @app.get("/api/v1/definitions")
 async def list_definitions(archived: Optional[bool] = None):
     definitions = app.state.definition_service.list(archived=archived, projection=DefinitionSummary)
@@ -143,6 +157,7 @@ async def get_definition(object_id: str):
 # insert a new definition, given a sentence (single OR multi clause)
 @app.post("/api/v1/definitions")
 async def create_definition(payload: DefinitionIn):
+    _require_design_time()
     try:
         definition = create_or_http(lambda: app.state.definition_service.create(payload.tokens))
         return {"status": "complete", "data": definition}
@@ -154,6 +169,7 @@ async def create_definition(payload: DefinitionIn):
 # partial update: only the provided fields change (recompiles if 'tokens' given)
 @app.patch("/api/v1/definitions/{object_id}")
 async def patch_definition(object_id: str, payload: DefinitionPatch):
+    _require_design_time()
     updates = payload.model_dump(exclude_unset=True)
     try:
         definition = create_or_http(lambda: definition_or_http(lambda: app.state.definition_service.patch(object_id, updates)))
@@ -166,6 +182,7 @@ async def patch_definition(object_id: str, payload: DefinitionPatch):
 # replacement update: recompiles the sentence and resets flags to the body
 @app.put("/api/v1/definitions/{object_id}")
 async def put_definition(object_id: str, payload: DefinitionReplace):
+    _require_design_time()
     try:
         definition = create_or_http(lambda: definition_or_http(lambda: app.state.definition_service.replace(object_id, **payload.model_dump())))
         return {"status": "complete", "data": definition}
@@ -177,6 +194,7 @@ async def put_definition(object_id: str, payload: DefinitionReplace):
 # delete a definition
 @app.delete("/api/v1/definitions/{object_id}")
 async def delete_definition(object_id: str):
+    _require_design_time()
     definition_or_http(lambda: app.state.definition_service.delete(object_id))
     return {"status": "complete", "data": {"deleted": object_id}}
 

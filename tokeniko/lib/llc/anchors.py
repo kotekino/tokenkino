@@ -43,6 +43,7 @@ from lib.llc.constants import (
     _HAS_PART_VERBS,
     _QUANTIFIER_UNIVERSAL,
     _QUANTIFIER_EXISTENTIAL,
+    _QUANTIFIER_INDEFINITE,
     _QUANTIFIER_NEGATIVE,
     _QUANTIFIER_DEFINITE,
     _WH_SUBJECT,
@@ -467,6 +468,7 @@ def anchor_is(lemma: str, category: str) -> bool:
 _QUANTIFIER_TABLE: dict[str, TKQuantifier] = {
     **{w: TKQuantifier.UNIVERSAL for w in _QUANTIFIER_UNIVERSAL},
     **{w: TKQuantifier.EXISTENTIAL for w in _QUANTIFIER_EXISTENTIAL},
+    **{w: TKQuantifier.INDEFINITE for w in _QUANTIFIER_INDEFINITE},
     **{w: TKQuantifier.NEGATIVE for w in _QUANTIFIER_NEGATIVE},
     **{w: TKQuantifier.DEFINITE for w in _QUANTIFIER_DEFINITE},
 }

@@ -125,11 +125,16 @@ class TKOperator(str, Enum):
     NOTEQ = "NOT EQ"
 
 # quantifier read off the subject's determiner. UNIVERSAL (all/every/each), EXISTENTIAL
-# (a/an/some/any/several), NEGATIVE (no/none/neither), DEFINITE (the/this/that/...), GENERIC
-# (bare/no determiner). drives the quantifier-aware truth flip in the relational grounding.
+# (some/any/several), INDEFINITE (a/an — split from EXISTENTIAL in Brain v1.1 step 2: an indefinite
+# singular copular "a cat is a mammal" is a GENERIC claim, while "some birds are pets" is a true
+# existential that must NEVER become an is_a edge; the split lets the generic-taxonomy extractor
+# admit the first without the second), NEGATIVE (no/none/neither), DEFINITE (the/this/that/...),
+# GENERIC (bare/no determiner). drives the quantifier-aware truth flip in the relational grounding
+# (only NEGATIVE flips; the others are truth-inert there).
 class TKQuantifier(str, Enum):
     UNIVERSAL = "universal"
     EXISTENTIAL = "existential"
+    INDEFINITE = "indefinite"
     NEGATIVE = "negative"
     DEFINITE = "definite"
     GENERIC = "generic"

@@ -461,8 +461,9 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # recoverable -- the geometry alone loses it (cos("happy", "not happy") == 1.0).
     mainContent.negated = compiler_contentIsNegated(mainContent) or compiler_isNegativeComparison(mainContent)
 
-    # quantifier: read off the SUBJECT's determiner ("all"->UNIVERSAL, "no"->NEGATIVE, "some"/"a"->
-    # EXISTENTIAL, "the"->DEFINITE, bare->GENERIC). a subject "no/none/neither" det was already
+    # quantifier: read off the SUBJECT's determiner ("all"->UNIVERSAL, "no"->NEGATIVE, "some"->
+    # EXISTENTIAL, "a/an"->INDEFINITE, "the"->DEFINITE, bare->GENERIC). a subject "no/none/neither"
+    # det was already
     # excluded from `negated` above (reclassified here) to avoid a double flip in the grounding.
     mainContent.quantifier = compiler_contentQuantifier(mainContent)
 

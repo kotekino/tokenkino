@@ -55,3 +55,13 @@ def materialize_theorem(tokens: str, premises: list[str], chain: str, derived_by
         {"tokens": tokens, "premises": premises, "chain": chain, "derived_by": derived_by,
          "trusted": trusted},
     )
+
+
+# CREATE an axiom via the API pipeline — the brain's ONE runtime KB-write seam besides materialize
+# (the WRITE-PATH INVARIANT, Brain v1.1 step 1): runtime learning writes AXIOMS, never definitions
+# (design-time vocabulary) and never theorems directly (derived-only, via materialize). Any future
+# learn-loop (eval:true novel truth taught by a trusted stakeholder, D-phase) MUST come through here.
+# The API compiles, runs the contradiction guard (logic-is-sacred), and stores. Returns the
+# {status, data} dict, or None on failure.
+def create_axiom(tokens: str) -> dict | None:
+    return _post_json("/api/v1/axioms", {"tokens": tokens})

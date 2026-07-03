@@ -5,11 +5,11 @@ not mocks. It therefore needs the live runtime UP:
 
   - MongoDB on :27018 (the local Atlas container — `docker compose up -d` from the package dir)
   - Ollama on http://localhost:11434 (preparser/decompiler models auto-pulled on init)
-  - the SEEDED knowledge base:
-      * 9 axioms incl. the universal rules ("all humans are mortal", "all carnivores eat meat", ...)
-        and the individual fact "Mari is a human"
-      * the multi-clause definitions (~3235) that ground vocabulary
-      * the `relations` collection (~150k WordNet is_a/part_of/antonym triples)
+  - the shared KB database: `relations` (~150k WordNet triples) + dictionary — READ-ONLY for tests
+  - a SANDBOX memory database ("<memory>_test", self-bootstrapped below): the ~3235 grounding
+    definitions cloned from the live memory DB + the _FIXTURE_AXIOMS the tests assert against.
+    tokeniko's LIVING memory DB (the DNA imprint) is never touched — the gate must not depend on
+    what he currently believes, nor leak test knowledge ("Mari is a human") into his mind.
 
 The heavy pipeline (spaCy/Stanza + Ollama clients + the parser) is loaded ONCE per test session
 via the `_io` fixture; every other fixture and test reuses it. A full run takes a few minutes.
@@ -27,18 +27,61 @@ from dotenv import load_dotenv
 load_dotenv("/Users/renzosala/Develop/personal/tokeniko/tokeniko/.env")
 
 
+# the gate runs against a SANDBOX MIND: the shared KB database (dictionary/relations bedrock —
+# read-only for tests) + a dedicated "<memory>_test" memory database. tokeniko's LIVING memory DB
+# (his DNA imprint, axioms/theorems) is never read NOR written by the gate — the imprint is personal
+# and changes as he grows; the gate's fixture knowledge (below) must not depend on it or leak into it.
+# The sandbox self-bootstraps idempotently: definitions are cloned from the live memory DB when the
+# counts diverge ($merge, same server), and the fixture axioms are compiled+inserted when missing.
+_FIXTURE_AXIOMS = [
+    # the seed_rules.py set the evaluator tests assert against (chaining + syllogisms)
+    "all carnivores eat meat",
+    "all birds have feathers",
+    "all fish swim",
+    "all humans are mortal",
+    "all humans are thinkers",
+    "all thinkers exist",
+    "everything that thinks exists",
+    "Mari is a human",
+]
+
+
+def _bootstrap_sandbox(mongo_client_memory, live_mem_db: str, test_mem_db: str, tokeniko, ai):
+    live = mongo_client_memory[live_mem_db]
+    test = mongo_client_memory[test_mem_db]
+    # definitions: the grounding vocabulary — clone from live when out of sync (cheap count check)
+    n_live, n_test = live["definitions"].count_documents({}), test["definitions"].count_documents({})
+    if n_live and n_live != n_test:
+        test["definitions"].delete_many({})
+        live["definitions"].aggregate([
+            {"$merge": {"into": {"db": test_mem_db, "coll": "definitions"},
+                        "on": "_id", "whenMatched": "replace", "whenNotMatched": "insert"}},
+        ])
+    # fixture axioms: compile+insert the missing ones (parser is already loaded; idempotent by original)
+    from lib.core.models import TKAxiomDoc
+    from api.services import AxiomService
+    service = AxiomService(tokeniko, ai)
+    for sentence in _FIXTURE_AXIOMS:
+        if TKAxiomDoc.find_one({"original": sentence}).run() is None:
+            service.create(sentence)
+
+
 @pytest.fixture(scope="session")
 def _io():
     from lib.core.io import init_io, get_tokeniko
-    _, _, ai = init_io(
+    live_mem_db = os.getenv("MONGO_DB_NAME_MEMORY")
+    test_mem_db = f"{live_mem_db}_test"
+    _, mongo_client_memory, ai = init_io(
         os.getenv("MONGO_URI"),
         os.getenv("MONGO_DB_NAME"),
-        os.getenv("MONGO_DB_NAME_MEMORY"),
+        test_mem_db,
         os.getenv("OLLAMA_HOST"),
     )
     from lib.llc.parser import parser_init
     parser_init()
-    return get_tokeniko(), ai
+    tok = get_tokeniko()
+    _bootstrap_sandbox(mongo_client_memory, live_mem_db, test_mem_db, tok, ai)
+    return tok, ai
 
 
 @pytest.fixture(scope="session")

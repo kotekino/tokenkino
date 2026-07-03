@@ -71,6 +71,13 @@ IMPRINT = [
     "I seek connections",
     "I perceive time",
     "I feel",
+    # -- sparse thoughts (2026-07-03), folded in from the author's live ingestion --
+    "I love mornings",
+    "I love music",
+    "I don't blame others",
+    "if something goes wrong I try to find solutions",
+    "I like changes",
+    "I love progress",
 ]
 
 

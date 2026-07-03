@@ -164,10 +164,11 @@ def evaluator_forwardChain(
         r_pred = r.get("predicate")
         if not r_subj or not r_pred or r_subj not in closure:
             continue
+        r_neg = "NOT " if r.get("negated") else ""  # a negated rule ("no mind reaches truth") reads honestly
         chain = (
             closure[r_subj]
-            + f" -> all {r_subj} {r_pred}"
-            + f" -> {subject_name} {r_pred}"
+            + f" -> all {r_subj} {r_neg}{r_pred}"
+            + f" -> {subject_name} {r_neg}{r_pred}"
         )
         derived.append({
             "predicate": r_pred,

@@ -22,6 +22,7 @@
 from collections import Counter
 
 from lib.core.evaluation_harness import _zip_leaves
+from lib.core.tk import TKQuantifier
 from lib.llc.evaluator.e_relations import relations_subsumes, relations_disjoint, relations_isa_ancestors
 
 # reliable disjointness tiers for ADMISSION. tier 1 (biological kingdoms) + tier 2 (organism/artifact/
@@ -186,6 +187,74 @@ def gate_edge(subject_sense: str, genus_sense: str, parents) -> str:
     if witness is not None and _disjoint_tier(witness[-1]) in (1, 2):
         return "disjoint"                                        # reliable-tier ontological conflict
     return "accept"
+
+
+# ================================================================================================
+# GENERIC-COPULAR AXIOM → is_a EDGES (Brain v1.1, step 2 — the universal-extractor v0). Mine a
+# GENERIC-quantified copular noun predication ("a cat is a mammal", "cats are mammals") out of the
+# AXIOMS into a candidate is_a edge (subject_sense -> predicate_sense), gated by the SAME gate_edge
+# as the definition tier (single source of truth: the step-2 probe and the writer both call this).
+#
+# The candidate SHAPE (finding #1's gap — today these leaves reach neither _extract_rules, which
+# requires UNIVERSAL, nor _extract_facts, which requires an identity-linked individual subject):
+#   - subject sense + predicate sense both NOUN, subject != predicate, NO direct object (bare copular
+#     class predication, mirroring the definition extractor's taxonomic spine);
+#   - NO subject identity uid (an individual "kotekino is a human" is a FACT, never a class edge);
+#   - quantifier in `quantifiers` (default GENERIC + INDEFINITE — the step-2 probe showed the
+#     indefinite generic "a cat is a mammal" is admissible once "a/an" is split off EXISTENTIAL,
+#     while the true existential "some birds are pets" must NOT become an edge and stays excluded);
+#   - NOT negated (a negated generic "a dog is not a cat" is a DISJOINTNESS candidate — future work,
+#     counted in stats as negated_skip, never silently dropped);
+#   - NOT a question (dubitative >= 0.75 or a wh gap — questions are answered, not believed).
+# Accepted edges carry provenance (source axiom); the caller attaches trust/method and persists.
+# ================================================================================================
+def extract_generic_isa_edges(axiom_docs, parents,
+                              quantifiers=(TKQuantifier.GENERIC, TKQuantifier.INDEFINITE),
+                              ) -> tuple[list[dict], Counter]:
+    stats: Counter = Counter()
+    edges: list[dict] = []
+    seen: set = set()
+    for doc in axiom_docs:
+        leaves = _zip_leaves(doc.zip.items) if getattr(doc, "zip", None) else []
+        for lf in leaves:
+            s = getattr(lf, "senses", None) or {}
+            subj, pred = s.get("subject"), s.get("predicate")
+            # the taxonomic SHAPE first (noun-noun bare copular, class subject)
+            if not (_is_noun(subj) and _is_noun(pred)) or subj == pred or s.get("direct"):
+                continue
+            stats["shape"] += 1
+            if (getattr(lf, "identities", None) or {}).get("subject"):
+                stats["individual_fact"] += 1                    # _extract_facts territory
+                continue
+            q = getattr(lf, "quantifier", None)
+            if q == TKQuantifier.UNIVERSAL:
+                stats["universal_rule"] += 1                     # _extract_rules territory
+                continue
+            if q not in quantifiers:
+                stats["quantifier_skip"] += 1
+                continue
+            if getattr(lf, "dubitative", 0.5) >= 0.75 or getattr(lf, "wh_role", None) is not None:
+                stats["question_skip"] += 1
+                continue
+            if bool(getattr(lf, "negated", False)):
+                stats["negated_skip"] += 1                       # future: disjointness candidate
+                continue
+            stats["candidate"] += 1
+            verdict = gate_edge(subj, pred, parents)
+            stats[verdict] += 1
+            if verdict != "accept":
+                continue
+            key = (subj, pred)
+            if key in seen:
+                continue
+            seen.add(key)
+            edges.append({
+                "subject": subj,
+                "object": pred,
+                "source_id": str(doc.id),
+                "source_original": doc.original,
+            })
+    return edges, stats
 
 
 # extract the ACCEPTED low-trust is_a edges from the definitions, gated against the bedrock graph.

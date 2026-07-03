@@ -63,7 +63,7 @@ def main():
         return
 
     if existing:
-        TKDerivedRuleDoc.find({"method": _METHOD}).delete()
+        TKDerivedRuleDoc.find({"method": _METHOD}).delete().run()  # .run() or it silently no-ops
         print(f"  deleted {existing} stale {_METHOD} rules.")
     inserted = 0
     for r in rules:

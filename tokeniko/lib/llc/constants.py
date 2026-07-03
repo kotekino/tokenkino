@@ -105,7 +105,11 @@ _NEGATIVE_QUANTIFIERS = {"nobody", "no one", "no-one", "noone", "nothing", "none
 # fallback in compiler_contentQuantifier. The table-gating keeps it safe: a non-quantifier subject
 # ("cat", "I") is absent here and falls through to GENERIC.
 _QUANTIFIER_UNIVERSAL = {"all", "every", "each", "everything", "everyone", "everybody"}
-_QUANTIFIER_EXISTENTIAL = {"a", "an", "some", "any", "several", "something", "someone", "somebody"}
+_QUANTIFIER_EXISTENTIAL = {"some", "any", "several", "something", "someone", "somebody"}
+# the indefinite article, SPLIT out of EXISTENTIAL (Brain v1.1 step 2): "a X is a Y" reads GENERIC in
+# English while "some X are Y" is a true existential — the generic-taxonomy extractor admits
+# INDEFINITE (+ GENERIC), never EXISTENTIAL ("some birds are pets" must not become an is_a edge).
+_QUANTIFIER_INDEFINITE = {"a", "an"}
 _QUANTIFIER_NEGATIVE = {"no", "none", "neither", "nothing", "nobody"}
 _QUANTIFIER_DEFINITE = {"the", "this", "that", "these", "those"}
 

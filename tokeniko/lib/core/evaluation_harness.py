@@ -56,10 +56,12 @@ def _make_relations_reader():
 
 
 # the EVALUATOR's is_a reader: bedrock UNION the LOW-TRUST `derived_relations` tier (definition-mined
-# is_a edges, definitions-as-rules step 3), so definitions finally fuel grounding + chaining — without
-# ever polluting bedrock (the tier is a physically separate, revocable collection). Only `_load_active_kb`
+# is_a edges, definitions-as-rules step 3) UNION the IN-MEMORY axiom-derived edges (`extra`,
+# generic-taxonomy step 2 — mined per KB load, never persisted), so definitions AND generic axioms
+# fuel grounding + chaining — without ever polluting bedrock (the tier is a physically separate,
+# revocable collection; the axiom edges retract with their source axiom). Only `_load_active_kb`
 # wires this into the evaluator/chainer; the gate + untangle deliberately keep the bedrock-only reader.
-def _make_relations_reader_union():
+def _make_relations_reader_union(extra: Optional[dict] = None):
     cache: dict[str, list[str]] = {}
 
     def parents(sense: str) -> list[str]:
@@ -71,6 +73,9 @@ def _make_relations_reader_union():
         for e in TKDerivedRelationDoc.find({"subject": sense, "relation": "is_a"}).to_list():
             if e.object not in objs:
                 objs.append(e.object)
+        for o in (extra or {}).get(sense, []):
+            if o not in objs:
+                objs.append(o)
         cache[sense] = objs
         return objs
 
@@ -87,12 +92,15 @@ def _edge_key(subject: str, object: str) -> str:
     return f"{subject}|is_a|{object}"
 
 
-def _make_edge_source_reader():
+def _make_edge_source_reader(extra: Optional[dict] = None):
     cache: dict[tuple, Optional[str]] = {}
 
     def edge_source(subject: str, object: str) -> Optional[str]:
         key = (subject, object)
         if key in cache:
+            return cache[key]
+        if object in (extra or {}).get(subject, []):
+            cache[key] = _edge_key(subject, object)  # in-memory axiom-derived edge (step 2)
             return cache[key]
         e = TKDerivedRelationDoc.find_one(
             {"subject": subject, "object": object, "relation": "is_a"}).run()
@@ -103,22 +111,28 @@ def _make_edge_source_reader():
 
 
 # a derived theorem is only as trustworthy as its WEAKEST premise (min-trust inheritance — truth and
-# trust are orthogonal: a chain through a definition-derived item is validly derived, truth 1.0, but
-# only as trustworthy as that item). axiom/rule/fact premises are Mongo ids (bedrock-trusted, the 0.9
-# default); a DEFINITION-DERIVED premise is a stable "|"-bearing key — a tier EDGE ("subj|is_a|obj") or
-# a differentia RULE ("rule:subj|pred|obj") — and lowers the conclusion to the low-trust tier. so a
-# definition-derived theorem is stored honestly LOW-TRUST + revisable, never laundered to full trust.
-# (all derived items share the tier trust by construction; if per-item trust is ever needed, resolve
-# the key against derived_relations/derived_rules here.)
+# trust are orthogonal: a chain through a derived item is validly derived, truth 1.0, but only as
+# trustworthy as that item). axiom/rule/fact premises are Mongo ids (bedrock-trusted, the 0.9
+# default); a DERIVED premise is a stable "|"-bearing key — a tier EDGE ("subj|is_a|obj") or a
+# differentia RULE ("rule:subj|pred|obj") — resolved PER-PREMISE against the `edge_trust` map that
+# `_load_active_kb` builds (definition-derived 0.3, axiom-derived generic edge 0.9, source-trusted).
+# min over all premises: a chain through one 0.3 item is a 0.3 theorem, never laundered up; a chain
+# purely over axiom-derived edges stays honestly 0.9. `edge_trust=None` falls back to the in-process
+# KB cache (so the brain's materialize path is per-premise-accurate without threading the kb through),
+# then to the conservative tier default for unknown "|" keys.
 _DERIVED_DEFAULT_TRUST = 0.9
 _DERIVED_TIER_TRUST = 0.3
+_AXIOM_EDGE_TRUST = 0.9   # a generic-taxonomy edge mined from a curated AXIOM (step 2) — high trust
 
 
-def _conclusion_trust(premise_ids) -> float:
+def _conclusion_trust(premise_ids, edge_trust: Optional[dict] = None) -> float:
+    if edge_trust is None:
+        edge_trust = (_kb_cache or {}).get("edge_trust") or {}
+    trust = _DERIVED_DEFAULT_TRUST
     for pid in (premise_ids or []):
         if "|" in (pid or ""):
-            return _DERIVED_TIER_TRUST  # rests on a definition-derived (low-trust) edge or rule
-    return _DERIVED_DEFAULT_TRUST
+            trust = min(trust, edge_trust.get(pid, _DERIVED_TIER_TRUST))
+    return trust
 
 
 # the injected part_of (meronymy) graph reader: wholes(sense) -> direct part_of wholes (the
@@ -382,30 +396,55 @@ def cross_item_conflict(clauses_a: list, clauses_b: list) -> Optional[str]:
     return union
 
 
-# extract universal RULES from the active axioms for the forward-chainer. a rule leaf is a
-# UNIVERSAL-quantified clause with a subject sense and a predicate sense ("all carnivores eat
-# meat", "all humans are thinkers"). the predicate POS classifies the rule: a NOUN predicate
-# (".n.") is a MEMBERSHIP rule (subject is_a* S => subject is_a [predicate class]); anything else
-# (".a."/".s."/".v.") is a PROPERTY rule (subject is_a* S => subject has the predicate property).
+# extract RULES from the active axioms for the forward-chainer. three quantifier shapes qualify
+# (Brain v1.1 step 2 widened this beyond UNIVERSAL — bare-plural generics are how people naturally
+# state universals; the step-2 census showed the curated imprint itself phrases rules that way):
+#   UNIVERSAL — "all carnivores eat meat", "all humans are thinkers" (the original path).
+#   GENERIC / INDEFINITE class-subject — "humans create their gods", "truth is relative",
+#       "violence generates violence": a CLASS subject (sense, no identity uid — an individual is a
+#       FACT) read as a defeasible universal. EXCEPT the bare copular noun-noun shape ("a cat is a
+#       mammal") — that is the generic-taxonomy EDGE extractor's territory (kb_extract, unioned into
+#       the relations reader), and double-representing it would duplicate derivations.
+#   NEGATIVE — "no mind can reach absolute truth": a negated universal (rule negated = NEGATIVE XOR
+#       leaf.negated, the evaluator's own net-flip). Only the property shape; a NEGATIVE copular
+#       noun-noun ("no machine is a human") is a DISJOINTNESS claim — future work, skipped here.
+# the predicate POS classifies the rule: a NOUN predicate (".n.") is a MEMBERSHIP rule (subject
+# is_a* S => subject is_a [predicate class]); anything else (".a."/".s."/".v.") is a PROPERTY rule.
+_RULE_GENERIC_QUANTIFIERS = (TKQuantifier.GENERIC, TKQuantifier.INDEFINITE)
+
+
 def _extract_rules(axiom_docs) -> list:
     rules: list = []
     for doc in axiom_docs:
         if doc.zip is None:
             continue
         for leaf in _zip_leaves(doc.zip.items):
-            if getattr(leaf, "quantifier", None) != TKQuantifier.UNIVERSAL:
-                continue
+            quantifier = getattr(leaf, "quantifier", None)
             senses = getattr(leaf, "senses", None) or {}
             subject = senses.get("subject")
             predicate = senses.get("predicate")
             if not subject or not predicate:
                 continue
+            negated = bool(getattr(leaf, "negated", False))
+            if quantifier == TKQuantifier.UNIVERSAL:
+                pass  # the original path — always a rule
+            elif quantifier in _RULE_GENERIC_QUANTIFIERS or quantifier == TKQuantifier.NEGATIVE:
+                if (getattr(leaf, "identities", None) or {}).get("subject"):
+                    continue  # an individual subject is a FACT (_extract_facts), never a rule
+                if getattr(leaf, "dubitative", 0.5) >= 0.75 or getattr(leaf, "wh_role", None) is not None:
+                    continue  # a question is answered, not believed
+                if ".n." in predicate and not senses.get("direct"):
+                    continue  # bare copular noun-noun: EDGE (generic-taxonomy) or disjointness (future)
+                if quantifier == TKQuantifier.NEGATIVE:
+                    negated = not negated  # the net-flip: "no X <pred>" == "all X NOT <pred>"
+            else:
+                continue  # EXISTENTIAL/DEFINITE never generalize to a rule
             kind = "membership" if ".n." in predicate else "property"
             rules.append({
                 "subject": subject,
                 "predicate": predicate,
                 "object": senses.get("direct"),
-                "negated": bool(getattr(leaf, "negated", False)),
+                "negated": negated,
                 "kind": kind,
                 "original": doc.original,
                 "source_id": str(doc.id),  # provenance: the KB axiom this rule comes from
@@ -556,21 +595,48 @@ def _load_active_kb() -> dict:
     # UNION the low-trust definition-derived PROPERTY rules (differentia, step 5) into the chainer's
     # rule set. source_id is a stable "rule:subj|pred|obj" key (contains "|") so a derived rule a
     # derivation fires is recorded as a revocable premise AND lowers the conclusion's trust (via
-    # _conclusion_trust's "|" test), exactly like a tier edge.
+    # _conclusion_trust's per-premise map lookup), exactly like a tier edge.
     axiom_rules = _extract_rules(axiom_docs)
+    derived_rule_docs = TKDerivedRuleDoc.find({}).to_list()
     derived_rules = [
         {
             "subject": r.subject, "predicate": r.predicate, "object": r.object,
             "negated": r.negated, "kind": r.kind, "original": r.source_original,
             "source_id": f"rule:{r.subject}|{r.predicate}" + (f"|{r.object}" if r.object else ""),
         }
-        for r in TKDerivedRuleDoc.find({}).to_list()
+        for r in derived_rule_docs
     ]
-    # every DISTINCT subject of a derived (definition) rule/edge is a wondering SEED, so the differentia
-    # cascade fires from the vocabulary itself (a subclass inherits a superclass's differentia via a
-    # tier edge -> >=2 premises), not only from axiom-rule subjects + individuals.
-    tier_subjects = sorted({e.subject for e in TKDerivedRelationDoc.find({}).to_list()}
-                           | {r["subject"] for r in derived_rules})
+
+    # GENERIC-TAXONOMY axiom edges (Brain v1.1 step 2): mine "a X is a Y" / "cats are mammals" copular
+    # generics out of the axioms IN-MEMORY at KB load — never persisted. The gate judges against
+    # BEDROCK only (never the union, else its own edges would look redundant). Archiving the source
+    # axiom retracts the edge on the next load — revocation durability by construction (finding #4).
+    # Local import: kb_extract imports _zip_leaves from this module (one-way at module level).
+    from lib.core.kb_extract import extract_generic_isa_edges
+    axiom_edges, _ = extract_generic_isa_edges(axiom_docs, _make_relations_reader())
+    axiom_children: dict[str, list[str]] = {}
+    for e in axiom_edges:
+        axiom_children.setdefault(e["subject"], []).append(e["object"])
+
+    # PER-PREMISE trust map ("|"-bearing premise key -> source trust), consumed by _conclusion_trust
+    # (min-trust inheritance). Definition-derived edges/rules carry their stored tier trust; an
+    # axiom-derived generic edge is curated-source high trust. On a key collision (same edge asserted
+    # by both a definition and an axiom) the axiom's higher trust wins — insertion order does that.
+    derived_edge_docs = TKDerivedRelationDoc.find({}).to_list()
+    edge_trust: dict[str, float] = {}
+    for d in derived_edge_docs:
+        edge_trust[_edge_key(d.subject, d.object)] = d.trust
+    for r_doc, r in zip(derived_rule_docs, derived_rules):
+        edge_trust[r["source_id"]] = r_doc.trust
+    for e in axiom_edges:
+        edge_trust[_edge_key(e["subject"], e["object"])] = _AXIOM_EDGE_TRUST
+
+    # every DISTINCT subject of a derived rule/edge (definition tier OR axiom-mined) is a wondering
+    # SEED, so the cascade fires from the vocabulary itself (a subclass inherits a superclass's
+    # rule via a derived edge -> >=2 premises), not only from axiom-rule subjects + individuals.
+    tier_subjects = sorted({e.subject for e in derived_edge_docs}
+                           | {r["subject"] for r in derived_rules}
+                           | set(axiom_children.keys()))
 
     kb = {
         "definition_docs": definition_docs,
@@ -579,14 +645,18 @@ def _load_active_kb() -> dict:
         "definitions": definitions,
         "axiom_zips": [a.zip for a in axiom_docs],
         "theorem_zips": [t.zip for t in theorem_docs],
-        "relations": _make_relations_reader_union(),  # evaluator/chainer see bedrock ∪ derived tier
-        "edge_source": _make_edge_source_reader(),     # tier-edge provenance (revocable premises)
+        # evaluator/chainer see bedrock ∪ derived tier ∪ in-memory axiom edges
+        "relations": _make_relations_reader_union(axiom_children),
+        # derived-edge provenance (revocable premises), axiom edges included
+        "edge_source": _make_edge_source_reader(axiom_children),
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
         "rules": axiom_rules + derived_rules,
         "facts": _extract_facts(axiom_docs),
         "tier_subjects": tier_subjects,
+        "axiom_edges": axiom_edges,
+        "edge_trust": edge_trust,
     }
     _kb_cache, _kb_cache_fp = kb, fp
     return kb
@@ -644,8 +714,9 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
         n_cls = len(seeds) - n_ind
         n_derived_rules = sum(1 for r in rules if str(r.get("source_id", "")).startswith("rule:"))
         logger.info(
-            "[kb_wonder] seeds=%d (%d individuals, %d classes) | rules=%d (%d axiom + %d differentia) | facts=%d",
-            len(seeds), n_ind, n_cls, len(rules), len(rules) - n_derived_rules, n_derived_rules, len(facts),
+            "[kb_wonder] seeds=%d (%d individuals, %d classes) | rules=%d (%d axiom + %d differentia) | facts=%d | axiom edges=%d",
+            len(seeds), n_ind, n_cls, len(rules), len(rules) - n_derived_rules, n_derived_rules,
+            len(facts), len(kb.get("axiom_edges", [])),
         )
 
     out: list[dict] = []
@@ -666,7 +737,7 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
                 n_dup += 1
                 continue  # semantic dedup across seeds
             seen_conclusions.add(sig)
-            trust = _conclusion_trust(premises)
+            trust = _conclusion_trust(premises, kb.get("edge_trust"))
             out.append({
                 "subject": subject,
                 "subject_kind": kind,

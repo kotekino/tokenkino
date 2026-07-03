@@ -43,7 +43,9 @@ def main():
         n = TKDerivedRelationDoc.find({"method": _METHOD}).count()
         print(f"\nCLEAR {_METHOD} tier: {n} edges {'-> DELETING' if apply else '(dry-run — re-run with --apply)'}")
         if apply and n:
-            TKDerivedRelationDoc.find({"method": _METHOD}).delete()
+            # NB: find().delete() returns an UNEXECUTED DeleteMany — .run() or it silently no-ops
+            # (general Bunnet behavior, same family as the .get()/.find_one() query gotcha).
+            TKDerivedRelationDoc.find({"method": _METHOD}).delete().run()
             print(f"  deleted {n} edges. tier now holds {TKDerivedRelationDoc.find({'method': _METHOD}).count()}.")
         return
 
@@ -71,7 +73,7 @@ def main():
 
     # idempotent full rebuild: drop this method's edges, insert the fresh set.
     if existing:
-        TKDerivedRelationDoc.find({"method": _METHOD}).delete()
+        TKDerivedRelationDoc.find({"method": _METHOD}).delete().run()  # .run() or it silently no-ops
         print(f"  deleted {existing} stale {_METHOD} edges.")
     inserted = 0
     for e in edges:
