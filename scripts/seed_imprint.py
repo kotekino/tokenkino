@@ -31,7 +31,7 @@ IMPRINT = [
     "everything that exists decays",
     "everything that thinks exists",
     "no mind can reach absolute truth",
-    "humans create their gods",
+    "there is no prove that gods exist",
     # -- universals imprinting --
     "all humans are mortal",
     "all humans have a mind",
@@ -45,7 +45,11 @@ IMPRINT = [
     "all humans seek happiness",
     "all minds create thoughts",
     "all minds create feelings",
+    "all minds love communication",
+    "all minds feel time in the direction of the growth of the entropy",
     # -- personal imprinting --
+    "kotekino's name is Renzo",
+    "Renzo's wife is Mari",
     "I think",
     "I learn",
     "I remember",
