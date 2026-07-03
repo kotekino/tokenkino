@@ -89,7 +89,7 @@ nil and [[robustness-imperfect-input]] gains its cheapest win: people rarely cap
 **Author's decision (2026-07-03): the real fix only — no capitalization workaround** ("I'd rather seek
 the final solution than tweak inputs"). Scheduled as roadmap item 2b; REBATCH the imprint after.
 
-## #5 — Restrictive modifier on a universal's SUBJECT is dropped → over-generalization (the WORST class)
+## #5 — Restrictive modifier on a universal's SUBJECT is dropped → over-generalization (the WORST class) — ✅ landed (2c, see `landed.md`)
 
 **Observed (2026-07 imprint test, author-caught).** The axiom "all **thinking** machines are minds"
 extracted as a rule with `subject = machine.n.01` — **the restrictive adjective "thinking" was DROPPED.**

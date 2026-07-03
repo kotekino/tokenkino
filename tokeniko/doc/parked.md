@@ -50,6 +50,14 @@ reduced-participle vs finite-relative-with-nsubj distinction), adjacent to the p
 subject-rebinding work. Would recover the verb bulk (~300 candidates) as clean differentia rules and
 substantially grow the enriched-soak fuel. Promote when the parser voice signal is built.
 
+**Restricted-universal residuals (Brain v1.1 2c follow-ons)** — the conditioned-rule fix covers
+amod/compound modifiers ("thinking machines", "wild animals"). Not yet covered: **relative-clause
+restriction** ("all machines THAT THINK are minds" — compiles through the subordinate path, not a
+subject property; needs the same cond_props emission from a restrictive-subordinate clause) and
+**object-side modifiers** ("all thinking machines have an ARTIFICIAL body" → the direct role's amod
+is still dropped — meaning-loss, not scope-widening, so lower stakes). Promote with step 4 (the
+universal extractor shares the conjunctive machinery).
+
 **Negated-copular DISJOINTNESS extraction (Brain v1.1 step-2 residual)** — "a dog is not a cat" /
 "no machine is a human" (a negated/NEGATIVE copular noun-noun generic) is a **disjointness claim**, not
 an is_a edge and not a property rule — today the step-2 extractor counts it (`negated_skip`) and moves

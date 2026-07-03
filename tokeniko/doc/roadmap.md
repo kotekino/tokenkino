@@ -24,19 +24,12 @@ theorem auditable + every dependency revocable, logic stays hardwired.* The orde
    the author's agnosticism DERIVED). See `landed.md`.
 2b. ✅ **Known-individual recognition (finding #6)** — landed 2026-07-03 (`parser_getKnownIndividual`:
    recognition before the minting gate; the kotekino axioms entity-link) — see `landed.md`.
-2c. 🔄 **Restricted universal → CONDITIONED rule (finding #5 — pulled forward from step 4)** — "all
-   THINKING machines are minds" compiles to `machine.n.01 → mind` (the restrictive modifier dropped;
-   the stored zip retains NO symbolic trace of it — verified). Live poison in the rebatched imprint:
-   six "a machine …" theorems (every machine inherits mind-properties) + the seven correct
-   self-theorems ride degraded proofs ("I am a machine"). Fix: the compiler surfaces the subject's
-   restrictive-modifier sense(s) into the zip → the rule extractor emits `(machine ∧ thinking) →
-   mind` (the chainer's property-conditioned shape) → the chainer tests the condition against the
-   seed's known properties (tokeniko's "I think" fact satisfies it; the bare machine class does not)
-   → REBATCH. Rides along: imprint fuel **"kotekino is a human"** (the kotekino-absence root cause:
-   his classes reach `person.n.01`, the rules key `homo.n.02` — no rule ever fired on him). The
-   conjunctive-condition machinery is step 4's definitional-sufficiency groundwork (build once,
-   serves both). *The theorem-autopsy note: "kotekino is MY creator" also flattened to bare class
-   membership (the possessive bond dropped) — that specimen filed under the parked #2 entry.*
+2c. ✅ **Restricted universal → CONDITIONED rule (finding #5)** — landed 2026-07-03 (modifier senses
+   carried on subject+predicate roles; `cond_props` rules; `klass_mods` facts; the chainer's
+   seed-level condition test — "a machine seeks cognition" dead, tokeniko's proofs cite their
+   condition satisfier) — see `landed.md`. **REBATCH the imprint** (author's terminal) to recompile
+   the stored zips with the modifier carriers. Residuals → `parked.md` (relative-clause restriction,
+   object-side modifiers). The conjunctive machinery doubles as step 4's sufficiency groundwork.
 3. 🔭 **Provenance + transitive cascade** — extend provenance to record **theorem** premises; revocation
    recurses (archive a premise → its dependent theorems → theirs). The precondition for *theorems
    breeding theorems* + clean revocation.

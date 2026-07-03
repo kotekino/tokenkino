@@ -91,6 +91,53 @@ def _premise_of(rule_or_fact: dict) -> frozenset:
     return frozenset({sid}) if sid else frozenset()
 
 
+# ---- CONDITIONED rules (finding #5 / Brain v1.1 2c) --------------------------------------------
+# a restricted universal ("all THINKING machines are minds") carries its subject's restrictive-
+# modifier senses as `cond_props`; the rule fires ONLY on a subject known to HAVE those properties.
+# Satisfiers come from the SEED's own facts: a membership fact's class modifiers ("I am a THINKING
+# machine" -> thinking.n.01, the exact-match primary path — both sides compile identically) and its
+# affirmative property-fact predicates ("I think" -> think.v.01, matched charitably by lemma root:
+# thinking/think). A bare class seed has no facts -> conditioned rules never fire on it — which is
+# the point: "a machine seeks cognition" stops deriving; "I seek cognition" keeps its proof.
+def _sense_lemma(sense: str) -> str:
+    return (sense or "").split(".", 1)[0].lower()
+
+
+def _cond_matches(cond: str, have: str) -> bool:
+    if cond == have:
+        return True
+    lc, lh = _sense_lemma(cond), _sense_lemma(have)
+    short, long = (lc, lh) if len(lc) <= len(lh) else (lh, lc)
+    return len(short) >= 4 and long.startswith(short)  # thinking.n.01 ~ think.v.01
+
+
+# the seed's known property senses -> the premise ids that assert each (the satisfier joins the proof).
+def _subject_props(subject_uid, facts) -> dict[str, frozenset]:
+    props: dict[str, frozenset] = {}
+    if not subject_uid:
+        return props
+    for f in facts:
+        if f.get("subject_uid") != subject_uid:
+            continue
+        senses = list(f.get("klass_mods") or [])
+        if f.get("kind") == "property" and not f.get("negated", False) and f.get("predicate"):
+            senses.append(f["predicate"])
+        for s in senses:
+            props[s] = props.get(s, frozenset()) | _premise_of(f)
+    return props
+
+
+# all rule conditions satisfied -> the satisfiers' combined premise set; any unmet -> None.
+def _conds_met(rule: dict, subject_props: dict) -> Optional[frozenset]:
+    prem: frozenset = frozenset()
+    for cond in rule.get("cond_props") or []:
+        hit = next((p for s, p in subject_props.items() if _cond_matches(cond, s)), None)
+        if hit is None:
+            return None
+        prem |= hit
+    return prem
+
+
 # run the forward-chainer for one subject (a sense and/or an individual uid). returns
 # (derived_props, chains) where derived_props is a list of dicts
 #   {predicate, object, negated, chain, premises}
@@ -132,6 +179,9 @@ def evaluator_forwardChain(
     # rule via its property facts (the cogito: "tokeniko thinks" -> exists), fired in step 4 below.
     subject_name = subject_uid or subject_sense or "?"
 
+    # the seed's known properties (for conditioned rules — finding #5 / 2c).
+    subject_props = _subject_props(subject_uid, facts)
+
     # ---- 2. fixpoint over MEMBERSHIP rules ----
     membership = [r for r in rules if r.get("kind") == "membership"]
     for _ in range(max_hops):
@@ -142,13 +192,18 @@ def evaluator_forwardChain(
             if not r_subj or not r_pred:
                 continue
             if r_subj in closure and r_pred not in closure:
+                cond_prem = _conds_met(r, subject_props)
+                if cond_prem is None:
+                    continue  # a conditioned rule whose condition the seed doesn't satisfy
+                cond_note = "".join(f" [{c}]" for c in (r.get("cond_props") or []))
                 base = (
                     closure[r_subj]
-                    + f" -> all {r_subj} are {r_pred}"
+                    + f" -> all{cond_note} {r_subj} are {r_pred}"
                     + f" -> {subject_name} is_a {r_pred}"
                 )
-                # the new class rests on what put r_subj in C PLUS this rule's axiom.
-                base_prem = closure_premises[r_subj] | _premise_of(r)
+                # the new class rests on what put r_subj in C PLUS this rule's axiom PLUS the facts
+                # that satisfied its conditions (the proof cites WHY the condition holds).
+                base_prem = closure_premises[r_subj] | _premise_of(r) | cond_prem
                 if _add_with_ancestors(r_pred, base, closure, parents, base_prem, closure_premises,
                                        edge_source):
                     changed = True
@@ -164,10 +219,14 @@ def evaluator_forwardChain(
         r_pred = r.get("predicate")
         if not r_subj or not r_pred or r_subj not in closure:
             continue
+        cond_prem = _conds_met(r, subject_props)
+        if cond_prem is None:
+            continue  # conditioned property rule, condition unmet ("all WILD animals hunt")
         r_neg = "NOT " if r.get("negated") else ""  # a negated rule ("no mind reaches truth") reads honestly
+        cond_note = "".join(f" [{c}]" for c in (r.get("cond_props") or []))
         chain = (
             closure[r_subj]
-            + f" -> all {r_subj} {r_neg}{r_pred}"
+            + f" -> all{cond_note} {r_subj} {r_neg}{r_pred}"
             + f" -> {subject_name} {r_neg}{r_pred}"
         )
         derived.append({
@@ -175,7 +234,7 @@ def evaluator_forwardChain(
             "object": r.get("object"),
             "negated": bool(r.get("negated", False)),
             "chain": chain,
-            "premises": closure_premises[r_subj] | _premise_of(r),
+            "premises": closure_premises[r_subj] | _premise_of(r) | cond_prem,
         })
 
     # ---- 4. fire PROPERTY-CONDITIONED rules ("everything that thinks exists") ----

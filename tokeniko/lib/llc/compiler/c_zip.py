@@ -243,6 +243,24 @@ def compiler_contentSenses(content: TKLLCContent) -> dict[str, str]:
                 if ps:
                     senses["predicate_nmod"] = ps
                     break
+    # restrictive modifiers (finding #5, Brain v1.1 2c). "all THINKING machines are minds" restricts
+    # the quantifier's scope to machines that think — dropping it silently widens the universal to
+    # ALL machines. The modifier arrives as dep=amod ("artificial body") or dep=compound ("thinking
+    # machines", stanza's noun-noun read); det/quantifier props are NOT restrictive.
+    #   SUBJECT   -> "subject_mod{i}"   — the rule extractor emits a CONDITIONED rule from these.
+    #   PREDICATE -> "predicate_mod{i}" — a copular membership ("I am a THINKING machine") carries its
+    #                class modifiers, so the chainer can test a conditioned rule's condition against
+    #                the fact by EXACT sense match (the two sides compile identically).
+    for role, ref in (("subject", content.subject), ("predicate", content.predicate)):
+        if ref is None:
+            continue
+        i = 0
+        for p in ref.properties:
+            if getattr(p, "dep", None) in ("amod", "compound"):
+                ps = compiler_propSense(p.id)
+                if ps:
+                    senses[f"{role}_mod{i}"] = ps
+                    i += 1
     return senses
 
 # collect the per-role identity uids for a content into {role -> uid} (only entity-linked individuals),

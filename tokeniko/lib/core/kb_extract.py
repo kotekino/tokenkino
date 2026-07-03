@@ -239,6 +239,11 @@ def extract_generic_isa_edges(axiom_docs, parents,
             if bool(getattr(lf, "negated", False)):
                 stats["negated_skip"] += 1                       # future: disjointness candidate
                 continue
+            if any(k.startswith("subject_mod") for k in s):
+                stats["restricted"] += 1                         # "a THINKING machine is a mind":
+                continue                                         # a graph edge can't carry the
+                                                                 # condition -> conditioned RULE
+                                                                 # territory (_extract_rules)
             stats["candidate"] += 1
             verdict = gate_edge(subj, pred, parents)
             stats[verdict] += 1

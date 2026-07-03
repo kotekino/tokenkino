@@ -413,6 +413,16 @@ def cross_item_conflict(clauses_a: list, clauses_b: list) -> Optional[str]:
 _RULE_GENERIC_QUANTIFIERS = (TKQuantifier.GENERIC, TKQuantifier.INDEFINITE)
 
 
+# collect the ordered "<prefix>0", "<prefix>1", … sense keys from a leaf's senses dict (the
+# restrictive-modifier carriers, compiler_contentSenses — finding #5 / Brain v1.1 2c).
+def _mod_senses(senses: dict, prefix: str) -> list[str]:
+    out, i = [], 0
+    while f"{prefix}{i}" in senses:
+        out.append(senses[f"{prefix}{i}"])
+        i += 1
+    return out
+
+
 def _extract_rules(axiom_docs) -> list:
     rules: list = []
     for doc in axiom_docs:
@@ -426,6 +436,9 @@ def _extract_rules(axiom_docs) -> list:
             if not subject or not predicate:
                 continue
             negated = bool(getattr(leaf, "negated", False))
+            # the subject's RESTRICTIVE modifiers (finding #5 / 2c): "all THINKING machines …" must
+            # fire only on subjects that HAVE the modifier property — carried as rule conditions.
+            cond_props = _mod_senses(senses, "subject_mod")
             if quantifier == TKQuantifier.UNIVERSAL:
                 pass  # the original path — always a rule
             elif quantifier in _RULE_GENERIC_QUANTIFIERS or quantifier == TKQuantifier.NEGATIVE:
@@ -433,8 +446,10 @@ def _extract_rules(axiom_docs) -> list:
                     continue  # an individual subject is a FACT (_extract_facts), never a rule
                 if getattr(leaf, "dubitative", 0.5) >= 0.75 or getattr(leaf, "wh_role", None) is not None:
                     continue  # a question is answered, not believed
-                if ".n." in predicate and not senses.get("direct"):
+                if ".n." in predicate and not senses.get("direct") and not cond_props:
                     continue  # bare copular noun-noun: EDGE (generic-taxonomy) or disjointness (future)
+                    # (a MODIFIED one — "a thinking machine is a mind" — stays here as a conditioned
+                    # membership rule: a graph edge cannot carry a condition)
                 if quantifier == TKQuantifier.NEGATIVE:
                     negated = not negated  # the net-flip: "no X <pred>" == "all X NOT <pred>"
             else:
@@ -446,6 +461,7 @@ def _extract_rules(axiom_docs) -> list:
                 "object": senses.get("direct"),
                 "negated": negated,
                 "kind": kind,
+                "cond_props": cond_props,
                 "original": doc.original,
                 "source_id": str(doc.id),  # provenance: the KB axiom this rule comes from
             })
@@ -520,10 +536,14 @@ def _extract_facts(axiom_docs) -> list:
                 continue
             obj = senses.get("direct")
             if ".n." in predicate and obj is None:
-                # bare NOUN predication "X is a Y" -> a MEMBERSHIP fact (class membership)
+                # bare NOUN predication "X is a Y" -> a MEMBERSHIP fact (class membership).
+                # klass_mods: the class's restrictive modifiers ("I am a THINKING machine" ->
+                # [thinking.n.01]) — the chainer tests a conditioned rule's condition against these
+                # (finding #5 / 2c: the fact side compiles the same senses as the rule side).
                 facts.append({
                     "subject_uid": subject_uid,
                     "klass_sense": predicate,
+                    "klass_mods": _mod_senses(senses, "predicate_mod"),
                     "original": doc.original,
                     "kind": "membership",
                     "source_id": str(doc.id),  # provenance: the KB axiom this fact comes from
