@@ -112,9 +112,14 @@ extractor just doesn't fold it into the rule's firing condition. Fix: a restrict
 compile to a **property-conditioned rule** — "all thinking machines are minds" = `(machine ∧ thinking) →
 mind` (fire only on machines that ALSO have the `thinking` property), exactly the `property_conditioned`
 shape the chainer already handles (the cogito). This is the SAME multi-condition machinery #3
-(definitional sufficiency, conjunctive definiens) needs — build once, serves both. Until then, workaround:
-phrase the subject as an already-narrow class ("all robots are minds") or accept the over-fire (contained
-by low-trust + revocation). **Belongs in the universal-extractor step (roadmap Brain v1.1 step 4).**
+(definitional sufficiency, conjunctive definiens) needs — build once, serves both. **PULLED FORWARD
+(2026-07-03, author's call after the theorem autopsy): now roadmap item 2c, in progress.** The live
+evidence: the rebatched imprint materialized six "a machine …" theorems (every machine inherits
+mind-properties) and even the seven correct self-theorems carry degraded proofs ("I am a machine" —
+the fact dropped its modifier too). Verified: the stored zip retains NO symbolic trace of the
+modifier (fused into the 3237-dim vector only) — so the fix starts at the compiler (surface the
+subject's restrictive-modifier senses), then the extractor (conditioned rule), then the chainer
+(condition test against the seed's properties), then REBATCH.
 
 ## The clarified mental model (settled — the frame for everything below)
 
