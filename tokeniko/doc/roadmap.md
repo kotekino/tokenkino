@@ -30,6 +30,10 @@ theorem auditable + every dependency revocable, logic stays hardwired.* The orde
    condition satisfier) — see `landed.md`. **REBATCH the imprint** (author's terminal) to recompile
    the stored zips with the modifier carriers. Residuals → `parked.md` (relative-clause restriction,
    object-side modifiers). The conjunctive machinery doubles as step 4's sufficiency groundwork.
+2d. ✅ **Generic-strength → lower trust (a generic is NOT a universal)** — landed 2026-07-03 (rule
+   `strength`, generic-derived conclusions 0.7 via the trust map, chains read "most X …";
+   «kotekino creates god» honestly defeasible) — see `landed.md`. REBATCH not required (rules are
+   re-extracted per KB load) but the author retests after it anyway.
 3. 🔭 **Provenance + transitive cascade** — extend provenance to record **theorem** premises; revocation
    recurses (archive a premise → its dependent theorems → theirs). The precondition for *theorems
    breeding theorems* + clean revocation.

@@ -123,6 +123,11 @@ def _make_edge_source_reader(extra: Optional[dict] = None):
 _DERIVED_DEFAULT_TRUST = 0.9
 _DERIVED_TIER_TRUST = 0.3
 _AXIOM_EDGE_TRUST = 0.9   # a generic-taxonomy edge mined from a curated AXIOM (step 2) — high trust
+# a GENERIC rule is NOT a universal (Brain v1.1 2d): "humans create their gods" is a kind-level
+# observation that tolerates exceptions ("birds fly" vs penguins), so a conclusion derived through it
+# is DEFEASIBLE — stored below the 0.9 universal bar, revisable. (Generic TAXONOMY copulars — "a cat
+# is a mammal" — stay high-trust: a generic taxonomic claim is definitional, not behavioral.)
+_GENERIC_RULE_TRUST = 0.7
 
 
 def _conclusion_trust(premise_ids, edge_trust: Optional[dict] = None) -> float:
@@ -130,8 +135,10 @@ def _conclusion_trust(premise_ids, edge_trust: Optional[dict] = None) -> float:
         edge_trust = (_kb_cache or {}).get("edge_trust") or {}
     trust = _DERIVED_DEFAULT_TRUST
     for pid in (premise_ids or []):
-        if "|" in (pid or ""):
-            trust = min(trust, edge_trust.get(pid, _DERIVED_TIER_TRUST))
+        if pid in edge_trust:
+            trust = min(trust, edge_trust[pid])       # tier edge / derived rule / generic rule
+        elif "|" in (pid or ""):
+            trust = min(trust, _DERIVED_TIER_TRUST)   # unknown derived key — conservative
     return trust
 
 
@@ -462,6 +469,10 @@ def _extract_rules(axiom_docs) -> list:
                 "negated": negated,
                 "kind": kind,
                 "cond_props": cond_props,
+                # 2d: a generic rule is defeasible, a universal is law. NEGATIVE ("no X …") is a
+                # negative UNIVERSAL. Consumed by the chain renderer ("most" vs "all") and the
+                # trust map (_GENERIC_RULE_TRUST) in _load_active_kb.
+                "strength": "generic" if quantifier in _RULE_GENERIC_QUANTIFIERS else "universal",
                 "original": doc.original,
                 "source_id": str(doc.id),  # provenance: the KB axiom this rule comes from
             })
@@ -650,6 +661,11 @@ def _load_active_kb() -> dict:
         edge_trust[r["source_id"]] = r_doc.trust
     for e in axiom_edges:
         edge_trust[_edge_key(e["subject"], e["object"])] = _AXIOM_EDGE_TRUST
+    # 2d: a conclusion derived THROUGH a generic rule is defeasible — the rule's axiom id enters the
+    # trust map at generic strength, and min-trust does the rest (both materialize paths).
+    for r in axiom_rules:
+        if r.get("strength") == "generic":
+            edge_trust[r["source_id"]] = _GENERIC_RULE_TRUST
 
     # every DISTINCT subject of a derived rule/edge (definition tier OR axiom-mined) is a wondering
     # SEED, so the cascade fires from the vocabulary itself (a subclass inherits a superclass's

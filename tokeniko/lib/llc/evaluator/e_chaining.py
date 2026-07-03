@@ -91,6 +91,12 @@ def _premise_of(rule_or_fact: dict) -> frozenset:
     return frozenset({sid}) if sid else frozenset()
 
 
+# the chain's quantifier word for a rule: a GENERIC rule (defeasible, Brain v1.1 2d) reads "most",
+# a universal reads "all" — the proof text carries the rule's epistemic strength honestly.
+def _strength_word(rule: dict) -> str:
+    return "most" if rule.get("strength") == "generic" else "all"
+
+
 # ---- CONDITIONED rules (finding #5 / Brain v1.1 2c) --------------------------------------------
 # a restricted universal ("all THINKING machines are minds") carries its subject's restrictive-
 # modifier senses as `cond_props`; the rule fires ONLY on a subject known to HAVE those properties.
@@ -196,9 +202,10 @@ def evaluator_forwardChain(
                 if cond_prem is None:
                     continue  # a conditioned rule whose condition the seed doesn't satisfy
                 cond_note = "".join(f" [{c}]" for c in (r.get("cond_props") or []))
+                quant = _strength_word(r)  # "all" (universal) vs "most" (generic — defeasible, 2d)
                 base = (
                     closure[r_subj]
-                    + f" -> all{cond_note} {r_subj} are {r_pred}"
+                    + f" -> {quant}{cond_note} {r_subj} are {r_pred}"
                     + f" -> {subject_name} is_a {r_pred}"
                 )
                 # the new class rests on what put r_subj in C PLUS this rule's axiom PLUS the facts
@@ -224,9 +231,10 @@ def evaluator_forwardChain(
             continue  # conditioned property rule, condition unmet ("all WILD animals hunt")
         r_neg = "NOT " if r.get("negated") else ""  # a negated rule ("no mind reaches truth") reads honestly
         cond_note = "".join(f" [{c}]" for c in (r.get("cond_props") or []))
+        quant = _strength_word(r)  # "all" (universal) vs "most" (generic — defeasible, 2d)
         chain = (
             closure[r_subj]
-            + f" -> all{cond_note} {r_subj} {r_neg}{r_pred}"
+            + f" -> {quant}{cond_note} {r_subj} {r_neg}{r_pred}"
             + f" -> {subject_name} {r_neg}{r_pred}"
         )
         derived.append({
