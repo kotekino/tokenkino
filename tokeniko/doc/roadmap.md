@@ -20,10 +20,11 @@ tiers by source, one universal gate extracts usable logic + suppresses noise, pr
 theorem auditable + every dependency revocable, logic stays hardwired.* The ordered build:
 
 1. ✅ **Write-path invariant** + 2. ✅ **Generic taxonomy chains (universal-extractor v0)** — landed
-   2026-07-03 (INDEFINITE quantifier split, in-memory axiom is_a edges, generic/negative rule widening,
-   per-premise min-trust, design-time definitions guard, the sandbox test gate) — see `landed.md`.
-   *Surfaced for later steps:* finding **#6** (lowercase known-name identity minting — the kotekino
-   no-op; fix beside the parser work) + the imprint **REBATCH** (recompiles "a/an" zips to INDEFINITE).
+   2026-07-03; imprint rebatched on the new pipeline (first derived theorem: «I do not reach truth»,
+   the author's agnosticism DERIVED). See `landed.md`.
+2b. ✅ **Known-individual recognition (finding #6)** — landed 2026-07-03 (`parser_getKnownIndividual`:
+   recognition before the minting gate; the kotekino axioms entity-link) — see `landed.md`.
+   **REBATCH the imprint** (author's terminal) to bring them alive in the stored KB.
 3. 🔭 **Provenance + transitive cascade** — extend provenance to record **theorem** premises; revocation
    recurses (archive a premise → its dependent theorems → theirs). The precondition for *theorems
    breeding theorems* + clean revocation.

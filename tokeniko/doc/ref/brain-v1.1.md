@@ -68,7 +68,7 @@ revocable, and logic stays hardwired.*
 
 **The findings below (#1–#6) are the concrete slices of this vision; the ordered build is in `doc/roadmap.md`.**
 
-## #6 — A lowercase known name mints NO identity → the axiom is a silent no-op
+## #6 — A lowercase known name mints NO identity → the axiom is a silent no-op — ✅ landed (2b, see `landed.md`)
 
 **Observed (2026-07-03, step-2 census probe).** Three of the most personal imprint axioms —
 "**kotekino** is my creator", "kotekino is my family", "kotekino loves his family" — compiled with **no
@@ -86,7 +86,8 @@ stakeholders/individuals (exactly like `parser_getPlace` consults the places KB)
 match on an existing `MEMStakeholder` name → reuse its uid + type centroid. Never mints new identities
 (the NER gate still guards creation), only RECOGNIZES already-met ones — so the messy-input risk is
 nil and [[robustness-imperfect-input]] gains its cheapest win: people rarely capitalize in chat.
-Workaround until then: capitalize names in curated axioms ("Kotekino is my creator") — and REBATCH.
+**Author's decision (2026-07-03): the real fix only — no capitalization workaround** ("I'd rather seek
+the final solution than tweak inputs"). Scheduled as roadmap item 2b; REBATCH the imprint after.
 
 ## #5 — Restrictive modifier on a universal's SUBJECT is dropped → over-generalization (the WORST class)
 

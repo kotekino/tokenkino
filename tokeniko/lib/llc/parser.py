@@ -9,7 +9,8 @@ from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
 from lib.core.tk import EntityPayload, TKAux, TKClause, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements
-from lib.core.models import TKDictionaryDoc, TKPlaceDoc
+import re
+from lib.core.models import TKDictionaryDoc, TKPlaceDoc, TKMemoryStakeholdersDoc
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _WSD_FALLBACK_MIN_SIMILARITY, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS
@@ -255,6 +256,44 @@ def parser_getIndividual(token: Token, talker: MEMStakeholder) -> TKName | None:
     return TKName(name=token.lemma_, ner=token.ent_type_, uid=uid, vector=centroid)
 
 # --------------------------------------------------------------
+# KNOWN-INDIVIDUAL RECOGNITION (Brain v1.1 2b, finding #6)
+# before asking "is this a NER-blessed NEW individual?" (minting, above), ask "have I already MET
+# this one?": a case-insensitive name match against the stakeholders tokeniko knows (participants he
+# talks WITH + individuals he was told ABOUT). Fixes the lowercase-known-name no-op ("kotekino is my
+# creator" — stanza tags it PROPN but gives no NER type, so the minting gate rightly refuses; yet
+# kotekino is not unknown). RECOGNITION ONLY: it can never create an identity (the NER gate still
+# guards minting), so OOV gibberish stays unlinkable. On a name known under several identities the
+# preference is (1) the individual scoped to THIS talker's context (their own referent), (2) a
+# participant (a real interlocutor — global identity), (3) a unique individual from another context;
+# genuinely ambiguous -> None (never guess an identity). READ-ONLY (/evaluate stays pure).
+# --------------------------------------------------------------
+def parser_getKnownIndividual(token: Token, talker: MEMStakeholder) -> TKName | None:
+    name = (token.lemma_ or token.text or "").strip()
+    if not name:
+        return None
+    matches = TKMemoryStakeholdersDoc.find(
+        {"name": {"$regex": f"^{re.escape(name)}$", "$options": "i"}}).to_list()
+    if not matches:
+        return None
+    context = f"{talker.channel.value}:{talker.uid}"
+    doc = next((m for m in matches if m.kind == "individual" and m.contextKey == context), None)
+    if doc is None:
+        doc = next((m for m in matches if m.kind == "participant"), None)
+    if doc is None:
+        individuals = [m for m in matches if m.kind == "individual"]
+        if len({m.uid for m in individuals}) == 1:
+            doc = individuals[0]
+    if doc is None:
+        return None  # several distinct identities, no way to pick — never guess
+    # semantic vector: the stored type centroid, else the NER-type centroid, else PERSON (a
+    # participant is a conversation partner). identity: the stakeholder's OWN stable uid.
+    centroid = doc.vector or _parser_typeCentroid(
+        _NER_TYPE_CENTROID.get(doc.ner_type or "PERSON", "person.n.01"))
+    if centroid is None:
+        return None
+    return TKName(name=doc.name, ner=doc.ner_type or "PERSON", uid=doc.uid, vector=centroid)
+
+# --------------------------------------------------------------
 # WORD-SENSE DISAMBIGUATION (Phase 2)
 # pick the dictionary sense that best fits the sentence: POS prunes the candidates (done by the
 # caller's query), then the sense whose vector is closest to the sentence's context centroid wins;
@@ -406,7 +445,7 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
         if token.pos_ == "PROPN":
             # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
             # its coordinates) from the places knowledge base; otherwise it is a plain name
-            tkMeaning = parser_getPlace(token) or parser_getIndividual(token, _talker) or TKName(name=token.lemma_)
+            tkMeaning = parser_getPlace(token) or parser_getKnownIndividual(token, _talker) or parser_getIndividual(token, _talker) or TKName(name=token.lemma_)
         if token.pos_ == "NUM":
             clean_text = token.text.replace(',', '').strip()
             numValue = 0
@@ -470,7 +509,7 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
         if token.pos_ == "PROPN":
             # a geo-NER proper noun (GPE/LOC/FAC) may be a real place: resolve to TKPlace (with
             # its coordinates) from the places knowledge base; otherwise it is a plain name
-            tkMeaning = parser_getPlace(token) or parser_getIndividual(token, _talker) or TKName(name=token.lemma_)
+            tkMeaning = parser_getPlace(token) or parser_getKnownIndividual(token, _talker) or parser_getIndividual(token, _talker) or TKName(name=token.lemma_)
         if token.pos_ == "NUM":
             clean_text = token.text.replace(',', '').strip()
             numValue = 0
