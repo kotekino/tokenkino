@@ -17,6 +17,7 @@ from lib.core.memory import MEMChannels
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
+from lib.core.evaluation_harness import revoke_dependents
 from api.services.validation import assert_no_contradiction
 
 
@@ -103,6 +104,10 @@ class AxiomService:
         if "archived" in updates:
             axiom.archivedAt = int(time.time()) if axiom.archived else None
         axiom.save()
+        # transitive cascade (step 3): retracting an axiom retracts everything proven on it —
+        # dependent theorems, then THEIR dependents (theorems breed theorems; the proof net holds).
+        if updates.get("archived") is True:
+            revoke_dependents([str(axiom.id)], dry_run=False)
         return axiom
 
     # replacement update: recompile the sentence and reset the flags
@@ -118,9 +123,13 @@ class AxiomService:
         axiom.readonly = readonly
         axiom.archivedAt = int(time.time()) if archived else None
         axiom.save()
+        if archived:
+            revoke_dependents([str(axiom.id)], dry_run=False)  # transitive cascade (step 3)
         return axiom
 
-    # delete an axiom
+    # delete an axiom (the cascade first — after the delete the id would still match, but keep the
+    # retraction ordered: dependents fall before their ground does)
     def delete(self, object_id: str) -> None:
         axiom = self._resolve(object_id)
+        revoke_dependents([str(axiom.id)], dry_run=False)
         axiom.delete()

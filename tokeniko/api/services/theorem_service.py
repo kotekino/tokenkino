@@ -17,7 +17,7 @@ from lib.core.memory import MEMChannels, MEMProvenance
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
-from lib.core.evaluation_harness import conclusion_key
+from lib.core.evaluation_harness import conclusion_key, revoke_dependents
 from api.services.validation import assert_no_contradiction
 
 
@@ -127,6 +127,10 @@ class TheoremService:
         if "archived" in updates:
             theorem.archivedAt = int(time.time()) if theorem.archived else None
         theorem.save()
+        # transitive cascade (step 3): a retracted theorem takes its own descendants with it
+        # (with theorem fuel, a child theorem's premises cite THIS theorem's id).
+        if updates.get("archived") is True:
+            revoke_dependents([str(theorem.id)], dry_run=False)
         return theorem
 
     # replacement update: recompile the sentence and reset the flags
@@ -141,9 +145,12 @@ class TheoremService:
         theorem.archived = archived
         theorem.archivedAt = int(time.time()) if archived else None
         theorem.save()
+        if archived:
+            revoke_dependents([str(theorem.id)], dry_run=False)  # transitive cascade (step 3)
         return theorem
 
-    # delete a theorem
+    # delete a theorem (cascade first: descendants fall before their ground does)
     def delete(self, object_id: str) -> None:
         theorem = self._resolve(object_id)
+        revoke_dependents([str(theorem.id)], dry_run=False)
         theorem.delete()

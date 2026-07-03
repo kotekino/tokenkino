@@ -14,6 +14,7 @@
 # --------------------------------------------------------------
 import logging
 import os
+import time
 from typing import Optional
 
 from lib.core.constants import _ME_UID
@@ -136,10 +137,44 @@ def _conclusion_trust(premise_ids, edge_trust: Optional[dict] = None) -> float:
     trust = _DERIVED_DEFAULT_TRUST
     for pid in (premise_ids or []):
         if pid in edge_trust:
-            trust = min(trust, edge_trust[pid])       # tier edge / derived rule / generic rule
+            trust = min(trust, edge_trust[pid])       # tier edge / derived rule / generic rule / theorem
         elif "|" in (pid or ""):
             trust = min(trust, _DERIVED_TIER_TRUST)   # unknown derived key — conservative
     return trust
+
+
+# ------------------------------------------------------------------------------------------------
+# TRANSITIVE CASCADE REVOCATION (Brain v1.1 step 3). Archive every ACTIVE theorem whose proof rests
+# — directly or through OTHER theorems — on any of the given premise keys (axiom/theorem Mongo ids,
+# tier-edge "subj|is_a|obj" keys, derived-rule "rule:…" keys). Recursion is what makes theorems-
+# breeding-theorems safe: with theorems feeding the chainer, a grandchild's premises cite its PARENT
+# theorem's id, not the original axiom — so retracting the axiom must walk the whole descent.
+# Breadth-first over premise-key frontiers; a `seen` set makes cycles harmless. dry_run=True (default)
+# only REPORTS the descent; dry_run=False archives (archived theorems are kept as history, out of
+# active reasoning — never deleted). Returns the dependent theorems in discovery order.
+# ------------------------------------------------------------------------------------------------
+def revoke_dependents(premise_ids, dry_run: bool = True) -> list:
+    out: list = []
+    frontier = {str(p) for p in (premise_ids or []) if p}
+    seen: set = set(frontier)
+    now = int(time.time())
+    while frontier:
+        dependents = TKTheoremDoc.find(
+            {"archived": False, "provenance.premises": {"$in": sorted(frontier)}}).to_list()
+        frontier = set()
+        for t in dependents:
+            tid = str(t.id)
+            if tid in seen:
+                continue
+            seen.add(tid)
+            if not dry_run:
+                t.archived = True
+                t.archivedAt = now
+                t.save()
+                logger.info("[revoke] archived dependent theorem «%s» (cascade)", t.original)
+            out.append(t)
+            frontier.add(tid)  # its own dependents fall next round
+    return out
 
 
 # the injected part_of (meronymy) graph reader: wholes(sense) -> direct part_of wholes (the
@@ -653,6 +688,16 @@ def _load_active_kb() -> dict:
     # (min-trust inheritance). Definition-derived edges/rules carry their stored tier trust; an
     # axiom-derived generic edge is curated-source high trust. On a key collision (same edge asserted
     # by both a definition and an axiom) the axiom's higher trust wins — insertion order does that.
+    # THEOREM FUEL (step 3 — theorems breed theorems): active theorems run through the SAME rule/fact
+    # extractors as axioms (a theorem is just a zip with provenance — the Unified-KB thesis). A
+    # derivation that fires one records the THEOREM's id as a premise, so (a) provenance walks
+    # generationally (the cascade below follows it) and (b) min-trust flows generationally: the
+    # theorem's own `trusted` enters the trust map, so a child of a 0.7 theorem never exceeds 0.7.
+    # Convergence is safe: a theorem restating its own conclusion is a 1-premise derivation (novelty
+    # gate drops it) and materialize dedups semantically.
+    theorem_rules = _extract_rules(theorem_docs)
+    theorem_facts = _extract_facts(theorem_docs)
+
     derived_edge_docs = TKDerivedRelationDoc.find({}).to_list()
     edge_trust: dict[str, float] = {}
     for d in derived_edge_docs:
@@ -661,11 +706,15 @@ def _load_active_kb() -> dict:
         edge_trust[r["source_id"]] = r_doc.trust
     for e in axiom_edges:
         edge_trust[_edge_key(e["subject"], e["object"])] = _AXIOM_EDGE_TRUST
-    # 2d: a conclusion derived THROUGH a generic rule is defeasible — the rule's axiom id enters the
-    # trust map at generic strength, and min-trust does the rest (both materialize paths).
-    for r in axiom_rules:
+    for t in theorem_docs:
+        edge_trust[str(t.id)] = t.trusted            # generational min-trust (step 3)
+    # 2d: a conclusion derived THROUGH a generic rule is defeasible — the rule's source id enters the
+    # trust map at generic strength (min with any theorem trust already there), and min-trust does
+    # the rest (both materialize paths).
+    for r in axiom_rules + theorem_rules:
         if r.get("strength") == "generic":
-            edge_trust[r["source_id"]] = _GENERIC_RULE_TRUST
+            edge_trust[r["source_id"]] = min(
+                edge_trust.get(r["source_id"], _DERIVED_DEFAULT_TRUST), _GENERIC_RULE_TRUST)
 
     # every DISTINCT subject of a derived rule/edge (definition tier OR axiom-mined) is a wondering
     # SEED, so the cascade fires from the vocabulary itself (a subclass inherits a superclass's
@@ -688,8 +737,8 @@ def _load_active_kb() -> dict:
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
-        "rules": axiom_rules + derived_rules,
-        "facts": _extract_facts(axiom_docs),
+        "rules": axiom_rules + derived_rules + theorem_rules,
+        "facts": _extract_facts(axiom_docs) + theorem_facts,
         "tier_subjects": tier_subjects,
         "axiom_edges": axiom_edges,
         "edge_trust": edge_trust,

@@ -37,8 +37,10 @@ def main():
             os.getenv("MONGO_DB_NAME_MEMORY"), os.getenv("OLLAMA_HOST"))
 
     edge = TKDerivedRelationDoc.find_one({"subject": subject, "object": object, "relation": "is_a"}).run()
-    # theorems whose proof rests on this tier edge (the premise key is in provenance.premises)
-    dependents = TKTheoremDoc.find({"provenance.premises": key}).to_list()
+    # TRANSITIVE dependents (step 3): theorems resting on this edge, then THEIR dependents, recursively
+    # (revoke_dependents walks the provenance net; dry_run here only reports).
+    from lib.core.evaluation_harness import revoke_dependents
+    dependents = revoke_dependents([key], dry_run=True)
 
     bar = "=" * 80
     mode = "APPLY" if apply else "DRY-RUN"
@@ -56,14 +58,7 @@ def main():
         print(f"\n  DRY-RUN — nothing changed. Re-run with --apply to retract.\n{bar}")
         return
 
-    now = int(time.time())
-    archived = 0
-    for t in dependents:
-        if not t.archived:
-            t.archived = True
-            t.archivedAt = now
-            t.save()
-            archived += 1
+    archived = len(revoke_dependents([key], dry_run=False))  # the transitive cascade, for real
     if edge is not None:
         edge.delete()
     print(f"\n  archived {archived} dependent theorem(s); deleted the edge."

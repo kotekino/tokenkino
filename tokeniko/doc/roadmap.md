@@ -34,9 +34,9 @@ theorem auditable + every dependency revocable, logic stays hardwired.* The orde
    `strength`, generic-derived conclusions 0.7 via the trust map, chains read "most X …";
    «kotekino creates god» honestly defeasible) — see `landed.md`. REBATCH not required (rules are
    re-extracted per KB load) but the author retests after it anyway.
-3. 🔭 **Provenance + transitive cascade** — extend provenance to record **theorem** premises; revocation
-   recurses (archive a premise → its dependent theorems → theirs). The precondition for *theorems
-   breeding theorems* + clean revocation.
+3. ✅ **Provenance + transitive cascade + theorem fuel** — landed 2026-07-03 (`revoke_dependents`
+   recursive cascade wired into axiom/theorem archive+delete + `revoke_edge.py`; active theorems feed
+   the chainer with generational min-trust — theorems breed theorems) — see `landed.md`.
 4. 🔭 **The universal extractor (the antidote — the core build)** — ONE source-agnostic
    `TKZip → usable logic` extractor + gate, folding the per-collection paths (axiom rules/facts,
    definition edges/differentia) into one, trust-tiered by source. Adds **definitional SUFFICIENCY**
