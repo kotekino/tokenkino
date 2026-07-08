@@ -197,7 +197,7 @@ their creator". Deferred because the workaround suffices for testing and the rea
 
 ---
 
-## #3 — Definitional sufficiency (the sufficient direction) — THE GENERATIVE ARC
+## #3 — Definitional sufficiency (the sufficient direction) — ✅ landed (step 4, see `landed.md`)
 
 **The idea (author's instinct, deep-analyzed).** A definition is a **biconditional**:
 `valuable ⟺ has(worth ∨ merit ∨ value)`. Every biconditional yields TWO directions:

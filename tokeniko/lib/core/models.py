@@ -88,18 +88,26 @@ class TKDerivedRelationDoc(Document):
     class Settings:
         name = "derived_relations"
 
-# the LOW-TRUST, revocable universal PROPERTY-RULE tier mined from the definitions' DIFFERENTIA
-# (definitions-as-rules, step 5): "a carnivore is an animal that eats meat" -> the rule "all carnivores
-# eat meat", which cascades DOWN the is_a hierarchy to subclasses. Same separate-collection + provenance
-# discipline as the edge tier (never pollutes the seeded axioms; revocable; trust-tiered). The evaluator
-# UNIONS these into the forward-chainer's rule set; a theorem derived through one inherits its low trust
-# (min-trust) and names it as a premise (revocability). kind is always "property" (subject HAS predicate).
+# the LOW-TRUST, revocable definition-derived RULE tier. Two rule kinds, both mined off the same
+# biconditional (a definition is X ⟺ genus ∧ definiens — Brain v1.1 #3):
+#   kind="property"   — the NECESSARY direction (differentia, step 5): "a carnivore is an animal that
+#                       eats meat" -> "all carnivores eat meat", cascades DOWN the is_a hierarchy.
+#                       Uses subject/predicate/object/negated.
+#   kind="sufficient" — the SUFFICIENT direction (step 4): whatever satisfies the WHOLE definiens IS
+#                       an X — "(is_a animal ∧ eats meat) -> is_a carnivore". Recognition/
+#                       classification. Uses subject (the concluded class X), genus (the class
+#                       condition) and conds (the property conditions); predicate is unused ("").
+# Same separate-collection + provenance discipline as the edge tier (never pollutes the seeded
+# axioms; revocable; trust-tiered). The evaluator UNIONS these into the forward-chainer's rule set; a
+# theorem derived through one inherits its low trust (min-trust) and names it as a premise.
 class TKDerivedRuleDoc(Document):
     subject: str                       # the definiendum class X (a noun sense)
-    predicate: str                     # the differentia predicate (verb / adjective sense)
+    predicate: str = ""                # property: the differentia predicate | sufficient: unused
     object: Optional[str] = None       # the differentia's direct object, if any
     negated: bool = False              # carried from the differentia leaf ("no ability to roar")
     kind: str = "property"
+    genus: Optional[str] = None        # sufficient only: the is_a class condition
+    conds: Optional[list[dict]] = None  # sufficient only: [{"predicate", "object"}, ...] — ALL must hold
     source_id: str                     # the definition doc id this rule was mined from
     source_original: str               # the definition text (for audit / revocation review)
     trust: float = 0.3                 # low-trust tier (bedrock axioms are implicitly 1.0)

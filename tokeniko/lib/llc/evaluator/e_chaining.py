@@ -144,6 +144,48 @@ def _conds_met(rule: dict, subject_props: dict) -> Optional[frozenset]:
     return prem
 
 
+# ---- SUFFICIENT rules (definitional sufficiency, Brain v1.1 step 4) ------------------------------
+# the recognition direction of the definitional biconditional: (is_a genus ∧ cond₁ ∧ … ∧ condₙ) →
+# is_a klass. Fires INSIDE the membership fixpoint (a recognized class can enable further membership
+# rules and inherits the recognized class's ancestors). Conditions match the seed's own PROPERTY
+# FACTS (uid-keyed, affirmative): the predicate charitably by lemma root (_cond_matches, same
+# charity as conditioned rules), the OBJECT STRICTLY — a cond WITH an object never fires on a
+# different/missing fact object (soundness: "transports passengers" must not fire on "transports
+# goods"); a cond WITHOUT an object fires on any matching predicate ("is open" is entailed by
+# "opens X"). Derived properties (chainer step 3) do NOT yet satisfy conditions — facts only,
+# conservative v1 (a residual, noted in parked).
+def _subject_prop_pairs(subject_uid, facts) -> dict[tuple, frozenset]:
+    pairs: dict[tuple, frozenset] = {}
+    if not subject_uid:
+        return pairs
+    for f in facts:
+        if f.get("subject_uid") != subject_uid or f.get("negated", False):
+            continue
+        if f.get("klass_sense") or not f.get("predicate"):
+            continue  # membership facts feed the closure, not the property pairs
+        key = (f["predicate"], f.get("object"))
+        pairs[key] = pairs.get(key, frozenset()) | _premise_of(f)
+    return pairs
+
+
+def _suff_conds_met(rule: dict, prop_pairs: dict) -> Optional[frozenset]:
+    prem: frozenset = frozenset()
+    for c in rule.get("conds") or []:
+        cp, co = c.get("predicate"), c.get("object")
+        hit = None
+        for (p, o), pr in prop_pairs.items():
+            if not _cond_matches(cp, p):
+                continue
+            if co is not None and (o is None or _sense_lemma(o) != _sense_lemma(co)):
+                continue  # object strictness
+            hit = pr
+            break
+        if hit is None:
+            return None
+        prem |= hit
+    return prem
+
+
 # run the forward-chainer for one subject (a sense and/or an individual uid). returns
 # (derived_props, chains) where derived_props is a list of dicts
 #   {predicate, object, negated, chain, premises}
@@ -188,8 +230,12 @@ def evaluator_forwardChain(
     # the seed's known properties (for conditioned rules — finding #5 / 2c).
     subject_props = _subject_props(subject_uid, facts)
 
-    # ---- 2. fixpoint over MEMBERSHIP rules ----
+    # ---- 2. fixpoint over MEMBERSHIP + SUFFICIENT rules ----
+    # sufficient rules (step 4) fire in the SAME fixpoint: a recognized class can enable further
+    # membership rules, and vice versa (a membership-granted genus can complete a sufficient rule).
     membership = [r for r in rules if r.get("kind") == "membership"]
+    sufficient = [r for r in rules if r.get("kind") == "sufficient"]
+    prop_pairs = _subject_prop_pairs(subject_uid, facts)
     for _ in range(max_hops):
         changed = False
         for r in membership:
@@ -214,6 +260,26 @@ def evaluator_forwardChain(
                 if _add_with_ancestors(r_pred, base, closure, parents, base_prem, closure_premises,
                                        edge_source):
                     changed = True
+        for r in sufficient:
+            genus, klass = r.get("genus"), r.get("klass")
+            if not genus or not klass or genus not in closure or klass in closure:
+                continue
+            cond_prem = _suff_conds_met(r, prop_pairs)
+            if cond_prem is None:
+                continue  # a definiens conjunct the seed doesn't satisfy — the rule stays silent
+            conds_note = " ∧ ".join(
+                f"{c.get('predicate')}({c.get('object') or '∅'})" for c in (r.get("conds") or []))
+            base = (
+                closure[genus]
+                + f" -> by definition a {genus} that {conds_note} is a {klass}"
+                + f" -> {subject_name} is_a {klass} (recognized)"
+            )
+            # the recognition rests on what put the GENUS in C, this rule's definition, and the
+            # property facts that satisfied every definiens conjunct.
+            base_prem = closure_premises[genus] | _premise_of(r) | cond_prem
+            if _add_with_ancestors(klass, base, closure, parents, base_prem, closure_premises,
+                                   edge_source):
+                changed = True
         if not changed:
             break  # fixpoint reached
 

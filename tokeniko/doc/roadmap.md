@@ -37,11 +37,12 @@ theorem auditable + every dependency revocable, logic stays hardwired.* The orde
 3. ✅ **Provenance + transitive cascade + theorem fuel** — landed 2026-07-03 (`revoke_dependents`
    recursive cascade wired into axiom/theorem archive+delete + `revoke_edge.py`; active theorems feed
    the chainer with generational min-trust — theorems breed theorems) — see `landed.md`.
-4. 🔭 **The universal extractor (the antidote — the core build)** — ONE source-agnostic
-   `TKZip → usable logic` extractor + gate, folding the per-collection paths (axiom rules/facts,
-   definition edges/differentia) into one, trust-tiered by source. Adds **definitional SUFFICIENCY**
-   (the sufficient direction — "has merit → valuable"; operator-tree-aware; the generative unlock that
-   sidesteps the is_a-amplification trap). Dry-run heavy.
+4. ✅ **The universal extractor + definitional SUFFICIENCY (the core build)** — landed 2026-07-08
+   (`kb_extract.extract_logic` one front door folding all five extraction paths, trust by source;
+   `extract_sufficient_rules` DNF + drop-disjuncts-never-conjuncts gate → 113 recognition rules;
+   the chainer fires kind="sufficient" in the membership fixpoint, object-strict) — see `landed.md`.
+   Residuals → `parked.md` (derived-props as cond satisfiers; adjective-definienda fuel). **Tier
+   rebuild pending** (author's terminal: the three `--apply` writers) before the enriched soak.
 5. 🔭 **Reason over everything** — definitions rejoin chaining via the universal extractor (low-trust,
    gated) → the rich soak done right. Includes **subject-WSD hardening** (the noise antidote that makes
    definitions safe to chain — the chat-zombie root).

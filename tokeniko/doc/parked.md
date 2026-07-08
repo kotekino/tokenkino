@@ -21,6 +21,16 @@ disjointness), so these were deferred: reject **circular nominalization** genera
 and **flag-the-middle** (surface borderline extracted edges for review rather than silently accept).
 Promote only if the enriched soak shows them biting.
 
+**Sufficiency v1 residuals (Brain v1.1 step 4)** — conservative firsts, promote if the enriched soak
+shows them worth it: (1) **derived properties as cond satisfiers** — sufficient rules currently match
+the seed's stored property FACTS only; letting chainer-derived properties satisfy definiens conjuncts
+(recognition over inferred traits) needs the fixpoint interleaved with property derivation. (2)
+**adjective-definienda sufficiency** ("has merit → valuable" — the finding-#3 flagship) has NO fuel:
+all glosses were "a/an X is …" noun-templated, so adjective senses compile as noun-style artifacts;
+needs per-POS gloss re-templating first. (3) **class-seed recognition** — sufficient rules fire only
+on individuals (property facts are uid-keyed); a class satisfying a definiens via its own differentia
+rules is a further unification.
+
 **Ingestion-time differentia extraction (definitions-as-rules, step-5 follow-on)** — today
 `extract_differentia.py` is a BATCH tool over all definitions. To make the author's live-injected
 curated definitions cascade automatically, wire the same gated extraction at INGESTION (a definition

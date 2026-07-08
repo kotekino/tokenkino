@@ -22,6 +22,10 @@ from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRela
 from lib.core.tk import TKOperator, TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, EvaluatorResult, EvaluatorStatus
+# the UNIVERSAL EXTRACTOR (step 4): all "stored zip -> chainable logic" mining lives in kb_extract;
+# _zip_leaves/_zip_leaf_items are re-exported here for the many probe/brain callers that import them
+# from this module (the historical home).
+from lib.core.kb_extract import _zip_leaves, _zip_leaf_items, extract_logic
 from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh, evaluator_forwardChain
 
 # verbose wondering trace — shares the brain's "tokeniko-brain" logger/handler so it prints to the
@@ -228,32 +232,6 @@ def _make_antonym_reader():
     return antonyms
 
 
-# collect every leaf TKZipContent of a zip item tree, in order.
-def _zip_leaves(item) -> list:
-    c = item.content
-    if isinstance(c, TKZipContent):
-        return [c]
-    out = []
-    if isinstance(c, list):
-        for child in c:
-            out += _zip_leaves(child)
-    return out
-
-
-# like _zip_leaves, but returns the leaf-level TKZipItem WRAPPERS (which carry the .op) rather than the
-# bare contents — needed to read the operator (AND/IMPLY/...) a leaf folds with. used to recognize the
-# IMPLY pattern of a property-conditioned rule (see _extract_property_conditioned).
-def _zip_leaf_items(item) -> list:
-    c = item.content
-    if isinstance(c, TKZipContent):
-        return [item]
-    out = []
-    if isinstance(c, list):
-        for child in c:
-            out += _zip_leaf_items(child)
-    return out
-
-
 # the flat set of every WSD sense referenced anywhere in a zip (across all leaf clauses' role->sense
 # maps), sorted+unique. used to stamp TKMemoryItemDoc.senses at write time so associative wondering can
 # find the memories a KB change is relevant to via an indexable {"senses": {"$in": [...]}} query.
@@ -438,176 +416,6 @@ def cross_item_conflict(clauses_a: list, clauses_b: list) -> Optional[str]:
     return union
 
 
-# extract RULES from the active axioms for the forward-chainer. three quantifier shapes qualify
-# (Brain v1.1 step 2 widened this beyond UNIVERSAL — bare-plural generics are how people naturally
-# state universals; the step-2 census showed the curated imprint itself phrases rules that way):
-#   UNIVERSAL — "all carnivores eat meat", "all humans are thinkers" (the original path).
-#   GENERIC / INDEFINITE class-subject — "humans create their gods", "truth is relative",
-#       "violence generates violence": a CLASS subject (sense, no identity uid — an individual is a
-#       FACT) read as a defeasible universal. EXCEPT the bare copular noun-noun shape ("a cat is a
-#       mammal") — that is the generic-taxonomy EDGE extractor's territory (kb_extract, unioned into
-#       the relations reader), and double-representing it would duplicate derivations.
-#   NEGATIVE — "no mind can reach absolute truth": a negated universal (rule negated = NEGATIVE XOR
-#       leaf.negated, the evaluator's own net-flip). Only the property shape; a NEGATIVE copular
-#       noun-noun ("no machine is a human") is a DISJOINTNESS claim — future work, skipped here.
-# the predicate POS classifies the rule: a NOUN predicate (".n.") is a MEMBERSHIP rule (subject
-# is_a* S => subject is_a [predicate class]); anything else (".a."/".s."/".v.") is a PROPERTY rule.
-_RULE_GENERIC_QUANTIFIERS = (TKQuantifier.GENERIC, TKQuantifier.INDEFINITE)
-
-
-# collect the ordered "<prefix>0", "<prefix>1", … sense keys from a leaf's senses dict (the
-# restrictive-modifier carriers, compiler_contentSenses — finding #5 / Brain v1.1 2c).
-def _mod_senses(senses: dict, prefix: str) -> list[str]:
-    out, i = [], 0
-    while f"{prefix}{i}" in senses:
-        out.append(senses[f"{prefix}{i}"])
-        i += 1
-    return out
-
-
-def _extract_rules(axiom_docs) -> list:
-    rules: list = []
-    for doc in axiom_docs:
-        if doc.zip is None:
-            continue
-        for leaf in _zip_leaves(doc.zip.items):
-            quantifier = getattr(leaf, "quantifier", None)
-            senses = getattr(leaf, "senses", None) or {}
-            subject = senses.get("subject")
-            predicate = senses.get("predicate")
-            if not subject or not predicate:
-                continue
-            negated = bool(getattr(leaf, "negated", False))
-            # the subject's RESTRICTIVE modifiers (finding #5 / 2c): "all THINKING machines …" must
-            # fire only on subjects that HAVE the modifier property — carried as rule conditions.
-            cond_props = _mod_senses(senses, "subject_mod")
-            if quantifier == TKQuantifier.UNIVERSAL:
-                pass  # the original path — always a rule
-            elif quantifier in _RULE_GENERIC_QUANTIFIERS or quantifier == TKQuantifier.NEGATIVE:
-                if (getattr(leaf, "identities", None) or {}).get("subject"):
-                    continue  # an individual subject is a FACT (_extract_facts), never a rule
-                if getattr(leaf, "dubitative", 0.5) >= 0.75 or getattr(leaf, "wh_role", None) is not None:
-                    continue  # a question is answered, not believed
-                if ".n." in predicate and not senses.get("direct") and not cond_props:
-                    continue  # bare copular noun-noun: EDGE (generic-taxonomy) or disjointness (future)
-                    # (a MODIFIED one — "a thinking machine is a mind" — stays here as a conditioned
-                    # membership rule: a graph edge cannot carry a condition)
-                if quantifier == TKQuantifier.NEGATIVE:
-                    negated = not negated  # the net-flip: "no X <pred>" == "all X NOT <pred>"
-            else:
-                continue  # EXISTENTIAL/DEFINITE never generalize to a rule
-            kind = "membership" if ".n." in predicate else "property"
-            rules.append({
-                "subject": subject,
-                "predicate": predicate,
-                "object": senses.get("direct"),
-                "negated": negated,
-                "kind": kind,
-                "cond_props": cond_props,
-                # 2d: a generic rule is defeasible, a universal is law. NEGATIVE ("no X …") is a
-                # negative UNIVERSAL. Consumed by the chain renderer ("most" vs "all") and the
-                # trust map (_GENERIC_RULE_TRUST) in _load_active_kb.
-                "strength": "generic" if quantifier in _RULE_GENERIC_QUANTIFIERS else "universal",
-                "original": doc.original,
-                "source_id": str(doc.id),  # provenance: the KB axiom this rule comes from
-            })
-        # PROPERTY-CONDITIONED rule: a universal IMPLY over two sense-less-subject predications
-        # ("everything that thinks exists" => think ⟹ exist). Recognized from the compiled IMPLY form
-        # rather than per-leaf (the leaves carry no subject sense), so it is NL-seedable as a real KB
-        # axiom — no hardcoded foundational rule.
-        pc = _extract_property_conditioned(doc.zip)
-        if pc is not None:
-            rules.append({**pc, "original": doc.original, "source_id": str(doc.id)})
-    return rules
-
-
-# detect a property-conditioned rule in a compiled zip: a universal IMPLY(antecedent, consequent) whose
-# operands are both SENSE-LESS-subject predications (an indefinite universal "everything/everyone that
-# <cond> <concl>"). returns {kind, cond_pred, cond_obj, concl_pred, concl_obj, concl_negated} or None.
-# the antecedent leaf folds with op=AND (seeds), the consequent leaf carries op=IMPLY (see the compiler's
-# property-restricted-universal transform). mirrors the shape the old _FOUNDATIONAL_RULES hand-wrote.
-def _extract_property_conditioned(statement) -> Optional[dict]:
-    items = _zip_leaf_items(statement.items)
-    concl_item = next((it for it in items if it.op == TKOperator.IMPLY), None)
-    if concl_item is None:
-        return None
-    idx = items.index(concl_item)
-    if idx == 0:
-        return None
-    consequent = concl_item.content
-    antecedent = items[idx - 1].content
-    # both operands must be UNIVERSAL and SENSE-LESS-subject (bound variable, no class noun) — that is
-    # what distinguishes "everything that thinks exists" from an intersective class universal.
-    for leaf in (antecedent, consequent):
-        if getattr(leaf, "quantifier", None) != TKQuantifier.UNIVERSAL:
-            return None
-        if (getattr(leaf, "senses", None) or {}).get("subject"):
-            return None
-    cond_pred = (getattr(antecedent, "senses", None) or {}).get("predicate")
-    concl_pred = (getattr(consequent, "senses", None) or {}).get("predicate")
-    if not cond_pred or not concl_pred:
-        return None
-    return {
-        "kind": "property_conditioned",
-        "cond_pred": cond_pred,
-        "cond_obj": (getattr(antecedent, "senses", None) or {}).get("direct"),
-        "concl_pred": concl_pred,
-        "concl_obj": (getattr(consequent, "senses", None) or {}).get("direct"),
-        "concl_negated": bool(getattr(consequent, "negated", False)),
-    }
-
-
-# extract individual FACTS from the active axioms for the forward-chainer + the individual-fact
-# grounder. an individual leaf has an entity-linked subject (identities['subject']) and is NOT
-# universal (universals are RULES, not facts). two fact kinds, both returned in ONE list:
-#   MEMBERSHIP fact — NOUN predicate ("Mari is a human" => mari@... is_a homo.n.02). carries
-#                     `klass_sense` (the chainer keys on this; property facts are ignored by it).
-#   PROPERTY  fact  — non-noun predicate (verb/adj) OR a noun predicate WITH an object ("tokeniko
-#                     thinks", "I value logic"). grounds an individual-subject clause directly via
-#                     evaluator_groundIndividualFact, so a stored self-fact decides its matching
-#                     question instead of abstaining.
-def _extract_facts(axiom_docs) -> list:
-    facts: list = []
-    for doc in axiom_docs:
-        if doc.zip is None:
-            continue
-        for leaf in _zip_leaves(doc.zip.items):
-            if getattr(leaf, "quantifier", None) == TKQuantifier.UNIVERSAL:
-                continue
-            identities = getattr(leaf, "identities", None) or {}
-            senses = getattr(leaf, "senses", None) or {}
-            subject_uid = identities.get("subject")
-            predicate = senses.get("predicate")
-            if not subject_uid or not predicate:
-                continue
-            obj = senses.get("direct")
-            if ".n." in predicate and obj is None:
-                # bare NOUN predication "X is a Y" -> a MEMBERSHIP fact (class membership).
-                # klass_mods: the class's restrictive modifiers ("I am a THINKING machine" ->
-                # [thinking.n.01]) — the chainer tests a conditioned rule's condition against these
-                # (finding #5 / 2c: the fact side compiles the same senses as the rule side).
-                facts.append({
-                    "subject_uid": subject_uid,
-                    "klass_sense": predicate,
-                    "klass_mods": _mod_senses(senses, "predicate_mod"),
-                    "original": doc.original,
-                    "kind": "membership",
-                    "source_id": str(doc.id),  # provenance: the KB axiom this fact comes from
-                })
-            else:
-                # verb/adj predicate, OR noun-with-object -> a PROPERTY fact
-                facts.append({
-                    "subject_uid": subject_uid,
-                    "predicate": predicate,
-                    "object": obj,
-                    "negated": bool(getattr(leaf, "negated", False)),
-                    "original": doc.original,
-                    "kind": "property",
-                    "source_id": str(doc.id),  # provenance: the KB axiom this fact comes from
-                })
-    return facts
-
-
 # evaluate a ready TKZip statement against the ACTIVE knowledge (archived=False). loads the
 # definitions/axioms/theorems, builds the readers + forward-chainer rules/facts, runs the evaluator,
 # and resolves the best relational match (matchedKind + matchedIndex) back to that document's
@@ -658,52 +466,67 @@ def _load_active_kb() -> dict:
         for leaf in _zip_leaves(d.zip.items)
     ]
 
-    # UNION the low-trust definition-derived PROPERTY rules (differentia, step 5) into the chainer's
-    # rule set. source_id is a stable "rule:subj|pred|obj" key (contains "|") so a derived rule a
+    # the UNIVERSAL EXTRACTOR (step 4): axioms and theorems run through the SAME front door
+    # (extract_logic) — the source never gates WHAT is extracted, only the trust attached below.
+    # Edges are mined IN-MEMORY at KB load, never persisted: archiving the source doc retracts its
+    # logic on the next load — revocation durability by construction (finding #4). The gate judges
+    # against BEDROCK only (never the union, else its own edges would look redundant).
+    # THEOREM FUEL (step 3 — theorems breed theorems): active theorems yield rules/facts/edges like
+    # axioms (a theorem is just a zip with provenance — the Unified-KB thesis). A derivation that
+    # fires one records the THEOREM's id as a premise, so (a) provenance walks generationally (the
+    # cascade follows it) and (b) min-trust flows generationally via the trust map below. Convergence
+    # is safe: a theorem restating its own conclusion is a 1-premise derivation (novelty gate drops
+    # it) and materialize dedups semantically.
+    bedrock = _make_relations_reader()
+    axiom_logic = extract_logic(axiom_docs, "axiom", bedrock)
+    theorem_logic = extract_logic(theorem_docs, "theorem", bedrock)
+    axiom_rules, axiom_edges = axiom_logic["rules"], axiom_logic["edges"]
+    theorem_rules, theorem_facts = theorem_logic["rules"], theorem_logic["facts"]
+
+    # UNION the low-trust definition-derived rules into the chainer's rule set — the differentia
+    # PROPERTY rules (step 5, the necessary direction) and the SUFFICIENT rules (step 4, the
+    # recognition direction). source_id is a stable "rule:…" key (contains "|") so a derived rule a
     # derivation fires is recorded as a revocable premise AND lowers the conclusion's trust (via
     # _conclusion_trust's per-premise map lookup), exactly like a tier edge.
-    axiom_rules = _extract_rules(axiom_docs)
-    derived_rule_docs = TKDerivedRuleDoc.find({}).to_list()
-    derived_rules = [
-        {
+    def _derived_rule_entry(r) -> dict:
+        if r.kind == "sufficient":
+            conds = r.conds or []
+            key = (f"rule:sufficient:{r.subject}|{r.genus}|"
+                   + ",".join(f"{c.get('predicate')}:{c.get('object') or ''}" for c in conds))
+            return {"kind": "sufficient", "klass": r.subject, "genus": r.genus, "conds": conds,
+                    "original": r.source_original, "source_id": key}
+        return {
             "subject": r.subject, "predicate": r.predicate, "object": r.object,
             "negated": r.negated, "kind": r.kind, "original": r.source_original,
             "source_id": f"rule:{r.subject}|{r.predicate}" + (f"|{r.object}" if r.object else ""),
         }
-        for r in derived_rule_docs
-    ]
 
-    # GENERIC-TAXONOMY axiom edges (Brain v1.1 step 2): mine "a X is a Y" / "cats are mammals" copular
-    # generics out of the axioms IN-MEMORY at KB load — never persisted. The gate judges against
-    # BEDROCK only (never the union, else its own edges would look redundant). Archiving the source
-    # axiom retracts the edge on the next load — revocation durability by construction (finding #4).
-    # Local import: kb_extract imports _zip_leaves from this module (one-way at module level).
-    from lib.core.kb_extract import extract_generic_isa_edges
-    axiom_edges, _ = extract_generic_isa_edges(axiom_docs, _make_relations_reader())
+    derived_rule_docs = TKDerivedRuleDoc.find({}).to_list()
+    derived_rules = [_derived_rule_entry(r) for r in derived_rule_docs]
+
+    # the in-memory edge union: axiom edges at curated-source trust; a theorem-derived edge (rare —
+    # noun-noun copular conclusions barely materialize today, but the shape extracts source-agnostically)
+    # at the SOURCE THEOREM's own trust (generational min-trust, same principle as theorem rules).
+    theorem_trust_by_id = {str(t.id): t.trusted for t in theorem_docs}
     axiom_children: dict[str, list[str]] = {}
-    for e in axiom_edges:
+    for e in axiom_edges + theorem_logic["edges"]:
         axiom_children.setdefault(e["subject"], []).append(e["object"])
 
     # PER-PREMISE trust map ("|"-bearing premise key -> source trust), consumed by _conclusion_trust
     # (min-trust inheritance). Definition-derived edges/rules carry their stored tier trust; an
-    # axiom-derived generic edge is curated-source high trust. On a key collision (same edge asserted
-    # by both a definition and an axiom) the axiom's higher trust wins — insertion order does that.
-    # THEOREM FUEL (step 3 — theorems breed theorems): active theorems run through the SAME rule/fact
-    # extractors as axioms (a theorem is just a zip with provenance — the Unified-KB thesis). A
-    # derivation that fires one records the THEOREM's id as a premise, so (a) provenance walks
-    # generationally (the cascade below follows it) and (b) min-trust flows generationally: the
-    # theorem's own `trusted` enters the trust map, so a child of a 0.7 theorem never exceeds 0.7.
-    # Convergence is safe: a theorem restating its own conclusion is a 1-premise derivation (novelty
-    # gate drops it) and materialize dedups semantically.
-    theorem_rules = _extract_rules(theorem_docs)
-    theorem_facts = _extract_facts(theorem_docs)
-
+    # axiom-derived generic edge is curated-source high trust; a theorem-derived edge carries its
+    # source theorem's `trusted` (so a child of a 0.7 theorem never exceeds 0.7). On a key collision
+    # (same edge asserted by two sources) the HIGHER-trust source wins — insertion order does that
+    # (definition 0.3 -> theorem ≤0.9 -> axiom 0.9).
     derived_edge_docs = TKDerivedRelationDoc.find({}).to_list()
     edge_trust: dict[str, float] = {}
     for d in derived_edge_docs:
         edge_trust[_edge_key(d.subject, d.object)] = d.trust
     for r_doc, r in zip(derived_rule_docs, derived_rules):
         edge_trust[r["source_id"]] = r_doc.trust
+    for e in theorem_logic["edges"]:
+        edge_trust[_edge_key(e["subject"], e["object"])] = theorem_trust_by_id.get(
+            e["source_id"], _DERIVED_DEFAULT_TRUST)
     for e in axiom_edges:
         edge_trust[_edge_key(e["subject"], e["object"])] = _AXIOM_EDGE_TRUST
     for t in theorem_docs:
@@ -719,8 +542,10 @@ def _load_active_kb() -> dict:
     # every DISTINCT subject of a derived rule/edge (definition tier OR axiom-mined) is a wondering
     # SEED, so the cascade fires from the vocabulary itself (a subclass inherits a superclass's
     # rule via a derived edge -> >=2 premises), not only from axiom-rule subjects + individuals.
+    # (sufficient rules carry no "subject" — they conclude a class, they don't describe one; they
+    # fire on individuals via property facts, so they contribute no class seed.)
     tier_subjects = sorted({e.subject for e in derived_edge_docs}
-                           | {r["subject"] for r in derived_rules}
+                           | {r["subject"] for r in derived_rules if "subject" in r}
                            | set(axiom_children.keys()))
 
     kb = {
@@ -738,7 +563,7 @@ def _load_active_kb() -> dict:
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
         "rules": axiom_rules + derived_rules + theorem_rules,
-        "facts": _extract_facts(axiom_docs) + theorem_facts,
+        "facts": axiom_logic["facts"] + theorem_facts,
         "tier_subjects": tier_subjects,
         "axiom_edges": axiom_edges,
         "edge_trust": edge_trust,
