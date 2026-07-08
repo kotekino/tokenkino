@@ -123,10 +123,10 @@ def _subject_props(subject_uid, facts) -> dict[str, frozenset]:
     if not subject_uid:
         return props
     for f in facts:
-        if f.get("subject_uid") != subject_uid:
-            continue
+        if f.get("subject_uid") != subject_uid or f.get("negated", False):
+            continue  # a negated fact (membership OR property) asserts no satisfier
         senses = list(f.get("klass_mods") or [])
-        if f.get("kind") == "property" and not f.get("negated", False) and f.get("predicate"):
+        if f.get("kind") == "property" and f.get("predicate"):
             senses.append(f["predicate"])
         for s in senses:
             props[s] = props.get(s, frozenset()) | _premise_of(f)
@@ -217,6 +217,8 @@ def evaluator_forwardChain(
             klass = fact.get("klass_sense")
             if not klass:
                 continue
+            if fact.get("negated", False):
+                continue  # "I am NOT a man" must never put man.n.01 in the closure
             base = f"{subject_uid} is_a {klass} (fact)"
             # the membership fact rests on its source axiom.
             _add_with_ancestors(klass, base, closure, parents, _premise_of(fact), closure_premises,
@@ -420,14 +422,19 @@ def evaluator_chainGround(
     return truth, chain, premises
 
 
-# ground an INDIVIDUAL-subject clause directly against the stored individual PROPERTY facts (no
-# rules, no closure). "tokeniko thinks" is a stored property fact; a question "do you think?" resolves
+# ground an INDIVIDUAL-subject clause directly against the stored individual facts (no rules, no
+# closure). "tokeniko thinks" is a stored property fact; a question "do you think?" resolves
 # you -> tokeniko (same uid) and grounds here, deciding it BEFORE the Pillar-2 individual-abstain.
-# returns (truth, chain, premises) on a matching property fact, else None (fall through). `premises` =
-# the fact's source-axiom id. matching: same subject uid + same predicate sense, and (the fact has no
-# object OR the input has no object OR the objects match). corroborate/refute by negation parity
-# (mirrors evaluator_chainGround's tail). NB: quantifier net_flip is NOT applied — these are individual
-# facts, not universals.
+# returns (truth, chain, premises) on a matching fact, else None (fall through). `premises` = the
+# fact's source-axiom id. Two branches, both corroborate/refute by NEGATION PARITY (mirrors
+# evaluator_chainGround's tail):
+#   MEMBERSHIP — a bare-noun input ("are you a man?") vs a membership fact of the SAME class sense,
+#       exact klass match only (conservative: a negated fact says nothing about super/subclasses —
+#       "I am not a man" refutes "you are a man", never "you are a person"). This is what lets a
+#       stored NEGATED membership ("I am not a man") answer its question with a confident NO.
+#   PROPERTY  — same subject uid + same predicate sense, and (the fact has no object OR the input
+#       has no object OR the objects match).
+# NB: quantifier net_flip is NOT applied — these are individual facts, not universals.
 def evaluator_groundIndividualFact(
     content: TKZipContent,
     facts: list,
@@ -443,16 +450,24 @@ def evaluator_groundIndividualFact(
     negated = bool(getattr(content, "negated", False))
 
     match: Optional[dict] = None
-    for fact in facts:
-        # property facts only: skip membership facts (no "predicate" key / a "klass_sense")
-        if "predicate" not in fact or fact.get("klass_sense"):
-            continue
-        if fact.get("subject_uid") != subject_uid or fact.get("predicate") != pred:
-            continue
-        f_obj = fact.get("object")
-        if f_obj is None or obj is None or f_obj == obj:
+    if _is_noun_sense(pred) and obj is None:
+        # MEMBERSHIP branch: bare noun predication vs a membership fact of the exact same class
+        for fact in facts:
+            if fact.get("klass_sense") != pred or fact.get("subject_uid") != subject_uid:
+                continue
             match = fact
             break
+    if match is None:
+        for fact in facts:
+            # property facts only: skip membership facts (no "predicate" key / a "klass_sense")
+            if "predicate" not in fact or fact.get("klass_sense"):
+                continue
+            if fact.get("subject_uid") != subject_uid or fact.get("predicate") != pred:
+                continue
+            f_obj = fact.get("object")
+            if f_obj is None or obj is None or f_obj == obj:
+                match = fact
+                break
 
     if match is None:
         return None

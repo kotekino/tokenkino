@@ -80,14 +80,31 @@ def compiler_subjectDeterminer(content: TKLLCContent) -> str:
             return compiler_entityToken(p.id)
     return ""
 
-# the clause's quantifier. read off the subject's DETERMINER ("all cats"); if the subject has none, fall
-# back to the subject's OWN token, so an indefinite pronoun subject quantifies itself ("everything that
-# thinks" -> UNIVERSAL, "nothing" -> NEGATIVE). anchor_quantifier's table gates it: a normal bare noun /
-# personal pronoun ("cat", "I") is not a quantifier word -> GENERIC, exactly as before.
+# does the subject carry a POSSESSIVE dependency ("my mind", "kotekino's mind", "his body")? The
+# possessor arrives as dep=poss / nmod:poss on the subject reference. We test the DEP structurally,
+# NOT the possessor's surface token — a first-person "my" is coreference-rewritten to the speaker's
+# identity ("tokeniko") before we see it, so the word "my" is already gone; the dependency is the
+# only durable signal. A possessed subject is a specific individual's X, so the clause is DEFINITE.
+_POSSESSIVE_DEPS = ("poss", "nmod:poss")
+
+
+def compiler_subjectIsPossessed(content: TKLLCContent) -> bool:
+    if not content.subject:
+        return False
+    return any(p.dep in _POSSESSIVE_DEPS for p in content.subject.properties)
+
+# the clause's quantifier. read off the subject's DETERMINER ("all cats"); a possessed subject ("my
+# mind") is DEFINITE (a specific individual's X, never the class — this is what stops "my mind is a
+# software" from minting "ALL minds are software", the step-4 possessive scope-widening leak). If the
+# subject has neither, fall back to its OWN token, so an indefinite pronoun subject quantifies itself
+# ("everything that thinks" -> UNIVERSAL, "nothing" -> NEGATIVE). anchor_quantifier's table gates it:
+# a normal bare noun / personal pronoun ("cat", "I") is not a quantifier word -> GENERIC, as before.
 def compiler_contentQuantifier(content: TKLLCContent) -> TKQuantifier:
     det = compiler_subjectDeterminer(content)
     if det:
         return anchor_quantifier(det)
+    if compiler_subjectIsPossessed(content):
+        return TKQuantifier.DEFINITE
     subject_word = compiler_entityToken(content.subject.id) if content.subject else ""
     return anchor_quantifier(subject_word)
 

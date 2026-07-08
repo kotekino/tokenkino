@@ -472,10 +472,14 @@ def extract_facts(docs) -> list:
                 # klass_mods: the class's restrictive modifiers ("I am a THINKING machine" ->
                 # [thinking.n.01]) — the chainer tests a conditioned rule's condition against these
                 # (finding #5 / 2c: the fact side compiles the same senses as the rule side).
+                # negated carried ("I am NOT a man"): a negated membership must never seed the
+                # closure (the chainer skips it) — it instead REFUTES the matching question/claim
+                # (evaluator_groundIndividualFact's membership branch).
                 facts.append({
                     "subject_uid": subject_uid,
                     "klass_sense": predicate,
                     "klass_mods": _mod_senses(senses, "predicate_mod"),
+                    "negated": bool(getattr(leaf, "negated", False)),
                     "original": doc.original,
                     "kind": "membership",
                     "source_id": str(doc.id),  # provenance: the KB doc this fact comes from
