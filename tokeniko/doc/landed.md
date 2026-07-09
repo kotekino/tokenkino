@@ -162,3 +162,26 @@
   new-edge / non-noun) + live compile («a fair is a traveling show» → subject `carnival.n.03`;
   «a cat is a mammal» unchanged; «a human is a person» → `homo.n.02` preserved). **Gate 62 passed /
   1 xfailed.**
+
+**Brain v1.1 — step 5.3: the enriched soak + the NL self-talk leak — THE ARC CLOSES (2026-07-09)**
+- **The soak surfaced the leak (empirical detail → `doc/ref/test-feedback.md` 2026-07-09).** The
+  materialize path round-trips a derived conclusion through NL — render then re-parse — and the parse
+  of «a budget stores information» read "stores" as the plural NOUN (shop): subject lost, the semantic
+  dedup key degenerate, every «X stores information» collapsed onto one stored mutant, and the
+  wondering re-derived the rest every tick forever (the void spin). Separately, the soak froze on an
+  eternal Mongo socket read (pymongo has no default socket timeout).
+- **Three fixes:** (1) **sense-pinned materialize** — the brain sends the conclusion's KNOWN senses
+  (`TheoremMaterializeIn.senses`); the service pins them into the compiled zip (sense + 2925 vector,
+  `_pin_conclusion_senses`, same in-place style as the definition pin) BEFORE dedup/store — the
+  derivation's senses are the truth, the NL only its surface. (2) **dedup honesty** — `_kb_wonder_one`
+  detects a dedup response (returned `original` ≠ the render), suppresses that render, and keeps
+  scanning the tick. (3) **opt-in `MONGO_SOCKET_TIMEOUT_MS`** in `init_io` for long-lived loops.
+  Tests: `tests/test_materialize_pin.py` (3). **Gate 65 passed / 1 xfailed.**
+- **The validated enriched soak (step 5 done → the Brain v1.1 arc COMPLETE).** Over the full
+  three-tier fuel: converged QUIESCENT in 10 ticks / 528s → **25 active theorems** — 14 @0.9 (the
+  imprint-derived self + kotekino facts, flawless) + 11 @0.3 tier crossings (the money family
+  «budget/cash/coin/currency/money/gold/fund stores information» via the medium differentia, some
+  four-hop; «a western stores information» — comical and correct). Noise: 3/11, ALL contained at 0.3
+  with the guilty premise named in the chain (forest collection/member ×2, sector object mis-sense —
+  both parked as gate improvements, left as honest defeasible beliefs by the author's call). Facts
+  crossed into concepts autonomously; trust stratification held; the reasoning core is done.

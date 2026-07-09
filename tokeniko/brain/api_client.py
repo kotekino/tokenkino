@@ -49,12 +49,12 @@ def _post_json(path: str, body: dict) -> dict | None:
 # API compiles it (talker=tokeniko ⇒ "I" → its own uid), semantic-dedups, and stores it ACTIVE +
 # trusted. Returns the {status, data} dict (data = the theorem, existing or new), or None on failure.
 def materialize_theorem(tokens: str, premises: list[str], chain: str, derived_by: str = "wondering",
-                        trusted: float = 0.9) -> dict | None:
-    return _post_json(
-        "/api/v1/theorems/materialize",
-        {"tokens": tokens, "premises": premises, "chain": chain, "derived_by": derived_by,
-         "trusted": trusted},
-    )
+                        trusted: float = 0.9, senses: dict | None = None) -> dict | None:
+    body = {"tokens": tokens, "premises": premises, "chain": chain, "derived_by": derived_by,
+            "trusted": trusted}
+    if senses:
+        body["senses"] = senses  # the conclusion's known role senses — pinned server-side into the zip
+    return _post_json("/api/v1/theorems/materialize", body)
 
 
 # CREATE an axiom via the API pipeline — the brain's ONE runtime KB-write seam besides materialize

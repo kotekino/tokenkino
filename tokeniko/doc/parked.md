@@ -133,3 +133,22 @@ collection that mirrors the `memory` modeling (also a timeseries). During the dr
 is paused and the other brain loops are paused — only the dream loop runs**. Use is TBD (a hunch —
 likely creativity / consolidation / novel-association later). Revisit after the logical brain (D) is
 whole. See `VISION.md`.
+
+**Mentalese materialize — a direct zip constructor for self-talk (post-arc, author-blessed
+2026-07-09)** — wondering's materialize still round-trips through NL (render → re-parse), now made
+safe by the sense-pin; but a mind's memory integrity should not depend on parsing its own speech at
+all. The end state: build the `TKZip` DIRECTLY from the symbolic conclusion (dictionary vectors for
+the senses, the one canonical SVO marker pattern all derived conclusions share, neutral spacetime),
+still through the API materialize seam (write-path invariant + contradiction guard stay sacred); NL
+becomes render-only (audit/blog/Discord), generated on the way out, never parsed on the way in. The
+sense-pin is half of this already. DELIBERATELY deferred: until then the round-trip doubles as a
+parser-robustness harness on tokeniko's own generated speech (it caught the "stores"-as-noun leak) —
+switch to mentalese once the parser has eaten enough of these tests.
+
+**Plural-genus collection/member gate (enriched-soak specimen, 2026-07-09)** — "a forest is the
+TREES and other plants in a large densely wooded area" minted tier edge `forest.n.01 is_a tree.n.01`
+→ «a forest has trunk» @0.3. A PLURAL genus head ("the trees") defines a collection by its members —
+that is collection-of/member-of, never is_a. Gate improvement for `extract_isa_edges`: reject (or
+re-type) a plural-headed genus. Companion specimen: differentia OBJECT mis-sense («a sector
+illustrates fabric» — "textual material" got the textile sense); the object-side WSD shares the
+general differentia-WSD residual above.

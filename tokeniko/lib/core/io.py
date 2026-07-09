@@ -13,8 +13,14 @@ def init_io(mongo_uri: str = None, mongo_db_name: str = None, mongo_db_name_memo
     uri = mongo_uri or os.getenv("MONGO_URI")
     mongo_db_name = mongo_db_name or os.getenv("MONGO_DB_NAME")
     mongo_db_name_memory = mongo_db_name_memory or os.getenv("MONGO_DB_NAME_MEMORY")
-    
-    mongo_client = MongoClient(uri)
+
+    # opt-in socket timeout (ms): without it a read on a dead/stalled connection blocks FOREVER
+    # (pymongo default) — a slept laptop or a wedged server-side op freezes the whole loop (the
+    # 2026-07-09 soak). Long-lived unattended processes (the brain daemon / soak drivers) should set
+    # MONGO_SOCKET_TIMEOUT_MS generously (e.g. 300000); a timed-out op raises and the loop retries.
+    socket_timeout = os.getenv("MONGO_SOCKET_TIMEOUT_MS")
+    kwargs = {"socketTimeoutMS": int(socket_timeout)} if socket_timeout else {}
+    mongo_client = MongoClient(uri, **kwargs)
     mongo_client._default_database_name = mongo_db_name
     
     # init knowledge base

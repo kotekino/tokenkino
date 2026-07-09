@@ -93,6 +93,9 @@ class TheoremMaterializeIn(BaseModel):
     chain: str                                          # the human-readable proof
     derived_by: str = "wondering"                       # the faculty that produced it
     trusted: float = 0.9                                # min-trust inheritance (low when it rests on a tier edge)
+    # the conclusion's KNOWN role senses (subject/predicate/object), straight from the derivation —
+    # pinned into the compiled zip so the lossy NL round-trip can never corrupt the semantic dedup key.
+    senses: Optional[dict[str, Optional[str]]] = None
 
 class TheoremSummary(BaseModel):  # listing view (no zip)
     id: PydanticObjectId = Field(alias="_id")

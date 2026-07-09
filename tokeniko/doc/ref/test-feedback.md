@@ -18,6 +18,41 @@ is a no-op), inject, wait for full drain (per-speaker cursors caught up — NOT 
 
 ---
 
+## Session 2026-07-09 — the ENRICHED soak (three-tier fuel; step-5 validation)
+
+Driven inline (API up, daemon off) over the full three-tier fuel (627 genus edges + 116 sufficient +
+90 differentia @0.3 + 67 axioms). Converged QUIESCENT in 10 ticks / 528s → 25 active theorems
+(14 @0.9 imprint-derived, 11 @0.3 tier crossings — the money-family «X stores information» via the
+medium differentia, some four-hop). Trust stratification held: 0 noise in the 0.9 band. Specimens:
+
+**S1 — the NL self-talk round-trip corrupted a theorem (the budget mutant).** *Observed:* every
+class-conclusion «X stores information» collapsed onto ONE stored theorem; wondering re-derived the
+rest every tick forever (the void spin). *Diagnosis:* materialize renders the conclusion to NL and
+re-parses it — «a budget stores information» parses "stores" as the plural NOUN (shop), the subject
+sense is lost, and the semantic dedup key degenerates to (no-subject, information.n.01) for the whole
+family; the service dedup then returns "complete, no write" and `_kb_wonder_one` never learns the
+conclusion is held. *Action (landed same session):* sense-pinned materialize (the brain sends the
+conclusion's senses; the service pins them into the compiled zip before dedup/store) + dedup
+suppression in `_kb_wonder_one` + the parked **mentalese constructor** (self-talk should not round-trip
+through NL at all; until then the round-trip doubles as a parser-robustness harness).
+
+**S1 — an eternal socket block froze the loop (not a hang, a dead TCP read).** *Observed:* the soak
+sat 18+ min at 0% CPU mid-cursor-read (laptop sleep during the first run; a second occurrence under
+caffeinate). *Diagnosis:* pymongo has NO default socket timeout — a read on a dead/stalled connection
+blocks forever. *Action (landed):* opt-in `MONGO_SOCKET_TIMEOUT_MS` in `init_io` (long-lived loops
+set it; a timed-out op raises and the tick retries) + faulthandler armed in soak drivers.
+
+**S2 — plural-genus collection/member confusion.** *Observed:* «a forest has trunk/branch» @0.3.
+*Diagnosis:* the definition "a forest is the TREES …" minted tier edge `forest.n.01 is_a tree.n.01` —
+a collection defined by its members reads as a member. *Action:* parked (plural-genus gate: a plural
+genus head is collection-of, not is_a). Left as honest 0.3 beliefs (auditable, revocable).
+
+**S2 — differentia object mis-sense.** *Observed:* «a sector illustrates fabric» @0.3. *Diagnosis:*
+"a figure … illustrating TEXTUAL material" — the differentia OBJECT got the textile sense (fabric) of
+"material". *Action:* parked with the general differentia-object WSD residual.
+
+---
+
 ## Session 2026-06-29 — the first long-wondering SOAK (clean-slate self-derivation)
 
 Wiped `memory`/`ideas`/`actions`/`theorems` to **KB-only** (axioms/definitions/behavior_rules +

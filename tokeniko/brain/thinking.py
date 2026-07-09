@@ -173,6 +173,16 @@ def _kb_max_createdat() -> int:
 #
 # Returns True iff it materialized one new theorem this tick. On an unreachable/failed API it returns
 # False (leave the conclusion for next tick — never advances past it, never churns a stored theorem).
+#
+# DEDUP HONESTY: materialize semantic-dedups server-side and returns the EXISTING theorem (status
+# complete, no write). Its `original` differs from our render, so the render never enters `held` —
+# without suppression the same conclusion would be re-"derived" every tick forever (the void spin,
+# 2026-07-09 soak). A deduped render is recorded in _dedup_suppressed (per-process; re-derivation
+# after a restart costs one round-trip, then re-suppresses) and the scan CONTINUES to the next
+# conclusion, so the tick still does real work or honestly reports quiet.
+_dedup_suppressed: set[str] = set()
+
+
 def _kb_wonder_one() -> bool:
     conclusions = evaluation_harness.kb_wonder()
     if not conclusions:
@@ -183,15 +193,21 @@ def _kb_wonder_one() -> bool:
         nl = evaluation_harness.render_conclusion(
             c["subject"], c["predicate"], c.get("object"), c.get("negated", False), c["subject_kind"]
         )
-        if not nl or nl in held:
+        if not nl or nl in held or nl in _dedup_suppressed:
             n_held_skip += 1
             continue  # unrenderable, or this conclusion is already a held theorem -> converged
         chain = _CHAIN_PREFIX + c["chain"]  # same proof convention as the memory-wondering path
+        senses = {"subject": c["subject"], "predicate": c["predicate"], "object": c.get("object")}
         resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering",
-                                              trusted=c.get("trust", 0.9))
+                                              trusted=c.get("trust", 0.9), senses=senses)
         if resp is None or resp.get("status") != "complete":
             logger.warning("[wondering] KB-derive «%s» — API unavailable/failed, will retry", nl)
             return False  # leave it for next tick (not in `held`, so it is re-attempted)
+        stored = (resp.get("data") or {}).get("original")
+        if stored and stored != nl:
+            _dedup_suppressed.add(nl)
+            logger.info("[wondering] KB-derive «%s» deduped onto held «%s» — suppressed", nl, stored)
+            continue  # the conclusion is already held under other wording; keep scanning this tick
         logger.info("[wondering] KB-derived THEOREM «%s» <- %s (premises=%s)", nl, chain, c["premises"])
         return True  # one bounded unit per tick
     logger.info("[wondering] KB-wonder quiet: %d conclusions, all %d already held (converged)",

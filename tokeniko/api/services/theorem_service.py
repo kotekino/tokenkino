@@ -12,12 +12,12 @@ from bunnet import PydanticObjectId
 from lib.llc.parser import parser
 from lib.llc.compiler import compiler_compile
 from lib.llc.decompiler import decompiler_raw
-from lib.core.models import TKTheoremDoc
+from lib.core.models import TKTheoremDoc, TKDictionaryDoc
 from lib.core.memory import MEMChannels, MEMProvenance
 from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
-from lib.core.evaluation_harness import conclusion_key, revoke_dependents
+from lib.core.evaluation_harness import conclusion_key, revoke_dependents, _zip_leaves
 from api.services.validation import assert_no_contradiction
 
 
@@ -27,6 +27,47 @@ class InvalidTheoremIdError(Exception):
 
 class TheoremNotFoundError(Exception):
     """No theorem found for the given object id."""
+
+
+# the subject role tensor layout (tkzip.py): 300 markers + 2925 semantic + 12 spacetime
+_SEM_LO, _SEM_HI = 300, 300 + 2925
+
+
+# PIN the derived conclusion's KNOWN senses into the compiled zip (materialize only). The wondering
+# derives a conclusion SYMBOLICALLY (exact subject/predicate/object senses, straight from the proof),
+# renders it to NL, and the render is then re-parsed here — a lossy round-trip: "a budget stores
+# information" parses "stores" as the plural NOUN (shop), losing the subject and corrupting the
+# semantic dedup key (every "X stores information" collapsed onto one stored mutant). The derivation's
+# senses ARE the truth; the NL is only its surface — so after compiling for geometry, re-home the role
+# senses (+ their 2925 vectors, same in-place style as the definition pin / genus untangle).
+def _pin_conclusion_senses(zip_obj, senses: dict) -> None:
+    targets = {}
+    subj = senses.get("subject")
+    if subj and ".n." in subj:
+        targets["subject"] = subj            # a CLASS subject; an individual uid rides identities
+    if senses.get("predicate"):
+        targets["predicate"] = senses["predicate"]
+    if senses.get("object"):
+        targets["direct"] = senses["object"]
+    if not targets:
+        return
+    vec_cache: dict[str, Optional[list]] = {}
+
+    def _vec(sense):
+        if sense not in vec_cache:
+            doc = TKDictionaryDoc.find_one({"sense": sense}).run()
+            vec_cache[sense] = doc.vector if (doc and doc.vector) else None
+        return vec_cache[sense]
+
+    for leaf in _zip_leaves(zip_obj.items):
+        for role, sense in targets.items():
+            if (leaf.senses or {}).get(role) == sense:
+                continue
+            leaf.senses[role] = sense
+            vec = _vec(sense)
+            tensor = getattr(leaf, role, None)
+            if vec and tensor and len(tensor) == 3237:
+                tensor[_SEM_LO:_SEM_HI] = vec  # keep label + geometry in sync
 
 
 class TheoremService:
@@ -77,8 +118,11 @@ class TheoremService:
     # one. DEDUP is on the SEMANTIC conclusion (subject uid + predicate sense), not the surface string,
     # so a truth already held is not re-stored under different wording -> wondering converges. Returns
     # the existing theorem (no write) when the conclusion is already known, else the newly-stored one.
-    def materialize(self, tokens: str, provenance: MEMProvenance, trusted: float = 0.9) -> TKTheoremDoc:
+    def materialize(self, tokens: str, provenance: MEMProvenance, trusted: float = 0.9,
+                    senses: Optional[dict] = None) -> TKTheoremDoc:
         fields = self.compile_fields(tokens)
+        if senses:
+            _pin_conclusion_senses(fields["zip"], senses)  # the derivation's senses ARE the truth
         assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
         key = conclusion_key(fields["zip"])
         for existing in TKTheoremDoc.find({"archived": False}).to_list():
