@@ -4,11 +4,13 @@
 
 import asyncio
 import logging
+import os
 import signal
 import sys
 from dotenv import load_dotenv
 from lib.core.io import init_io
 from lib.llc.decompiler import decompiler_init
+from senses.inbound import handle_discord_message
 from senses.outbound import outbound_executor_task
 
 load_dotenv()
@@ -32,15 +34,25 @@ async def atproto_listener_task():
     except asyncio.CancelledError:
         logger.info("🦋 LATProto Listener interrupted...")
 
-# discord bot
+# discord bot — the live inbound listener (P1: DMs → /input → memory; channels dropped until step 2).
+# The adapter owns the gateway; senses owns the translation (senses/inbound.py). Without a token the
+# task idles harmlessly (senses still runs the outbound executor).
 async def discord_bot_task():
-    logger.info("💬 Discord interface started")
+    token = os.getenv("DISCORD_TOKEN")
+    if not token:
+        logger.warning("💬 Discord interface idle — no DISCORD_TOKEN in env")
+        return
+    from lib.discord.client import DiscordClient  # import here: discord.py only when actually used
+    client = DiscordClient(token)
+    client.on_message(handle_discord_message)
+    logger.info("💬 Discord interface started (inbound: DMs → memory)")
     try:
-        while True:
-            # Qui si aggancerebbe il client di Discord (es. discord.py)
-            await asyncio.sleep(10)
+        await client.start()
     except asyncio.CancelledError:
         logger.info("💬 Discord interface interrupted...")
+        raise
+    finally:
+        await client.close()
 
 # main / init
 async def main():

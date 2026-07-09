@@ -153,3 +153,13 @@ that is collection-of/member-of, never is_a. Gate improvement for `extract_isa_e
 re-type) a plural-headed genus. Companion specimen: differentia OBJECT mis-sense («a sector
 illustrates fabric» — "textual material" got the textile sense); the object-side WSD shares the
 general differentia-WSD residual above.
+
+**TKZip binary compaction — the zip becomes an actual vector (author's note, 2026-07-09)** — today's
+`TKZip` JSON is the human-readable PROJECTION of what VISION says it is: a fixed-size mathematical
+object. Field names, nesting, floats-as-text are scaffolding for human eyes. With correct data
+modeling the payload packs to near-pure numbers (the role tensors are fixed-size by constraint; the
+operator tree is the only variable part) — orders-of-magnitude smaller. Becomes LOAD-BEARING when
+zips cross the wire (the native-zip channel: bandwidth) and when memory grows life-long (storage).
+Pairs naturally with the mentalese materialize constructor above. Deliberately later: representation
+performance is an optimize-later concern ([[laptop-ceiling-optimize-later]]); design it once, with
+the wire format, not piecemeal.

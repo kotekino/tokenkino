@@ -75,12 +75,20 @@ def get_tokeniko():
     return tokeniko
 
 # try getting a stakeholder by uid
-def get_stakeholder(name: str, channel: MEMChannels = MEMChannels.INTERNAL):
+def get_stakeholder(name: str, channel: MEMChannels = MEMChannels.INTERNAL,
+                    display_name: str = None, context_key: str = None):
 
     stakeholder = TKMemoryStakeholdersDoc.find_one({"uid": name}).run()
 
     if not stakeholder:
-        stakeholder = TKMemoryStakeholdersDoc(uid=name, name=name, isMe=False, channel=channel).save()
+        # a channel-scoped uid ("renzo@discord:12345") carries its own contextKey after the "@" —
+        # the same scheme as entity-linked individuals; outbound uses it to resolve a DM destination.
+        if context_key is None and "@" in name:
+            context_key = name.split("@", 1)[1]
+        stakeholder = TKMemoryStakeholdersDoc(
+            uid=name, name=display_name or name, isMe=False, channel=channel,
+            contextKey=context_key,
+        ).save()
 
     return stakeholder
 

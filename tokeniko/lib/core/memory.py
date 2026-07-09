@@ -44,6 +44,12 @@ class MEMItem(BaseModel):
     sourceId: str # unique stakeholder objectId of the source (talker)
     targetId: Optional[str] = None # unique stakeholder objectId of the target (listener)
     channel: Optional[str] = None # channel of the message (e.g. "discord", "atproto", "internal")
+    # fuzzy ADDRESSING carrier (senses go-live design, 2026-07-09): how much this message is directed
+    # AT tokeniko — DM 1.0 · @-mention/name/reply-to-him ~0.9 · ambient channel talk ~0.4 · part of
+    # someone else's thread ~0.15. The eval:* triggers stay PURE (epistemics never depend on
+    # addressing); Priorities multiplies a behavior rule's urge by this, so discretion — down to
+    # silence below the act threshold — emerges from ONE scalar instead of parallel side-* tokens.
+    directedness: float = Field(default=1.0)
 
 # alias for list of memory items
 MEMContext = list[MEMItem]

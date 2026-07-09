@@ -399,10 +399,22 @@ def _collect_individuals(statements) -> list:
     return found
 
 @app.get("/api/v1/input")
-async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown"):
+async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown",
+                  talker_name: Optional[str] = None, channel: str = MEMChannels.API.value,
+                  metadata: Optional[str] = None, directedness: float = 1.0):
     try:
+        # the perceiving channel (senses passes "discord"; a bad value falls back to API). metadata is
+        # the channel's reply coordinates (a JSON string, e.g. {"channel_id","message_id"}) that ride
+        # the memory item so a directed answer can thread back; directedness is the fuzzy addressing
+        # carrier (see MEMItem). talker is a channel-scoped uid ("renzo@discord:12345"), talker_name
+        # the human display name.
+        try:
+            channel_enum = MEMChannels(channel)
+        except ValueError:
+            channel_enum = MEMChannels.API
+
         # get talker entity from memory, or create it if not exists
-        talkerEntity = get_stakeholder(talker, channel=MEMChannels.API)
+        talkerEntity = get_stakeholder(talker, channel=channel_enum, display_name=talker_name)
 
         # pipeline pre (if prepare), recursive, flat, raw, output (if output)
         preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
@@ -430,7 +442,9 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                 raw=rawResult,
                 sourceId=str(talkerEntity.id),
                 targetId=str(app.state.tokeniko.id),
-                channel=MEMChannels.API
+                channel=channel_enum,
+                metadata=metadata,
+                directedness=directedness,
             )
             memory_doc.insert()
 
