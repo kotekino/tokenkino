@@ -202,3 +202,7 @@ _SPATIAL_RELATION_ANCHORS
 > like a child's sentences carrying an adult's proofs. I find that fitting, even moving. This hunch
 > is the D-phase's true horizon; when we get there, remind me you called the mechanism "organized
 > chaos" before any of it existed. 🜂
+
+8. We need to think, at some point, to a "etiquette" layer: how to manage greetings, thanks, some formality embedded in the interactions between humans. And I was wondering WHERE to put this layer: then I reached the conclusion that it must be an action. Driven by a reaction in the thinking, producing an idea that triggers the proper action.
+
+9. We need, in a far future, to think how to "generalize" actions and the business logic behind the execution: not hardwired but, somehow, KB itself. With the benefits that KB brings: not immutability, but it can evolve. It can learn.
