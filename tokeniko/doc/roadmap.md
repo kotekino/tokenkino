@@ -26,15 +26,25 @@ The autonomous loop is closed in **dry-run**; these wire the real `senses` I/O s
 perceives and speaks. Each carries an **open design question** to brainstorm before building.
 *(ATProto/Bluesky is the third channel — parked behind these; see `parked.md`.)*
 
-- **Discord INBOUND listener — PRIVATE MESSAGES FIRST (author's call, 2026-07-09).** Start with (a)
-  DMs to the bot: every DM is unambiguously *directed* (the asker is the stakeholder, tokeniko the
-  target), so the whole reasoning core interacts live with zero design debt — the first real
-  conversation. Route each input to `memory` (correct stakeholder as author, `channel=discord`), flip
-  `SENSES_DELIVER_DRYRUN=0` + wire the live `sender` to close the round-trip. THEN (b) channels in
-  tokeniko's playground — which carry the **OPEN Q — overheard vs directed:** a channel message is
-  *visible* to tokeniko but not necessarily *addressed* to him. How to represent + weigh it?
-  (targetId=tokeniko only when @-mentioned/replied-to? an "ambient/overheard" notion the brain weighs
-  differently?) — needs an idea; brainstorm before building.
+- ✅ **Discord DM loop (going-live P1–P3)** — landed + LIVE-VALIDATED 2026-07-09 (first real
+  conversation: silence-as-consent, honest IDK, the cogito answered, compliments interrogated) —
+  see `landed.md`. The senses-arc order (author-approved): **B deepen the 1:1 → C channels →
+  D trust ledger**, below.
+- **B — deepen the 1:1 (NEXT):** (1) **self-speech → memory** (delivered outbound lands as
+  `sourceId=tokeniko` memory items — biography completeness + the prerequisite of context
+  derivation); (2) **open-why derivation** (context is NEVER volatile state — DERIVE the open
+  expectation from the memory timeseries: recent own-question to this speaker / reply-threading →
+  evaluate the inbound as a candidate explanation); (3) **inbound preparser** (`prepare=1` on the
+  senses→/input call — "beause" sailed in untouched).
+- **C — channel listening + directedness grading.** Drop the DM-only filter; grade the scalar
+  (@-mention/name/reply-to-him ~0.9 · ambient ~0.4 · someone else's thread ~0.15); Priorities
+  multiplies urge by directedness (discretion → silence below the act threshold). The **overheard
+  vs directed** design question resolves INSIDE the scalar — brainstorm the grading before building.
+- **D — trust ledger (per-stakeholder opinion).** Neutral start → episodes (redundant agreement
+  weak+ · novel-valid-bridging strong+ (the kicker) · disagreement weighted by the BELIEF's trust ·
+  logic violation strong− · self-inconsistency strong−, the liar proxy) → hysteresis →
+  `tokeniko:more-trust`/`less-trust` internal actions. Kotekino anchored by imprinting, never by
+  the adder. Feeds the D-phase learning channel + the trust-gated tkzip lane.
 - **Blog (the website) as an OUTPUT channel** — a `senses`-carried output (the public window), driven by
   the **wondering/reflection** phase: an **urge to post** → an action to post to the blog. **OPEN Q —
   what triggers a post:** a freshly-discovered theorem is one source, *but not only* (novelty?

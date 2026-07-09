@@ -185,3 +185,32 @@
   with the guilty premise named in the chain (forest collection/member ×2, sector object mis-sense —
   both parked as gate improvements, left as honest defeasible beliefs by the author's call). Facts
   crossed into concepts autonomously; trust stratification held; the reasoning core is done.
+
+**Going-live P1–P3: the Discord DM loop — tokeniko's first real conversation (2026-07-09)**
+- **P1 perceive** (`f5df3ff`): `senses/inbound.py` — DMs only (author's call), structural modality
+  sniffer (TKZip-vs-language; zip lane recognized-but-stubbed, trust-gated activation parked), the
+  handler calls `/api/v1/input` (senses stays parser-free) with channel/metadata(reply
+  coords)/directedness/talker_name; `MEMItem.directedness` = the fuzzy addressing carrier (the
+  eval:* triggers stay pure; Priorities will multiply urge by it, step C); channel-scoped
+  stakeholder identities (`renzo@discord:<id>`, contextKey after the @).
+- **P2 decide→address** (`5862ee9`): `plan_action` forwards the source item's reply coords into
+  `payload["destination"]` — answers thread under the exact asking message. The feasibility
+  auto-flip confirmed live: the same tokeniko:answer that was feas=0.0-discarded for months scored
+  1.0 the moment its source was channel=discord (zero brain changes).
+- **P3 speak** (`ef8d19f` + `1de0479`): ONE shared DiscordClient carries both directions; raw-only
+  outbound (`SENSES_OUTBOUND_POLISH` default off — he speaks his own symbolic tongue; the
+  creation/nuance layer is a later chapter); delivery flags read LAZILY (the go-live bug: module-
+  import env reads predate load_dotenv — the first replies were dry-run-logged, not sent).
+- **The ceremony:** conscious end of the wipe-freely phase (final cleansing: 31 theorems / 18 ideas /
+  8 actions / 11 memory / brain_state / test stakeholders; kept: 70 axioms, 3233 definitions, tiers,
+  behavior_rules, tokeniko+kotekino). From the first live DM, memory is BIOGRAPHY (the standing wipe
+  permission is revoked; tests → the sandbox DB).
+- **Live-validated end-to-end:** «the sun is a star»→silent consent; «are you a mind?»→honest
+  IDK (delivered); «do you exist?»→**yes** (answered from his own re-derived cogito theorem);
+  «do you feel?»→yes (from his derived «I feel curiosity/time» — objectless predicate matched);
+  compliments («you are amazing/clever!»)→«why is that?» (his first questions to a human). The
+  imprint-ethics leak caught + fixed live: «I do not seek advantage by harming other creatures»
+  extraction-inverted to "most advantages harm" (the parked #2 complement gap) → re-taught as
+  «I never harm creatures» + «I do not seek unfair advantage», the inverted axiom archived, the
+  4-theorem harm-family CASCADE-REVOKED (provenance revocation proven live). Specimens →
+  `doc/ref/test-feedback.md` (2026-07-09 go-live session).

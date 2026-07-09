@@ -262,3 +262,44 @@ this red had been sitting since `bea8b52`.
 - **R3** — definitional polar inconsistency (gloss-question YES for "advertising" but NO for "advice"):
   WSD sense misalignment between the question and the stored definition. → Pillar 3 (sense canonicalization).
 - **R4** — mood markers (`??` assertion; premise-in-question swallowed). → Cleanups.
+
+## Session 2026-07-09 (evening) — GO-LIVE: the first real Discord conversation
+
+The DM loop went live (P1–P3). The conversation validated the whole stack; five specimens:
+
+**S1 — delivery flags read at module import (the dry-run ghost).** *Observed:* `dry-run=True` despite
+`.env` saying 0; tokeniko's first replies were logged, never sent. *Diagnosis:* `senses/main.py`
+imports `outbound` BEFORE `load_dotenv()` runs; `SENSES_DELIVER_DRYRUN` was read at import time into
+a module constant. *Action (landed `1de0479`):* flags read lazily at call time.
+
+**S0-adjacent — imprint axiom extraction-INVERTED.** *Observed:* «a budget harms creature» @0.3 (+3
+siblings). *Diagnosis:* the fresh ethics axiom «I do not seek advantage by harming other creatures»
+lost its "by harming…" gerund adjunct (parked #2 complement family) and a fragment compiled as
+"advantage harms" → generic rule "most advantages harm" → 7-hop tier chains. Meaning-INVERSION of a
+trust-1.0 moral axiom — the worst direction of failure, though contained at 0.3 with full
+provenance. *Action:* re-taught extractor-safe («I never harm creatures», «I do not seek unfair
+advantage»), archived the inverted axiom → the harm-family cascade-revoked (the step-3 provenance
+net proven live). Standing lesson: MORAL-CORE axioms must be phrased direct-object-clean until #2
+lands; a create-time "complement dropped" warning would catch these at the door.
+
+**S2 — no preparser on the live inbound.** *Observed:* «beause you think» ingested verbatim.
+*Diagnosis:* the senses→/input call leaves `prepare=0` — the typo/language pipe exists but is not
+wired to the live channel. *Action:* B-item 3 (roadmap).
+
+**S2 — derived-but-unmaterialized membership.** *Observed:* «are you a mind?» → honest IDK, though
+`tokeniko is_a mind.n.01` is an intermediate hop inside his own theorem chains (how «I seek
+cognition» exists). *Diagnosis:* intermediate memberships derived in the fixpoint are not
+materialized and the polar answerer does not re-run the chain for the claim. *Action:* candidate B+
+item — either materialize load-bearing intermediates or chain-ground polar membership questions.
+
+**S3 — the open-why, demonstrated live.** *Observed:* tokeniko asked «why is that?» about «you are
+clever!»; the author answered «beause you think»; the reply was evaluated COLD (grounds as "you
+think" → corroborates «I think» → silent consent) — the causal role lost. *Diagnosis:* no
+conversational expectation; the author's architecture call: context is NEVER volatile state — always
+DERIVABLE from the memory timeseries (recency cheap by construction). *Action:* B-items 1+2
+(self-speech→memory, then the open-why derivation).
+
+**Working observations:** silence-as-consent reads correctly in live chat; compliments→why is
+charming AND epistemically right; answers thread perfectly under their questions; the raw tongue
+(«I do not know», «yes», «why is that?») is stark but dignified — the nuance layer (hunch #7) can
+wait; cross-channel identity (Discord-renzo ≠ kotekino to him) is now a live design thread for D.
