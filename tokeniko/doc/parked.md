@@ -163,3 +163,17 @@ zips cross the wire (the native-zip channel: bandwidth) and when memory grows li
 Pairs naturally with the mentalese materialize constructor above. Deliberately later: representation
 performance is an optimize-later concern ([[laptop-ceiling-optimize-later]]); design it once, with
 the wire format, not piecemeal.
+
+**Conversational expectation — the open-why (go-live specimen, 2026-07-09)** — tokeniko's first live
+act was asking «why is that?»; but when the human answers, the "because" is evaluated COLD — he does
+not remember he asked. The missing piece is dialogue context, and the author fixed its architecture
+in one line: **context is never a volatile store — it is ALWAYS derivable from the state of memory.**
+No session state machine: when an inbound arrives, DERIVE the open expectation by querying his own
+biography (did I recently ask why to this speaker / did this message reply-thread to my question? →
+evaluate the inbound AS a candidate explanation of the original statement — which feeds the learning
+channel + trust ledger, step 3). Exposed gap the derivation needs closed: his OWN speech currently
+lives only in the actions log — for context to be memory-derivable, delivered outbound must land in
+`memory` too (sourceId=tokeniko). Companion of the trust ledger; builds on reply_to threading. And the recency weighting the
+derivation needs is FREE by construction — `memory` is a Mongo TIMESERIES precisely so that
+recent-items queries are cheap and natural (the author's point: that collection type was chosen for
+this).

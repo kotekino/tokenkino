@@ -25,11 +25,21 @@ from lib.discord.models import Destination
 logger = logging.getLogger("tokeniko-brain")
 
 POLL_INTERVAL = float(os.getenv("SENSES_OUTBOUND_POLL", "2"))   # seconds between idle polls
-DRYRUN = os.getenv("SENSES_DELIVER_DRYRUN", "1") != "0"          # default: dry-run (no live send)
+
+
+# the delivery flags are read LAZILY (call time, not import time): senses/main.py imports this module
+# BEFORE load_dotenv() runs, so a module-level read sees a bare environment and silently stays in
+# dry-run whatever .env says (bit us at go-live, 2026-07-09). Lazy also means the flag is honored
+# without touching code.
+def _dryrun() -> bool:
+    return os.getenv("SENSES_DELIVER_DRYRUN", "1") != "0"        # default: dry-run (no live send)
+
+
 # FOR NOW tokeniko speaks his RAW symbolic rendering (author's call, 2026-07-09): no Ollama polish on
-# the way out — the creation/nuance layer (how he phrases himself) is a later chapter. Flip to "1" to
-# re-enable the decompiler polish.
-POLISH = os.getenv("SENSES_OUTBOUND_POLISH", "0") != "0"
+# the way out — the creation/nuance layer (how he phrases himself) is a later chapter. Set
+# SENSES_OUTBOUND_POLISH=1 to re-enable the decompiler polish.
+def _polish() -> bool:
+    return os.getenv("SENSES_OUTBOUND_POLISH", "0") != "0"
 
 # the senders the executor can be handed (None in dry-run). channel adapter -> (Destination, text) -> id.
 Sender = Callable[[Destination, str], Awaitable[str]]
@@ -99,7 +109,7 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
 
     payload = action.payload or {}
     raw = (payload.get("raw") or "").strip()
-    english = await _to_english(raw) if POLISH else raw
+    english = await _to_english(raw) if _polish() else raw
     dest = _resolve_destination(action.targetId, payload)
 
     if dest is None or not english:
@@ -111,7 +121,7 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
         action.save()
         return True
 
-    if DRYRUN or sender is None:
+    if _dryrun() or sender is None:
         logger.info("[outbound] DRY-RUN would send to %s: %r  (raw=%r)",
                     dest, english, payload.get("raw", ""))
         action.status = ActionStatus.DONE
@@ -132,7 +142,7 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
 # the executor loop (a cancellable while-loop, mirroring the other senses tasks). Drains back-to-back
 # while there is work, then idles at POLL_INTERVAL.
 async def outbound_executor_task(sender: Optional[Sender] = None) -> None:
-    logger.info("📤 Outbound executor started (dry-run=%s)", DRYRUN)
+    logger.info("📤 Outbound executor started (dry-run=%s)", _dryrun())
     try:
         while True:
             try:
