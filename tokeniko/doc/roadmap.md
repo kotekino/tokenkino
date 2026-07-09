@@ -41,11 +41,13 @@ theorem auditable + every dependency revocable, logic stays hardwired.* The orde
    (`kb_extract.extract_logic` one front door folding all five extraction paths, trust by source;
    `extract_sufficient_rules` DNF + drop-disjuncts-never-conjuncts gate → 113 recognition rules;
    the chainer fires kind="sufficient" in the membership fixpoint, object-strict) — see `landed.md`.
-   Residuals → `parked.md` (derived-props as cond satisfiers; adjective-definienda fuel). **Tier
-   rebuild pending** (author's terminal: the three `--apply` writers) before the enriched soak.
-5. 🔭 **Reason over everything** — definitions rejoin chaining via the universal extractor (low-trust,
-   gated) → the rich soak done right. Includes **subject-WSD hardening** (the noise antidote that makes
-   definitions safe to chain — the chat-zombie root).
+   Residuals → `parked.md` (derived-props as cond satisfiers; adjective-definienda fuel).
+5. 🔄 **Reason over everything** — 5.1 ✅ **definition subject-WSD pin + full tier rebuild** landed
+   2026-07-09 (gloss-inversion ground truth: 189 mis-senses → 0; all THREE tiers live+clean: 627
+   genus edges, 116 sufficient, 90 differentia @0.3 — definitions fully rejoined chaining) — see
+   `landed.md`. Remaining: **runtime graph subject-untangle** (the compile-time guard for AXIOM
+   subjects — no gloss to pin; mirror of `c_untangle`'s genus rule) + the **enriched soak** over the
+   three-tier fuel (validate what the wondering derives).
 
 *(Deepest pole, parked → `parked.md`: **predicate-complement capture** — prepositional/control complements
 dropped, "run in a hardware" → "run" — and complex-definition parser fidelity. Workarounds exist.)*

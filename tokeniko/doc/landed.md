@@ -116,3 +116,31 @@
 - **Negated membership now carries + refutes.** «I am not a man» previously extracted as an AFFIRMATIVE membership fact (`extract_facts`' membership branch dropped `negated`): tokeniko believed the opposite of what he was told, and man.n.01's whole ancestor line polluted his closure. Fix: the membership fact carries `negated`; the chainer never seeds the closure from a negated one; and `evaluator_groundIndividualFact` gains a MEMBERSHIP branch that REFUTES the matching claim/question (exact klass only — "I am not a man" refutes "are you a man?" → confident NO, never "are you a person?"). `_subject_prop_pairs` also excludes negated facts as sufficiency satisfiers. Live: "Are you a man?" → polar NO conf 1.0.
 - **Possessive subject → DEFINITE (scope-widening leak).** «my mind is a software» compiled quantifier=GENERIC (dep=poss is not det) and minted the class edge mind.n.01→software.n.01 = "ALL minds are software". Root: a first-person possessive is coreference-rewritten to the speaker's identity BEFORE the compiler sees it (the word "my" is gone → "tokeniko"), so reading the possessor token is hopeless — the `poss`/`nmod:poss` DEPENDENCY is the only durable signal. Fix: `compiler_subjectIsPossessed` tests the dep structurally → a possessed subject is DEFINITE (a specific individual's X, never the class), so no edge, no rule. Live: "my mind is a software" → quantifier DEFINITE.
 - **Tests:** `tests/test_negation_possessive.py` (7). **Gate 55 passed / 1 xfailed.** *(Residual: the possessive fix is on the SUBJECT; the parked "kotekino is MY creator" object-side possessive-bond specimen is a separate capture problem, still parked.)*
+
+**Brain v1.1 — step 5.1: definition subject-WSD pin + full tier rebuild (2026-07-09)**
+- **Exact ground truth via gloss-inversion (the survey's unlock).** Every definition was framed by
+  `glosses.py` as "a {word} is {clean_gloss(synset.definition())}" from a KNOWN WordNet synset — so
+  inverting the gloss text against the word's synsets recovers the TRUE subject sense per definition.
+  `scripts/probe_subject_wsd.py` (read-only census over all 3233): **189/2025 noun-frame subjects
+  mis-sensed (9.3%)** — and the breakdown reframed the disease: 118 POS mis-typing ("a behind is…" →
+  `behind.r.01`), 62 lemma drift (dvd→"cd"→`cadmium.n.01`, data→datum), only **9** true same-word
+  sense-number errors; plus 120 adjective-frame defs ("something bottom is…") carrying a NOUN subject
+  sense (the source of false noun edges: `bottom.n.01 is_a rank.n.01`). Blast radius on the live fuel:
+  46/582 tier edges + 5/113 sufficient rules poisoned (the chat-zombie among them). Cure comparison:
+  gloss-pinning fixes 189/189; a graph subject-untangle only 56/189; the gate catches ~none (146
+  "accept") — the fix belongs at INGESTION.
+- **The pin (`scripts/pin_definition_senses.py`)** — operator-gated writer (dry-run default): patches
+  the stored zips IN PLACE (leaf `senses["subject"]` + the subject tensor's 2925-dim semantic segment,
+  same style as the genus untangle) to the recovered truth. 310 definitions patched (189 noun + 121
+  adj frames; 309 with vector swap). **IDEMPOTENT + RE-RUNNABLE — must re-run after
+  `recompile.py --collection definitions` or a new gloss batch** (both re-introduce unpinned
+  subjects); then rebuild the derived tiers. The probe imports the inversion from the writer (one
+  source of truth).
+- **Full tier rebuild on pinned fuel — definitions fully rejoin chaining (the step-5 wiring):**
+  genus edges 582→**627** (+45: ex-mis-typed subjects now mint their TRUE edges — `buttocks.n.01
+  is_a part.n.02`), sufficiency 113→**116**, and **differentia APPLIED for the first time — 90
+  property rules @0.3** ("all cats have fur", "all buses transport passengers"): all three
+  definition-derived tiers live, low-trust, gated, revocable (decision A generalized, not reversed).
+  Post-rebuild census: **0 mis-sensed subjects, 0 poisoned entries in any tier** — the chat-zombie is
+  dead at the root (the definition's subject IS `new_world_chat.n.01`; `chat.n.01→bird` can never
+  re-mine). No engine code touched (scripts only, gate untouched at 55/1).

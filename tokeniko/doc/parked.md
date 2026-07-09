@@ -26,8 +26,9 @@ shows them worth it: (1) **derived properties as cond satisfiers** — sufficien
 the seed's stored property FACTS only; letting chainer-derived properties satisfy definiens conjuncts
 (recognition over inferred traits) needs the fixpoint interleaved with property derivation. (2)
 **adjective-definienda sufficiency** ("has merit → valuable" — the finding-#3 flagship) has NO fuel:
-all glosses were "a/an X is …" noun-templated, so adjective senses compile as noun-style artifacts;
-needs per-POS gloss re-templating first. (3) **class-seed recognition** — sufficient rules fire only
+all glosses were "a/an X is …" noun-templated, so adjective definienda compile as noun-STRUCTURED
+zips (the step-5.1 pin now labels their subjects with the true `.s.`/`.a.` sense, but the clause
+shape stays noun-copular); needs per-POS gloss re-templating first. (3) **class-seed recognition** — sufficient rules fire only
 on individuals (property facts are uid-keyed); a class satisfying a definiens via its own differentia
 rules is a further unification.
 
