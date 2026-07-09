@@ -4,7 +4,8 @@
 > began as a set of grounding/chaining gaps surfaced by the author's live **curated-fuel test** (2026-07
 > soak) and matured into a single reframe: **everything compilable to a `TKZip` is reasoned over;
 > collections denote what content REPRESENTS (enforced by write-path), not whether the brain may reason.**
-> This doc holds the *why* + the *design*; the ordered implementation steps live in `doc/roadmap.md`.
+> This doc holds the *why* + the *design*. The ordered build (steps 1–5) is **complete** (2026-07-09,
+> validated by the enriched soak) — the history is `doc/landed.md`; residuals `doc/parked.md`.
 > NOT a status doc.
 
 ## The vision — the Unified KB (the reframe)
@@ -242,7 +243,7 @@ definitions-as-fuel — cleaner than differentia-down-hierarchy because it never
 
 ---
 
-## #4 — Revocation durability + the chat-zombie — QUICK band-aid; real fix is subject-WSD
+## #4 — Revocation durability + the chat-zombie — ✅ landed (steps 3 + 5.1/5.2, see `landed.md`: edges re-mined in-memory per load = revocation by construction; the subject-WSD root fixed by the gloss-pin + the runtime subject untangle — the chat-zombie is dead at the root)
 
 **Observed.** "a confabulation has feather" reappeared after revocation.
 

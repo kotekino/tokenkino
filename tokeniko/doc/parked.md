@@ -92,9 +92,10 @@ fold only the question leaves in `_polar_answer` (→ honest IDK/correct YES). T
 the premise hypothetically — is conditional reasoning, built with the question-answering deepening.
 Full diagnosis in `doc/ref/test-feedback.md` (2026-06-25). Trigger is uncommon; normal questions unaffected.
 
-**Performance (optimize-later)** — `evaluate_zip` reloads the full active KB on every call → ~12s/item
-brain throughput; cache the active KB across ticks. Dual `en_core_web_lg` load (`parser.nlp` +
-`c_state.nlp`) → consolidate.
+**Performance (optimize-later)** — the fingerprint KB cache (`_kb_cache`) landed, but every
+materialized theorem changes the fingerprint → the next tick still pays a FULL reload (3233
+definition zips, tens of seconds) — an incremental/delta reload would cut soak tick cost ~10x.
+Dual `en_core_web_lg` load (`parser.nlp` + `c_state.nlp`) → consolidate.
 
 **WSD (deeper refinements, beyond the next-up Pillar 3 #2)** — contextual WSD for ambiguous heads;
 co-predication hint (prefer attribute-sharing adjective senses); graded attribute-contrariety (no

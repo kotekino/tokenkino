@@ -26,12 +26,15 @@ The autonomous loop is closed in **dry-run**; these wire the real `senses` I/O s
 perceives and speaks. Each carries an **open design question** to brainstorm before building.
 *(ATProto/Bluesky is the third channel — parked behind these; see `parked.md`.)*
 
-- **Discord INBOUND listener.** Connect the live `DiscordClient`; monitor (a) DMs to the bot and
-  (b) channels in tokeniko's playground → route each input to `memory` (correct stakeholder as author,
-  `channel=discord`). Then flip `SENSES_DELIVER_DRYRUN=0` + wire the live `sender` to close the
-  round-trip. **OPEN Q — overheard vs directed:** a channel message is *visible* to tokeniko but not
-  necessarily *addressed* to him. How to represent + weigh it? (targetId=tokeniko only when
-  @-mentioned/replied-to? an "ambient/overheard" notion the brain weighs differently?) — needs an idea.
+- **Discord INBOUND listener — PRIVATE MESSAGES FIRST (author's call, 2026-07-09).** Start with (a)
+  DMs to the bot: every DM is unambiguously *directed* (the asker is the stakeholder, tokeniko the
+  target), so the whole reasoning core interacts live with zero design debt — the first real
+  conversation. Route each input to `memory` (correct stakeholder as author, `channel=discord`), flip
+  `SENSES_DELIVER_DRYRUN=0` + wire the live `sender` to close the round-trip. THEN (b) channels in
+  tokeniko's playground — which carry the **OPEN Q — overheard vs directed:** a channel message is
+  *visible* to tokeniko but not necessarily *addressed* to him. How to represent + weigh it?
+  (targetId=tokeniko only when @-mentioned/replied-to? an "ambient/overheard" notion the brain weighs
+  differently?) — needs an idea; brainstorm before building.
 - **Blog (the website) as an OUTPUT channel** — a `senses`-carried output (the public window), driven by
   the **wondering/reflection** phase: an **urge to post** → an action to post to the blog. **OPEN Q —
   what triggers a post:** a freshly-discovered theorem is one source, *but not only* (novelty?

@@ -98,6 +98,7 @@ Derived knowledge (full `TKZip`); no `readonly` flag.
 | Method | Path | Purpose |
 |---|---|---|
 | `POST` | `/api/v1/theorems` | compile a sentence and store it as a theorem |
+| `POST` | `/api/v1/theorems/materialize` | materialize a DERIVED conclusion (provenance + optional `senses` pinned into the zip; dedups on the semantic conclusion) |
 | `GET` | `/api/v1/theorems` | list theorems (summary view, no `zip`; `?archived=` filter) |
 | `GET` | `/api/v1/theorems/{id}` | fetch a single theorem (full document, including `zip`) |
 | `PATCH` | `/api/v1/theorems/{id}` | partial update (recompiles if `tokens` is supplied) |
