@@ -144,3 +144,21 @@
   Post-rebuild census: **0 mis-sensed subjects, 0 poisoned entries in any tier** — the chat-zombie is
   dead at the root (the definition's subject IS `new_world_chat.n.01`; `chat.n.01→bird` can never
   re-mine). No engine code touched (scripts only, gate untouched at 55/1).
+
+**Brain v1.1 — step 5.2: runtime graph SUBJECT untangle (2026-07-09)**
+- **The compile-time guard for what the pin can't reach.** A definition's subject gets exact
+  gloss-pinning (5.1); a runtime AXIOM has no gloss to invert. `compiler_untangleSubject`
+  (`c_untangle.py`, called in `c_main` AFTER the genus pass) mirrors `_resolve_genus` on the subject
+  side: override the copular subject sense ONLY when it is NOT a bedrock descendant of the genus AND
+  another noun sense of the same subject WORD is — a demonstrable mis-sense snaps to the sense the
+  graph already vouches for (sense + 2925 vector swapped together, zip stays honest). Survey-measured
+  honest reach: ~30% of definition-style mis-senses had a graph-consistent candidate — the remaining
+  70% have no bedrock witness and correctly stand as claimed.
+- **The two guarantees that bound it:** (1) a genuine NEW edge is untouchable — «a human is a person»
+  has no sense of "human" under person.n.01 in bedrock, so the author's bridging axiom compiles
+  exactly as taught; (2) a named individual's subject is NEVER touched (its sense is the NER type
+  centroid from the identity-bridge, not a WSD pick — swapping it would corrupt identity).
+- **Tests:** `tests/test_untangle_subject.py` (7) — synthetic-graph resolver units (snap / keep /
+  new-edge / non-noun) + live compile («a fair is a traveling show» → subject `carnival.n.03`;
+  «a cat is a mammal» unchanged; «a human is a person» → `homo.n.02` preserved). **Gate 62 passed /
+  1 xfailed.**

@@ -90,6 +90,28 @@ def _leaves(items):
     return out
 
 
+# the SUBJECT-side untangle decision (step 5, the chat-zombie antidote for runtime axioms — the
+# definitions get exact gloss-pinning instead, scripts/pin_definition_senses.py). Mirror of
+# _resolve_genus: override the subject sense ONLY when it is NOT a bedrock descendant of the genus
+# AND another sense of the same subject WORD is — so a demonstrable mis-sense snaps to the sense the
+# graph already vouches for, while a genuine NEW edge ("a human is a person": no sense of "human"
+# descends from person.n.01 in bedrock) is left untouched. Runs AFTER the genus untangle, so it only
+# fires on pairs the genus pass could not reconcile. noun→noun only (the taxonomic spine).
+def _resolve_subject(subject_token: str, subject_sense: str, genus_sense: str) -> str:
+    if not subject_sense or not genus_sense:
+        return subject_sense
+    if ".n." not in subject_sense or ".n." not in genus_sense:
+        return subject_sense
+    cands = list(_senses_of(subject_token))
+    if subject_sense not in cands:
+        cands.append(subject_sense)
+    consistent = [c for c in cands
+                  if ".n." in c and c != genus_sense and relations_subsumes(genus_sense, c, _parents)]
+    if not consistent or subject_sense in consistent:
+        return subject_sense            # genuine new edge / off-graph / already-consistent -> keep
+    return min(consistent, key=_sense_num)  # override -> the most-frequent graph-consistent sense
+
+
 # walk the LLC clauses and untangle each copular genus IN PLACE. Returns the number of genera corrected.
 def compiler_untangleGenus(items) -> int:
     fixed = 0
@@ -108,5 +130,31 @@ def compiler_untangleGenus(items) -> int:
             continue  # no vector for the target sense -> cannot safely swap; leave it
         pred.sense = new
         pred.semantic_vector = vec  # keep label + geometry in sync (else the zip lies)
+        fixed += 1
+    return fixed
+
+
+# walk the LLC clauses and untangle each copular SUBJECT IN PLACE (after the genus pass). A named
+# individual's subject is NEVER touched: its sense is the NER type centroid (identity-bridge), not a
+# WSD guess — swapping it would corrupt the identity representation. Returns the number corrected.
+def compiler_untangleSubject(items) -> int:
+    fixed = 0
+    for content in _leaves(items):
+        if not isinstance(content, TKLLCContent):
+            continue
+        subj = _entity_by_ref(content.subject)
+        pred = _entity_by_ref(content.predicate)
+        if not subj or not pred or not subj.sense or not pred.sense:
+            continue
+        if getattr(subj, "uid", None):
+            continue  # entity-linked individual: type-centroid sense, not a WSD pick
+        new = _resolve_subject(subj.token, subj.sense, pred.sense)
+        if new == subj.sense:
+            continue
+        vec = _vector_of(new)
+        if not vec:
+            continue  # no vector for the target sense -> cannot safely swap; leave it
+        subj.sense = new
+        subj.semantic_vector = vec  # keep label + geometry in sync (else the zip lies)
         fixed += 1
     return fixed

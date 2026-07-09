@@ -11,7 +11,7 @@ from .c_entities import compiler_resolveEntities
 from .c_subordinates import compiler_resolveSubordinateSubjects
 from .c_statements import compiler_resolveStatements
 from .c_spacetime import compiler_spacetimeResolveTime, compiler_spacetimeResolveSpace, compiler_spacetimeNormalize, compiler_spacetimeResolveVelocity
-from .c_untangle import compiler_untangleGenus
+from .c_untangle import compiler_untangleGenus, compiler_untangleSubject
 from .c_zip import compiler_zip
 
 def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
@@ -36,6 +36,12 @@ def compiler_compile(tkStatements: TKStatements) -> tuple[TKLLC, TKZip]:
     # the source (organ-the-fish, state-the-country) using tokeniko's own is_a graph. Mutates entity
     # senses (+ their vectors) IN PLACE before the zip is built, so the zip carries the corrected sense.
     compiler_untangleGenus(tkllc.items)
+
+    # graph-constrained SUBJECT untangle (step 5 — the runtime mirror; definitions get exact
+    # gloss-pinning instead): after the genus pass, snap a still-inconsistent subject to the sense of
+    # the same word that bedrock already places under the genus. Named individuals are never touched
+    # (type-centroid sense). Conservative: no consistent candidate -> the new edge stands as claimed.
+    compiler_untangleSubject(tkllc.items)
 
     # tkzip
     zipmap = map.tbounds + map.xbounds + map.ybounds + map.zbounds

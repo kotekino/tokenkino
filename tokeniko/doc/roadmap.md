@@ -42,11 +42,11 @@ theorem auditable + every dependency revocable, logic stays hardwired.* The orde
    `extract_sufficient_rules` DNF + drop-disjuncts-never-conjuncts gate → 113 recognition rules;
    the chainer fires kind="sufficient" in the membership fixpoint, object-strict) — see `landed.md`.
    Residuals → `parked.md` (derived-props as cond satisfiers; adjective-definienda fuel).
-5. 🔄 **Reason over everything** — 5.1 ✅ **definition subject-WSD pin + full tier rebuild** landed
-   2026-07-09 (gloss-inversion ground truth: 189 mis-senses → 0; all THREE tiers live+clean: 627
-   genus edges, 116 sufficient, 90 differentia @0.3 — definitions fully rejoined chaining) — see
-   `landed.md`. Remaining: **runtime graph subject-untangle** (the compile-time guard for AXIOM
-   subjects — no gloss to pin; mirror of `c_untangle`'s genus rule) + the **enriched soak** over the
+5. 🔄 **Reason over everything** — 5.1 ✅ **definition subject-WSD pin + full tier rebuild** + 5.2 ✅
+   **runtime graph subject-untangle** landed 2026-07-09 (gloss-inversion ground truth: 189
+   mis-senses → 0; all THREE tiers live+clean: 627 genus edges, 116 sufficient, 90 differentia
+   @0.3 — definitions fully rejoined chaining; `compiler_untangleSubject` guards runtime axiom
+   subjects at compile time) — see `landed.md`. Remaining: the **enriched soak** over the
    three-tier fuel (validate what the wondering derives).
 
 *(Deepest pole, parked → `parked.md`: **predicate-complement capture** — prepositional/control complements
