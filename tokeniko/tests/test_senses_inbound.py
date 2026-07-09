@@ -85,7 +85,8 @@ def test_dm_params_carry_identity_channel_coords_directedness():
     assert p["channel"] == "discord"
     assert p["directedness"] == 1.0                   # a DM is unambiguously directed
     coords = json.loads(p["metadata"])
-    assert coords == {"channel_id": "333", "message_id": "111"}  # the P2 reply thread-back
+    # the P2 reply thread-back + the B2 structural hook (reply_to of a non-reply is None)
+    assert coords == {"channel_id": "333", "message_id": "111", "reply_to": None}
 
 
 # ---- the directedness carrier ---------------------------------------------------------------------

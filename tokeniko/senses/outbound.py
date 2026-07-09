@@ -13,16 +13,55 @@
 # pipeline-light: imports the decompiler (Ollama only, no spaCy) + the Destination model — never the parser.
 # --------------------------------------------------------------
 import asyncio
+import json
 import logging
 import os
 from typing import Awaitable, Callable, Optional
 
-from lib.core.models import TKActionDoc, TKMemoryStakeholdersDoc
+from lib.core.models import TKActionDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc
 from lib.core.memory import ActionStatus, MEMChannels
 from lib.llc.decompiler import decompiler_decompile
 from lib.discord.models import Destination
 
 logger = logging.getLogger("tokeniko-brain")
+
+# tokeniko's own stakeholder id (the sourceId of his recorded speech), resolved lazily once.
+_self_id: Optional[str] = None
+
+
+def _tokeniko_id() -> Optional[str]:
+    global _self_id
+    if _self_id is None:
+        me = TKMemoryStakeholdersDoc.find_one({"isMe": True}).run()  # Bunnet: .run() executes
+        _self_id = str(me.id) if me is not None else None
+    return _self_id
+
+
+# SELF-SPEECH → MEMORY (senses B1, 2026-07-09): a DELIVERED outbound message is a biographical event —
+# record it as a zip-less memory item (sourceId=tokeniko, targetId=the recipient). zip=None keeps it
+# INVISIBLE to the reaction loop (think/wonder filter zip!=None) while making conversational context
+# DERIVABLE from the timeseries (the open-why: "did I recently ask this speaker something?"). metadata
+# carries the SENT message id (the structural hook an inbound reply threads back to) + what it replied
+# to. Live sends only — a dry-run says nothing, so it records nothing.
+def _record_self_speech(action, dest: Destination, text: str, sent_message_id: str) -> None:
+    try:
+        me = _tokeniko_id()
+        if me is None:
+            return
+        TKMemoryItemDoc(
+            original=text,
+            zip=None,
+            sourceId=me,
+            targetId=action.targetId,
+            channel=MEMChannels.DISCORD,
+            metadata=json.dumps({
+                "channel_id": dest.channel_id or "",
+                "message_id": sent_message_id,
+                "reply_to": dest.reply_to,
+            }),
+        ).insert()
+    except Exception as error:
+        logger.warning("[outbound] self-speech record failed (%s) — delivery unaffected", error)
 
 POLL_INTERVAL = float(os.getenv("SENSES_OUTBOUND_POLL", "2"))   # seconds between idle polls
 
@@ -131,6 +170,7 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
     try:
         msg_id = await sender(dest, english)
         logger.info("[outbound] sent to %s (msg=%s): %r", dest, msg_id, english)
+        _record_self_speech(action, dest, english, msg_id)  # B1: spoken words are biography
         action.status = ActionStatus.DONE
     except Exception as error:
         logger.warning("[outbound] send failed for action %s (%s) -> FAILED", str(action.id), error)

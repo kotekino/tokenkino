@@ -76,9 +76,14 @@ def dm_input_params(msg: DiscordMessage) -> dict:
         "talker_name": msg.author_name,
         "channel": "discord",
         # the reply coordinates: plan_action forwards them into the action payload so the answer
-        # threads back to the asker's actual message (P2).
-        "metadata": json.dumps({"channel_id": msg.channel_id, "message_id": msg.message_id}),
+        # threads back to the asker's actual message (P2). reply_to = what THIS message replies to —
+        # the structural hook of the open-why derivation (B2: is this a reply to MY question?).
+        "metadata": json.dumps({"channel_id": msg.channel_id, "message_id": msg.message_id,
+                                "reply_to": msg.reply_to}),
         "directedness": 1.0,                                       # a DM is unambiguously directed
+        # B3: the live channel runs the preparser (typo correction + language detection — «beause»
+        # sailed in untouched at go-live).
+        "prepare": 1,
     }
 
 

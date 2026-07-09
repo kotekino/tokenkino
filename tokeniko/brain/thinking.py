@@ -14,10 +14,11 @@
 # STILL next: wondering (self-prompted derivation over the wondering window), and the tier-1 split (an
 # eval:true that is NOT KB-derivable but taught by a trusted speaker -> learn at teacher trust).
 # --------------------------------------------------------------
+import json
 import logging
 import random
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from bson import ObjectId
@@ -32,6 +33,7 @@ from lib.core.models import (
     TKBrainStateDoc,
     TKDefinitionDoc,
     TKMemoryItemDoc,
+    TKMemoryStakeholdersDoc,
     TKTheoremDoc,
 )
 from brain import api_client, behavior
@@ -338,6 +340,71 @@ def wonder_one(brain_state: TKBrainStateDoc) -> bool:
 # fans it into ideas; then cross-checks the same speaker's priors for a context conflict. Advances +
 # persists that speaker's cursor so the item is never reprocessed. Returns True iff it processed one.
 #
+# ----------------------------------------------------------------------------------------------
+# THE OPEN-WHY DERIVATION (senses B2, 2026-07-09) — conversational context is NEVER volatile state:
+# it is ALWAYS derivable from the memory timeseries (the author's architecture call). When an inbound
+# assertion arrives, ask the biography: did I recently ask this speaker a question they might be
+# answering? Two derivations, structural first:
+#   1. STRUCTURAL — the inbound reply-threads (Discord reply_to) to a question I sent (B1 records my
+#      speech with its sent message_id; B3 forwards the inbound's reply_to).
+#   2. RECENCY — my newest message to this speaker inside the window is a question, and the speaker
+#      said nothing in between → their next message is the candidate answer (timeseries recency is
+#      cheap by construction — the collection type was chosen for this).
+# v1 CONSUMES the derivation minimally: an eval:unknown "because" does not re-trigger the why reflex
+# (no why-about-the-because regress); the explanation LINK as learning fuel is the D-phase teaching
+# channel. A false "because" still speaks up — disagreement outranks etiquette.
+# ----------------------------------------------------------------------------------------------
+_OPEN_QUESTION_WINDOW = 900  # seconds a question stays "open" for the recency derivation
+
+_self_source_id: Optional[str] = None
+
+
+def _self_id() -> Optional[str]:
+    global _self_source_id
+    if _self_source_id is None:
+        me = TKMemoryStakeholdersDoc.find_one({"isMe": True}).run()  # Bunnet: .run() executes
+        _self_source_id = str(me.id) if me is not None else None
+    return _self_source_id
+
+
+def _meta(item) -> dict:
+    try:
+        data = json.loads(item.metadata or "{}")
+        return data if isinstance(data, dict) else {}
+    except (ValueError, TypeError):
+        return {}
+
+
+def _derive_reply_context(item) -> Optional[TKMemoryItemDoc]:
+    """The inbound item answers WHICH of my recent questions? Returns my question item, or None."""
+    me = _self_id()
+    if me is None:
+        return None
+    window_lo = item.timestamp - timedelta(seconds=_OPEN_QUESTION_WINDOW)
+    mine = (
+        TKMemoryItemDoc.find({"sourceId": me, "targetId": item.sourceId,
+                              "timestamp": {"$gt": window_lo, "$lt": item.timestamp}})
+        .sort("-timestamp")
+        .to_list()
+    )
+    if not mine:
+        return None
+    # 1. structural: the inbound replies to one of my sent messages
+    reply_to = _meta(item).get("reply_to")
+    if reply_to:
+        for m in mine:
+            if _meta(m).get("message_id") == reply_to:
+                return m if (m.original or "").rstrip().endswith("?") else None
+    # 2. recency: my newest message is an open question and the speaker said nothing since
+    latest = mine[0]
+    if not (latest.original or "").rstrip().endswith("?"):
+        return None
+    interleaved = TKMemoryItemDoc.find(
+        {"sourceId": item.sourceId, "timestamp": {"$gt": latest.timestamp, "$lt": item.timestamp}}
+    ).count()
+    return latest if interleaved == 0 else None
+
+
 # First-run guard: if wake_at is None, initialize it to the latest memory ts and return False —
 # tokeniko only reacts to memory that ARRIVES AFTER it first wakes, never re-thinks all of history.
 def think_one(brain_state: TKBrainStateDoc) -> bool:
@@ -411,15 +478,28 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         token = status_to_token(result)
 
         if token:
-            ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id))
-            logger.info(
-                "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
-                str(item.id),
-                result.status.value,
-                result.truth,
-                token,
-                len(ideas),
+            # B2 (the open-why): an UNKNOWN that answers my own recent question is a candidate
+            # explanation — do not re-interrogate it (the why-regress). Other verdicts unaffected
+            # (a false "because" still speaks up; a true one still corroborates/learns).
+            because_of = (
+                _derive_reply_context(item) if token == EvalToken.UNKNOWN.value else None
             )
+            if because_of is not None:
+                logger.info(
+                    "[thinking] «%s» answers my question «%s» (memory=%s) — candidate explanation; "
+                    "why-regress suppressed (open-why v1)",
+                    item.original, because_of.original, str(because_of.id),
+                )
+            else:
+                ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id))
+                logger.info(
+                    "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
+                    str(item.id),
+                    result.status.value,
+                    result.truth,
+                    token,
+                    len(ideas),
+                )
             # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
             if token == EvalToken.TRUE.value:
                 materialize_theorem(result, item, derived_by="thinking")

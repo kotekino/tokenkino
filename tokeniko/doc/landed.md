@@ -214,3 +214,20 @@
   «I never harm creatures» + «I do not seek unfair advantage», the inverted axiom archived, the
   4-theorem harm-family CASCADE-REVOKED (provenance revocation proven live). Specimens →
   `doc/ref/test-feedback.md` (2026-07-09 go-live session).
+
+**Senses B: deepen the 1:1 (2026-07-09, same evening as go-live)**
+- **B1 self-speech → memory** — a DELIVERED outbound message is recorded as a ZIP-LESS memory item
+  (`sourceId=tokeniko`, sent message_id in metadata = the structural reply hook; dry-runs record
+  nothing). zip=None keeps his own words invisible to the reaction loop (think/wonder filter
+  zip!=None) while completing the biography both context derivation and the trust ledger feed on.
+- **B2 the open-why derivation** (`brain/thinking.py::_derive_reply_context`) — conversational
+  context is NEVER volatile state; it is DERIVED from the memory timeseries (the author's
+  architecture call): STRUCTURAL first (the inbound reply-threads to a question I sent), RECENCY
+  fallback (my newest message to this speaker in a 15-min window is an open question and they said
+  nothing since). v1 consumption: an eval:unknown "because" suppresses the why reflex (no
+  why-about-the-because regress); a false "because" still speaks up. The explanation LINK as
+  learning fuel → D-phase.
+- **B3 live preparser + reply_to forwarding** — the senses→/input call runs `prepare=1` (typo
+  correction/language detection on the live channel — the «beause» specimen) and forwards the
+  inbound's reply_to (B2's structural food). Tests: `tests/test_senses_b.py` (7). **Gate 87
+  passed / 1 xfailed.**

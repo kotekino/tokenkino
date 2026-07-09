@@ -30,12 +30,10 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   conversation: silence-as-consent, honest IDK, the cogito answered, compliments interrogated) —
   see `landed.md`. The senses-arc order (author-approved): **B deepen the 1:1 → C channels →
   D trust ledger**, below.
-- **B — deepen the 1:1 (NEXT):** (1) **self-speech → memory** (delivered outbound lands as
-  `sourceId=tokeniko` memory items — biography completeness + the prerequisite of context
-  derivation); (2) **open-why derivation** (context is NEVER volatile state — DERIVE the open
-  expectation from the memory timeseries: recent own-question to this speaker / reply-threading →
-  evaluate the inbound as a candidate explanation); (3) **inbound preparser** (`prepare=1` on the
-  senses→/input call — "beause" sailed in untouched).
+- ✅ **B — deepen the 1:1** — landed 2026-07-09 (self-speech → zip-less biography items; the
+  open-why derivation — structural reply-threading + recency over the timeseries, why-regress
+  suppressed; inbound preparser on) — see `landed.md`. Follow-on: the explanation LINK as learning
+  fuel is the D-phase teaching channel.
 - **C — channel listening + directedness grading.** Drop the DM-only filter; grade the scalar
   (@-mention/name/reply-to-him ~0.9 · ambient ~0.4 · someone else's thread ~0.15); Priorities
   multiplies urge by directedness (discretion → silence below the act threshold). The **overheard
