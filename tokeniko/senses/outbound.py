@@ -26,6 +26,10 @@ logger = logging.getLogger("tokeniko-brain")
 
 POLL_INTERVAL = float(os.getenv("SENSES_OUTBOUND_POLL", "2"))   # seconds between idle polls
 DRYRUN = os.getenv("SENSES_DELIVER_DRYRUN", "1") != "0"          # default: dry-run (no live send)
+# FOR NOW tokeniko speaks his RAW symbolic rendering (author's call, 2026-07-09): no Ollama polish on
+# the way out — the creation/nuance layer (how he phrases himself) is a later chapter. Flip to "1" to
+# re-enable the decompiler polish.
+POLISH = os.getenv("SENSES_OUTBOUND_POLISH", "0") != "0"
 
 # the senders the executor can be handed (None in dry-run). channel adapter -> (Destination, text) -> id.
 Sender = Callable[[Destination, str], Awaitable[str]]
@@ -94,7 +98,8 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
     action.save()
 
     payload = action.payload or {}
-    english = await _to_english(payload.get("raw", ""))
+    raw = (payload.get("raw") or "").strip()
+    english = await _to_english(raw) if POLISH else raw
     dest = _resolve_destination(action.targetId, payload)
 
     if dest is None or not english:

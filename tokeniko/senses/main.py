@@ -35,15 +35,9 @@ async def atproto_listener_task():
         logger.info("🦋 LATProto Listener interrupted...")
 
 # discord bot — the live inbound listener (P1: DMs → /input → memory; channels dropped until step 2).
-# The adapter owns the gateway; senses owns the translation (senses/inbound.py). Without a token the
-# task idles harmlessly (senses still runs the outbound executor).
-async def discord_bot_task():
-    token = os.getenv("DISCORD_TOKEN")
-    if not token:
-        logger.warning("💬 Discord interface idle — no DISCORD_TOKEN in env")
-        return
-    from lib.discord.client import DiscordClient  # import here: discord.py only when actually used
-    client = DiscordClient(token)
+# The adapter owns the gateway; senses owns the translation (senses/inbound.py). The client is built
+# in main() and SHARED with the outbound executor (one gateway connection carries both directions).
+async def discord_bot_task(client):
     client.on_message(handle_discord_message)
     logger.info("💬 Discord interface started (inbound: DMs → memory)")
     try:
@@ -53,6 +47,14 @@ async def discord_bot_task():
         raise
     finally:
         await client.close()
+
+
+# build the outbound Sender closure over the shared client (P3): the executor hands it a resolved
+# Destination + prepared content; the adapter ships it. None when Discord is not connected.
+def make_discord_sender(client):
+    async def sender(destination, content: str) -> str:
+        return await client.send(destination, content)
+    return sender
 
 # main / init
 async def main():
@@ -75,15 +77,27 @@ async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, shutdown_handler)
 
-    # 3. Tasks launcher
+    # 3. The shared Discord client (P3): ONE gateway connection carries both directions — the inbound
+    #    listener and the outbound sender. Without a token, inbound idles and outbound stays dry-run.
+    discord_client = None
+    sender = None
+    token = os.getenv("DISCORD_TOKEN")
+    if token:
+        from lib.discord.client import DiscordClient  # import here: discord.py only when actually used
+        discord_client = DiscordClient(token)
+        sender = make_discord_sender(discord_client)
+    else:
+        logger.warning("💬 Discord interface idle — no DISCORD_TOKEN in env")
+
+    # 4. Tasks launcher
     try:
         async with asyncio.TaskGroup() as tg:
             # Creiamo i processi paralleli che gireranno contemporaneamente
             atproto_task = tg.create_task(atproto_listener_task())
-            discord_task = tg.create_task(discord_bot_task())
+            discord_task = tg.create_task(discord_bot_task(discord_client)) if discord_client else None
             # D3b: the outbound actions executor — carries the brain's decisions to Discord (dry-run
-            # by default; sender=None until a live DiscordClient is connected with the inbound listener).
-            outbound_task = tg.create_task(outbound_executor_task())
+            # unless SENSES_DELIVER_DRYRUN=0 AND a live sender is connected).
+            outbound_task = tg.create_task(outbound_executor_task(sender))
 
             # Waiting for sigterms
             await stop_event.wait()
@@ -91,7 +105,8 @@ async def main():
             # Gently shutdown
             logger.info("Shutting down sub threads...")
             atproto_task.cancel()
-            discord_task.cancel()
+            if discord_task is not None:
+                discord_task.cancel()
             outbound_task.cancel()
             
     except* Exception as eg:
