@@ -9,6 +9,7 @@
 #   - spawn_ideas_for(trigger)   -> fan the candidates out into ideas (one per rule; Thinking/D calls).
 #   - dispatch_action(idea, uid) -> map an idea's baked-in tokeniko:Y reflex to a concrete Action.
 # --------------------------------------------------------------
+import json
 from typing import Optional
 
 from bson import ObjectId
@@ -146,6 +147,19 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
     raw = compose.compose_raw(token, idea.trigger, idea.answer)
     if raw:
         payload["raw"] = raw             # the decision text -> senses decompiles -> fluent English
+
+    # the reply THREAD-BACK (senses go-live P2): the perceiving channel stamped its reply coordinates
+    # on the source memory item (P1: metadata = {"channel_id","message_id"}); forward them as the
+    # outbound Destination so a directed reply threads under the exact message that caused it.
+    # Outward only — an internal KB-write has no destination.
+    if token not in _INTERNAL and src is not None and getattr(src, "metadata", None):
+        try:
+            coords = json.loads(src.metadata)
+        except (ValueError, TypeError):
+            coords = None
+        if isinstance(coords, dict) and coords.get("channel_id"):
+            payload["destination"] = {"channel_id": str(coords["channel_id"]),
+                                      "reply_to": coords.get("message_id")}
 
     return {
         "action_token": token,
