@@ -235,7 +235,10 @@ def evaluator_forwardChain(
     # ---- 2. fixpoint over MEMBERSHIP + SUFFICIENT rules ----
     # sufficient rules (step 4) fire in the SAME fixpoint: a recognized class can enable further
     # membership rules, and vice versa (a membership-granted genus can complete a sufficient rule).
-    membership = [r for r in rules if r.get("kind") == "membership"]
+    # NEGATED membership rules (a disjointness claim — «no mammal is a reptile») are EXCLUDED here:
+    # they must never extend the closure (dog is NOT a reptile — reptile's ancestors are not dog's).
+    # They fire in the derivation pass below as negated class-membership CONCLUSIONS.
+    membership = [r for r in rules if r.get("kind") == "membership" and not r.get("negated")]
     sufficient = [r for r in rules if r.get("kind") == "sufficient"]
     prop_pairs = _subject_prop_pairs(subject_uid, facts)
     for _ in range(max_hops):
@@ -285,10 +288,11 @@ def evaluator_forwardChain(
         if not changed:
             break  # fixpoint reached
 
-    # ---- 3. apply PROPERTY rules ----
+    # ---- 3. apply PROPERTY rules (+ NEGATED membership — disjointness conclusions) ----
     derived: list[dict] = []
     for r in rules:
-        if r.get("kind") != "property":
+        neg_membership = r.get("kind") == "membership" and bool(r.get("negated"))
+        if r.get("kind") != "property" and not neg_membership:
             continue
         r_subj = r.get("subject")
         r_pred = r.get("predicate")
@@ -300,10 +304,13 @@ def evaluator_forwardChain(
         r_neg = "NOT " if r.get("negated") else ""  # a negated rule ("no mind reaches truth") reads honestly
         cond_note = "".join(f" [{c}]" for c in (r.get("cond_props") or []))
         quant = _strength_word(r)  # "all" (universal) vs "most" (generic — defeasible, 2d)
+        # membership chains read as copulars: "all mammal are NOT reptile -> dog is NOT reptile"
+        rule_says = f"are {r_neg}{r_pred}" if neg_membership else f"{r_neg}{r_pred}"
+        concl_says = f"is {r_neg}{r_pred}" if neg_membership else f"{r_neg}{r_pred}"
         chain = (
             closure[r_subj]
-            + f" -> {quant}{cond_note} {r_subj} {r_neg}{r_pred}"
-            + f" -> {subject_name} {r_neg}{r_pred}"
+            + f" -> {quant}{cond_note} {r_subj} {rule_says}"
+            + f" -> {subject_name} {concl_says}"
         )
         derived.append({
             "predicate": r_pred,
@@ -370,6 +377,7 @@ def evaluator_chainGround(
     parents: Parents,
     facts: list,
     edge_source=None,
+    senses_of=None,
 ) -> Optional[tuple[float, str, list]]:
     senses = getattr(content, "senses", None) or {}
     identities = getattr(content, "identities", None) or {}
@@ -385,40 +393,74 @@ def evaluator_chainGround(
     obj = senses.get("direct")
     negated = bool(getattr(content, "negated", False))
 
-    derived, _ = evaluator_forwardChain(subject_sense, subject_uid, rules, parents, facts,
-                                        edge_source=edge_source)
+    # decide via ONE subject sense: forward-chain, match the input predicate, apply negation parity
+    # + the quantifier net_flip. returns (truth, chain, premises) or None (this sense doesn't decide).
+    def _decide(subj_sense: Optional[str]) -> Optional[tuple[float, str, list]]:
+        derived, _ = evaluator_forwardChain(subj_sense, subject_uid, rules, parents, facts,
+                                            edge_source=edge_source)
 
-    # find a derived property matching the input predicate (object must match, or the rule had none)
-    match: Optional[dict] = None
-    for d in derived:
-        if d["predicate"] != pred:
+        # find a derived property matching the input predicate (object must match, or the rule had none)
+        match: Optional[dict] = None
+        for d in derived:
+            if d["predicate"] != pred:
+                continue
+            if d["object"] is None or d["object"] == obj:
+                match = d
+                break
+
+        if match is None:
+            return None  # chaining doesn't decide -> fall through
+
+        premises = match.get("premises", [])
+        if match["negated"] == negated:
+            base = _TAXO_TRUE
+            chain = "chain: " + match["chain"]
+        else:
+            base = _TAXO_FALSE
+            chain = "KB-refuted: " + match["chain"] + " | input negates the derived property"
+
+        # quantifier net_flip — mirrors the shared convention so a NEGATIVE quantifier ("no cat eats
+        # meat") flips the base verdict. NB: unlike _ground_relationally (whose base verdict is the
+        # affirmative graph fact, with `negated` applied as the flip), here `negated` is ALREADY consumed
+        # in the corroborate/refute decision above (input.negated vs the derived property's negation), so
+        # only the quantifier dimension remains to flip — otherwise the predicate negation double-counts.
+        quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
+        net_flip = (quantifier == TKQuantifier.NEGATIVE)
+        truth = (1.0 - base) if net_flip else base
+        chain = chain + f" | quantifier={quantifier.value} negated={negated}"
+        if net_flip:
+            chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
+        return truth, chain, premises
+
+    got = _decide(subject_sense)
+    if got is not None:
+        return got  # the WSD-chosen sense decides — the intended reading wins outright
+
+    # WSD-canonicalization for the chainer (2026-07-11, B-item root cause logged): the chosen subject
+    # sense may be the wrong lemma sense («a dog is a reptile» -> dog.n.03 "a fellow", whose ancestry
+    # never reaches mammal), leaving a taught disjointness axiom blind. Mirror the relational
+    # grounder's sanctioned cross-product, but STRICTER — refutation is the dangerous direction:
+    # try the subject lemma's sibling senses and accept a verdict ONLY IF UNANIMOUS (every deciding
+    # sense agrees in polarity; a split reading abstains). NB: by the evaluator's ordering the
+    # charitable-TRUE relational pass has ALREADY run — any sibling sense that taxonomically rescues
+    # the claim decided it before we got here. Subject-only: the predicate sense must match the
+    # rule's sense exactly (that is the rule's own vocabulary, not the input's WSD).
+    if senses_of is None or not subject_sense:
+        return None
+    verdicts: list[tuple[str, tuple[float, str, list]]] = []
+    for ss in (senses_of(subject_sense) or [])[:12]:
+        if ss == subject_sense:
             continue
-        if d["object"] is None or d["object"] == obj:
-            match = d
-            break
-
-    if match is None:
-        return None  # chaining doesn't decide -> fall through
-
-    premises = match.get("premises", [])
-    if match["negated"] == negated:
-        base = _TAXO_TRUE
-        chain = "chain: " + match["chain"]
-    else:
-        base = _TAXO_FALSE
-        chain = "KB-refuted: " + match["chain"] + " | input negates the derived property"
-
-    # quantifier net_flip — mirrors the shared convention so a NEGATIVE quantifier ("no cat eats
-    # meat") flips the base verdict. NB: unlike _ground_relationally (whose base verdict is the
-    # affirmative graph fact, with `negated` applied as the flip), here `negated` is ALREADY consumed
-    # in the corroborate/refute decision above (input.negated vs the derived property's negation), so
-    # only the quantifier dimension remains to flip — otherwise the predicate negation double-counts.
-    quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
-    net_flip = (quantifier == TKQuantifier.NEGATIVE)
-    truth = (1.0 - base) if net_flip else base
-    chain += f" | quantifier={quantifier.value} negated={negated}"
-    if net_flip:
-        chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
+        v = _decide(ss)
+        if v is not None:
+            verdicts.append((ss, v))
+    if not verdicts:
+        return None
+    polarities = {v[1][0] >= 0.5 for v in verdicts}
+    if len(polarities) > 1:
+        return None  # sibling senses disagree — an ambiguous reading is not a verdict
+    ss, (truth, chain, premises) = verdicts[0]
+    chain = f"(WSD-canonicalized {subject_sense}->{ss}) " + chain
     return truth, chain, premises
 
 

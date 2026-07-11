@@ -267,3 +267,21 @@
   question in someone else's thread ignored (0.135). Follow-on fix landed: the adapter decodes
   Discord `<@id>` mention wire-tokens to usernames (`_decode_mentions`) — a raw token had broken
   a compile. Specimens → `doc/ref/test-feedback.md` (2026-07-11).
+
+**Negative-copular disjointness + chainer WSD-canonicalization (2026-07-11, the teaching sequel)**
+- **Negated membership rules** (`kb_extract.extract_rules` + `e_chaining`): an effectively-negative
+  bare copular universal («no mammal is a reptile») is no longer extractor-deferred — it becomes a
+  NEGATED MEMBERSHIP rule (positive bare copulars stay edge territory); the chainer fires it in the
+  derivation pass as a negated class-membership conclusion, NEVER a closure member, and
+  `chainGround`'s negation parity refutes the positive claim / corroborates the negative one.
+  ONE-directional; symmetric disjointness → `parked.md`.
+- **WSD-canonicalization in `chainGround`** (subject-only, unanimity-gated — stricter than the
+  sanctioned charitable-TRUE cross-product because refutation is the dangerous direction; the
+  ordering guarantees the charitable pass already ran). Root cause of the need (the frequency-prior
+  guard preferring dog.n.03) → the roadmap B-item.
+- **Live-proven end-to-end (the arc's point):** John's «tokeniko, a dog is a reptile» — Act 1
+  honest «why is that?» (Option-A abstention) → the author teaches ONE axiom («no mammal is a
+  reptile», trusted path) → Act 2, same sentence: `eval:false → speakup` **«no, that is not true»**
+  (0.6×0.9=0.54), full derivation chain resting on the taught axiom. Taught knowledge flipped a
+  live behavior deterministically. Tests: `tests/test_disjointness.py` (10). **Gate 108 / 1
+  xfailed.** Specimens → `doc/ref/test-feedback.md` (2026-07-11 later).

@@ -38,6 +38,12 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   the ladder DM 1.0 / addressed 0.9 / ambient 0.6 "polite guest" / others' thread 0.15; Priorities
   gates on urge × directedness; preparser off, B3 reversed) — see `landed.md`. Follow-on parked:
   conversation momentum (timeseries-derived lift) — see `parked.md`.
+- **B-item — the runtime-WSD frequency-prior investigation.** Why did «a dog is a reptile» compile
+  subject **dog.n.03** ("a fellow") instead of dog.n.01? Lesk had no overlap either way; the
+  centroid leaned wrong and the frequency-prior guard didn't default to the smallest sense number.
+  Root-cause it in `parser_disambiguateSense` — benefits EVERYTHING (the chainer's unanimity-gated
+  canonicalization landed 2026-07-11 works around it for refutations only). One live specimen in
+  `doc/ref/test-feedback.md` (2026-07-11 later, S3).
 - **D — trust ledger (per-stakeholder opinion).** Neutral start → episodes (redundant agreement
   weak+ · novel-valid-bridging strong+ (the kicker) · disagreement weighted by the BELIEF's trust ·
   logic violation strong− · self-inconsistency strong−, the liar proxy) → hysteresis →

@@ -373,7 +373,8 @@ def evaluator_evaluateStatement(
             # (truth~1) or KB-refutes (truth~0, RESOLVED — NOT inconsistent) the input clause.
             if verdict is None and rules:
                 from .e_chaining import evaluator_chainGround
-                verdict = evaluator_chainGround(c, rules, relations, facts or [], edge_source=edge_source)
+                verdict = evaluator_chainGround(c, rules, relations, facts or [], edge_source=edge_source,
+                                                senses_of=senses_of)
             # individual-fact grounder: a clause about an INDIVIDUAL subject (identities['subject'])
             # is decided directly by the stored individual PROPERTY facts ("tokeniko thinks" grounds
             # a "do you think?" once you->tokeniko corefer) — BEFORE the Pillar-2 individual-abstain,

@@ -83,13 +83,6 @@ subject property; needs the same cond_props emission from a restrictive-subordin
 is still dropped — meaning-loss, not scope-widening, so lower stakes). Promote with step 4 (the
 universal extractor shares the conjunctive machinery).
 
-**Negated-copular DISJOINTNESS extraction (Brain v1.1 step-2 residual)** — "a dog is not a cat" /
-"no machine is a human" (a negated/NEGATIVE copular noun-noun generic) is a **disjointness claim**, not
-an is_a edge and not a property rule — today the step-2 extractor counts it (`negated_skip`) and moves
-on. A future extractor could mine these into pairwise-disjoint assertions feeding
-`relations_disjoint` (the refutation side), symmetric to how affirmative copulars feed subsumption.
-Promote when curated fuel starts stating exclusions.
-
 **Tier-1 / KB growing OUTWARD** — genuine *synthetic* learning from trusted testimony (learned axioms
 vs derived theorems; the analytic/synthetic cut). Full design + open forks in **`doc/ref/kb-growing-outward.md`**.
 Needs the trust-gradient; build after the consolidation floor is solid.
@@ -191,3 +184,12 @@ lives only in the actions log — for context to be memory-derivable, delivered 
 derivation needs is FREE by construction — `memory` is a Mongo TIMESERIES precisely so that
 recent-items queries are cheap and natural (the author's point: that collection type was chosen for
 this).
+
+**Symmetric disjointness (the mirror direction, 2026-07-11 follow-on)** — a negative copular
+universal is consumed ONE-directionally (as a negated membership rule): «no mammal is a reptile»
+refutes «a dog is a reptile» (subject-side closure walk) but NOT «an iguana is a mammal» — the
+mirror claim needs the mirror axiom taught. True symmetric consumption = mine these into
+pairwise-disjoint assertions feeding `relations_disjoint` (the refutation side of the graph reader,
+symmetric to how affirmative copulars feed subsumption) instead of a rule. Promote when the
+teaching workflow makes the double-teach feel like friction. *(Supersedes the step-2
+`negated_skip` residual — the rule-side consumption landed 2026-07-11.)*

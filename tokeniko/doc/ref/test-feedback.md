@@ -340,3 +340,43 @@ stays parked, expected to fail/noise until it lands. The playbots double as the 
 (distinct stakeholders for trust-ledger episodes). Momentum gap already felt in miniature: after
 L3 the room reads as "his conversation" but a follow-up ambient line would still grade 0.6 —
 parked entry has the timeseries derivation sketch.
+
+
+## Session 2026-07-11 (later) — the teaching sequel: one axiom flips a live behavior
+
+The second act of the playground session. Act 1 left John's «a dog is a reptile» met with an
+honest «why is that?» (correct Option-A abstention — no disjointness knowledge). The author taught
+ONE axiom via the trusted path («no mammal is a reptile», trust 1.0) — and it was INERT. Two gaps:
+
+**S2 — negative copular universals were extractor-deferred ✅ FIXED (this session).** *Observed:*
+the taught axiom fed nothing; `/evaluate` stayed `insufficient`. *Diagnosis:* `extract_rules`
+explicitly skipped NEGATIVE bare copular noun-nouns («no machine is a human») as "disjointness —
+future work"; the chainer's membership fixpoint is positive-only (routing the rule in naively would
+have ADDED reptile to dog's closure). *Action:* effectively-negative bare copulars become NEGATED
+MEMBERSHIP rules (positive stay edge territory); the chainer fires them in the derivation pass as
+negated conclusions — never closure members; `chainGround`'s existing negation parity then refutes/
+corroborates. ONE-directional (— the mirror claim «an iguana is a mammal» needs the mirror axiom);
+symmetric disjointness stays future work (`parked.md`).
+
+**S3 — runtime WSD blinded the rule: dog.n.03 ✅ WORKED AROUND / ⏭ B-ITEM NEXT SESSION.**
+*Observed:* rule + machinery proven in-process with dog.n.01, yet the live claim still abstained.
+*Diagnosis:* the compiled subject sense was **dog.n.03** ("informal term for a fellow") whose
+ancestry never reaches mammal — the WSD frequency-prior guard did not default to dog.n.01 (why is
+the OPEN B-item: Lesk had no overlap either way; the centroid leaned wrong and the prior didn't
+catch it). *Action (A):* WSD-canonicalization mirrored into `chainGround` — STRICTER than the
+sanctioned charitable-TRUE cross-product because refutation is the dangerous direction: sibling
+subject senses are tried only when the chosen sense decides nothing, and a verdict is accepted
+ONLY IF UNANIMOUS (any polarity split abstains); the evaluator's ordering guarantees the
+charitable-TRUE pass already ran. *(B — next session:* investigate the frequency-prior guard's
+n.03 preference — the root cause, benefits everything.)*
+
+**The before/after specimen (the arc's point):** same speaker, same sentence, hours apart —
+«tokeniko, a dog is a reptile» → Act 1: `eval:unknown → why` («why is that?») · Act 2 after ONE
+taught axiom: `eval:false → speakup` («no, that is not true», threaded, urge 0.6 × 0.9 = 0.54).
+Verified pure first: truth 0.0 RESOLVED with the full chain
+`(WSD-canonicalized dog.n.03->dog.n.01) dog —is_a→ … —is_a→ mammal -> all mammal are NOT reptile`,
+premises = the taught axiom (provenance-cascade-ready). Gate 108 passed / 1 xfailed.
+
+**Also this session (act 1, logged above the fold):** the four ladder specimens (L1–L4), the
+mention-token decode fix (S1), the wh-solver's first public values («feline», «cognition»), and
+the open-why closed by a stranger's true premise (silence-as-consent, no regress).

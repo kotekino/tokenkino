@@ -374,12 +374,17 @@ def extract_rules(docs) -> list:
                     continue  # an individual subject is a FACT (extract_facts), never a rule
                 if getattr(leaf, "dubitative", 0.5) >= 0.75 or getattr(leaf, "wh_role", None) is not None:
                     continue  # a question is answered, not believed
-                if ".n." in predicate and not senses.get("direct") and not cond_props:
-                    continue  # bare copular noun-noun: EDGE (generic-taxonomy) or disjointness (future)
-                    # (a MODIFIED one — "a thinking machine is a mind" — stays here as a conditioned
-                    # membership rule: a graph edge cannot carry a condition)
                 if quantifier == TKQuantifier.NEGATIVE:
                     negated = not negated  # the net-flip: "no X <pred>" == "all X NOT <pred>"
+                if ".n." in predicate and not senses.get("direct") and not cond_props and not negated:
+                    continue  # POSITIVE bare copular noun-noun: EDGE territory (generic taxonomy)
+                    # (a MODIFIED one — "a thinking machine is a mind" — stays here as a conditioned
+                    # membership rule: a graph edge cannot carry a condition.) An effectively-NEGATIVE
+                    # one («no mammal is a reptile», "a machine is not a human") is a DISJOINTNESS
+                    # claim, ONE direction: kept as a NEGATED MEMBERSHIP rule — the chainer derives it
+                    # as a negated conclusion, never a closure member (2026-07-11, the live-play gap).
+                    # Symmetric disjointness (the mirror direction refuting «an iguana is a mammal»
+                    # from the same axiom) stays future work: teach the mirror axiom meanwhile.
             else:
                 continue  # EXISTENTIAL/DEFINITE never generalize to a rule
             kind = "membership" if ".n." in predicate else "property"
