@@ -46,12 +46,20 @@ _DISPATCH = {
     TokenikoAction.CLARIFY.value: ActionType.SEND_MESSAGE,
     # answer: outward + DIRECTED — the recipient is the asker (idea.target), set on the action below.
     TokenikoAction.ANSWER.value:  ActionType.SEND_MESSAGE,
+    # trust (D P2): INTERNAL ledger updates — the brain executes them itself (actions_phase);
+    # target = the SPEAKER whose ledger moves (idea.target), never a message on the wire.
+    TokenikoAction.MORE_TRUST.value: ActionType.UPDATE_TRUST,
+    TokenikoAction.LESS_TRUST.value: ActionType.UPDATE_TRUST,
     # IGNORE -> no action
 }
 
 # the internal-reflex set: these reflexes are KB-writes addressed to tokeniko itself (the actual KB
 # write is step D), so their action targetId is tokeniko's own uid (an internal reflection loop).
 _INTERNAL = {TokenikoAction.GUESS.value, TokenikoAction.LEARN.value}
+
+# the trust-reflex set: INTERNAL channel (brain-executed, never a senses carrier) but SPEAKER-targeted
+# (the ledger that moves is the speaker's, not tokeniko's).
+_TRUST = {TokenikoAction.MORE_TRUST.value, TokenikoAction.LESS_TRUST.value}
 
 
 # the candidate set / superposition: every ENABLED rule for a trigger, most-urgent first (order as
@@ -131,8 +139,8 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
 
     src = _source_memory(idea)
 
-    # channel: INTERNAL for a KB-write reflex; else the source memory's channel (carrier = senses).
-    if token in _INTERNAL:
+    # channel: INTERNAL for a KB-write or trust reflex; else the source memory's channel (carrier = senses).
+    if token in _INTERNAL or token in _TRUST:
         channel = MEMChannels.INTERNAL
     else:
         channel = MEMChannels.INTERNAL
@@ -142,7 +150,8 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
             except ValueError:
                 channel = MEMChannels.INTERNAL
 
-    # target: self (internal KB-write) / the asker (directed answer) / the speaker (outward reply).
+    # target: self (internal KB-write) / the asker (directed answer) / the speaker whose ledger
+    # moves (trust) / the speaker (outward reply).
     if token in _INTERNAL:
         target = tokeniko_uid
     elif idea.target:
@@ -153,6 +162,8 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         target = None
 
     payload = {"action_token": token, "trigger": idea.trigger}
+    if token in _TRUST:
+        payload["source"] = idea.source  # provenance: the memory item behind the episode
     if idea.answer is not None:
         payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
     raw = compose.compose_raw(token, idea.trigger, idea.answer)
@@ -162,8 +173,8 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
     # the reply THREAD-BACK (senses go-live P2): the perceiving channel stamped its reply coordinates
     # on the source memory item (P1: metadata = {"channel_id","message_id"}); forward them as the
     # outbound Destination so a directed reply threads under the exact message that caused it.
-    # Outward only — an internal KB-write has no destination.
-    if token not in _INTERNAL and src is not None and getattr(src, "metadata", None):
+    # Outward only — an internal KB-write / trust update has no destination.
+    if token not in _INTERNAL and token not in _TRUST and src is not None and getattr(src, "metadata", None):
         try:
             coords = json.loads(src.metadata)
         except (ValueError, TypeError):
@@ -206,6 +217,9 @@ def score_feasibility(plan: dict) -> float:
     token = plan["action_token"]
     if token in _INTERNAL:
         return 1.0
+    if token in _TRUST:
+        # a ledger update needs no text and no wire — only a known speaker to record against.
+        return 1.0 if plan["target"] else 0.0
     channel = plan["channel"]
     if channel not in _ACTABLE_CHANNELS:
         return 0.0  # no carrier for this channel (e.g. ATProto) -> honestly infeasible

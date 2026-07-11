@@ -11,9 +11,12 @@ from lib.core.models import TKIdeaDoc, TKActionDoc, TKBrainStateDoc
 from lib.core.memory import (
     IdeaStatus,
     ActionStatus,
+    ActionType,
     MEMChannels,
+    TrustEpisodeKind,
     UrgeLevel,
 )
+from lib.core import trust
 from brain import behavior
 from brain import thinking
 
@@ -86,14 +89,32 @@ def actions_phase() -> bool:
     action.status = ActionStatus.PROCESSING
     action.save()
 
-    # STUB (D): execute the INTERNAL action (guess/learn -> low-trust KB writes via the D3a API seam).
-    # Outward I/O is senses' job; this branch only ever sees INTERNAL actions now.
-    logger.info(
-        "[actions] would execute %s on channel=%s target=%s (internal KB-write — TODO)",
-        action.action_type,
-        action.channel,
-        action.targetId,
-    )
+    # execute the INTERNAL action. UPDATE_TRUST (D P2) is REAL: record the episode on the target
+    # speaker's ledger (kind = the trust:* trigger) + refold the cached scalar. guess/learn stay
+    # stubbed (the D3a low-trust KB-write seam).
+    if action.action_type == ActionType.UPDATE_TRUST:
+        payload = action.payload or {}
+        try:
+            kind = TrustEpisodeKind(payload.get("trigger"))
+        except ValueError:
+            kind = None
+        answer = payload.get("answer") or {}
+        if kind is not None and action.targetId:
+            trust.record_episode(
+                action.targetId, kind,
+                source_id=payload.get("source"),
+                belief_trust=answer.get("belief_trust"),
+                note=answer.get("note"),
+            )
+        else:
+            logger.warning("[actions] malformed update_trust action %s dropped", str(action.id))
+    else:
+        logger.info(
+            "[actions] would execute %s on channel=%s target=%s (internal KB-write — TODO)",
+            action.action_type,
+            action.channel,
+            action.targetId,
+        )
 
     # transition: processing -> done
     action.status = ActionStatus.DONE
@@ -176,10 +197,16 @@ def priorities_phase() -> bool:
     # effective_urge) — the polite-guest discretion. (The pull above still sorts by RAW urge: within a
     # decision point directedness is constant so the winner is unchanged; across sources it only
     # affects processing order, and every idea is gated independently here.)
+    # D P2 refinement: OUTWARD actions only — discretion is about acting on the world, not about
+    # what he may conclude. An INTERNAL reflex (KB-write, trust update) keeps its raw urge: an
+    # OVERHEARD lie still costs trust (we learn who people are by watching them talk to others).
     feasibility = behavior.score_feasibility(plan)
     idea.feasibility = feasibility
     idea.parsed_by_prio = True
-    urge = behavior.effective_urge(idea, behavior._source_memory(idea))
+    if plan["channel"] == MEMChannels.INTERNAL:
+        urge = idea.urge
+    else:
+        urge = behavior.effective_urge(idea, behavior._source_memory(idea))
     keep = urge >= URGE_THRESHOLD and feasibility > 0
 
     if keep:

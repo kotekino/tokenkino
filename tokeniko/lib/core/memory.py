@@ -170,6 +170,7 @@ class ActionType(str, Enum):
     SEND_MESSAGE = "send_message"
     CURL = "curl"
     POST_CONTENT = "post_content"
+    UPDATE_TRUST = "update_trust"   # INTERNAL: record a trust episode + refold (brain-executed)
 
 # --------------------------------------------------
 # the meta-language (C) — reserved-token behavior layer. The grammar of behavior is HARDWIRED here
@@ -198,6 +199,11 @@ class TokenikoAction(str, Enum):
     IGNORE = "tokeniko:ignore"
     CLARIFY = "tokeniko:clarify"  # ask the speaker to reconcile a cross-item context conflict
     ANSWER = "tokeniko:answer"    # answer a question (verdict/value computed by Thinking, in the idea/action payload)
+    # the trust reflexes (senses D P2): INTERNAL ledger updates fired by the trust:* trigger family
+    # (TrustEpisodeKind values — their own namespace, so they never collapse-collide with the eval:*
+    # reflex of the same source item; an overheard lie can cost trust AND be pushed back on).
+    MORE_TRUST = "tokeniko:more-trust"
+    LESS_TRUST = "tokeniko:less-trust"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a

@@ -20,7 +20,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "toke
 
 from lib.core.io import init_io
 from lib.core.models import TKBehaviorRuleDoc
-from lib.core.memory import EvalToken, TokenikoAction
+from lib.core.memory import EvalToken, TokenikoAction, TrustEpisodeKind
 
 # the starter personality: (trigger, action, urge, comment).
 RULES = [
@@ -31,6 +31,15 @@ RULES = [
     (EvalToken.TRUE.value,         TokenikoAction.IGNORE.value,  0.2,  "corroboration: usually stay quiet"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
     (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
+    # the trust reflexes (senses D P2): trust:* triggers -> INTERNAL ledger updates. Their urges are
+    # tokeniko's TRUST SENSITIVITY (a personality dial, editable as data): all clear the 0.5 keep
+    # threshold — internal actions are exempt from the directedness multiplication (an overheard lie
+    # still costs trust), so these fire regardless of who the speaker was addressing.
+    (TrustEpisodeKind.AGREEMENT.value,          TokenikoAction.MORE_TRUST.value, 0.55, "a corroborated truth — weak +"),
+    (TrustEpisodeKind.KICKER.value,             TokenikoAction.MORE_TRUST.value, 0.65, "novel-valid-bridging (the closed why-loop) — the twin-soul signal"),
+    (TrustEpisodeKind.DISAGREEMENT.value,       TokenikoAction.LESS_TRUST.value, 0.6,  "contradicts a belief — scaled by that belief's own trust"),
+    (TrustEpisodeKind.LOGIC_VIOLATION.value,    TokenikoAction.LESS_TRUST.value, 0.65, "a logic violation — logic is sacred"),
+    (TrustEpisodeKind.SELF_INCONSISTENCY.value, TokenikoAction.LESS_TRUST.value, 0.7,  "self-contradiction — the honest-liar proxy"),
 ]
 
 

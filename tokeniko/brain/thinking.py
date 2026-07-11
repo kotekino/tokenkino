@@ -27,7 +27,7 @@ import lib.core.evaluation_harness as evaluation_harness
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
-from lib.core.memory import EvalToken, MEMChannels, MEMProvenance
+from lib.core.memory import EvalToken, MEMChannels, MEMProvenance, TrustEpisodeKind
 from lib.core.models import (
     TKAxiomDoc,
     TKBrainStateDoc,
@@ -405,6 +405,40 @@ def _derive_reply_context(item) -> Optional[TKMemoryItemDoc]:
     return latest if interleaved == 0 else None
 
 
+# ----------------------------------------------------------------------------------------------
+# D P2: the verdict's LEDGER ECHO — which trust episode (if any) an assertion's verdict implies.
+# Returns (trust_trigger, answer_dict) or (None, None). Self-speech never echoes (no ledger on
+# himself — also guarded downstream by record_episode). The mapping:
+#   TRUE  + closes my open question -> KICKER (the strong kicker, fork 2: the speaker's «because»
+#           grounded against my KB — novel-valid-bridging through conversation)
+#   TRUE                            -> AGREEMENT (redundant corroboration — silence-is-consent's echo)
+#   FALSE                           -> DISAGREEMENT, scaled by the refuted BELIEF's own trust
+#           (min over the refutation's premise docs via _conclusion_trust — contradicting a 0.3
+#           tier-hunch ≈ noise, contradicting a 1.0 axiom ≈ full weight)
+#   INCONSISTENT                    -> LOGIC_VIOLATION (logic is sacred)
+# (SELF_INCONSISTENCY is spawned from the cross-item conflict branch, not here; UNKNOWN is neither.)
+# ----------------------------------------------------------------------------------------------
+def _trust_echo(token: str, item, result) -> tuple[Optional[str], Optional[dict]]:
+    if _self_id() is not None and item.sourceId == _self_id():
+        return None, None
+    if token == EvalToken.TRUE.value:
+        closes = _derive_reply_context(item)
+        if closes is not None:
+            return (TrustEpisodeKind.KICKER.value,
+                    {"note": f"closed my question «{closes.original}» with a KB-true justification"})
+        return TrustEpisodeKind.AGREEMENT.value, {"note": "corroborated by my KB"}
+    if token == EvalToken.FALSE.value:
+        belief_trust = None
+        premises = list(getattr(result, "premises", None) or [])
+        if premises:
+            belief_trust = evaluation_harness._conclusion_trust(premises)
+        return (TrustEpisodeKind.DISAGREEMENT.value,
+                {"belief_trust": belief_trust, "note": "contradicts what I hold"})
+    if token == EvalToken.INCONSISTENT.value:
+        return TrustEpisodeKind.LOGIC_VIOLATION.value, {"note": "a logic violation"}
+    return None, None
+
+
 # First-run guard: if wake_at is None, initialize it to the latest memory ts and return False —
 # tokeniko only reacts to memory that ARRIVES AFTER it first wakes, never re-thinks all of history.
 def think_one(brain_state: TKBrainStateDoc) -> bool:
@@ -503,6 +537,21 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
             if token == EvalToken.TRUE.value:
                 materialize_theorem(result, item, derived_by="thinking")
+
+            # D P2: the verdict's LEDGER ECHO — spawn the trust:* trigger beside the eval reflex
+            # (its own namespace: no collapse-collision, so he can push back AND distrust). The
+            # trigger/urge mapping is KB personality (behavior_rules); the episode kind rides in
+            # the trigger, the scale/note in `answer`, the speaker in `target`. The STRONG KICKER
+            # (author's fork 2) = the closed why-loop: a TRUE that answers one of my own open
+            # questions means the speaker's justification GROUNDED against my KB — novel-valid-
+            # bridging, literally through conversation. Epistemics stay pure: this is bookkeeping
+            # ABOUT the verdict, computed after it.
+            trust_trigger, trust_answer = _trust_echo(token, item, result)
+            if trust_trigger is not None:
+                behavior.spawn_ideas_for(
+                    trust_trigger, payload=item.zip, source=str(item.id),
+                    answer=trust_answer, target=item.sourceId,
+                )
         else:
             logger.info(
                 "[thinking] evaluated memory=%s status=%s truth=%.3f -> no strong conclusion",
@@ -538,6 +587,15 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             if detail:
                 behavior.spawn_ideas_for(
                     EvalToken.CONFLICT.value, payload=item.zip, source=str(item.id)
+                )
+                # D P2: the honest-liar proxy — contradicting YOURSELF is the strongest ledger
+                # signal (unreliability matters regardless of intent). Echoed beside the clarify
+                # reflex (own namespace, no collapse-collision).
+                behavior.spawn_ideas_for(
+                    TrustEpisodeKind.SELF_INCONSISTENCY.value, payload=item.zip,
+                    source=str(item.id),
+                    answer={"note": f"self-contradiction across own claims ({detail})"},
+                    target=item.sourceId,
                 )
                 logger.info(
                     "[thinking] cross-item conflict: memory=%s vs %s -> eval:conflict (%s)",
