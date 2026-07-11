@@ -1,14 +1,15 @@
-"""Senses inbound (go-live P1, DMs first) — the perception seam, socket-free.
+"""Senses inbound (go-live P1 + C channel listening) — the perception seam, socket-free.
 
-The handler's routing (self/non-DM/empty dropped, zip-lane stubbed, language ingested via /input),
+The handler's routing (self/empty dropped, zip-lane stubbed, language ingested via /input),
 the structural modality sniffer (a TKZip validates; everything else is language), and the fuzzy
 `directedness` carrier on memory items. The HTTP call is monkeypatched — no API, no Discord.
+(The directedness GRADING ladder is covered in test_senses_c.py.)
 """
 import asyncio
 import json
 
 import senses.inbound as inbound
-from senses.inbound import dm_input_params, handle_discord_message, sniff_modality
+from senses.inbound import handle_discord_message, input_params, sniff_modality
 from lib.core.memory import MEMItem
 from lib.core.tkzip import TKZip, TKZipItem, TKZipContent
 from lib.discord.models import DiscordMessage
@@ -51,9 +52,8 @@ def test_sniffer_valid_zip_is_tkzip():
 
 # ---- handler routing -----------------------------------------------------------------------------
 
-def test_handler_drops_self_nondm_empty():
+def test_handler_drops_self_and_empty():
     assert asyncio.run(handle_discord_message(_dm(is_self=True))) == "self"
-    assert asyncio.run(handle_discord_message(_dm(is_dm=False, guild_id="9"))) == "not_dm"
     assert asyncio.run(handle_discord_message(_dm(content="  "))) == "empty"
 
 
@@ -79,7 +79,7 @@ def test_handler_reports_api_failure(monkeypatch):
 # ---- the /input params seam ----------------------------------------------------------------------
 
 def test_dm_params_carry_identity_channel_coords_directedness():
-    p = dm_input_params(_dm())
+    p = input_params(_dm())
     assert p["talker"] == "renzo@discord:222"        # channel-scoped uid (contextKey after the @)
     assert p["talker_name"] == "renzo"
     assert p["channel"] == "discord"

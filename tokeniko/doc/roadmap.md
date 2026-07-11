@@ -34,10 +34,10 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   open-why derivation — structural reply-threading + recency over the timeseries, why-regress
   suppressed; inbound preparser on) — see `landed.md`. Follow-on: the explanation LINK as learning
   fuel is the D-phase teaching channel.
-- **C — channel listening + directedness grading.** Drop the DM-only filter; grade the scalar
-  (@-mention/name/reply-to-him ~0.9 · ambient ~0.4 · someone else's thread ~0.15); Priorities
-  multiplies urge by directedness (discretion → silence below the act threshold). The **overheard
-  vs directed** design question resolves INSIDE the scalar — brainstorm the grading before building.
+- ✅ **C — channel listening + directedness grading** — landed 2026-07-11 (DM-only gate dropped;
+  the ladder DM 1.0 / addressed 0.9 / ambient 0.6 "polite guest" / others' thread 0.15; Priorities
+  gates on urge × directedness; preparser off, B3 reversed) — see `landed.md`. Follow-on parked:
+  conversation momentum (timeseries-derived lift) — see `parked.md`.
 - **D — trust ledger (per-stakeholder opinion).** Neutral start → episodes (redundant agreement
   weak+ · novel-valid-bridging strong+ (the kicker) · disagreement weighted by the BELIEF's trust ·
   logic violation strong− · self-inconsistency strong−, the liar proxy) → hysteresis →

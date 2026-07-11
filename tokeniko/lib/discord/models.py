@@ -27,6 +27,10 @@ class DiscordMessage(BaseModel):
     attachments: list[DiscordAttachment] = []
     is_dm: bool = False
     is_self: bool = False                 # author == the bot's own user id (senses decides whether to drop)
+    # the two addressing signals for the directedness grading (senses C) — computed by the adapter,
+    # which is the only layer that can see discord.py's resolved mention list / referenced message.
+    mentions_me: bool = False             # a real @-mention of the bot OR its name as a word in the text
+    reply_to_me: bool = False             # reply_to points at one of the bot's OWN messages
 
 
 # the outbound target. Exactly one of channel_id / user_id is set; reply_to threads the message.

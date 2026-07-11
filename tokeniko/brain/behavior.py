@@ -92,6 +92,17 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
     return ideas
 
 
+# EFFECTIVE URGE (senses C) — the ONE place addressing acts: the rule's urge scaled by how much the
+# source perception was FOR tokeniko (MEMItem.directedness — DM 1.0 · addressed 0.9 · ambient 0.6 ·
+# someone else's thread 0.15). Perception and reasoning always run at full strength; only the urge to
+# ACT is scaled, so discretion-to-silence emerges from the multiplication against the keep threshold
+# (e.g. answer 0.9 x ambient 0.6 = 0.54 speaks; why 0.6 x 0.6 = 0.36 stays quiet). No source, or a
+# source without the field (internal/self items), means fully directed — behave exactly as before.
+def effective_urge(idea: TKIdeaDoc, src: Optional[TKMemoryItemDoc]) -> float:
+    directedness = getattr(src, "directedness", None) if src is not None else None
+    return idea.urge * (directedness if directedness is not None else 1.0)
+
+
 # the memory item that spawned the idea (idea.source), or None. The reply path reads its CHANNEL (where
 # to answer — a Discord question is answered on Discord) and its sourceId (who to answer = the speaker).
 def _source_memory(idea: TKIdeaDoc) -> Optional[TKMemoryItemDoc]:

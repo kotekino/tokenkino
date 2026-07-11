@@ -120,14 +120,14 @@ def test_non_question_self_speech_opens_nothing(_io, clean_mem, me_id):
     assert _derive_reply_context(ans) is None
 
 
-# ---- B3: inbound params ------------------------------------------------------------------------------
+# ---- B3: inbound params (prepare reversed by C — the preparser is OFF, author's call 2026-07-11) ----
 
-def test_inbound_params_carry_prepare_and_reply_to():
-    from senses.inbound import dm_input_params
+def test_inbound_params_carry_reply_to_and_no_prepare():
+    from senses.inbound import input_params
     from lib.discord.models import DiscordMessage
     msg = DiscordMessage(message_id="111", author_id="222", author_name="renzo",
                          channel_id="333", content="beause you think", reply_to="999",
                          is_dm=True, is_self=False)
-    p = dm_input_params(msg)
-    assert p["prepare"] == 1
+    p = input_params(msg)
+    assert "prepare" not in p                       # raw input = a standing parser-robustness test
     assert json.loads(p["metadata"])["reply_to"] == "999"

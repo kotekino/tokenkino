@@ -10,6 +10,7 @@
 # It knows NOTHING about the brain: no memory, no MEMAction, no stakeholder/contextKey, no NL polish.
 # senses owns the translation to/from tokeniko's world; the adapter only moves bytes and normalizes them.
 
+import re
 from typing import Awaitable, Callable, Optional
 
 import discord
@@ -50,6 +51,16 @@ class DiscordClient:
             else None
         )
         me = self._client.user
+        # addressing signals (senses C directedness): a real @-mention OR the bot's name as a word;
+        # and whether the replied-to message is one of the bot's own (resolved may be a
+        # DeletedReferencedMessage or None if not in cache — treat both as "not me").
+        mentions_me = bool(me is not None and (
+            any(u.id == me.id for u in m.mentions)
+            or re.search(rf"\b{re.escape(me.name)}\b", m.content or "", re.IGNORECASE) is not None
+        ))
+        resolved = m.reference.resolved if m.reference is not None else None
+        reply_author = getattr(resolved, "author", None)
+        reply_to_me = bool(me is not None and reply_author is not None and reply_author.id == me.id)
         return DiscordMessage(
             message_id=str(m.id),
             author_id=str(m.author.id),
@@ -64,6 +75,8 @@ class DiscordClient:
             ],
             is_dm=guild_id is None,
             is_self=bool(me is not None and m.author.id == me.id),
+            mentions_me=mentions_me,
+            reply_to_me=reply_to_me,
         )
 
     # --- seam: outbound -----------------------------------------------------

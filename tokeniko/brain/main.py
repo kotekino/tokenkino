@@ -172,10 +172,15 @@ def priorities_phase() -> bool:
 
     # D2 — the TWO axes (brain/README "urge vs feasibility"). URGE (how much it wants it) must clear the
     # threshold AND FEASIBILITY (can it actually be done) must be positive. Ties/conflicts -> urge.
+    # C: the urge is scaled by the source perception's DIRECTEDNESS before the gate (behavior.
+    # effective_urge) — the polite-guest discretion. (The pull above still sorts by RAW urge: within a
+    # decision point directedness is constant so the winner is unchanged; across sources it only
+    # affects processing order, and every idea is gated independently here.)
     feasibility = behavior.score_feasibility(plan)
     idea.feasibility = feasibility
     idea.parsed_by_prio = True
-    keep = idea.urge >= URGE_THRESHOLD and feasibility > 0
+    urge = behavior.effective_urge(idea, behavior._source_memory(idea))
+    keep = urge >= URGE_THRESHOLD and feasibility > 0
 
     if keep:
         action = behavior.dispatch_action(idea, _tokeniko_uid, plan=plan)
@@ -186,8 +191,8 @@ def priorities_phase() -> bool:
         # not every candidate (e.g. eval:unknown -> WHY wins, GUESS superseded). Stochastic = future.
         superseded = _collapse_siblings(idea)
         logger.info(
-            "[priorities] kept idea trigger=%s action_token=%s urge=%s feas=%s -> action %s (%s); superseded %d sibling(s)",
-            idea.trigger, idea.action_token, idea.urge, feasibility,
+            "[priorities] kept idea trigger=%s action_token=%s urge=%s (effective=%.2f) feas=%s -> action %s (%s); superseded %d sibling(s)",
+            idea.trigger, idea.action_token, idea.urge, urge, feasibility,
             str(action.id) if action else None,
             action.action_type.value if action else None,
             superseded,
@@ -195,10 +200,10 @@ def priorities_phase() -> bool:
     else:
         idea.status = IdeaStatus.DISCARDED
         idea.save()
-        reason = "below urge threshold" if idea.urge < URGE_THRESHOLD else "infeasible"
+        reason = "below urge threshold" if urge < URGE_THRESHOLD else "infeasible"
         logger.info(
-            "[priorities] discarded idea trigger=%s action_token=%s urge=%s feas=%s (%s)",
-            idea.trigger, idea.action_token, idea.urge, feasibility, reason,
+            "[priorities] discarded idea trigger=%s action_token=%s urge=%s (effective=%.2f) feas=%s (%s)",
+            idea.trigger, idea.action_token, idea.urge, urge, feasibility, reason,
         )
     return True
 

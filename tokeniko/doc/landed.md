@@ -230,4 +230,33 @@
 - **B3 live preparser + reply_to forwarding** — the senses→/input call runs `prepare=1` (typo
   correction/language detection on the live channel — the «beause» specimen) and forwards the
   inbound's reply_to (B2's structural food). Tests: `tests/test_senses_b.py` (7). **Gate 87
+  passed / 1 xfailed.** *(The prepare flag was reversed by C two days later — author's call, see
+  the preparser entry in `parked.md`.)*
+
+**Senses C: channel listening + directedness grading (2026-07-11)**
+- **The grading ladder** (`senses/inbound.py::grade_directedness`) — the P1 DM-only gate is gone:
+  every guild message is perceived, and addressing becomes ONE scalar — DM 1.0 · @-mention / his
+  name as a word / reply-to-one-of-HIS-messages 0.9 · ambient 0.6 · a reply into someone ELSE's
+  thread 0.15. The two addressing signals (`mentions_me`, `reply_to_me`) are computed in the
+  Discord adapter (`lib/discord/client.py`), the only layer that sees discord.py's resolved
+  mention list / referenced-message author.
+- **The ONE acting site** (`brain/behavior.py::effective_urge`, consumed by `priorities_phase`) —
+  perception and reasoning always run at FULL strength (the eval:* triggers stay epistemically
+  pure); only the urge to act is scaled: `keep = urge × directedness ≥ threshold`. Discretion —
+  down to silence — emerges from the multiplication, no special cases. Sourceless/self ideas
+  behave exactly as before (default fully-directed).
+- **Ambient 0.6 = "the polite guest"** (author's call from the three characters the dial yields:
+  lurker 0.4 / polite guest 0.6 / engaged participant 0.75): he ANSWERS a question asked to the
+  room (0.9×0.6=0.54 clears 0.5) but won't flag contradictions (0.42), push back on false claims
+  (0.36), or interrogate compliments (0.36) at people not talking to him. Addressed (0.9), the full
+  personality acts. Someone else's thread (0.15) never clears.
+- **Pre-D exposure accepted by door policy** (author's call): channel listening lands before the
+  trust ledger, so anyone in the server feeds his reasoning un-trust-gated — acceptable because the
+  playground server is membership-controlled and exclusive to tokeniko's development; D closes it
+  properly.
+- **Preparser OFF on all inbound** (B3 reversed — author's call): the Ollama path is under review,
+  the playground posts polished messages, and raw input is a standing parser/compiler robustness
+  test (breakage feeds `doc/ref/test-feedback.md`). Re-enable criteria → `parked.md`.
+- Tests: `tests/test_senses_c.py` (9) — the ladder, channel ingestion, the effective-urge matrix;
+  `test_senses_inbound.py`/`test_senses_b.py` updated (not_dm gone, prepare gone). **Gate 96
   passed / 1 xfailed.**

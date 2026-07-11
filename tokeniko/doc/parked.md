@@ -6,6 +6,20 @@
 
 ---
 
+**Conversation momentum (senses C follow-on)** — after tokeniko speaks in a channel he is IN the
+conversation for a while, so the next ambient messages there deserve more than 0.6 (the author's
+instinct: a multiplier lifting polite-guest toward engaged-participant ~0.75). The clean design is
+already agreed: DERIVE it from the memory timeseries (his own recent self-speech in that
+`channel_id` within a window), never stored state — the same principle as the open-why derivation.
+Parked to watch plain C live first; promote when the missing lift is actually felt.
+
+**Inbound preparser (B3, reversed by C 2026-07-11)** — `prepare=1` on senses→/input is OFF
+(author's call): the Ollama pre-input path is under review (the polisher story — ollama / Claude
+API / other), the playground server posts polished messages by discipline, and raw input doubles as
+a standing parser/compiler robustness test (what breaks feeds `doc/ref/test-feedback.md` — exactly
+the deepest-pole goal). Re-enable (or replace) when the polisher decision lands; a strong parser
+under a polisher is strength in depth either way.
+
 **ATProto / Bluesky — a `senses` I/O channel (inbound carrier AND outbound)** — the account exists
 (**@tokeniko.online**; app password to come) so wiring is quick later, but deferred behind Discord +
 blog (the going-live `roadmap.md` Next). Today: no send adapter; `score_feasibility` already marks
