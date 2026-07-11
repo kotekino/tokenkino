@@ -42,13 +42,13 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   "confident" centroid was the claim's own predicate: dog.n.03 at 0.83 vs the canine's 0.72 next
   to reptile — disambiguating a subject by the predicate ASSUMES the claim true; the copular
   partner is now excluded from WSD context, both directions, modifiers kept) — see `landed.md`.
-- 🔄 **D — trust ledger (per-stakeholder opinion).** P1 substrate + P2 meta-language echoes + P3
-  the teaching channel ✅ — see `landed.md`. Remaining: **the live play** (validation): restart
-  brain+senses, then Hellen earns kickers (novel claim → his «why is that?» → a KB-true
-  «because»), John contradicts himself into self-inconsistency episodes — watch the two ledgers
-  diverge, then a trusted teacher teaching him something novel through conversation (tier-1
-  materialize). Later consumers of the same ledger: the trust-gated tkzip lane; attitude-report
-  unwrapping (events/facts-as-axioms).
+- ✅ **D — trust ledger** — landed + LIVE-VALIDATED 2026-07-11 (P1 substrate · P2 meta-language
+  echoes · P3 teaching channel; the live play: Hellen's kicker 0.5→0.6, John's self-inconsistency
+  0.5→0.3, clarify + episode side by side) — see `landed.md`; specimens in
+  `doc/ref/test-feedback.md` (night). **Later consumers of the same ledger** (when their time
+  comes): the trust-gated tkzip lane; attitude-report unwrapping (events/facts-as-axioms);
+  tier-1 teaching by an EARNED-trust stranger (the path is open — Hellen is 4 kickers from the
+  bar).
 - **Blog (the website) as an OUTPUT channel** — a `senses`-carried output (the public window), driven by
   the **wondering/reflection** phase: an **urge to post** → an action to post to the blog. **OPEN Q —
   what triggers a post:** a freshly-discovered theorem is one source, *but not only* (novelty?

@@ -387,3 +387,29 @@ dog.n.03 vs 0.717 for dog.n.01 against reptile — the guard's floor+margin pass
 overridden. Fix: the copular partner is excluded from WSD context both ways (its modifiers kept —
 «the bank is a financial institution» still picks the financial bank via "financial"). The chainer's
 unanimity-gated canonicalization stays as defense-in-depth for other drift.
+
+
+## Session 2026-07-11 (night) — D live: the first opinions
+
+The trust ledger (P1–P3, `7c1df52`/`388a401`/`43a7652`) live-validated the same evening, scripted
+through the playbots with every line PRE-VERIFIED pure via /evaluate. Two specimens:
+
+**T1 — the first KICKER in history.** Hellen: «the moon orbits the earth» (insufficient →
+`eval:unknown` → «why is that?», no episode) → threaded reply «because a moon is a satellite» →
+grounded TRUE against the is_a graph → closed his open question → `trust:kicker +0.100` →
+**Hellen 0.5 → 0.6**. The namespace split visible on the wire: eval:true → ignore (outward
+SILENCE = consent) AND trust:kicker → more-trust (private episode) — both fired, no collapse.
+
+**T2 — the honest-liar proxy.** John: «the cat is alive» then «the cat is dead» → cross-item
+contrary-predicate conflict → BOTH reflexes side by side: «that contradicts what you said before —
+which holds?» (clarify, spoken) + `trust:self-inconsistency −0.200` (episode; the note names the
+antonym pair) → **John 0.5 → 0.3**. Contradicting yourself costs 2× a kicker — by the weights,
+as designed.
+
+**Working observations:** the episode notes read as honest self-explanations ("closed my question
+«why is that?» with a KB-true justification") — the future answer to "why don't you trust John?"
+is already sitting in `trust_episodes`. Hellen is 4 kickers from the teach bar (0.9) — the
+earned-teaching path is open to strangers. CAUTION now live: kotekino's Discord speech teaches
+tier-1 theorems at 0.9 on ANY novel assertion (imprint through the canonical link) — teacher's
+discipline applies to casual banter; the `taught:<uid>` premise makes any mistake revocable in
+one cascade.

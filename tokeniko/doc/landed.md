@@ -344,3 +344,13 @@
   but the ledger resolved by uid — `resolve_canonical` now accepts both currencies (caught
   before any live episode was dropped).
 - Tests: `test_trust_p2.py` (4) + `test_trust_p3.py` (6). **Gate 127 / 1 xfailed.**
+
+**Trust ledger — LIVE-VALIDATED (2026-07-11 night, the closing act of D)**
+- Scripted through the playbots, every line pre-verified pure via /evaluate. **T1 — the first
+  kicker in history**: Hellen's novel claim → his «why is that?» → her threaded «because a moon is
+  a satellite» grounded TRUE → `trust:kicker +0.100` → **0.5→0.6**; on the wire he was SILENT
+  (eval:true→ignore, consent) while the episode recorded privately — the namespace split working.
+  **T2 — the honest-liar proxy**: John's «the cat is alive»/«the cat is dead» → clarify SPOKEN
+  («that contradicts what you said before — which holds?») + `trust:self-inconsistency −0.200`
+  side by side → **0.5→0.3**. tokeniko holds his first derived opinions, with receipts in
+  `trust_episodes`. Specimens → `doc/ref/test-feedback.md` (2026-07-11 night).
