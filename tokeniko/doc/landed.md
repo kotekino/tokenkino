@@ -321,3 +321,26 @@
   answered B [earn it]" (the author).
 - Tests: `tests/test_trust_ledger.py` (8) — fold/clamp/hysteresis/belief-scaling pure; record/
   refold/unification/imprint round-trips on the sandbox DB. **Gate 117 / 1 xfailed.**
+
+**Trust ledger P2+P3 — meta-language echoes + the teaching channel (2026-07-11)**
+- **P2 the trust:* meta-language**: the `TrustEpisodeKind` enum doubles as the trigger namespace
+  (no collapse-collision with the same item's eval:* reflex — he can push back AND distrust);
+  `_trust_echo` casts the verdict's ledger echo (TRUE→agreement · TRUE-closing-my-open-question→
+  **KICKER**, the strong kicker = the closed why-loop · FALSE→disagreement carrying the refuted
+  belief's trust via `_conclusion_trust` · INCONSISTENT→logic-violation · cross-item conflict→
+  self-inconsistency; self-speech never echoes). Trust plans: INTERNAL channel, SPEAKER-targeted,
+  provenance in payload, feasibility = a known speaker. **Priorities' directedness multiplication
+  now applies to OUTWARD actions only** — an overheard lie still costs trust (discretion is about
+  speaking, not concluding). `actions_phase` executes UPDATE_TRUST for real (the first non-stub
+  internal action). Five personality rows seeded (urges = trust sensitivity as data).
+- **P3 the teaching channel (tier-1 — the deferred D1b branch alive)**: an eval:UNKNOWN assertion
+  from a soul ≥ the teach bar (0.9) materializes as a TAUGHT theorem — `trusted = min(teacher,
+  0.9)` (capped below the axiom tier), `sourceId` = the TEACHER (speaker-relevant), provenance
+  premise `taught:<uid>` = a standing revocation key (`revoke_dependents(["taught:<uid>"])`
+  cascade-archives everything a disgraced teacher taught). Below the bar: remembered-not-believed.
+  Unknown vocabulary never becomes knowledge. Self-healing under contradiction (a later
+  contradicting claim grounds FALSE against the theorem, costing trust instead of double-teaching).
+- **The P2→P3 live-currency fix**: memory items carry the speaker's Mongo DOC id in `sourceId`,
+  but the ledger resolved by uid — `resolve_canonical` now accepts both currencies (caught
+  before any live episode was dropped).
+- Tests: `test_trust_p2.py` (4) + `test_trust_p3.py` (6). **Gate 127 / 1 xfailed.**

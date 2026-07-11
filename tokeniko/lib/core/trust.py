@@ -26,6 +26,9 @@
 import logging
 from typing import Optional
 
+from bson import ObjectId
+from bson.errors import InvalidId
+
 from lib.core.memory import MEMTrustEpisode, TrustEpisodeKind
 from lib.core.models import TKMemoryStakeholdersDoc, TKTrustEpisodeDoc
 
@@ -44,11 +47,18 @@ _EPISODE_WEIGHTS: dict[TrustEpisodeKind, float] = {
 }
 
 
-# resolve a stakeholder uid to its CANONICAL soul (one hop): the doc itself if no canonical_uid,
-# else the canonical doc (falling back to the body if the canonical is missing — never None for a
-# known uid). Returns None only for an unknown uid.
-def resolve_canonical(uid: str) -> Optional[TKMemoryStakeholdersDoc]:
-    doc = TKMemoryStakeholdersDoc.find_one({"uid": uid}).run()
+# resolve a stakeholder reference to its CANONICAL soul (one hop): the doc itself if no
+# canonical_uid, else the canonical doc (falling back to the body if the canonical is missing —
+# never None for a known ref). `ref` may be a stakeholder UID ("john@discord:9") OR a stakeholder
+# DOC id (memory items carry the speaker's Mongo id in sourceId — both currencies circulate).
+# Returns None only for an unknown ref.
+def resolve_canonical(ref: str) -> Optional[TKMemoryStakeholdersDoc]:
+    doc = TKMemoryStakeholdersDoc.find_one({"uid": ref}).run()
+    if doc is None:
+        try:
+            doc = TKMemoryStakeholdersDoc.get(ObjectId(ref)).run()  # Bunnet: .run() executes
+        except (InvalidId, TypeError):
+            doc = None
     if doc is None:
         return None
     if doc.canonical_uid:

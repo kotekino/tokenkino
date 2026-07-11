@@ -28,6 +28,7 @@ from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
 from lib.core.memory import EvalToken, MEMChannels, MEMProvenance, TrustEpisodeKind
+from lib.core import trust
 from lib.core.models import (
     TKAxiomDoc,
     TKBrainStateDoc,
@@ -126,6 +127,55 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
         provenance=MEMProvenance(premises=result.premises, chain=chain, derived_by=derived_by),
     ).save()
     logger.info("[thinking] derived THEOREM «%s» <- %s (premises=%s)", item.original, chain, result.premises)
+    return True
+
+
+# --------------------------------------------------------------
+# THE TEACHING CHANNEL (D P3 — TIER-1, the deferred D1b branch alive). A trusted speaker's novel
+# assertion becomes KNOWLEDGE: an eval:UNKNOWN item (not KB-derivable, logic-clean by construction —
+# INCONSISTENT would have been the verdict) from a soul at/above the teach bar materializes as a
+# TAUGHT theorem. Below the bar it stays remembered-not-believed (the memory item is the episodic
+# record either way — he remembers you SAID it without believing it).
+#   - trusted = min(teacher_trust, 0.9): taught knowledge is capped below axiom level — the 1.0
+#     axiom tier stays the author's API privilege; a theorem is revisable.
+#   - sourceId = the TEACHER's soul (tier-1 is speaker-RELEVANT, unlike a derived tier-2 theorem).
+#   - provenance premise "taught:<soul_uid>" — a stable revocation key: if a teacher is ever
+#     disgraced, revoke_dependents(["taught:<uid>"]) cascade-archives everything they taught.
+#   - unknown vocabulary never becomes knowledge (a wug stays a wug).
+# Self-healing under contradiction: once taught, a later contradicting claim grounds FALSE against
+# the theorem (not UNKNOWN), so it is never double-taught — it costs the speaker trust instead.
+# --------------------------------------------------------------
+_TEACH_BAR = 0.9
+
+
+def materialize_taught(item: TKMemoryItemDoc) -> bool:
+    if item.zip is None:
+        return False
+    leaves = evaluation_harness._zip_leaves(item.zip.items)
+    if not leaves or any(getattr(leaf, "unknown", False) for leaf in leaves):
+        return False  # unknown vocabulary never becomes knowledge
+    soul = trust.resolve_canonical(item.sourceId)
+    if soul is None or soul.isMe:
+        return False
+    teacher_trust = 1.0 if soul.imprint else soul.trust
+    if teacher_trust < _TEACH_BAR:
+        return False  # remembered, not believed
+    if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
+        return False  # already knowledge — dedup by original
+    TKTheoremDoc(
+        original=item.original,
+        zip=item.zip,
+        sourceId=str(soul.id),            # tier-1: the TEACHER — speaker-relevant knowledge
+        channel=MEMChannels.INTERNAL,
+        archived=False,                   # ACTIVE — joins reasoning
+        trusted=min(teacher_trust, 0.9),  # capped below the axiom tier
+        provenance=MEMProvenance(
+            premises=[f"taught:{soul.uid}"],
+            chain=f"taught by {soul.name} ({soul.uid}) at trust {teacher_trust:.2f}",
+            derived_by="teaching",
+        ),
+    ).save()
+    logger.info("[thinking] TAUGHT theorem «%s» <- %s (trust %.2f)", item.original, soul.uid, teacher_trust)
     return True
 
 
@@ -537,6 +587,12 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
             if token == EvalToken.TRUE.value:
                 materialize_theorem(result, item, derived_by="thinking")
+            # D P3 (tier-1, the TEACHING CHANNEL): a novel assertion from a soul at/above the teach
+            # bar becomes a TAUGHT theorem (silent, like all learning); below the bar it stays
+            # remembered-not-believed. Runs on BOTH unknown paths (a trusted teacher's «because» is
+            # itself teachable).
+            if token == EvalToken.UNKNOWN.value:
+                materialize_taught(item)
 
             # D P2: the verdict's LEDGER ECHO — spawn the trust:* trigger beside the eval reflex
             # (its own namespace: no collapse-collision, so he can push back AND distrust). The
