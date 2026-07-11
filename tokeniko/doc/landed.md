@@ -285,3 +285,20 @@
   (0.6×0.9=0.54), full derivation chain resting on the taught axiom. Taught knowledge flipped a
   live behavior deterministically. Tests: `tests/test_disjointness.py` (10). **Gate 108 / 1
   xfailed.** Specimens → `doc/ref/test-feedback.md` (2026-07-11 later).
+
+**The WSD copular-circularity guard (2026-07-11, the B-item root cause)**
+- **Diagnosis** (the dog.n.03 specimen): in «a dog is a reptile» the subject's ONLY context word is
+  the predicate the claim asserts — the centroid stage measured dog.n.03 ("a fellow") at 0.832 vs
+  the canine's 0.717 against reptile's vector, cleared the floor+margin guard, and overrode the
+  frequency prior. Same family as the historic "cat is a plant" failure. The deep truth: WSD-by-
+  centroid over a bare copular uses the assertion UNDER JUDGMENT as its own evidence — circular,
+  and it systematically manufactures agreement with the speaker.
+- **Fix** (`parser._wsd_copularPartners` + `_wsd_centroid`): a token's copular partner is excluded
+  from its WSD context, BOTH directions (UD cop-shape + spaCy attr-shape); the partner's own
+  modifiers stay — independent description remains evidence. With no remaining context the
+  frequency prior holds (dog.n.01); in rich sentences the centroid still works. Verified live:
+  «a dog is a reptile» refutes straight from dog.n.01 (no canonicalization crutch — which stays,
+  for other WSD drift); «the bank is a financial institution» still resolves the FINANCIAL bank
+  (the kept modifier steers). Regression test: `test_compiler.py::
+  test_bare_copular_subject_wsd_is_not_circular` (a documented exception to the no-exact-sense
+  rule — it IS the anti-drift guard). **Gate 109 / 1 xfailed.**

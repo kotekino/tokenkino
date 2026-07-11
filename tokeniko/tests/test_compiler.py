@@ -99,3 +99,13 @@ def test_coordinated_predicate_keeps_subject(compile_zip, leaves):
     lvs = leaves(compile_zip("the cat is dead and alive"))
     assert len(lvs) >= 2
     assert all("subject" in l.senses for l in lvs)
+
+
+def test_bare_copular_subject_wsd_is_not_circular(compile_zip, leaves):
+    # the WSD circularity guard (2026-07-11 B-item). In «a dog is a reptile» the subject's ONLY
+    # context word is the predicate the claim asserts — using it as centroid evidence ASSUMES the
+    # claim true (the sparse vectors ranked dog.n.03 "a fellow" above the canine next to reptile).
+    # With the copular partner excluded there is no context left, so the frequency prior must hold.
+    # EXCEPTION to this file's no-exact-sense rule: this test IS the anti-drift guard.
+    leaf = _first_leaf(compile_zip, leaves, "a dog is a reptile")
+    assert leaf.senses["subject"] == "dog.n.01"

@@ -380,3 +380,10 @@ premises = the taught axiom (provenance-cascade-ready). Gate 108 passed / 1 xfai
 **Also this session (act 1, logged above the fold):** the four ladder specimens (L1–L4), the
 mention-token decode fix (S1), the wh-solver's first public values («feline», «cognition»), and
 the open-why closed by a stranger's true premise (silence-as-consent, no regress).
+
+**S3 follow-up — ROOT CAUSE FIXED same session (the copular-circularity guard).** The "confident"
+centroid WAS the claim's own predicate (the only context word in a bare copular): cosine 0.832 for
+dog.n.03 vs 0.717 for dog.n.01 against reptile — the guard's floor+margin passed and the prior was
+overridden. Fix: the copular partner is excluded from WSD context both ways (its modifiers kept —
+«the bank is a financial institution» still picks the financial bank via "financial"). The chainer's
+unanimity-gated canonicalization stays as defense-in-depth for other drift.

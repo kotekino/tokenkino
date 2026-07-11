@@ -355,10 +355,36 @@ def _wsd_contextVectors(doc) -> dict[int, np.ndarray]:
         doc.user_data["_wsd_vecs"] = cache
     return cache
 
-# context centroid = mean of the OTHER content tokens' most-frequent vectors (None if no context)
+# the token's COPULAR PARTNER indices — excluded from its WSD context (the circularity guard,
+# 2026-07-11 B-item: in «a dog is a reptile» the subject's only context word IS the predicate the
+# claim asserts; disambiguating dog by its affinity to reptile ASSUMES the claim true, and the
+# sparse vectors ranked dog.n.03 "a fellow" at 0.83 vs the canine's 0.72 — manufacturing agreement
+# with the speaker). Excluded BOTH ways (the predicate must not be voted on by the subject either);
+# the partner's own modifiers stay — they are independent description, not the claimed identity.
+# Covers the UD shape (predicate noun heads a `cop` child; subject is its nsubj) and the spaCy
+# shape (both hang off the copula verb as nsubj/attr).
+def _wsd_copularPartners(token: Token) -> set[int]:
+    out: set[int] = set()
+    head = token.head
+    # UD: token is the nsubj of a noun that carries a cop child -> the partner is that head noun
+    if token.dep_ in ("nsubj", "nsubj:pass") and any(ch.dep_ == "cop" for ch in head.children):
+        out.add(head.i)
+    # UD: token IS the copular predicate (has a cop child) -> its nsubj children are partners
+    if any(ch.dep_ == "cop" for ch in token.children):
+        out.update(ch.i for ch in token.children if ch.dep_ in ("nsubj", "nsubj:pass"))
+    # spaCy: subject and predicate are siblings under the copula verb (nsubj / attr)
+    if token.dep_ in ("nsubj", "attr") and head.pos_ in ("AUX", "VERB"):
+        other = "attr" if token.dep_ == "nsubj" else "nsubj"
+        out.update(ch.i for ch in head.children if ch.dep_ == other)
+    return out
+
+
+# context centroid = mean of the OTHER content tokens' most-frequent vectors (None if no context);
+# the token's copular partner is NOT context (the circularity guard above).
 def _wsd_centroid(token: Token) -> np.ndarray | None:
     vecs = _wsd_contextVectors(token.doc)
-    others = [v for i, v in vecs.items() if i != token.i]
+    excluded = _wsd_copularPartners(token) | {token.i}
+    others = [v for i, v in vecs.items() if i not in excluded]
     return np.mean(others, axis=0) if others else None
 
 # Lesk overlap: how many of a gloss's content words appear among the sentence's content lemmas
