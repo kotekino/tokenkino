@@ -78,6 +78,22 @@ def test_effective_urge_defaults_to_fully_directed():
     assert effective_urge(_idea(0.7), SimpleNamespace()) == 0.7
 
 
+# ---- the mention decoder (adapter wire-encoding normalization) --------------------------------------
+
+def test_decode_mentions_to_usernames():
+    from lib.discord.client import _decode_mentions
+    tokeniko = SimpleNamespace(id=1518880846826831922, name="tokeniko")
+    # the live specimen that broke the parser (2026-07-11): a raw <@id> token in the text
+    assert _decode_mentions("I agree with <@1518880846826831922>", [tokeniko]) == "I agree with tokeniko"
+    assert _decode_mentions("<@!1518880846826831922> are you thinking?", [tokeniko]) == "tokeniko are you thinking?"
+
+
+def test_decode_mentions_drops_unresolved_and_keeps_plain_text():
+    from lib.discord.client import _decode_mentions
+    assert _decode_mentions("I agree with <@999> here", []) == "I agree with here"
+    assert _decode_mentions("no mentions at all", None) == "no mentions at all"
+
+
 def test_the_polite_guest_matrix():
     # the emergent discretion (seeded urges x the ladder vs the keep threshold): he answers a question
     # asked to the room, but won't flag contradictions at, or interrogate, people not talking to him.

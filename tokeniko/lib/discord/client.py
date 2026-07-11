@@ -21,6 +21,18 @@ from lib.discord.models import DiscordAttachment, DiscordMessage, Destination
 # the inbound callback signature senses registers.
 MessageHandler = Callable[[DiscordMessage], Awaitable[None]]
 
+# Discord user-mention wire tokens: <@id> and the legacy nickname form <@!id>.
+_MENTION_RE = re.compile(r"<@!?(\d+)>")
+
+
+# decode `<@id>` mention tokens to plain usernames (from the message's resolved mention list) —
+# normalization of the channel's wire encoding, part of the adapter's job. An id missing from the
+# list is dropped; whitespace is re-collapsed so the parser never sees the artifacts.
+def _decode_mentions(content: str, mentions) -> str:
+    names = {str(u.id): u.name for u in (mentions or [])}
+    decoded = _MENTION_RE.sub(lambda match: names.get(match.group(1), ""), content or "")
+    return re.sub(r"\s{2,}", " ", decoded).strip()
+
 
 class DiscordClient:
 
@@ -45,6 +57,11 @@ class DiscordClient:
 
     def _to_message(self, m: discord.Message) -> DiscordMessage:
         guild_id = str(m.guild.id) if m.guild is not None else None
+        # decode Discord's mention wire-encoding BEFORE the content crosses the seam: a raw
+        # `<@id>` token is channel encoding, not language — the parser met one literally and the
+        # compile failed («I agree with <@15188…>», 2026-07-11). Names come from the message's own
+        # resolved mention list; an unresolvable id is dropped rather than shipped as noise.
+        content = _decode_mentions(m.content, m.mentions)
         reply_to = (
             str(m.reference.message_id)
             if (m.reference is not None and m.reference.message_id is not None)
@@ -67,7 +84,7 @@ class DiscordClient:
             author_name=m.author.name,
             channel_id=str(m.channel.id),
             guild_id=guild_id,
-            content=m.content,
+            content=content,
             reply_to=reply_to,
             attachments=[
                 DiscordAttachment(filename=a.filename, url=a.url, content_type=a.content_type)

@@ -303,3 +303,40 @@ DERIVABLE from the memory timeseries (recency cheap by construction). *Action:* 
 charming AND epistemically right; answers thread perfectly under their questions; the raw tongue
 («I do not know», «yes», «why is that?») is stark but dignified — the nuance layer (hunch #7) can
 wait; cross-channel identity (Discord-renzo ≠ kotekino to him) is now a live design thread for D.
+
+
+## Session 2026-07-11 — senses C live: the channel, the ladder, the first discretion
+
+C landed (`3e5993d`) and was live-validated the same hour in `#english` with the playbot puppets
+(`scripts/playground_bots.py`, John + Hellen). Four ladder specimens — one scalar, four manners:
+
+**L1 — ambient question → answered.** John (no addressing): «is a cat an animal?» → perceived
+directedness=0.6 → `eval:question→answer` urge 0.9, effective **0.54 ≥ 0.5** → «yes», threaded
+under John's message. The polite guest answers the room. FIRST channel utterance + first words to
+a stranger.
+
+**L2 — ambient contradiction → SILENCE (the first discretion specimen).** John: «the cat is dead
+and alive» → 0.6 → `eval:inconsistent→speakup` urge 0.7 feas 1.0 **discarded** (effective 0.42).
+He SAW the contradiction (epistemics at full strength) and held his tongue — not his conversation.
+
+**L3 — the contrast pair.** Hellen, same sentence, addressed by NAME («tokeniko, the cat is dead
+and alive») → 0.9 (the name-word detector) → effective 0.63 → **«no, that is contradictory»**,
+threaded reply. Same urge, same feasibility, opposite behavior — addressing alone flipped it.
+
+**L4 — someone else's thread → silence even for an answerable question.** Hellen replying to
+John's message: «is the cat alive?» → 0.15 → answer idea (0.9/1.0) discarded at effective 0.135.
+He knew the answer and minded his own business.
+
+**S1 — raw Discord mention token broke the compile.** *Observed:* `[inbound] message from kotekino
+not ingested (status=failed)` on «I agree with <@1518880846826831922>». *Diagnosis:* Discord's
+mention WIRE ENCODING reached the parser as literal characters — channel encoding, not language;
+decoding it is the ADAPTER's job (like the modality sniffer), not polish. *Action (landed this
+session):* `lib/discord/client._decode_mentions` — `<@id>`/`<@!id>` → username from the message's
+resolved mention list before content crosses the seam; unresolved ids dropped, whitespace
+re-collapsed.
+
+**Working observations:** greetings («hello Hellen», «welcome») are etiquette territory — hunch #8,
+stays parked, expected to fail/noise until it lands. The playbots double as the future D cast
+(distinct stakeholders for trust-ledger episodes). Momentum gap already felt in miniature: after
+L3 the room reads as "his conversation" but a follow-up ambient line would still grade 0.6 —
+parked entry has the timeseries derivation sketch.

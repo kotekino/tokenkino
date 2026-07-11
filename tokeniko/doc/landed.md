@@ -260,3 +260,10 @@
 - Tests: `tests/test_senses_c.py` (9) — the ladder, channel ingestion, the effective-urge matrix;
   `test_senses_inbound.py`/`test_senses_b.py` updated (not_dm gone, prepare gone). **Gate 96
   passed / 1 xfailed.**
+- **LIVE-VALIDATED same hour** (`#english`, playbot puppets John+Hellen via
+  `scripts/playground_bots.py`): all four ladder rungs — ambient question answered («yes», 0.54) ·
+  ambient contradiction met with SILENCE (0.42 — the first discretion specimen: saw it, held his
+  tongue) · the addressed contrast pair («no, that is contradictory», 0.63) · an answerable
+  question in someone else's thread ignored (0.135). Follow-on fix landed: the adapter decodes
+  Discord `<@id>` mention wire-tokens to usernames (`_decode_mentions`) — a raw token had broken
+  a compile. Specimens → `doc/ref/test-feedback.md` (2026-07-11).
