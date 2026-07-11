@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, BrainState
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMTrustEpisode, BrainState
 
 _VECTOR_INDEX = "vector_index"
 
@@ -179,3 +179,11 @@ class TKBehaviorRuleDoc(MEMBehaviorRule, Document):
     trigger: Annotated[str, Indexed()] = ""   # non-unique index (multi-rule per trigger)
     class Settings:
         name = "behavior_rules"
+
+# trust_episodes: the trust ledger's permanent trail (senses D) — the SOURCE OF TRUTH the
+# stakeholder's folded `trust` scalar is recomputed from (lib/core/trust.fold_trust). Append-only
+# biography, never wiped (post-ceremony discipline).
+class TKTrustEpisodeDoc(MEMTrustEpisode, Document):
+    stakeholder_uid: Annotated[str, Indexed()] = ""   # non-unique (many episodes per stakeholder)
+    class Settings:
+        name = "trust_episodes"

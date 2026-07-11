@@ -42,11 +42,15 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   "confident" centroid was the claim's own predicate: dog.n.03 at 0.83 vs the canine's 0.72 next
   to reptile — disambiguating a subject by the predicate ASSUMES the claim true; the copular
   partner is now excluded from WSD context, both directions, modifiers kept) — see `landed.md`.
-- **D — trust ledger (per-stakeholder opinion).** Neutral start → episodes (redundant agreement
-  weak+ · novel-valid-bridging strong+ (the kicker) · disagreement weighted by the BELIEF's trust ·
-  logic violation strong− · self-inconsistency strong−, the liar proxy) → hysteresis →
-  `tokeniko:more-trust`/`less-trust` internal actions. Kotekino anchored by imprinting, never by
-  the adder. Feeds the D-phase learning channel + the trust-gated tkzip lane.
+- 🔄 **D — trust ledger (per-stakeholder opinion).** P1 substrate ✅ (episodes-as-truth + folded
+  scalar + imprint/unification applied — see `landed.md`). Next: **P2** the meta-language wiring —
+  the five `trust:*` triggers (own namespace, no collapse-collision with the eval:* reflexes) →
+  `tokeniko:more-trust`/`less-trust` internal actions; thinking spawns them from verdicts (STRONG
+  kicker = the closed why-loop: a novel claim's «because» grounding TRUE); Priorities'
+  directedness multiplication exempts INTERNAL actions (overheard lies still cost trust); seed
+  rows. Then **P3** the first consumer: the teaching channel (the deferred D1b branch — novel
+  truth from trust ≥ 0.9 materializes at min(speaker_trust, premise_trust); below the bar,
+  remembered-not-believed). Then the live play: Hellen earns kickers, John contradicts himself.
 - **Blog (the website) as an OUTPUT channel** — a `senses`-carried output (the public window), driven by
   the **wondering/reflection** phase: an **urge to post** → an action to post to the blog. **OPEN Q —
   what triggers a post:** a freshly-discovered theorem is one source, *but not only* (novelty?

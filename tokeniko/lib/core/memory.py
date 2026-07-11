@@ -31,6 +31,43 @@ class MEMStakeholder(BaseModel):
     ner_type: Optional[str] = None  # the spaCy NER label for an individual (PERSON/GPE/ORG/...)
     vector: Optional[list[float]] = None  # the 2925 type centroid (meaning=geometry); None for participants
     contextKey: Optional[str] = None  # "channel:talker_uid" scope of an individual's uid
+    # --- the TRUST LEDGER (senses D, 2026-07-11) ---
+    # `trust` is a FOLDED CACHE, never the source of truth: the permanent trail is the
+    # trust_episodes collection (MEMTrustEpisode), and this scalar is recomputable from it at any
+    # time (lib/core/trust.fold_trust) — the same context-is-derivable principle as brain_state.
+    # Neutral start 0.5; asymmetric deltas (rises slow, falls fast) live in the episode weights.
+    trust: float = Field(default=0.5)
+    # imprinting (author's call): kotekino is trusted BY CONSTITUTION, never by the adder — the
+    # fold pins an imprinted stakeholder at 1.0 regardless of episodes (episodes still recorded:
+    # the trail stays honest even where the scalar is pinned).
+    imprint: bool = Field(default=False)
+    # identity unification (fork 3, option A): a channel body of the same soul points at its
+    # canonical stakeholder ("kotekino@discord:…" -> "kotekino"); trust reads/writes resolve
+    # through it (one ledger per soul, many channel bodies). One hop, never chained.
+    canonical_uid: Optional[str] = None
+
+
+# a TRUST EPISODE — one entry in the permanent per-stakeholder trail (the ledger's source of
+# truth; `MEMStakeholder.trust` is the fold). `kind` is a TrustEpisodeKind value; `delta` is the
+# ALREADY-SCALED contribution (disagreement is weighted by the refuted belief's own trust at
+# record time — the episode stores the final number so the fold is a pure replay). `source_id`
+# is the memory item / KB doc the episode arose from (provenance, and the future answer to
+# "why don't you trust John?").
+class TrustEpisodeKind(str, Enum):
+    AGREEMENT = "trust:agreement"                  # redundant eval:true (KB-derivable) — weak +
+    KICKER = "trust:kicker"                        # novel, logic-clean, premises KB-matched — strong +
+    DISAGREEMENT = "trust:disagreement"            # eval:false — weighted by the belief's trust
+    LOGIC_VIOLATION = "trust:logic-violation"      # eval:inconsistent — strong −
+    SELF_INCONSISTENCY = "trust:self-inconsistency"  # eval:conflict — strong − (the honest-liar proxy)
+
+
+class MEMTrustEpisode(BaseModel):
+    stakeholder_uid: str                       # the CANONICAL uid (resolved before recording)
+    kind: TrustEpisodeKind
+    delta: float                               # already-scaled signed contribution
+    source_id: Optional[str] = None            # provenance: the memory/KB doc behind the episode
+    note: Optional[str] = None                 # short human-readable why (log/debug)
+    timestamp: int = Field(default_factory=lambda: int(time.time()))
 
 # mem item properties
 class MEMItemProperties(BaseModel):

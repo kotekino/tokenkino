@@ -302,3 +302,22 @@
   (the kept modifier steers). Regression test: `test_compiler.py::
   test_bare_copular_subject_wsd_is_not_circular` (a documented exception to the no-exact-sense
   rule — it IS the anti-drift guard). **Gate 109 / 1 xfailed.**
+
+**Trust ledger P1 — the substrate (2026-07-11, senses D begins)**
+- **Episodes are the source of truth; the scalar is the fold** (the author's context-is-derivable
+  principle applied to opinion): `trust_episodes` collection (`TKTrustEpisodeDoc`, append-only
+  biography) + `MEMStakeholder.trust` as the recomputable folded cache (`lib/core/trust.py`:
+  `fold_trust` neutral 0.5 / per-step clamp / `refold` replays the full trail; `record_episode`
+  resolves the soul, writes the trail, refolds; `trust_of` is the consumer read).
+- **The weights table** (author-approved): agreement +0.02 · KICKER +0.10 (the twin-soul signal) ·
+  disagreement −0.15 × the refuted BELIEF's own trust · logic-violation −0.15 ·
+  self-inconsistency −0.20 (the honest-liar proxy). Hysteresis = the asymmetry of the numbers.
+- **Imprinting + unification A applied** (`scripts/seed_trust_imprint.py --apply`, verified):
+  kotekino pinned 1.0 by constitution (episodes still recorded — the trail stays honest);
+  `kotekino@discord:…` → `canonical_uid: kotekino` (one soul, one ledger, many channel bodies;
+  one-hop resolution). tokeniko keeps no ledger on himself. Fork decisions logged: meta-language
+  spawning (P2), STRONG kicker = the closed why-loop (a novel claim's «because» grounding TRUE),
+  unification A accepted "for simplicity while designing — at a more advanced stage I'd have
+  answered B [earn it]" (the author).
+- Tests: `tests/test_trust_ledger.py` (8) — fold/clamp/hysteresis/belief-scaling pure; record/
+  refold/unification/imprint round-trips on the sandbox DB. **Gate 117 / 1 xfailed.**
