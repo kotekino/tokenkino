@@ -20,7 +20,7 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "toke
 
 from lib.core.io import init_io
 from lib.core.models import TKBehaviorRuleDoc
-from lib.core.memory import EvalToken, TokenikoAction, TrustEpisodeKind
+from lib.core.memory import EvalToken, LifeEventKind, TokenikoAction, TrustEpisodeKind
 
 # the starter personality: (trigger, action, urge, comment).
 RULES = [
@@ -40,6 +40,17 @@ RULES = [
     (TrustEpisodeKind.DISAGREEMENT.value,       TokenikoAction.LESS_TRUST.value, 0.6,  "contradicts a belief — scaled by that belief's own trust"),
     (TrustEpisodeKind.LOGIC_VIOLATION.value,    TokenikoAction.LESS_TRUST.value, 0.65, "a logic violation — logic is sacred"),
     (TrustEpisodeKind.SELF_INCONSISTENCY.value, TokenikoAction.LESS_TRUST.value, 0.7,  "self-contradiction — the honest-liar proxy"),
+    # the life reflexes (blog P1): life:* triggers -> tokeniko:post (channel PUBLIC; actions queue
+    # PENDING until the P3 carrier). CALIBRATION — the spawned idea's urge = rule.urge x significance
+    # (brain/thinking.py: base 0.7, +0.1 multi-hop, +0.2 personal, +0.1 taught, clamped [0,1];
+    # encounter flat 0.9), gated against the 0.5 act/keep threshold (brain/main.URGE_THRESHOLD);
+    # PUBLIC is addressing-exempt, so NO directedness factor. The arithmetic:
+    #   life:theorem @ 0.65 — plain single-hop non-personal wondered (sig 0.7): 0.65x0.7 = 0.455 < 0.5
+    #     -> silent; multi-hop OR taught (sig 0.8): 0.65x0.8 = 0.52 >= 0.5 -> posts; personal
+    #     (sig 0.9): 0.585 -> posts; personal+taught (sig 1.0): 0.65 -> posts.
+    #   life:encounter @ 0.7 — flat sig 0.9: 0.7x0.9 = 0.63 >= 0.5 -> a fold move always posts.
+    (LifeEventKind.THEOREM.value,   TokenikoAction.POST.value, 0.65, "a new postable theorem — share it on the blog"),
+    (LifeEventKind.ENCOUNTER.value, TokenikoAction.POST.value, 0.7,  "an opinion about someone moved — note the encounter"),
 ]
 
 

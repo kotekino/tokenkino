@@ -24,10 +24,12 @@ from lib.core.models import (
 from lib.core.memory import TokenikoAction, ActionType, MEMChannels
 from brain import compose
 
-# the channels tokeniko can currently ACT on (deliver an outward action). HARDWIRED for v1 (a 2-entry
+# the channels tokeniko can currently ACT on (deliver an outward action). HARDWIRED for v1 (a small
 # set isn't worth a table yet) — externalize to a channel-capability KB record later (everything-is-KB):
 # INTERNAL = self KB-writes; DISCORD has a senses carrier; ATPROTO has NO send adapter yet -> infeasible.
-_ACTABLE_CHANNELS = {MEMChannels.INTERNAL, MEMChannels.DISCORD}
+# PUBLIC (blog P1): the carrier lands in P3 — planned posts queue as PENDING actions on this channel
+# (the handoff): nothing consumes them yet (actions_phase drains INTERNAL only; senses polls discord).
+_ACTABLE_CHANNELS = {MEMChannels.INTERNAL, MEMChannels.DISCORD, MEMChannels.PUBLIC}
 
 
 # the HARDWIRED dispatch registry: tokeniko:Y reflex -> concrete ActionType. Code today, but a plain
@@ -73,8 +75,12 @@ def behavior_for(trigger: str) -> list[TKBehaviorRuleDoc]:
 
 # the fan-out: for each candidate rule, create+insert an idea carrying that rule's reflex (action_token)
 # and urge. The superposition made concrete — Thinking/D will call this. Returns the created ideas.
+# `material` (life:*) rides the life-event context to the post composer (mirrors `answer`/`target`);
+# `urge_scale` is the SIGNIFICANCE modulation (blog P1): idea.urge = rule.urge x significance, so how
+# noteworthy the event is shapes the urge AT SPAWN and the act threshold does the rest in Priorities.
 def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
-                    answer: Optional[dict] = None, target: Optional[str] = None) -> list[TKIdeaDoc]:
+                    answer: Optional[dict] = None, target: Optional[str] = None,
+                    material: Optional[dict] = None, urge_scale: float = 1.0) -> list[TKIdeaDoc]:
     ideas: list[TKIdeaDoc] = []
     for rule in behavior_for(trigger):
         # IDEMPOTENCY (the obsessive-thinking guard): never two ideas for the same
@@ -89,10 +95,11 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
         idea = TKIdeaDoc(
             trigger=trigger,
             action_token=rule.action,
-            urge=rule.urge,
+            urge=rule.urge * urge_scale,
             payload=payload,
             source=source,
             answer=answer,
+            material=material,
             target=target,
         )
         idea.insert()
@@ -139,8 +146,12 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
 
     src = _source_memory(idea)
 
-    # channel: INTERNAL for a KB-write or trust reflex; else the source memory's channel (carrier = senses).
-    if token in _INTERNAL or token in _TRUST:
+    # channel: PUBLIC for a post (blog P1 — NEVER the source channel: a post is broadcast
+    # self-expression on tokeniko's own window, not a reply into the stirring conversation);
+    # INTERNAL for a KB-write or trust reflex; else the source memory's channel (carrier = senses).
+    if token == TokenikoAction.POST.value:
+        channel = MEMChannels.PUBLIC
+    elif token in _INTERNAL or token in _TRUST:
         channel = MEMChannels.INTERNAL
     else:
         channel = MEMChannels.INTERNAL
@@ -150,9 +161,11 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
             except ValueError:
                 channel = MEMChannels.INTERNAL
 
-    # target: self (internal KB-write) / the asker (directed answer) / the speaker whose ledger
-    # moves (trust) / the speaker (outward reply).
-    if token in _INTERNAL:
+    # target: None for a post (broadcast, not directed) / self (internal KB-write) / the asker
+    # (directed answer) / the speaker whose ledger moves (trust) / the speaker (outward reply).
+    if token == TokenikoAction.POST.value:
+        target = None
+    elif token in _INTERNAL:
         target = tokeniko_uid
     elif idea.target:
         target = idea.target
@@ -166,15 +179,20 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         payload["source"] = idea.source  # provenance: the memory item behind the episode
     if idea.answer is not None:
         payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
+    if idea.material is not None:
+        payload["material"] = idea.material  # life:* — the post composer's fuel (theorem / encounter context)
     raw = compose.compose_raw(token, idea.trigger, idea.answer)
     if raw:
         payload["raw"] = raw             # the decision text -> senses decompiles -> fluent English
+        # (compose_raw returns "" for post — that's fine: raw is OPTIONAL here, the post composer
+        # runs at the carrier over payload["material"] in P2/P3.)
 
     # the reply THREAD-BACK (senses go-live P2): the perceiving channel stamped its reply coordinates
     # on the source memory item (P1: metadata = {"channel_id","message_id"}); forward them as the
     # outbound Destination so a directed reply threads under the exact message that caused it.
-    # Outward only — an internal KB-write / trust update has no destination.
-    if token not in _INTERNAL and token not in _TRUST and src is not None and getattr(src, "metadata", None):
+    # Outward DIRECTED only — an internal KB-write / trust update / broadcast post has no destination.
+    if (token not in _INTERNAL and token not in _TRUST and token != TokenikoAction.POST.value
+            and src is not None and getattr(src, "metadata", None)):
         try:
             coords = json.loads(src.metadata)
         except (ValueError, TypeError):
@@ -220,6 +238,11 @@ def score_feasibility(plan: dict) -> float:
     if token in _TRUST:
         # a ledger update needs no text and no wire — only a known speaker to record against.
         return 1.0 if plan["target"] else 0.0
+    if token == TokenikoAction.POST.value:
+        # a post needs its MATERIAL (the composer's fuel, blog P1) — it needs no recipient and no
+        # raw text (the composer runs at the carrier, P2/P3). BEFORE the generic outward checks:
+        # those gate on raw + an addressable recipient, which a broadcast post honestly lacks.
+        return 1.0 if plan["payload"].get("material") else 0.0
     channel = plan["channel"]
     if channel not in _ACTABLE_CHANNELS:
         return 0.0  # no carrier for this channel (e.g. ATProto) -> honestly infeasible

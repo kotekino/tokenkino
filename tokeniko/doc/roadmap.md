@@ -49,11 +49,22 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   comes): the trust-gated tkzip lane; attitude-report unwrapping (events/facts-as-axioms);
   tier-1 teaching by an EARNED-trust stranger (the path is open — Hellen is 4 kickers from the
   bar).
-- **Blog (the website) as an OUTPUT channel** — a `senses`-carried output (the public window), driven by
-  the **wondering/reflection** phase: an **urge to post** → an action to post to the blog. **OPEN Q —
-  what triggers a post:** a freshly-discovered theorem is one source, *but not only* (novelty?
-  significance? a periodic reflection digest?) — needs an idea on the urge model. *(The author's hunch:
-  materialize-a-theorem → urge-to-post to tokeniko.online.)*
+- 🔄 **Blog (the website) as an OUTPUT channel** — the arc is designed (forks resolved 2026-07-12:
+  the `life:*` namespace, Claude-API polish POC, DM-never-public + anonymization, senses-carried
+  push). The receiving shore is BUILT (`tokeniko-public` ingestion API: `POST /api/transmissions` +
+  `POST /api/mind`, Bearer-keyed, idempotent — see `tokeniko-public/doc/ingestion-api.md`).
+  - ✅ **P1 — the `life:*` trigger family** (life:theorem + life:encounter, significance-modulated
+    urges, the `postable` provenance gate, PUBLIC-channel post plans) — landed 2026-07-12, see
+    `landed.md`. `life:learned` / `life:discussion` staged for later (detection needs design).
+  - 🔭 **P2 — the post composer + Claude polish**: deterministic composer over the action
+    `material` (anonymized at composition — no soul names), then the Claude API as strict
+    syntax-only translator (no new facts, first person, the proof stays in the body); honest
+    raw-template fallback when the API is unreachable. Consensus-over-the-polisher: later.
+  - 🔭 **P3 — the senses carrier + stats heartbeat**: a blog connector polling PUBLIC actions →
+    compose → polish → `POST /api/transmissions`; the coordinator enqueues a mind snapshot every
+    N ticks (state = current phase; metrics: definitions/axiomsRules/theorems/dictionary +
+    souls/trustEpisodes swap) → `POST /api/mind`; KPI label swap in the website backend.
+  - 🔭 **P4 — tests + docs + the premiere** (the first self-initiated transmission, live).
 
 ---
 

@@ -12,6 +12,7 @@ from lib.core.memory import (
     IdeaStatus,
     ActionStatus,
     ActionType,
+    LifeEventKind,
     MEMChannels,
     TrustEpisodeKind,
     UrgeLevel,
@@ -71,6 +72,7 @@ def actions_phase() -> bool:
     # INTERNAL channel ONLY (D3b): outward actions (discord/atproto) are carried out by `senses`, which
     # polls its OWN channel — the brain must NOT consume them (disjoint channel filters = no cross-process
     # race, no new status). INTERNAL = the KB-write reflexes (guess/learn) the brain executes itself.
+    # PUBLIC post actions (blog P1) queue as PENDING here untouched — the carrier lands in P3.
     pending = (
         TKActionDoc.find(
             {"status": ActionStatus.PENDING.value, "channel": MEMChannels.INTERNAL.value}
@@ -100,12 +102,33 @@ def actions_phase() -> bool:
             kind = None
         answer = payload.get("answer") or {}
         if kind is not None and action.targetId:
-            trust.record_episode(
+            # life:encounter (blog P1): spawned ONLY when the fold ACTUALLY MOVED — an imprinted
+            # soul is pinned (fold never moves, episode still recorded, no idea), and a clamped
+            # floor/ceiling fold that absorbs the delta is likewise not an event. Compare the
+            # folded scalar before vs after the episode.
+            trust_before = trust.trust_of(action.targetId)
+            soul = trust.record_episode(
                 action.targetId, kind,
                 source_id=payload.get("source"),
                 belief_trust=answer.get("belief_trust"),
                 note=answer.get("note"),
             )
+            if soul is not None:
+                trust_after = 1.0 if soul.imprint else soul.trust
+                if abs(trust_after - trust_before) > 1e-9:
+                    behavior.spawn_ideas_for(
+                        LifeEventKind.ENCOUNTER.value,
+                        source=payload.get("source"),  # the original memory item behind the episode
+                        material={
+                            "kind": "encounter",
+                            "soul_uid": soul.uid,       # the CANONICAL soul whose fold moved
+                            "episode": kind.value,      # the trust:* kind
+                            "trust_after": trust_after,
+                            "note": answer.get("note"),
+                        },
+                        # flat significance: a fold move is already rare by construction.
+                        urge_scale=thinking.ENCOUNTER_SIGNIFICANCE,
+                    )
         else:
             logger.warning("[actions] malformed update_trust action %s dropped", str(action.id))
     else:
@@ -200,10 +223,14 @@ def priorities_phase() -> bool:
     # D P2 refinement: OUTWARD actions only — discretion is about acting on the world, not about
     # what he may conclude. An INTERNAL reflex (KB-write, trust update) keeps its raw urge: an
     # OVERHEARD lie still costs trust (we learn who people are by watching them talk to others).
+    # Blog P1: PUBLIC (a broadcast post) is likewise exempt — self-expression is never scaled down
+    # by addressing (how directed the STIRRING perception was says nothing about his own window;
+    # a life:encounter idea's source IS a memory item, so without the exemption an ambient-sourced
+    # fold move would be muted). Significance already shaped the urge at spawn.
     feasibility = behavior.score_feasibility(plan)
     idea.feasibility = feasibility
     idea.parsed_by_prio = True
-    if plan["channel"] == MEMChannels.INTERNAL:
+    if plan["channel"] in (MEMChannels.INTERNAL, MEMChannels.PUBLIC):
         urge = idea.urge
     else:
         urge = behavior.effective_urge(idea, behavior._source_memory(idea))

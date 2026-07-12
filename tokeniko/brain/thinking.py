@@ -27,7 +27,7 @@ import lib.core.evaluation_harness as evaluation_harness
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
-from lib.core.memory import EvalToken, MEMChannels, MEMProvenance, TrustEpisodeKind
+from lib.core.memory import EvalToken, LifeEventKind, MEMChannels, MEMProvenance, TrustEpisodeKind
 from lib.core import trust
 from lib.core.models import (
     TKAxiomDoc,
@@ -98,6 +98,97 @@ def _derived_theorem(result: EvaluatorResult) -> bool:
     return any(d.startswith(_CHAIN_PREFIX) for d in (result.derivation or []))
 
 
+# --------------------------------------------------------------
+# THE PROVENANCE GATE (blog P1) — "DM never public" is a CONSTITUTION-level rule: knowledge whose
+# provenance traces to a PRIVATE conversation must never feed the public channel. A DM is a Discord
+# item graded fully-directed (senses/inbound.grade_directedness: DM exactly 1.0; addressed 0.9,
+# ambient 0.6 — the >= 0.95 bar separates the DM grade from every channel grade). INTERNAL items are
+# not DMs regardless of directedness (self-speech defaults directedness 1.0 but is not private input).
+def _is_dm(item) -> bool:
+    return (getattr(item, "channel", None) == MEMChannels.DISCORD
+            and getattr(item, "directedness", 1.0) >= 0.95)
+
+
+# --------------------------------------------------------------
+# SIGNIFICANCE (blog P1) — how noteworthy a life event is, in [0,1]. It MODULATES the spawned idea's
+# urge at the source (idea.urge = rule.urge x significance, behavior.spawn_ideas_for urge_scale), so
+# the act threshold in Priorities does the rest: a plain single-hop wondered theorem stays below the
+# bar (no post), a multi-hop / personal / taught one clears it. PURE over its inputs (unit-testable);
+# the DB-touching relevance checks live in the small readers below it.
+_SIG_BASE = 0.7        # every genuinely-new theorem starts noteworthy-ish
+_SIG_MULTIHOP = 0.1    # a >= 2-step derivation chain — real inference, not a restatement
+_SIG_PERSONAL = 0.2    # about a known soul, or about tokeniko himself
+_SIG_TAUGHT = 0.1      # someone TAUGHT him something new (the teaching channel)
+ENCOUNTER_SIGNIFICANCE = 0.9  # flat: a fold move is already rare by construction
+
+
+def life_theorem_significance(derived_by: str, chain: str, personal: bool) -> float:
+    sig = _SIG_BASE
+    if (chain or "").count(" -> ") >= 2:  # chain steps are " -> "-joined (e_chaining) — >= 2 = multi-hop
+        sig += _SIG_MULTIHOP
+    if personal:
+        sig += _SIG_PERSONAL
+    if derived_by == "teaching":
+        sig += _SIG_TAUGHT
+    return max(0.0, min(1.0, sig))
+
+
+# is the theorem PERSONALLY relevant? — its zip's identities include a KNOWN soul uid (entity-linked
+# to a stakeholder), or the subject is tokeniko himself (first-person original).
+def _is_personal(zip_obj, original: str) -> bool:
+    if (original or "").startswith("I "):
+        return True
+    if zip_obj is None:
+        return False
+    for leaf in evaluation_harness._zip_leaves(zip_obj.items):
+        for uid in (getattr(leaf, "identities", None) or {}).values():
+            if uid and trust.resolve_canonical(uid) is not None:
+                return True
+    return False
+
+
+# the WONDERING premise-AND (blog P1): a conclusion is postable only if EVERY premise theorem it
+# rests on is. Premises circulate as theorem Mongo ids (edge_trust currency) — and the spec's
+# `original` lookup is kept as the fallback; an unmatched premise (an axiom id / a "|" graph-edge
+# key) counts as postable (axioms and bedrock edges carry no privacy). One postable=False premise
+# POISONS the conclusion — the DM taint cascades exactly like min-trust does.
+def _premises_postable(premises) -> bool:
+    for pid in (premises or []):
+        thm = None
+        try:
+            thm = TKTheoremDoc.get(ObjectId(pid)).run()  # Bunnet: .run() executes the query
+        except Exception:
+            thm = None
+        if thm is None:
+            thm = TKTheoremDoc.find_one({"original": pid}).run()
+        if thm is not None and not getattr(thm, "postable", True):
+            return False
+    return True
+
+
+# SPAWN the life:theorem trigger for a genuinely-NEW postable theorem (the third trigger namespace,
+# blog P1). source = the THEOREM doc id — NOT a memory item — so behavior._source_memory resolves
+# None and effective_urge sees directedness 1.0: self-expression is never scaled down by addressing
+# (posts are additionally addressing-exempt in Priorities via the PUBLIC channel).
+def _spawn_life_theorem(theorem_id: Optional[str], original: str, derived_by: str,
+                        premises: list, chain: str, personal: bool) -> None:
+    sig = life_theorem_significance(derived_by, chain, personal)
+    behavior.spawn_ideas_for(
+        LifeEventKind.THEOREM.value,
+        source=theorem_id,
+        material={
+            "kind": "theorem",
+            "theorem_id": theorem_id,
+            "original": original,
+            "derived_by": derived_by,
+            "premises": list(premises or []),
+            "chain": [chain] if chain else [],
+            "significance": sig,
+        },
+        urge_scale=sig,
+    )
+
+
 # materialize a forward-chained truth as an ACTIVE theorem. SILENT learning (no idea/action) — it
 # grows the KB, it does not speak. Idempotent by `original` (silence = consent: a re-derived truth
 # already known is not re-stored). Caching the demonstrated conclusion lets future evals match it
@@ -115,7 +206,10 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
     if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
         return False  # already a theorem — dedup by original
     chain = next(d for d in result.derivation if d.startswith(_CHAIN_PREFIX))
-    TKTheoremDoc(
+    # provenance gate (blog P1): the perceived item is PART of the derivation, so a DM-sourced item
+    # taints the theorem — stored (knowledge is knowledge) but never fed to the public channel.
+    postable = not _is_dm(item)
+    theorem = TKTheoremDoc(
         original=item.original,
         zip=item.zip,
         sourceId=str(get_tokeniko().id),  # tier-2: tokeniko derived it — speaker-irrelevant
@@ -125,8 +219,16 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
         # never laundered to the 0.9 default (truth ⟂ trust).
         trusted=evaluation_harness._conclusion_trust(result.premises),
         provenance=MEMProvenance(premises=result.premises, chain=chain, derived_by=derived_by),
-    ).save()
+        postable=postable,
+    )
+    theorem.save()
     logger.info("[thinking] derived THEOREM «%s» <- %s (premises=%s)", item.original, chain, result.premises)
+    # life:theorem (blog P1): a genuinely-NEW postable theorem is a noteworthy life event. The
+    # learning itself stays silent toward the SOURCE conversation; this is a separate self-expression
+    # urge on the PUBLIC channel, arbitrated by Priorities like any idea.
+    if postable:
+        _spawn_life_theorem(str(theorem.id), item.original, derived_by,
+                            result.premises, chain, _is_personal(item.zip, item.original))
     return True
 
 
@@ -162,7 +264,11 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
         return False  # remembered, not believed
     if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
         return False  # already knowledge — dedup by original
-    TKTheoremDoc(
+    # provenance gate (blog P1): a lesson given in PRIVATE (a Discord DM) is learned but never
+    # published — "DM never public" is constitution-level.
+    postable = not _is_dm(item)
+    chain = f"taught by {soul.name} ({soul.uid}) at trust {teacher_trust:.2f}"
+    theorem = TKTheoremDoc(
         original=item.original,
         zip=item.zip,
         sourceId=str(soul.id),            # tier-1: the TEACHER — speaker-relevant knowledge
@@ -171,11 +277,18 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
         trusted=min(teacher_trust, 0.9),  # capped below the axiom tier
         provenance=MEMProvenance(
             premises=[f"taught:{soul.uid}"],
-            chain=f"taught by {soul.name} ({soul.uid}) at trust {teacher_trust:.2f}",
+            chain=chain,
             derived_by="teaching",
         ),
-    ).save()
+        postable=postable,
+    )
+    theorem.save()
     logger.info("[thinking] TAUGHT theorem «%s» <- %s (trust %.2f)", item.original, soul.uid, teacher_trust)
+    # life:theorem (blog P1): being TAUGHT something new is a noteworthy life event (significance
+    # carries the teaching bump) — postable lessons only.
+    if postable:
+        _spawn_life_theorem(str(theorem.id), item.original, "teaching",
+                            [f"taught:{soul.uid}"], chain, _is_personal(item.zip, item.original))
     return True
 
 
@@ -250,17 +363,31 @@ def _kb_wonder_one() -> bool:
             continue  # unrenderable, or this conclusion is already a held theorem -> converged
         chain = _CHAIN_PREFIX + c["chain"]  # same proof convention as the memory-wondering path
         senses = {"subject": c["subject"], "predicate": c["predicate"], "object": c.get("object")}
+        # provenance gate (blog P1): postability = the AND over the conclusion's premise theorems —
+        # one DM-tainted (postable=False) premise poisons the conclusion; axioms/graph edges pass.
+        postable = _premises_postable(c["premises"])
         resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering",
-                                              trusted=c.get("trust", 0.9), senses=senses)
+                                              trusted=c.get("trust", 0.9), senses=senses,
+                                              postable=postable)
         if resp is None or resp.get("status") != "complete":
             logger.warning("[wondering] KB-derive «%s» — API unavailable/failed, will retry", nl)
             return False  # leave it for next tick (not in `held`, so it is re-attempted)
-        stored = (resp.get("data") or {}).get("original")
+        data = resp.get("data") or {}
+        stored = data.get("original")
         if stored and stored != nl:
             _dedup_suppressed.add(nl)
             logger.info("[wondering] KB-derive «%s» deduped onto held «%s» — suppressed", nl, stored)
             continue  # the conclusion is already held under other wording; keep scanning this tick
         logger.info("[wondering] KB-derived THEOREM «%s» <- %s (premises=%s)", nl, chain, c["premises"])
+        # life:theorem (blog P1): reaching here means a genuinely-NEW theorem was written (a held
+        # render was skipped above; a semantic dedup took the `stored != nl` branch). Personal =
+        # an individual-seeded conclusion about a known soul, or about tokeniko himself.
+        if postable:
+            personal = nl.startswith("I ") or (
+                c["subject_kind"] == "individual" and trust.resolve_canonical(c["subject"]) is not None
+            )
+            theorem_id = str(data.get("_id") or data.get("id") or "")
+            _spawn_life_theorem(theorem_id or None, nl, "wondering", c["premises"], chain, personal)
         return True  # one bounded unit per tick
     logger.info("[wondering] KB-wonder quiet: %d conclusions, all %d already held (converged)",
                 len(conclusions), n_held_skip)

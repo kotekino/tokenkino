@@ -354,3 +354,32 @@
   («that contradicts what you said before — which holds?») + `trust:self-inconsistency −0.200`
   side by side → **0.5→0.3**. tokeniko holds his first derived opinions, with receipts in
   `trust_episodes`. Specimens → `doc/ref/test-feedback.md` (2026-07-11 night).
+
+**Blog output channel P1 — the life:* trigger namespace (2026-07-12)**
+- **The third trigger namespace** (beside eval:*/trust:*): `LifeEventKind` — noteworthy life
+  events stirring an urge to post on the public window (tokeniko.online). `life:theorem` spawns
+  at all three materialization sites (thinking / taught / KB-wondering) for a genuinely-NEW
+  postable theorem, source = the THEOREM doc id (self-expression is never scaled by addressing);
+  `life:encounter` spawns from the UPDATE_TRUST execution ONLY when the fold actually moved (an
+  imprinted soul is pinned — episode recorded, never blog material). Both map to `tokeniko:post`
+  → `POST_CONTENT` on the new `MEMChannels.PUBLIC` (actions queue PENDING — the carrier lands
+  in P3); PUBLIC is addressing-exempt in Priorities (a post is broadcast self-expression).
+- **Significance modulates the urge at spawn** (`idea.urge = rule.urge × significance`): base 0.7,
+  +0.1 multi-hop chain, +0.2 personal (a known soul's identity in the zip, or first-person),
+  +0.1 taught; encounter flat 0.9. Calibrated vs the 0.5 act threshold (rules: theorem 0.65,
+  encounter 0.7): a plain wondered theorem (0.455) stays off the blog; taught/multi-hop (0.52),
+  personal (0.585+), fold-moves (0.63) clear. Editorial taste = two `behavior_rules` rows (data).
+- **The provenance gate — "DM never public" (constitution-level)**: theorems carry `postable`,
+  set at BIRTH (write-time context, never reconstructed): False when the source item is a DM
+  (discord + directedness ≥ 0.95 — the DM grade); the taint CASCADES — a wondering conclusion
+  resting on one DM-tainted premise theorem is poisoned (premise-AND, id-first/original-fallback
+  lookup), exactly like min-trust. The API materialize path passes `postable` through (default
+  True, existing callers untouched). `MEMIdea.material` carries the composer's fuel (theorem /
+  encounter context) into the action payload for P2/P3.
+- Fork decisions logged (the author): the `life:*` namespace over hardwired spawns; Claude-API
+  polish for P2 (the out-of-body translator POC — "not to change his mind, acceptable in
+  philosophy"); DM-never-public 100% + channel material anonymized at composition; senses-carried
+  push + KPI swap (chains/anchors → souls/trustEpisodes) for P3.
+- Tests: `tests/test_life_p1.py` (7) — postable at birth, DM gate, significance bands +
+  calibration, POST plan/feasibility, fold-move vs imprint encounters, premise-AND poisoning.
+  **Gate 134 / 1 xfailed.**

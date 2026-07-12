@@ -14,6 +14,7 @@ class MEMChannels(str, Enum):
     API = "api"
     DISCORD = "discord"
     ATPROTO = "atproto"
+    PUBLIC = "public"    # the blog/public-website carrier (blog P1: actions queue PENDING here; senses grows the connector in P3)
 
 # known talking entities + named individuals.
 # kind="participant" (default) is a conversation participant (talker/listener); kind="individual"
@@ -59,6 +60,15 @@ class TrustEpisodeKind(str, Enum):
     DISAGREEMENT = "trust:disagreement"            # eval:false — weighted by the belief's trust
     LOGIC_VIOLATION = "trust:logic-violation"      # eval:inconsistent — strong −
     SELF_INCONSISTENCY = "trust:self-inconsistency"  # eval:conflict — strong − (the honest-liar proxy)
+
+
+# the life:* trigger family (blog P1) — NOTEWORTHY LIFE EVENTS that stir an urge to post on the
+# public blog. These are TRIGGERS for the behavior table (like trust:*), NOT episode kinds: they
+# fan into ideas via behavior.spawn_ideas_for, and the personality table maps them to tokeniko:post.
+# The namespace is STAGED — life:learned, life:discussion come later.
+class LifeEventKind(str, Enum):
+    THEOREM = "life:theorem"      # a genuinely NEW postable theorem entered the KB
+    ENCOUNTER = "life:encounter"  # a trust fold ACTUALLY MOVED (his opinion of someone changed)
 
 
 class MEMTrustEpisode(BaseModel):
@@ -120,6 +130,11 @@ class MEMTheorem(MEMItem, MEMItemProperties):
     archivedAt: Optional[int] = None # timestamp of archiving (if archived, the theorem is not used for reasoning and deriving new knowledge)
     trusted: float = Field(default=0.9)
     provenance: Optional["MEMProvenance"] = None # the proof, when this theorem was DERIVED (not taught)
+    # PROVENANCE GATE (blog P1): False when the theorem's provenance traces to a PRIVATE conversation
+    # (a Discord DM). "DM never public" is a CONSTITUTION-level rule — a non-postable theorem still
+    # joins reasoning (knowledge is knowledge), it just never feeds the public channel, and it POISONS
+    # any conclusion derived from it (the premise-AND in the wondering path).
+    postable: bool = Field(default=True)
 
 # definition: a semantic statement defining tokeniko's vocabulary/rules ("a thing is equal to
 # itself"; "an apple is a fruit with red skin and sweet flesh"). its meaning is the full compiled
@@ -216,6 +231,7 @@ class MEMIdea(BaseModel):
     feasibility: Optional[float] = None         # set later by Priorities (can-it-be-done)
     source: Optional[str] = None                # provenance: the memory/theorem/axiom id that spawned it
     answer: Optional[dict] = None               # for eval:question — the computed AnswerResult (verdict/value/confidence/reason)
+    material: Optional[dict] = None             # for life:* — the life-event context the post composer will need (theorem id / soul + episode), analogous to `answer` for questions
     target: Optional[str] = None                # a DIRECTED reflex's recipient (e.g. tokeniko:answer → the asker's stakeholder id)
     status: IdeaStatus = Field(default=IdeaStatus.PENDING)
     parsed_by_prio: bool = Field(default=False)  # awaits the Priorities evaluator

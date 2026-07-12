@@ -96,6 +96,9 @@ class TheoremMaterializeIn(BaseModel):
     # the conclusion's KNOWN role senses (subject/predicate/object), straight from the derivation —
     # pinned into the compiled zip so the lossy NL round-trip can never corrupt the semantic dedup key.
     senses: Optional[dict[str, Optional[str]]] = None
+    # provenance gate (blog P1): False when the conclusion rests on a DM-tainted premise theorem
+    # ("DM never public"); computed brain-side, persisted on the doc. Default True — existing callers untouched.
+    postable: bool = True
 
 class TheoremSummary(BaseModel):  # listing view (no zip)
     id: PydanticObjectId = Field(alias="_id")

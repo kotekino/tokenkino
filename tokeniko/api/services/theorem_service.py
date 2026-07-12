@@ -119,7 +119,7 @@ class TheoremService:
     # so a truth already held is not re-stored under different wording -> wondering converges. Returns
     # the existing theorem (no write) when the conclusion is already known, else the newly-stored one.
     def materialize(self, tokens: str, provenance: MEMProvenance, trusted: float = 0.9,
-                    senses: Optional[dict] = None) -> TKTheoremDoc:
+                    senses: Optional[dict] = None, postable: bool = True) -> TKTheoremDoc:
         fields = self.compile_fields(tokens)
         if senses:
             _pin_conclusion_senses(fields["zip"], senses)  # the derivation's senses ARE the truth
@@ -138,6 +138,7 @@ class TheoremService:
             archived=False,                    # ACTIVE -> joins reasoning (model default is archived=True)
             trusted=trusted,
             provenance=provenance,             # the proof: premises + chain + derived_by
+            postable=postable,                 # provenance gate (blog P1): "DM never public", brain-computed
         )
         theorem.insert()
         return theorem
