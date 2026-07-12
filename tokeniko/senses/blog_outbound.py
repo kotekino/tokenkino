@@ -21,6 +21,7 @@
 # module imports clean and tests inject their own post function.
 # --------------------------------------------------------------
 import asyncio
+import json
 import logging
 import os
 from typing import Awaitable, Callable, Optional
@@ -44,7 +45,10 @@ _TRANSMISSION_KEYS = ("slug", "date", "kind", "title", "excerpt", "body", "readM
 # senses/main.py imports this module BEFORE load_dotenv() runs, so a module-level read would see
 # a bare environment and silently misconfigure whatever .env says.
 def _api_base() -> str:
-    return os.getenv("BLOG_API_BASE", "https://tokeniko.online/api").rstrip("/")
+    # the API lives on its OWN host (api.tokeniko.online → the backend App Service); the apex
+    # serves the SPA, whose catch-all would swallow a POST with a false 200 (the 2026-07-12
+    # incident). Never default to the frontend host.
+    return os.getenv("BLOG_API_BASE", "https://api.tokeniko.online/api").rstrip("/")
 
 
 def _poll_interval() -> float:
@@ -57,16 +61,36 @@ def _dryrun() -> bool:
     return not os.getenv("INGEST_API_KEY")  # no key -> nothing could authenticate: dry-run too
 
 
+# PROOF OF DELIVERY, not just a status code (the false-200 lesson, 2026-07-12): a static
+# frontend's catch-all answers ANY request — including a POST — with 200 + an HTML shell, so a
+# misrouted BLOG_API_BASE would read as "delivered" while writing nothing. The ingestion API's
+# contract is a JSON envelope {"success": true, ...}; a 2xx whose body is not that envelope is a
+# delivery FAILURE. Pure so it's unit-testable without a socket.
+def _delivered(status: int, body_text: str) -> bool:
+    if not (200 <= status < 300):
+        return False
+    try:
+        parsed = json.loads(body_text)
+    except Exception:
+        return False
+    return isinstance(parsed, dict) and parsed.get("success") is True
+
+
 # the live push: one aiohttp session per call — at this cadence (posts are rare, heartbeats every
-# ~5 min) a persistent session isn't worth its lifecycle management. Returns the HTTP status;
-# raises on network failure (the caller maps any raise to FAILED).
+# ~5 min) a persistent session isn't worth its lifecycle management. Returns the HTTP status —
+# but a 2xx WITHOUT the API's JSON envelope raises (misrouted endpoint = not delivered); the
+# caller maps any raise to FAILED.
 async def _http_post(url: str, body: dict) -> int:
     import aiohttp  # lazy: never touched in dry-run or under an injected post_fn (tests)
     headers = {"Authorization": f"Bearer {os.getenv('INGEST_API_KEY', '')}"}
     timeout = aiohttp.ClientTimeout(total=float(os.getenv("BLOG_API_TIMEOUT", "30")))
     async with aiohttp.ClientSession(timeout=timeout) as session:
         async with session.post(url, json=body, headers=headers) as resp:
-            await resp.read()  # drain the body so the connection closes cleanly
+            text = await resp.text()
+            if 200 <= resp.status < 300 and not _delivered(resp.status, text):
+                raise RuntimeError(
+                    f"2xx without the API envelope (HTTP {resp.status}, body starts "
+                    f"{text[:60]!r}) — BLOG_API_BASE likely points at the frontend, not the API")
             return resp.status
 
 

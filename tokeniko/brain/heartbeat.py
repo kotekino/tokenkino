@@ -7,11 +7,11 @@
 # blog arc: the brain DECIDES + BUILDS, the senses PUBLIC executor (senses/blog_outbound.py)
 # CARRIES it over HTTP — this module never touches the network.
 #
-# CADENCE (the rate-limit math): a beat fires only on a tick multiple of BRAIN_HEARTBEAT_TICKS
-# (default 100) AND at least BRAIN_HEARTBEAT_MIN_S (default 300s) after the last one. 300s ⇒ at
-# most 3 heartbeats per 15-minute window, plus the occasional transmission post — comfortably
-# under the public API's 100 req / 15 min per-IP limit. Counting DB documents each beat is fine
-# at a 5-minute cadence (a handful of indexed count queries).
+# CADENCE (the rate-limit math): a beat fires when at least BRAIN_HEARTBEAT_MIN_S (default 300s)
+# has passed since the last one — wall-clock only (see _should_beat for why tick-counting lied).
+# 300s ⇒ at most 3 heartbeats per 15-minute window, plus the occasional transmission post —
+# comfortably under the public API's 100 req / 15 min per-IP limit. Counting DB documents each
+# beat is fine at a 5-minute cadence (a handful of indexed count queries).
 #
 # GRACEFUL BY CONTRACT: maybe_beat is wrapped whole — a heartbeat failure (Mongo hiccup, model
 # drift) must NEVER break the coordinator loop; it logs and retries at the next tick multiple.
@@ -47,18 +47,19 @@ _DOING: dict[str, str] = {
 }
 
 
-# the pure cadence guard (unit-testable without a clock or a DB): beat iff `tick` is a positive
-# multiple of `every_ticks` AND at least `min_seconds` have passed since the last beat. The tick
-# modulo keeps the check O(1) per loop iteration; the min-seconds gate makes the cadence
-# wall-clock-honest whatever the loop speed (a busy loop ticks every 0.05s, an idle one every 5s).
+# the pure cadence guard (unit-testable without a clock or a DB): beat iff at least `min_seconds`
+# have passed since the last beat — WALL-CLOCK ONLY. The original design also gated on a tick
+# multiple, but tick duration is wildly variable (a busy yield is 0.05s, an idle tick 5s, a
+# WONDERING tick 30s+ — Ollama renders, API materializes), so 100 ticks meant anything from
+# seconds to nearly an hour: the first live brain never beat (2026-07-12). Time-since-last is
+# equally O(1) and honest at every loop speed; the first beat fires on the first tick after boot
+# (last_beat_at=0 — fresh stats on wake is a feature). `tick` stays a parameter for the boot
+# guard only (tick <= 0 never beats).
 def _should_beat(tick: int, last_beat_at: float, now: float,
-                 every_ticks: Optional[int] = None,
                  min_seconds: Optional[float] = None) -> bool:
-    if every_ticks is None:
-        every_ticks = int(os.getenv("BRAIN_HEARTBEAT_TICKS", "100"))
     if min_seconds is None:
         min_seconds = float(os.getenv("BRAIN_HEARTBEAT_MIN_S", "300"))
-    if tick <= 0 or every_ticks <= 0 or tick % every_ticks != 0:
+    if tick <= 0:
         return False
     return (now - last_beat_at) >= min_seconds
 

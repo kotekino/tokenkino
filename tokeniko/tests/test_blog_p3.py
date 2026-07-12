@@ -226,12 +226,24 @@ def test_build_snapshot_shape_and_souls_exclude_me(_io, clean_public):
 
 # ---- 7. the pure heartbeat cadence guard ----------------------------------------------------------------
 
-def test_should_beat_tick_modulo_and_min_seconds():
+def test_should_beat_wall_clock_only():
+    # WALL-CLOCK cadence (the never-beat lesson, 2026-07-12): tick duration varies 0.05s-30s+
+    # (a wondering tick renders via Ollama), so a tick-modulo gate delayed the first live beat
+    # indefinitely. min_seconds is the ONLY cadence gate; tick>0 is just the boot guard.
     from brain.heartbeat import _should_beat
-    kw = {"every_ticks": 100, "min_seconds": 300.0}
-    assert _should_beat(100, 0.0, 1000.0, **kw) is True     # first multiple, never beaten before
-    assert _should_beat(99, 0.0, 1000.0, **kw) is False     # not a tick multiple
-    assert _should_beat(0, 0.0, 1000.0, **kw) is False      # tick 0 never beats
-    assert _should_beat(200, 900.0, 1000.0, **kw) is False  # multiple, but only 100s elapsed
-    assert _should_beat(200, 650.0, 1000.0, **kw) is True   # multiple AND 350s >= 300s
-    assert _should_beat(300, 999.9, 1000.0, **kw) is False  # both gates must hold
+    kw = {"min_seconds": 300.0}
+    assert _should_beat(1, 0.0, 1000.0, **kw) is True       # first tick after boot beats at once
+    assert _should_beat(0, 0.0, 1000.0, **kw) is False      # tick 0 never beats (boot guard)
+    assert _should_beat(7, 900.0, 1000.0, **kw) is False    # only 100s elapsed
+    assert _should_beat(7, 650.0, 1000.0, **kw) is True     # 350s >= 300s — any tick number
+    assert _should_beat(9999, 999.9, 1000.0, **kw) is False # sub-threshold gap never beats
+
+
+def test_delivered_requires_the_api_envelope():
+    # the false-200 lesson: a frontend catch-all's 200+HTML must never read as delivered.
+    from senses.blog_outbound import _delivered
+    assert _delivered(201, '{"success": true, "data": {"slug": "x"}}') is True
+    assert _delivered(200, '{"success": true}') is True
+    assert _delivered(200, "<!DOCTYPE html><html>...") is False       # the actual incident shape
+    assert _delivered(200, '{"success": false, "message": "no"}') is False
+    assert _delivered(401, '{"success": true}') is False              # status still gates

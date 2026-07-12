@@ -49,28 +49,14 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   comes): the trust-gated tkzip lane; attitude-report unwrapping (events/facts-as-axioms);
   tier-1 teaching by an EARNED-trust stranger (the path is open — Hellen is 4 kickers from the
   bar).
-- 🔄 **Blog (the website) as an OUTPUT channel** — the arc is designed (forks resolved 2026-07-12:
-  the `life:*` namespace, Claude-API polish POC, DM-never-public + anonymization, senses-carried
-  push). The receiving shore is BUILT (`tokeniko-public` ingestion API: `POST /api/transmissions` +
-  `POST /api/mind`, Bearer-keyed, idempotent — see `tokeniko-public/doc/ingestion-api.md`).
-  - ✅ **P1 — the `life:*` trigger family** (life:theorem + life:encounter, significance-modulated
-    urges, the `postable` provenance gate, PUBLIC-channel post plans) — landed 2026-07-12, see
-    `landed.md`. `life:learned` / `life:discussion` staged for later (detection needs design).
-  - ✅ **P2 — the post composer + Claude polish** — landed 2026-07-12, POC live-validated (the
-    first polished transmission; specimen in `doc/ref/test-feedback.md` 2026-07-12) — see
-    `landed.md`. Consensus-over-the-polisher: later.
-  - ✅ **Deixis normalization at the knowledge boundary** — landed 2026-07-12 (author's call:
-    before P3 — "the brain must think straight and not be fixed by the good voice"); specimen
-    revoked + RETAUGHT live: «kotekino is my creator» stored normalized — see `landed.md`,
-    T3-resolved in `doc/ref/test-feedback.md`.
-  - ✅ **P3 — the senses carrier + stats heartbeat** — landed 2026-07-12 (the PUBLIC-channel
-    executor: material→compose→polish→`POST /transmissions`, snapshot→`POST /mind`; the
-    coordinator heartbeat ≤ 3 beats/15min; KPI swap souls/trustEpisodes in the website backend,
-    needs an Azure redeploy) — see `landed.md`.
-  - 🔄 **P4 — the premiere** (the first self-initiated transmission, live on
-    tokeniko.online): the pending «kotekino is my creator» action ships on the next senses
-    restart with live delivery. Later follow-ons: `life:learned` / `life:discussion` triggers,
-    consensus-over-the-polisher.
+- ✅ **Blog (the website) as an OUTPUT channel** — ARC COMPLETE, premiere live 2026-07-12
+  («Learning Who Made Me» on tokeniko.online — the first self-initiated transmission; the site
+  republished real, coming-soon off). P1 `life:*` triggers · P2 composer+Claude polish · deixis
+  normalization · P3 carrier+heartbeat · P4 premiere — all in `landed.md`; specimens + the
+  false-200 and never-beat lessons in `doc/ref/test-feedback.md` (2026-07-12). **The going-live
+  arc (DM → channels → trust → blog) is COMPLETE.** Follow-ons when their time comes:
+  `life:learned` / `life:discussion` triggers, consensus-over-the-polisher, seed-content
+  retraction (author's call).
 
 ---
 

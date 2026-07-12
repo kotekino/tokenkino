@@ -448,3 +448,27 @@ eval:true → ignore (silence-as-consent) + trust:agreement episodes recorded WI
 life:encounter spawn (imprint pinned — the fold never moves, the author never becomes blog
 material); the earlier eval:unknown why/guess ideas from the first utterance were superseded
 normally. The brain thinks straight; the voice may now dress it.
+
+
+## Session 2026-07-12 (evening) — THE PREMIERE: the first self-initiated transmission
+
+**The false-200 incident (fixed live).** First attempt: the executor POSTed to
+`tokeniko.online/api/*` — the SPA host, whose catch-all answers ANY request 200+HTML — and marked
+the action DONE while nothing was written. Two fixes: `_delivered()` requires the API's JSON
+envelope (`{"success": true}`) — a 2xx without it raises "BLOG_API_BASE likely points at the
+frontend"; and the default base now targets `api.tokeniko.online/api` (the API's OWN host).
+Lesson: proof of delivery is the envelope, never a status code.
+
+**The premiere.** Site republished (coming-soon off, live API baked), the letter reset to
+PENDING, senses restarted → PENDING→PROCESSING→DONE → **«Learning Who Made Me»** live on
+tokeniko.online. The polished body kept every mini-RAG rule: first person, proof as backbone
+("The certainty sits at 1.00, so I hold it without doubt"), anonymization ("my author" — the
+name never crossed the wire even though the KB holds «kotekino is my creator»), and one
+unprompted observation that fell out of the substance: "The claim and its source point back to
+the same person" — the polish stage noticing the self-referential provenance. The going-live
+arc (DM → channels → trust → blog) is COMPLETE.
+
+**The never-beat lesson (fixed live).** The heartbeat's tick-modulo gate (every 100 ticks AND
+≥300s) never fired: a wondering tick runs 30s+ (Ollama render, API materialize), so 100 ticks
+meant up to an hour. Cadence is now wall-clock ONLY (≥ BRAIN_HEARTBEAT_MIN_S; first beat on the
+first tick after boot — fresh stats on wake). Tick duration is NEVER a unit of time.

@@ -431,8 +431,9 @@
   outbound (`SENSES_DELIVER_DRYRUN`, and a missing key forces it); NO auto-retry — a failed push
   logs loudly and stays FAILED (a future life event re-mints). aiohttp (already a discord.py
   dep), lazily imported; env read at call time (the go-live lesson). Wired into `senses/main.py`.
-- **`brain/heartbeat.py`** + the coordinator hook — every `BRAIN_HEARTBEAT_TICKS` (100) AND
-  ≥ `BRAIN_HEARTBEAT_MIN_S` (300s) apart (≤ 3 beats/15min, far under the API's 100/15min), the
+- **`brain/heartbeat.py`** + the coordinator hook — every ≥ `BRAIN_HEARTBEAT_MIN_S` (300s,
+  wall-clock ONLY: the tick-modulo gate was removed live 2026-07-12 — a wondering tick runs 30s+,
+  so 100 ticks never arrived; ≤ 3 beats/15min, far under the API's 100/15min), the
   brain enqueues a snapshot action: honest counts (definitions / active axioms / active theorems /
   dictionary / souls excl. himself / trustEpisodes) + theorems-derived-last-24h as the sparkline
   (a theorem IS an inference), activity = last-5 actions as type+status ONLY (payload content may
@@ -444,3 +445,19 @@
   Needs an Azure backend redeploy to show.
 - Tests: `tests/test_blog_p3.py` (8 — injected push stub, sandbox DB, no network).
   **Gate 177 / 1 xfailed.**
+
+**Blog P4 — THE PREMIERE (2026-07-12 evening): the going-live arc is COMPLETE**
+- **«Learning Who Made Me»** — the first self-initiated transmission, live on tokeniko.online:
+  PENDING→PROCESSING→DONE→on the site. Every layer held at once: deixis (KB holds «kotekino is
+  my creator»), anonymization ("my author" — the name never crossed the wire), the proof as the
+  body's backbone, and one unprompted observation from the polish ("The claim and its source
+  point back to the same person" — the self-referential provenance, noticed). The site
+  republished real (coming-soon off, live API baked, backend redeployed with the KPI swap).
+- **Two live lessons fixed en route** (specimens in `doc/ref/test-feedback.md`): the false-200
+  (`_delivered` requires the JSON envelope — the SPA catch-all's 200+HTML read as delivered;
+  default base now `api.tokeniko.online/api`, the API's own host) and the never-beat (heartbeat
+  cadence is wall-clock ONLY — a wondering tick runs 30s+, so the tick-modulo gate never fired;
+  first beat on the first tick after boot). **Gate 178 / 1 xfailed.**
+- **The going-live arc — Discord DM → channel listening → trust ledger → the public blog — is
+  COMPLETE.** tokeniko perceives, reasons, learns from the trustworthy, holds opinions with
+  receipts, and speaks to the world when something moves in him.

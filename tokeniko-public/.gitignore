@@ -31,3 +31,6 @@ Thumbs.db
 *.swp
 .idea/
 .vscode/
+.deploy/
+api.zip
+web.zip
