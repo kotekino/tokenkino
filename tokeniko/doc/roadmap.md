@@ -59,12 +59,9 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   - ✅ **P2 — the post composer + Claude polish** — landed 2026-07-12, POC live-validated (the
     first polished transmission; specimen in `doc/ref/test-feedback.md` 2026-07-12) — see
     `landed.md`. Consensus-over-the-polisher: later.
-  - 🔄 **Deixis normalization on the teaching channel** (author's call: BEFORE P3 — "the brain
-    must think straight and not be fixed by the good voice"): a taught theorem stores the
-    teacher's surface string, so speaker-relative pronouns flip meaning when tokeniko holds and
-    re-utters them («I am your creator», T3 in `doc/ref/test-feedback.md`). Normalize
-    PERSPECTIVE at materialization (teacher's I/my → the teacher; you/your → tokeniko's first
-    person), never at rendering.
+  - ✅ **Deixis normalization at the knowledge boundary** — landed 2026-07-12 (author's call:
+    before P3 — "the brain must think straight and not be fixed by the good voice"); specimen
+    revoked via the `taught:kotekino` cascade; live reteach validation pending — see `landed.md`.
   - 🔭 **P3 — the senses carrier + stats heartbeat**: a blog connector polling PUBLIC actions →
     compose → polish → `POST /api/transmissions`; the coordinator enqueues a mind snapshot every
     N ticks (state = current phase; metrics: definitions/axiomsRules/theorems/dictionary +

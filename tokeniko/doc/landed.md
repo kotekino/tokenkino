@@ -402,3 +402,23 @@
   Specimen + the T3 deixis finding → `doc/ref/test-feedback.md` (2026-07-12).
 - `anthropic` (0.116.0) added to dependencies. Tests: `tests/test_blog_p2.py` (22, all offline —
   fake souls/clients, no network). **Gate 156 / 1 xfailed.**
+
+**Deixis normalization at the knowledge boundary (2026-07-12 — the T3 fix, before blog P3)**
+- **The principle (the author's ruling):** "he's a good voice, but the brain must think straight
+  and not be fixed by the good voice" — a theorem materialized from another soul's speech must
+  store the speaker's MEANING, not their words. The zip was already perspective-resolved
+  (identities carry the teacher's uid); only the surface `original` (the dedup key + NL render
+  source) flipped meaning when re-uttered («I am your creator» → tokeniko claiming creator-hood).
+- **`lib/core/deixis.py`** — pure, stdlib-only `normalize_deixis(text, speaker_name)`: a
+  conservative closed-class rewrite (speaker's I/me/my + agreed auxes → the speaker's name;
+  tokeniko-directed you/your → his own stable first person: «I am your creator» → «kotekino is
+  my creator», «you are kind» → «I am kind») + **the valve**: ANY deictic the table can't
+  confidently handle (bare "I gave…", role-ambiguous "…you") poisons the whole sentence → None →
+  **remembered, not believed**. Better an honest gap than a meaning-flipped belief.
+- **Both from-speech materialization sites** (`materialize_taught` against the teacher's name;
+  `materialize_theorem` resolving the speaker via dual-currency `resolve_canonical` — tokeniko's
+  own speech untouched, unresolvable speaker + deictics refused). Dedup on the NORMALIZED key;
+  the KB-wondering path untouched (graph-rendered third person); zips stored as-is.
+- The T3 specimen archived via `revoke_dependents(["taught:kotekino"])` (scope verified first:
+  1 theorem, 0 dependents — «every thinker exists» rests elsewhere and survives). Live reteach =
+  the validation play. Tests: `tests/test_deixis.py` (9 pure + 4 sandbox). **Gate 169 / 1 xf.**

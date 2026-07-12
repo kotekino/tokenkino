@@ -24,6 +24,7 @@ from typing import Optional
 from bson import ObjectId
 
 import lib.core.evaluation_harness as evaluation_harness
+from lib.core.deixis import normalize_deixis
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
@@ -203,14 +204,28 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
     if not result.premises:
         logger.warning("[thinking] refusing to materialize «%s» — derived but NO premises (invariant breach)", item.original)
         return False
-    if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
-        return False  # already a theorem — dedup by original
+    # DEIXIS NORMALIZATION at the knowledge boundary: the item's surface string is the SPEAKER's
+    # utterance, so speaker-relative pronouns must be rewritten before the sentence becomes a held
+    # belief (the zip is already perspective-resolved — this keeps `original` consistent with it).
+    # The speaker is item.sourceId (both uid and doc-id currencies circulate → resolve_canonical).
+    # A non-me speaker normalizes against their name; tokeniko's own speech or an unresolvable
+    # speaker passes through ONLY deictic-free (speaker_name=None: deictics with no fixable
+    # perspective → refuse). None → remembered, not believed — the memory item stays either way.
+    speaker = trust.resolve_canonical(item.sourceId)
+    speaker_name = speaker.name if (speaker is not None and not speaker.isMe) else None
+    norm = normalize_deixis(item.original, speaker_name)
+    if norm is None:
+        logger.info("[thinking] derived «%s» not normalizable (deixis) — remembered, not believed",
+                    item.original)
+        return False
+    if TKTheoremDoc.find_one({"original": norm}).run() is not None:
+        return False  # already a theorem — dedup by (normalized) original
     chain = next(d for d in result.derivation if d.startswith(_CHAIN_PREFIX))
     # provenance gate (blog P1): the perceived item is PART of the derivation, so a DM-sourced item
     # taints the theorem — stored (knowledge is knowledge) but never fed to the public channel.
     postable = not _is_dm(item)
     theorem = TKTheoremDoc(
-        original=item.original,
+        original=norm,
         zip=item.zip,
         sourceId=str(get_tokeniko().id),  # tier-2: tokeniko derived it — speaker-irrelevant
         channel=MEMChannels.INTERNAL,
@@ -222,13 +237,13 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
         postable=postable,
     )
     theorem.save()
-    logger.info("[thinking] derived THEOREM «%s» <- %s (premises=%s)", item.original, chain, result.premises)
+    logger.info("[thinking] derived THEOREM «%s» <- %s (premises=%s)", norm, chain, result.premises)
     # life:theorem (blog P1): a genuinely-NEW postable theorem is a noteworthy life event. The
     # learning itself stays silent toward the SOURCE conversation; this is a separate self-expression
     # urge on the PUBLIC channel, arbitrated by Priorities like any idea.
     if postable:
-        _spawn_life_theorem(str(theorem.id), item.original, derived_by,
-                            result.premises, chain, _is_personal(item.zip, item.original))
+        _spawn_life_theorem(str(theorem.id), norm, derived_by,
+                            result.premises, chain, _is_personal(item.zip, norm))
     return True
 
 
@@ -262,14 +277,25 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
     teacher_trust = 1.0 if soul.imprint else soul.trust
     if teacher_trust < _TEACH_BAR:
         return False  # remembered, not believed
-    if TKTheoremDoc.find_one({"original": item.original}).run() is not None:
-        return False  # already knowledge — dedup by original
+    # DEIXIS NORMALIZATION at the knowledge boundary: the lesson's surface string is the TEACHER's
+    # utterance — «I am your creator» held verbatim would flip meaning the moment tokeniko re-utters
+    # it ("I" would mean HIM). The zip is already perspective-resolved (identities carry the
+    # teacher's uid); normalizing `original` here keeps the dedup key + NL render source consistent
+    # with it. Unnormalizable (a deictic the conservative table can't fix) → refuse the belief; the
+    # memory item is the episodic record either way (remembered, not believed).
+    norm = normalize_deixis(item.original, soul.name)
+    if norm is None:
+        logger.info("[thinking] taught «%s» not normalizable (deixis) — remembered, not believed",
+                    item.original)
+        return False
+    if TKTheoremDoc.find_one({"original": norm}).run() is not None:
+        return False  # already knowledge — dedup by (normalized) original
     # provenance gate (blog P1): a lesson given in PRIVATE (a Discord DM) is learned but never
     # published — "DM never public" is constitution-level.
     postable = not _is_dm(item)
     chain = f"taught by {soul.name} ({soul.uid}) at trust {teacher_trust:.2f}"
     theorem = TKTheoremDoc(
-        original=item.original,
+        original=norm,
         zip=item.zip,
         sourceId=str(soul.id),            # tier-1: the TEACHER — speaker-relevant knowledge
         channel=MEMChannels.INTERNAL,
@@ -283,12 +309,13 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
         postable=postable,
     )
     theorem.save()
-    logger.info("[thinking] TAUGHT theorem «%s» <- %s (trust %.2f)", item.original, soul.uid, teacher_trust)
+    logger.info("[thinking] TAUGHT theorem «%s» <- %s (trust %.2f)", norm, soul.uid, teacher_trust)
     # life:theorem (blog P1): being TAUGHT something new is a noteworthy life event (significance
-    # carries the teaching bump) — postable lessons only.
+    # carries the teaching bump) — postable lessons only. NOTE the normalized original feeds
+    # _is_personal too: a taught "you are kind" → "I am kind" correctly reads personal ("I " prefix).
     if postable:
-        _spawn_life_theorem(str(theorem.id), item.original, "teaching",
-                            [f"taught:{soul.uid}"], chain, _is_personal(item.zip, item.original))
+        _spawn_life_theorem(str(theorem.id), norm, "teaching",
+                            [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm))
     return True
 
 
