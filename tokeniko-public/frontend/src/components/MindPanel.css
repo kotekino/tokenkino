@@ -71,6 +71,12 @@
 .mind__state--refuting { color: var(--coral); }
 .mind__state--ingesting { color: var(--crt-amber); }
 .mind__state--idle { color: var(--crt-green-dim); }
+.mind__state--wondering { color: var(--crt-amber); }
+
+/* Off air — the transmitter went silent (no heartbeat for a while): the light
+   goes dark and STOPS blinking. A dead lamp doesn't pulse. */
+.mind__state--offair { color: var(--crt-green-dim); opacity: 0.55; }
+.mind__state--offair .mind__state-dot { animation: none; box-shadow: none; opacity: 0.4; }
 
 @keyframes mind-blink { 50% { opacity: 0.25; } }
 

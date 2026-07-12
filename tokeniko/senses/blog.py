@@ -41,7 +41,7 @@ logger = logging.getLogger("tokeniko-brain")
 # (what happened), `proof` the derivation lines (how he knows) — polish must keep both apart.
 # --------------------------------------------------------------
 class PostDraft(BaseModel):
-    kind: str                                  # transmission kind: "argument" (theorem) | "note" (encounter)
+    kind: str                                  # transmission kind — PROVENANCE-encoded (see _KIND_BY_DERIVATION)
     slug: str                                  # stable idempotency key (the carrier dedups on it)
     date: str                                  # ISO 8601 (UTC)
     facts: list[str] = Field(default_factory=list)
@@ -188,6 +188,18 @@ def _is_multi_hop(chain: list[str]) -> bool:
 # ValueError on malformed material (compose_post catches and returns None).
 # --------------------------------------------------------------
 
+# the transmission KIND encodes the theorem's PROVENANCE (the author's call, 2026-07-12): a
+# lesson received carries no argument — only trust — so it reads as a "note"; a solo discovery
+# while re-examining the KB is the ship's-log of the mind alone — "log"; a truth derived in
+# reaction to live conversation is an "argument" in the true sense. The proof always travels in
+# the BODY regardless of the badge — the kind says where the truth happened, not whether it is
+# proven. (Encounters stay "note".)
+_KIND_BY_DERIVATION: dict[str, str] = {
+    "teaching": "note",
+    "wondering": "log",
+    "thinking": "argument",
+}
+
 # theorem lead line by derivation kind — his honest account of HOW the truth arrived.
 _THEOREM_LEADS: dict[str, str] = {
     "teaching": "I was taught something new: «{original}».",
@@ -264,7 +276,8 @@ def _compose_theorem(material: dict, souls: list, soul_reader, premise_reader, n
 
     if not facts:
         raise ValueError("theorem material produced no publishable fact line")
-    return PostDraft(kind="argument", slug=slug, date=_iso(now), facts=facts, proof=proof,
+    return PostDraft(kind=_KIND_BY_DERIVATION.get(derived_by, "argument"), slug=slug,
+                     date=_iso(now), facts=facts, proof=proof,
                      significance=float(material.get("significance") or 0.0))
 
 

@@ -461,3 +461,16 @@
 - **The going-live arc — Discord DM → channel listening → trust ledger → the public blog — is
   COMPLETE.** tokeniko perceives, reasons, learns from the trustworthy, holds opinions with
   receipts, and speaks to the world when something moves in him.
+
+**Blog polish follow-ons — provenance kinds + the transmitter ping (2026-07-12 night)**
+- **Kind = provenance** (the author's call): a transmission's kind encodes WHERE the truth
+  happened, not whether it is proven (the proof always travels in the body) — teaching → "note"
+  (a lesson carries no argument, only trust) · wondering → "log" (the ship's log of the mind
+  alone) · thinking → "argument" (reasoned against live conversation); encounters stay "note".
+  `_KIND_BY_DERIVATION` in `senses/blog.py`.
+- **The transmitter ping** (the honest "on air" light): the backend stamps `capturedAt` into the
+  served `/api/mind` payload; the frontend polls each minute (a live monitor fetched once is a
+  photograph) and past 15 min of silence the panel goes **off air** — dark unblinking lamp,
+  frozen uptime clock, "transmitter silent — last heartbeat N min ago", footer "feed: stalled".
+  The mock fallback carries no stamp (nothing to be stale relative to). Both services
+  redeployed; the missing `wondering` state color added (amber). **Gate 179 / 1 xfailed.**

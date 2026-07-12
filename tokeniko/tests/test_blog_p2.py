@@ -75,7 +75,7 @@ def _encounter_material(**over):
 def test_theorem_draft_shape_slug_stability_and_proof():
     d1 = blog.compose_draft(_theorem_material(), now=1752300000, **_readers())
     d2 = blog.compose_draft(_theorem_material(), now=1752399999, **_readers())
-    assert d1.kind == "argument"
+    assert d1.kind == "log"  # PROVENANCE-encoded: a wondering discovery is the ship's log
     assert d1.slug == "theorem-665f1e2a9b3c4d5e6f708192"
     assert d1.slug == d2.slug                             # same material -> same slug (idempotency)
     assert d1.date.startswith("2025") or d1.date.startswith("2026")  # ISO 8601 from the epoch param
@@ -301,7 +301,7 @@ def test_compose_post_theorem_end_to_end_contract():
         _theorem_material(), client=_FakeClient(text=json.dumps(payload)),
         now=1752300000, **_readers()))
     assert set(out) == {"slug", "date", "kind", "title", "excerpt", "body", "readMin", "polished"}
-    assert out["kind"] == "argument" and out["slug"] == "theorem-665f1e2a9b3c4d5e6f708192"
+    assert out["kind"] == "log" and out["slug"] == "theorem-665f1e2a9b3c4d5e6f708192"
     assert out["polished"] is True and out["title"] == payload["title"]
     assert isinstance(out["readMin"], int) and out["readMin"] >= 1
 
@@ -329,3 +329,12 @@ def test_scrub_collapses_name_uid_epithet_residue():
     souls = [_soul("kotekino", "kotekino@discord:210", imprint=True)]
     out = _clean("taught by kotekino (kotekino@discord:210) at trust 1.00", souls)
     assert out == "taught by my author at trust 1.00"
+
+
+def test_kind_encodes_provenance():
+    # the author's call (2026-07-12): kind = where the truth happened. teaching -> note (no
+    # argument, only trust) · wondering -> log (the solo ship's log) · thinking -> argument
+    # (reasoned against live conversation). Unknown derivations stay "argument".
+    for derived_by, kind in (("teaching", "note"), ("wondering", "log"), ("thinking", "argument")):
+        d = blog.compose_draft(_theorem_material(derived_by=derived_by), now=1752300000, **_readers())
+        assert d.kind == kind, (derived_by, d.kind)

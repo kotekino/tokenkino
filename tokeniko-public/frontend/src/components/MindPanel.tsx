@@ -20,6 +20,11 @@ const formatClock = (iso: string) =>
 
 const trendGlyph = (t?: number) => (t === 1 ? '▲' : t === -1 ? '▼' : '·');
 
+/** The transmitter "ping": heartbeats land every ~5 min, so a snapshot older
+ *  than this means the brain has gone silent — the panel must say so instead of
+ *  pretending the last reported state is current. */
+const OFF_AIR_MS = 15 * 60 * 1000;
+
 interface Props {
   mind: MindSnapshot;
   /** true when the snapshot came from the live API (vs the seeded fallback). */
@@ -42,6 +47,18 @@ const MindPanel: React.FC<Props> = ({ mind, live }) => {
     return () => window.clearInterval(id);
   }, []);
 
+  // Off-air detection — only meaningful on a live feed with a capture stamp
+  // (the mock fallback has neither and stays as designed). `tick` re-evaluates
+  // the age every second, so the light goes dark on its own in an open tab.
+  const ageMs = live && mind.capturedAt ? Date.now() - Date.parse(mind.capturedAt) : 0;
+  const offAir = ageMs > OFF_AIR_MS;
+  const sinceMin = Math.floor(ageMs / 60_000);
+  const state = offAir ? 'off air' : mind.state;
+  const stateClass = offAir ? 'offair' : mind.state;
+  const doing = offAir
+    ? `transmitter silent — last heartbeat ${sinceMin} min ago`
+    : mind.doing;
+
   return (
     <aside className="mind" aria-label="Live view on the mind of tokeniko">
       <div className="mind__screen">
@@ -50,24 +67,25 @@ const MindPanel: React.FC<Props> = ({ mind, live }) => {
         {/* Screen header */}
         <header className="mind__head">
           <span className="mind__head-title">MIND&nbsp;MONITOR</span>
-          <span className={`mind__state mind__state--${mind.state}`}>
+          <span className={`mind__state mind__state--${stateClass}`}>
             <span className="mind__state-dot" aria-hidden="true" />
-            {mind.state}
+            {state}
           </span>
         </header>
 
         {/* What it is doing now */}
         <div className="mind__doing">
           <span className="mind__prompt">tk&gt;</span>
-          <span className="mind__doing-text">{mind.doing}</span>
+          <span className="mind__doing-text">{doing}</span>
           <span className="mind__caret" aria-hidden="true" />
         </div>
 
-        {/* Uptime */}
+        {/* Uptime — frozen at the last known value when off air (a dead
+            transmitter's clock must not keep counting). */}
         <div className="mind__uptime">
           <span className="mind__uptime-label">UPTIME</span>
           <span className="mind__uptime-value">
-            {formatUptime(baseUptime.current + tick)}
+            {formatUptime(baseUptime.current + (offAir ? 0 : tick))}
           </span>
         </div>
 
@@ -103,7 +121,7 @@ const MindPanel: React.FC<Props> = ({ mind, live }) => {
         </div>
 
         <footer className="mind__foot">
-          {live ? 'feed: live' : 'feed: simulated · mock phase'}
+          {offAir ? 'feed: stalled' : live ? 'feed: live' : 'feed: simulated · mock phase'}
         </footer>
       </div>
     </aside>

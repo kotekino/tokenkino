@@ -42,6 +42,12 @@ export interface MindSnapshot {
   /** What tokeniko is doing right now, one line. */
   doing: string;
   /**
+   * When the brain captured this snapshot (ISO) — the transmitter "ping".
+   * Heartbeats land every ~5 min; the panel goes "off air" when the stamp is
+   * much older. Absent on the mock fallback (nothing to be stale relative to).
+   */
+  capturedAt?: string;
+  /**
    * Operational state shown as the screen header.
    * `'wondering'` (the brain's historical re-evaluation pass) is type-local to
    * this mock; the live snapshot reuses the existing four — no API/route change.

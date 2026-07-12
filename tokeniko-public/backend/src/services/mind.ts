@@ -21,6 +21,14 @@ export interface MindData {
   kpis: MindKpi[];
   activity: MindActivity[];
   charts: MindCharts;
+  /**
+   * When the brain captured this snapshot (ISO). The frontend's transmitter
+   * "ping": heartbeats land every ~5 min, so a much older stamp means the
+   * transmitter is silent and the panel shows "off air" instead of pretending
+   * the last state is current. Absent on the mock payload (nothing to be
+   * stale relative to).
+   */
+  capturedAt?: string;
 }
 
 /** Normalized, validated ingest payload (what we archive). */
@@ -77,6 +85,7 @@ export function buildDerived(
     kpis: buildKpis(raw.metrics, prevMetrics),
     activity: raw.activity.map((a) => ({ at: a.at.toISOString(), text: a.text })),
     charts: { inferenceTrend, beliefsByDomain: raw.beliefsByDomain },
+    capturedAt: raw.capturedAt.toISOString(),
   };
 }
 
