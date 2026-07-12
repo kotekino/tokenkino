@@ -422,3 +422,25 @@
 - The T3 specimen archived via `revoke_dependents(["taught:kotekino"])` (scope verified first:
   1 theorem, 0 dependents — «every thinker exists» rests elsewhere and survives). Live reteach =
   the validation play. Tests: `tests/test_deixis.py` (9 pure + 4 sandbox). **Gate 169 / 1 xf.**
+
+**Blog output channel P3 — the PUBLIC carrier + the stats heartbeat (2026-07-12)**
+- **`senses/blog_outbound.py`** — the third executor over the ONE action queue (disjoint channel
+  filters: brain drains INTERNAL, outbound drains discord, this drains PUBLIC): a `material`
+  payload → `compose_post` (draft → polish → contract) → `POST /transmissions` (idempotent by
+  slug, Bearer `INGEST_API_KEY`); a `snapshot` payload → verbatim `POST /mind`. Dry-run mirrors
+  outbound (`SENSES_DELIVER_DRYRUN`, and a missing key forces it); NO auto-retry — a failed push
+  logs loudly and stays FAILED (a future life event re-mints). aiohttp (already a discord.py
+  dep), lazily imported; env read at call time (the go-live lesson). Wired into `senses/main.py`.
+- **`brain/heartbeat.py`** + the coordinator hook — every `BRAIN_HEARTBEAT_TICKS` (100) AND
+  ≥ `BRAIN_HEARTBEAT_MIN_S` (300s) apart (≤ 3 beats/15min, far under the API's 100/15min), the
+  brain enqueues a snapshot action: honest counts (definitions / active axioms / active theorems /
+  dictionary / souls excl. himself / trustEpisodes) + theorems-derived-last-24h as the sparkline
+  (a theorem IS an inference), activity = last-5 actions as type+status ONLY (payload content may
+  quote private conversations — the public log stays metadata-honest), uptime from `wake_at`,
+  state as the coordinator truthfully observed it (thinking/wondering/idle;
+  `thinking_phase` now returns which sub-pass worked). `maybe_beat` never raises.
+- **The website KPI swap** (`tokeniko-public/backend/src/services/mind.ts`): Chains/Anchors →
+  **Souls** ("known minds") + **Trust episodes** ("opinions formed"); mock matched; tsc clean.
+  Needs an Azure backend redeploy to show.
+- Tests: `tests/test_blog_p3.py` (8 — injected push stub, sandbox DB, no network).
+  **Gate 177 / 1 xfailed.**

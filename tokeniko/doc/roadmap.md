@@ -61,12 +61,16 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
     `landed.md`. Consensus-over-the-polisher: later.
   - ✅ **Deixis normalization at the knowledge boundary** — landed 2026-07-12 (author's call:
     before P3 — "the brain must think straight and not be fixed by the good voice"); specimen
-    revoked via the `taught:kotekino` cascade; live reteach validation pending — see `landed.md`.
-  - 🔭 **P3 — the senses carrier + stats heartbeat**: a blog connector polling PUBLIC actions →
-    compose → polish → `POST /api/transmissions`; the coordinator enqueues a mind snapshot every
-    N ticks (state = current phase; metrics: definitions/axiomsRules/theorems/dictionary +
-    souls/trustEpisodes swap) → `POST /api/mind`; KPI label swap in the website backend.
-  - 🔭 **P4 — tests + docs + the premiere** (the first self-initiated transmission, live).
+    revoked + RETAUGHT live: «kotekino is my creator» stored normalized — see `landed.md`,
+    T3-resolved in `doc/ref/test-feedback.md`.
+  - ✅ **P3 — the senses carrier + stats heartbeat** — landed 2026-07-12 (the PUBLIC-channel
+    executor: material→compose→polish→`POST /transmissions`, snapshot→`POST /mind`; the
+    coordinator heartbeat ≤ 3 beats/15min; KPI swap souls/trustEpisodes in the website backend,
+    needs an Azure redeploy) — see `landed.md`.
+  - 🔄 **P4 — the premiere** (the first self-initiated transmission, live on
+    tokeniko.online): the pending «kotekino is my creator» action ships on the next senses
+    restart with live delivery. Later follow-ons: `life:learned` / `life:discussion` triggers,
+    consensus-over-the-polisher.
 
 ---
 

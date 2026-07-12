@@ -12,6 +12,7 @@ from lib.core.io import init_io
 from lib.llc.decompiler import decompiler_init
 from senses.inbound import handle_discord_message
 from senses.outbound import outbound_executor_task
+from senses.blog_outbound import blog_outbound_task
 
 load_dotenv()
 
@@ -98,6 +99,9 @@ async def main():
             # D3b: the outbound actions executor — carries the brain's decisions to Discord (dry-run
             # unless SENSES_DELIVER_DRYRUN=0 AND a live sender is connected).
             outbound_task = tg.create_task(outbound_executor_task(sender))
+            # blog P3: the PUBLIC-channel executor — publishes transmissions + mind snapshots to the
+            # public website API (dry-run unless SENSES_DELIVER_DRYRUN=0 AND INGEST_API_KEY is set).
+            blog_task = tg.create_task(blog_outbound_task())
 
             # Waiting for sigterms
             await stop_event.wait()
@@ -108,6 +112,7 @@ async def main():
             if discord_task is not None:
                 discord_task.cancel()
             outbound_task.cancel()
+            blog_task.cancel()
             
     except* Exception as eg:
         logger.error(f"❌ Critical error: {eg}")

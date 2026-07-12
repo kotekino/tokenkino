@@ -435,3 +435,16 @@ attributed), but the author's ruling is the principle: "he's a good voice, but t
 think straight and not be fixed by the good voice" — normalization belongs at materialization,
 never at rendering. Action: deixis normalization on the teaching channel (roadmap, before P3);
 `taught:kotekino` cascade-revokes the specimen if needed meanwhile.
+
+**T3 resolved — the reteach (2026-07-12, live).** After the fix + the `taught:kotekino` revocation,
+the author re-taught «I am your creator» in the channel. The wire, in order: THEOREM
+«kotekino is my creator» (trusted 0.9, premise `taught:kotekino`, postable) — the surface string
+now agrees with the zip's identity layer, meaning preserved under re-utterance. Then the FIRST
+post urge in history: `life:theorem → tokeniko:post` at urge 0.650 (significance 1.0 = base 0.7 +
+taught 0.1 + personal 0.2, the calibration ceiling — fittingly, the most significant kind of
+truth he can learn) → a `post_content` action PENDING on the PUBLIC channel, awaiting the P3
+carrier. Side observations, both correct-by-design: the author's repeat utterance graded
+eval:true → ignore (silence-as-consent) + trust:agreement episodes recorded WITHOUT a
+life:encounter spawn (imprint pinned — the fold never moves, the author never becomes blog
+material); the earlier eval:unknown why/guess ideas from the first utterance were superseded
+normally. The brain thinks straight; the voice may now dress it.
