@@ -15,11 +15,14 @@ const POLL_MS = 60_000;
  * unreachable or the archive is still empty, so the panel always renders.
  * `live` flips true only on a real response — it drives the "feed: live /
  * simulated" indicator (staleness on a live feed is the panel's job, via
- * `capturedAt`).
+ * `capturedAt`). `settled` flips true once the FIRST fetch has resolved either
+ * way, so status lamps can show "tuning" instead of a false verdict during the
+ * initial in-flight moment.
  */
-export function useMind(): { mind: MindSnapshot; live: boolean } {
+export function useMind(): { mind: MindSnapshot; live: boolean; settled: boolean } {
   const [mind, setMind] = useState<MindSnapshot>(MIND_FALLBACK);
   const [live, setLive] = useState(false);
+  const [settled, setSettled] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -37,6 +40,9 @@ export function useMind(): { mind: MindSnapshot; live: boolean } {
         })
         .catch(() => {
           /* offline / empty archive — keep the last good snapshot (or the fallback) */
+        })
+        .finally(() => {
+          if (!cancelled) setSettled(true);
         });
 
     refresh();
@@ -47,5 +53,5 @@ export function useMind(): { mind: MindSnapshot; live: boolean } {
     };
   }, []);
 
-  return { mind, live };
+  return { mind, live, settled };
 }

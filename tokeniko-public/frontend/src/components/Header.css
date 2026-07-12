@@ -112,6 +112,22 @@
   animation: led-pulse 1.6s ease-in-out infinite;
 }
 
+/* Tuning — the first fetch is still in flight: an amber lamp warming up. */
+.header__status--tuning .header__status-dot {
+  background: var(--mustard);
+  box-shadow: 0 0 6px 1px var(--mustard);
+}
+
+/* Off air — the transmitter went silent (no heartbeat / feed unreachable):
+   the lamp goes dark and STOPS blinking. A dead lamp doesn't pulse. */
+.header__status--off { opacity: 0.75; }
+.header__status--off .header__status-dot {
+  background: var(--muted);
+  box-shadow: none;
+  animation: none;
+  opacity: 0.5;
+}
+
 /* ─── Burger ────────────────────────────────────────────────────────────── */
 .header__burger {
   display: none;

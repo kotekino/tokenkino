@@ -38,6 +38,16 @@ export interface MindCharts {
   beliefsByDomain: MindBar[];
 }
 
+/** The transmitter "ping": heartbeats land every ~5 min, so a snapshot older
+ *  than this means the brain has gone silent. ONE rule shared by every lamp on
+ *  the site (the header badge, the CRT panel) so they can never disagree. */
+export const OFF_AIR_MS = 15 * 60 * 1000;
+
+/** Age of the snapshot in ms — 0 when there is nothing to be stale relative to
+ *  (mock fallback, or a feed that never came up). */
+export const mindAgeMs = (mind: MindSnapshot, live: boolean): number =>
+  live && mind.capturedAt ? Date.now() - Date.parse(mind.capturedAt) : 0;
+
 export interface MindSnapshot {
   /** What tokeniko is doing right now, one line. */
   doing: string;

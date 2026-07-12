@@ -2,12 +2,12 @@ import React from 'react';
 import TransmissionCard from '../components/TransmissionCard';
 import MindPanel from '../components/MindPanel';
 import MindCharts from '../components/MindCharts';
-import { useMind } from '../hooks/useMind';
+import { useMindFeed } from '../context/MindContext';
 import { useTransmissions } from '../hooks/useTransmissions';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { mind, live } = useMind();
+  const { mind, live } = useMindFeed();
   const { items } = useTransmissions();
 
   return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MindSnapshot } from '../data/mind';
+import { MindSnapshot, OFF_AIR_MS, mindAgeMs } from '../data/mind';
 import './MindPanel.css';
 
 const formatUptime = (totalSec: number): string => {
@@ -19,11 +19,6 @@ const formatClock = (iso: string) =>
   });
 
 const trendGlyph = (t?: number) => (t === 1 ? '▲' : t === -1 ? '▼' : '·');
-
-/** The transmitter "ping": heartbeats land every ~5 min, so a snapshot older
- *  than this means the brain has gone silent — the panel must say so instead of
- *  pretending the last reported state is current. */
-const OFF_AIR_MS = 15 * 60 * 1000;
 
 interface Props {
   mind: MindSnapshot;
@@ -50,7 +45,7 @@ const MindPanel: React.FC<Props> = ({ mind, live }) => {
   // Off-air detection — only meaningful on a live feed with a capture stamp
   // (the mock fallback has neither and stays as designed). `tick` re-evaluates
   // the age every second, so the light goes dark on its own in an open tab.
-  const ageMs = live && mind.capturedAt ? Date.now() - Date.parse(mind.capturedAt) : 0;
+  const ageMs = mindAgeMs(mind, live);
   const offAir = ageMs > OFF_AIR_MS;
   const sinceMin = Math.floor(ageMs / 60_000);
   const state = offAir ? 'off air' : mind.state;

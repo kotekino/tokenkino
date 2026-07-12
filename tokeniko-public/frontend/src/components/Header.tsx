@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
 import LogoMark from './LogoMark';
+import { useMindFeed } from '../context/MindContext';
+import { OFF_AIR_MS, mindAgeMs } from '../data/mind';
 import './Header.css';
 
 const navItems = [
@@ -20,9 +22,28 @@ const Nameplate: React.FC = () => (
   </Link>
 );
 
+/** The masthead lamp — same signal as the Mind Monitor, same OFF_AIR_MS rule.
+ *  Three honest states: `tuning` (first fetch still in flight), `on` (live feed
+ *  with a fresh heartbeat), `off` (feed unreachable OR heartbeat gone stale). */
+const useAirStatus = (): 'tuning' | 'on' | 'off' => {
+  const { mind, live, settled } = useMindFeed();
+  // Re-evaluate staleness periodically so the lamp goes dark on its own in an
+  // open tab (the panel ticks every second; the lamp doesn't need that grain).
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => setTick((t) => t + 1), 15_000);
+    return () => window.clearInterval(id);
+  }, []);
+  if (!settled) return 'tuning';
+  return live && mindAgeMs(mind, live) <= OFF_AIR_MS ? 'on' : 'off';
+};
+
+const AIR_LABEL = { tuning: 'TUNING', on: 'ON\u00A0AIR', off: 'OFF\u00A0AIR' } as const;
+
 const Header: React.FC = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const air = useAirStatus();
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 16);
@@ -54,9 +75,12 @@ const Header: React.FC = () => {
           </ul>
         </nav>
 
-        <div className="header__status" aria-label="Operational status">
+        <div
+          className={`header__status header__status--${air}`}
+          aria-label={`Operational status: ${AIR_LABEL[air].replace('\u00A0', ' ').toLowerCase()}`}
+        >
           <span className="header__status-dot" aria-hidden="true" />
-          <span>ON&nbsp;AIR</span>
+          <span>{AIR_LABEL[air]}</span>
         </div>
 
         <button
