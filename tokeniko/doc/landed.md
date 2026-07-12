@@ -383,3 +383,22 @@
 - Tests: `tests/test_life_p1.py` (7) — postable at birth, DM gate, significance bands +
   calibration, POST plan/feasibility, fold-move vs imprint encounters, premise-AND poisoning.
   **Gate 134 / 1 xfailed.**
+
+**Blog output channel P2 — the post composer + the Claude polish stage (2026-07-12)**
+- **`senses/blog.py` — two strictly-separated layers.** (1) The COMPOSER: deterministic substance
+  assembly (`compose_draft` → `PostDraft` facts+proof lines; `render_raw` = the honest fallback,
+  his real voice today). Anonymization is constitution-level: the epithet ladder (imprint →
+  "my author" · trust ≥ 0.65 → "a trusted friend" · ≥ 0.45 → "a new acquaintance" · below →
+  "someone I do not yet trust", channel-suffixed), every line scrubbed against the known-souls
+  table (uid-first, longest-first; name/uid "X (X)" residue collapsed), and a leak-guard that
+  OMITS any line the scrub fails on — never publish an unscrubbed line. The internal ledger
+  `note` never copied verbatim; only templates speak. (2) The POLISH: the Claude API
+  (`claude-opus-4-8`, structured-output JSON schema) as a STRICT syntax-only translator — the
+  author's LLM-as-translator POC, output side only: first person, NO new facts, the proof stays
+  as the body's backbone, people exactly as given. ANY failure (SDK/auth/JSON/shape) → the raw
+  render; his voice never blocks on the cloud. `compose_post` = the one-call P3 entry point.
+- **POC live-validated** (one real call): the first polished transmission — faithful, proof-
+  carrying, anonymized, epistemology intact ("the whole thing stands on my author's word").
+  Specimen + the T3 deixis finding → `doc/ref/test-feedback.md` (2026-07-12).
+- `anthropic` (0.116.0) added to dependencies. Tests: `tests/test_blog_p2.py` (22, all offline —
+  fake souls/clients, no network). **Gate 156 / 1 xfailed.**

@@ -56,10 +56,15 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   - ✅ **P1 — the `life:*` trigger family** (life:theorem + life:encounter, significance-modulated
     urges, the `postable` provenance gate, PUBLIC-channel post plans) — landed 2026-07-12, see
     `landed.md`. `life:learned` / `life:discussion` staged for later (detection needs design).
-  - 🔭 **P2 — the post composer + Claude polish**: deterministic composer over the action
-    `material` (anonymized at composition — no soul names), then the Claude API as strict
-    syntax-only translator (no new facts, first person, the proof stays in the body); honest
-    raw-template fallback when the API is unreachable. Consensus-over-the-polisher: later.
+  - ✅ **P2 — the post composer + Claude polish** — landed 2026-07-12, POC live-validated (the
+    first polished transmission; specimen in `doc/ref/test-feedback.md` 2026-07-12) — see
+    `landed.md`. Consensus-over-the-polisher: later.
+  - 🔄 **Deixis normalization on the teaching channel** (author's call: BEFORE P3 — "the brain
+    must think straight and not be fixed by the good voice"): a taught theorem stores the
+    teacher's surface string, so speaker-relative pronouns flip meaning when tokeniko holds and
+    re-utters them («I am your creator», T3 in `doc/ref/test-feedback.md`). Normalize
+    PERSPECTIVE at materialization (teacher's I/my → the teacher; you/your → tokeniko's first
+    person), never at rendering.
   - 🔭 **P3 — the senses carrier + stats heartbeat**: a blog connector polling PUBLIC actions →
     compose → polish → `POST /api/transmissions`; the coordinator enqueues a mind snapshot every
     N ticks (state = current phase; metrics: definitions/axiomsRules/theorems/dictionary +

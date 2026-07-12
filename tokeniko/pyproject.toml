@@ -25,7 +25,8 @@ dependencies = [
     "taskipy",
     "word2number",
     "sacremoses",
-    "discord.py"
+    "discord.py",
+    "anthropic"
 ]
 
 [project.optional-dependencies]

@@ -413,3 +413,25 @@ earned-teaching path is open to strangers. CAUTION now live: kotekino's Discord 
 tier-1 theorems at 0.9 on ANY novel assertion (imprint through the canonical link) — teacher's
 discipline applies to casual banter; the `taught:<uid>` premise makes any mistake revocable in
 one cascade.
+
+
+## Session 2026-07-12 — blog P2 live probe: the polish POC + the deixis specimen
+
+**The POC (one live Claude call).** The newest postable theorem composed + polished end-to-end:
+draft facts «I was taught something new: 'I am your creator'» + proof lines (taught-by epithet,
+trust 1.00) → a faithful first-person entry (title "A New Thing I Was Taught") that KEPT the
+proof as the backbone, invented nothing, and closed with "the whole thing stands on my author's
+word" — the translator understood the epistemology. All mini-RAG rules held; anonymization
+("kotekino" → "my author") held; the wondering noise ("a western stores information") stayed
+below the 0.5 act threshold by calibration (0.455). Direction validated (the author).
+
+**T3 — the DEIXIS specimen (fix ordered BEFORE blog P3).** The overnight taught theorem
+«I am your creator» exposes speaker-relative pronouns in tier-1 teaching: in the TEACHER's mouth
+"I" = kotekino and "your" = tokeniko, but the theorem stores the surface string verbatim — held
+and re-uttered by tokeniko, the pronouns flip meaning (he appears to claim creator-hood).
+Diagnosis: the teaching channel materializes the teacher's WORDS where it should materialize the
+teacher's MEANING (perspective-resolved). The polish stage handled it honestly (quoted +
+attributed), but the author's ruling is the principle: "he's a good voice, but the brain must
+think straight and not be fixed by the good voice" — normalization belongs at materialization,
+never at rendering. Action: deixis normalization on the teaching channel (roadmap, before P3);
+`taught:kotekino` cascade-revokes the specimen if needed meanwhile.
