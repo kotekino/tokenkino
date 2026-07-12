@@ -44,8 +44,8 @@ const KPI_CONFIG: { key: string; label: string; unit: string }[] = [
   { key: 'axiomsRules', label: 'Axioms & rules', unit: 'ground truths' },
   { key: 'theorems', label: 'Theorems', unit: 'derived' },
   { key: 'dictionary', label: 'Dictionary', unit: 'base vectors' },
-  { key: 'chains', label: 'Chains', unit: 'multi-hop' },
-  { key: 'anchors', label: 'Anchors', unit: 'semantic' },
+  { key: 'souls', label: 'Souls', unit: 'known minds' },
+  { key: 'trustEpisodes', label: 'Trust episodes', unit: 'opinions formed' },
 ];
 
 const fmt = (n: number): string => n.toLocaleString('en-US');
@@ -152,8 +152,8 @@ export const MOCK_MIND: MindData = {
     { label: 'Axioms & rules', value: '14', unit: 'ground truths', trend: 1 },
     { label: 'Theorems', value: '6', unit: 'derived', trend: 1 },
     { label: 'Dictionary', value: '2,925', unit: 'base vectors', trend: 0 },
-    { label: 'Chains', value: '4,902', unit: 'multi-hop', trend: 1 },
-    { label: 'Anchors', value: '128', unit: 'semantic', trend: 0 },
+    { label: 'Souls', value: '3', unit: 'known minds', trend: 1 },
+    { label: 'Trust episodes', value: '12', unit: 'opinions formed', trend: 1 },
   ],
   activity: [
     { at: '2026-06-21T09:41:12Z', text: 'followed a thought to its end — Mari is human, so Mari exists' },
