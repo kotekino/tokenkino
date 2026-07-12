@@ -474,3 +474,9 @@
   frozen uptime clock, "transmitter silent — last heartbeat N min ago", footer "feed: stalled".
   The mock fallback carries no stamp (nothing to be stale relative to). Both services
   redeployed; the missing `wondering` state color added (amber). **Gate 179 / 1 xfailed.**
+- **Morning follow-ons (2026-07-12)**: the three pre-`ef33da2` posts' kinds backfilled in the
+  public Atlas (premiere + coin → note, gold → log — read off each theorem's
+  `provenance.derived_by`; DB-only, the composer already stamps correctly); the masthead **ON AIR
+  badge de-mocked** — a shared `MindProvider` (one poll loop feeds header + panel, on every page)
+  + the single `OFF_AIR_MS` rule moved to `data/mind.ts`, header lamp now TUNING (first fetch in
+  flight) / ON AIR / OFF AIR (dark, unblinking) in lockstep with the panel. Deployed.
