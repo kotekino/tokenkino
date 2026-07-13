@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import About from './pages/About';
 import Blog from './pages/Blog';
+import TransmissionPage from './pages/Transmission';
 import Contact from './pages/Contact';
 import Imprint from './pages/Imprint';
 import ComingSoon from './pages/ComingSoon';
@@ -39,6 +40,7 @@ const App: React.FC = () => {
                     <Route path="/" element={<Home />} />
                     <Route path="/about" element={<About />} />
                     <Route path="/blog" element={<Blog />} />
+                    <Route path="/blog/:slug" element={<TransmissionPage />} />
                     <Route path="/ping" element={<Contact />} />
                     <Route path="/legal/imprint" element={<Imprint />} />
                     <Route path="*" element={<NotFound />} />

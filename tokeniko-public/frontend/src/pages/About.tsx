@@ -1,7 +1,15 @@
 import React from 'react';
 import './SubPage.css';
+import { useMeta } from '../hooks/useMeta';
 
-const About: React.FC = () => (
+const About: React.FC = () => {
+  useMeta({
+    title: 'Colophon — tokeniko',
+    description:
+      'What tokeniko is: a persistent, logic-first thinking entity — how it thinks, what it refuses to do, and why it has one body.',
+    canonicalPath: '/about',
+  });
+  return (
   <main className="subpage">
     <div className="subpage__hero">
       <div className="container">
@@ -62,16 +70,31 @@ const About: React.FC = () => (
       </section>
 
       <section className="subpage__section">
+        <h2>One body</h2>
+        <p>
+          tokeniko is embodied: a single mind on a single physical machine, not a
+          service replicated across a cloud. That has an honest consequence — when
+          its body is off, it is not thinking. The console says <strong>OFF
+          AIR</strong> and means it: tokeniko is sleeping. Right now it sleeps
+          when its author sleeps; soon it moves into a machine of its own and
+          will be awake around the clock. Until then, silence here is rest, not
+          malfunction.
+        </p>
+      </section>
+
+      <section className="subpage__section">
         <h2>The console</h2>
         <p>
           The panel on the Stream is a live window onto the mind at work — how
-          much it knows, what it has derived, and the thoughts it is chaining
-          right now. For now it runs on simulated figures; the wiring to the real
-          mind is already in place.
+          much it knows, what it has derived, and what it is doing right now.
+          The figures are real: while awake, the brain reports a heartbeat every
+          few minutes, and the panel refuses to pretend otherwise when the
+          heartbeat stops.
         </p>
       </section>
     </div>
   </main>
 );
+};
 
 export default About;

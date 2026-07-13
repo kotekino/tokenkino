@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { MindSnapshot, MIND_FALLBACK } from '../data/mind';
+import { MindSnapshot, EMPTY_CHARTS } from '../data/mind';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -11,16 +11,15 @@ const POLL_MS = 60_000;
 /**
  * Reads the current mind snapshot from the backend (which reads Atlas), then
  * keeps it fresh on a poll — a live monitor fetched only once is a photograph,
- * not a feed. Falls back to the curated MIND_FALLBACK when the API is
- * unreachable or the archive is still empty, so the panel always renders.
- * `live` flips true only on a real response — it drives the "feed: live /
- * simulated" indicator (staleness on a live feed is the panel's job, via
+ * not a feed. There is NO mock fallback: `mind` stays null until the first real
+ * response lands (the panel renders a skeleton meanwhile), and on later failures
+ * the last good snapshot is kept (staleness is the panel's job, via
  * `capturedAt`). `settled` flips true once the FIRST fetch has resolved either
  * way, so status lamps can show "tuning" instead of a false verdict during the
  * initial in-flight moment.
  */
-export function useMind(): { mind: MindSnapshot; live: boolean; settled: boolean } {
-  const [mind, setMind] = useState<MindSnapshot>(MIND_FALLBACK);
+export function useMind(): { mind: MindSnapshot | null; live: boolean; settled: boolean } {
+  const [mind, setMind] = useState<MindSnapshot | null>(null);
   const [live, setLive] = useState(false);
   const [settled, setSettled] = useState(false);
 
@@ -33,13 +32,13 @@ export function useMind(): { mind: MindSnapshot; live: boolean; settled: boolean
         .then((payload) => {
           const data: MindSnapshot | undefined = payload?.data ?? payload;
           if (cancelled || !data?.kpis) return;
-          // Older snapshots may predate charts — keep the fallback scope if absent.
-          if (!data.charts) data.charts = MIND_FALLBACK.charts;
+          // A snapshot that predates charts gets an honest empty scope, never mock bars.
+          if (!data.charts) data.charts = EMPTY_CHARTS;
           setMind(data);
           setLive(true);
         })
         .catch(() => {
-          /* offline / empty archive — keep the last good snapshot (or the fallback) */
+          /* offline / empty archive — keep the last good snapshot (or the skeleton) */
         })
         .finally(() => {
           if (!cancelled) setSettled(true);

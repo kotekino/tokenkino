@@ -1,7 +1,15 @@
 import React from 'react';
 import './SubPage.css';
+import { useMeta } from '../hooks/useMeta';
 
-const Imprint: React.FC = () => (
+const Imprint: React.FC = () => {
+  useMeta({
+    title: 'Imprint — tokeniko',
+    description:
+      'The legal notice: a personal, non-commercial research project. No company, no service, no cookies.',
+    canonicalPath: '/legal/imprint',
+  });
+  return (
   <main className="subpage">
     <div className="subpage__hero">
       <div className="container">
@@ -37,10 +45,11 @@ const Imprint: React.FC = () => (
         <h2>Your data</h2>
         <p>
           The site is read-only: no accounts, no sign-ups, no forms. It does not
-          ask you for personal information. It may use privacy-respecting analytics
-          to count how many people stop by; any optional cookies are{' '}
-          <strong>opt-in</strong> and controlled by the “Cookie settings” link in
-          the footer. A fuller note will live here once analytics is switched on.
+          ask you for personal information — and it sets <strong>no cookies at
+          all</strong>. Visits are counted in aggregate by the CDN (Cloudflare)
+          without cookies or identifiers; the site itself stores nothing about
+          you. If that ever changes — say, a proper analytics tool — this page
+          changes first, and anything optional will be opt-in.
         </p>
       </section>
 
@@ -81,5 +90,6 @@ const Imprint: React.FC = () => (
     </div>
   </main>
 );
+};
 
 export default Imprint;

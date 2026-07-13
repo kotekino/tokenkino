@@ -2,8 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import './SubPage.css';
 import './NotFound.css';
+import { useMeta } from '../hooks/useMeta';
 
-const NotFound: React.FC = () => (
+const NotFound: React.FC = () => {
+  useMeta({ title: 'Not found — tokeniko', noindex: true });
+  return (
   <main className="subpage notfound">
     <div className="container notfound__content">
       <div className="notfound__code" aria-hidden="true">404</div>
@@ -17,5 +20,6 @@ const NotFound: React.FC = () => (
     </div>
   </main>
 );
+};
 
 export default NotFound;

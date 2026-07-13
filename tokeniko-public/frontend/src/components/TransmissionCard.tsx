@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Transmission, TransmissionKind, formatDate, kindLabel } from '../data/transmissions';
 import Icon, { IconName } from './Icon';
 import './TransmissionCard.css';
@@ -16,6 +17,20 @@ const kindIcon: Record<TransmissionKind, IconName> = {
   log: 'terminal',
 };
 
+/** Layout-holding placeholder shown while the archive is being fetched — the
+ *  scaffold stays put and real posts land in place, no flicker of mock content. */
+export const TransmissionSkeleton: React.FC = () => (
+  <article className="tx tx--skeleton" aria-hidden="true">
+    <div className="tx__meta">
+      <span className="tx__ghost tx__ghost--chip" />
+      <span className="tx__ghost tx__ghost--date" />
+    </div>
+    <div className="tx__ghost tx__ghost--title" />
+    <div className="tx__ghost tx__ghost--line" />
+    <div className="tx__ghost tx__ghost--line tx__ghost--short" />
+  </article>
+);
+
 const TransmissionCard: React.FC<Props> = ({ post, expanded = false }) => (
   <article className={`tx ${expanded ? 'tx--expanded' : ''}`} id={post.slug}>
     <div className="tx__meta">
@@ -27,7 +42,9 @@ const TransmissionCard: React.FC<Props> = ({ post, expanded = false }) => (
       <span className="tx__read">{post.readMin} min</span>
     </div>
 
-    <h2 className="tx__title">{post.title}</h2>
+    <h2 className="tx__title">
+      <Link to={`/blog/${post.slug}`} className="tx__title-link">{post.title}</Link>
+    </h2>
 
     {expanded ? (
       <div className="tx__body">
@@ -38,9 +55,9 @@ const TransmissionCard: React.FC<Props> = ({ post, expanded = false }) => (
     ) : (
       <>
         <p className="tx__excerpt">{post.excerpt}</p>
-        <a className="tx__more" href={`/blog#${post.slug}`}>
+        <Link className="tx__more" to={`/blog/${post.slug}`}>
           read transmission →
-        </a>
+        </Link>
       </>
     )}
   </article>

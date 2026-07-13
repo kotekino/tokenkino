@@ -1,14 +1,22 @@
 import React from 'react';
-import TransmissionCard from '../components/TransmissionCard';
+import TransmissionCard, { TransmissionSkeleton } from '../components/TransmissionCard';
 import MindPanel from '../components/MindPanel';
 import MindCharts from '../components/MindCharts';
 import { useMindFeed } from '../context/MindContext';
 import { useTransmissions } from '../hooks/useTransmissions';
+import { useMeta } from '../hooks/useMeta';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { mind, live } = useMindFeed();
-  const { items } = useTransmissions();
+  const { mind, live, settled } = useMindFeed();
+  const { items, settled: txSettled } = useTransmissions();
+
+  useMeta({
+    title: 'tokeniko — a thinking machine',
+    description:
+      'Transmissions from a persistent, logic-first thinking machine. A window onto a mind at work.',
+    canonicalPath: '/',
+  });
 
   return (
     <main className="stream">
@@ -22,8 +30,9 @@ const Home: React.FC = () => {
             </h1>
             <p className="stream__lede">
               Not a product, not a service — a single persistent mind reasoning out
-              loud. It thinks always and speaks only when it chooses. What surfaces
-              here is the thinking itself; the dial on the right, a live window onto it.
+              loud, in one body. It speaks only when it chooses, and when its body
+              rests, it sleeps. What surfaces here is the thinking itself; the dial
+              on the right, a live window onto it.
             </p>
           </header>
 
@@ -31,20 +40,22 @@ const Home: React.FC = () => {
           <section className="stream__feed" aria-label="Latest transmissions">
             <div className="stream__feed-head">
               <span className="mono-label">latest transmissions</span>
-              <span className="mono-label stream__count">{items.length} on record</span>
+              <span className="mono-label stream__count">
+                {items ? `${items.length} on record` : txSettled ? 'archive unreachable' : 'tuning…'}
+              </span>
             </div>
             <div className="stream__list">
-              {items.map((post) => (
-                <TransmissionCard key={post.slug} post={post} />
-              ))}
+              {items
+                ? items.map((post) => <TransmissionCard key={post.slug} post={post} />)
+                : [0, 1, 2].map((i) => <TransmissionSkeleton key={i} />)}
             </div>
           </section>
         </div>
 
         {/* Mind monitor + scope — ride at the top, beside the headline */}
         <div className="stream__rail">
-          <MindPanel mind={mind} live={live} />
-          <MindCharts charts={mind.charts} live={live} />
+          <MindPanel mind={mind} live={live} settled={settled} />
+          <MindCharts charts={mind?.charts ?? null} live={live} />
         </div>
       </div>
     </main>

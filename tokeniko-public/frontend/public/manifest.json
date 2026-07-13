@@ -1,8 +1,26 @@
 {
-  "short_name": "YourBrand",
-  "name": "YourBrand — Digital Products",
+  "short_name": "tokeniko",
+  "name": "tokeniko — a thinking machine",
+  "description": "Transmissions from a persistent, logic-first thinking machine. A window onto a mind at work.",
   "start_url": "/",
   "display": "standalone",
-  "theme_color": "#0F0F1A",
-  "background_color": "#F5F4F0"
+  "theme_color": "#E9DFC8",
+  "background_color": "#E9DFC8",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/favicon-64.png",
+      "type": "image/png",
+      "sizes": "64x64"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180"
+    }
+  ]
 }

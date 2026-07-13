@@ -141,3 +141,11 @@
   text-transform: uppercase;
   color: var(--crt-green-dim);
 }
+
+/* honest empty state — the brain reports no domain split yet */
+.charts__empty {
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--crt-green-dim);
+  padding: var(--space-2) 0;
+}

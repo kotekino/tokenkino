@@ -8,9 +8,9 @@ import rateLimit from 'express-rate-limit';
 import { connectDB } from './config/database';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import healthRouter from './routes/health';
-import cookieConsentRouter from './routes/cookieConsent';
 import mindRouter from './routes/mind';
 import transmissionsRouter from './routes/transmissions';
+import discoveryRouter from './routes/discovery';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -59,9 +59,9 @@ if (process.env.NODE_ENV !== 'test') {
 
 // ─── Routes ─────────────────────────────────────────────────────────────────
 app.use('/api/health', healthRouter);
-app.use('/api/cookie-consent', cookieConsentRouter);
 app.use('/api/mind', mindRouter);
 app.use('/api/transmissions', transmissionsRouter);
+app.use('/api', discoveryRouter);
 
 // ─── 404 & Error Handlers ───────────────────────────────────────────────────
 app.use(notFoundHandler);

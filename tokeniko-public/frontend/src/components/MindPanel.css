@@ -72,6 +72,20 @@
 .mind__state--ingesting { color: var(--crt-amber); }
 .mind__state--idle { color: var(--crt-green-dim); }
 .mind__state--wondering { color: var(--crt-amber); }
+.mind__state--tuning { color: var(--crt-amber); }
+
+/* Skeleton figures — the screen holds its layout while honest about having
+   no data yet: dim phosphor, softly breathing. */
+.mind__dim {
+  color: var(--crt-green-dim);
+  text-shadow: none;
+  animation: mind-skeleton-breathe 2.2s ease-in-out infinite;
+}
+
+@keyframes mind-skeleton-breathe {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 0.35; }
+}
 
 /* Off air — the transmitter went silent (no heartbeat for a while): the light
    goes dark and STOPS blinking. A dead lamp doesn't pulse. */

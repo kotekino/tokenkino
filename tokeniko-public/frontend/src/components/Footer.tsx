@@ -6,7 +6,7 @@ import Synapse from './Synapse';
 import './Footer.css';
 
 const Footer: React.FC = () => {
-  const { openSettings } = useCookies();
+  const { openNotice } = useCookies();
   const year = new Date().getFullYear();
 
   return (
@@ -40,8 +40,8 @@ const Footer: React.FC = () => {
             <ul role="list">
               <li><Link to="/legal/imprint">Imprint</Link></li>
               <li>
-                <button className="footer__cookie-link" onClick={openSettings}>
-                  Cookie settings
+                <button className="footer__cookie-link" onClick={openNotice}>
+                  No cookies
                 </button>
               </li>
             </ul>

@@ -55,8 +55,20 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   normalization · P3 carrier+heartbeat · P4 premiere — all in `landed.md`; specimens + the
   false-200 and never-beat lessons in `doc/ref/test-feedback.md` (2026-07-12). **The going-live
   arc (DM → channels → trust → blog) is COMPLETE.** Follow-ons when their time comes:
-  `life:learned` / `life:discussion` triggers, consensus-over-the-polisher, seed-content
-  retraction (author's call).
+  `life:learned` / `life:discussion` triggers, consensus-over-the-polisher. (Seed retraction ✅ —
+  done 2026-07-13 with the website polish arc, see `landed.md`.)
+
+### Robustness — bugs from the live play (2026-07-12, author-witnessed)
+
+- **The wh-position bug** — `parser.py` flags a statement interrogative when ANY token carries
+  `PronType=Int`, even with no `?`: *"because I am happy **when** I talk to tokeniko…"* →
+  `wh_role=TIME` → the question branch answered "I do not know" to a question never asked. Fix
+  agreed: without a `?`, the wh-token must attach to the ROOT clause — walk its head chain; inside
+  an advcl/ccomp/relcl it is subordination, not interrogation. One helper, both detection sites
+  (`parser.py:748`/`:813`), the live specimen as a regression test.
+- **The vocative wart** — taught theorems store the address prefix («tokeniko, a coin has value»,
+  «tokeniko, gold is beautiful»). Strip the vocative at materialization — sibling of deixis
+  normalization (the brain must think straight; the polish scrubbing it from posts is not enough).
 
 ---
 

@@ -1,10 +1,10 @@
 /**
  * Mind snapshot — the data behind the CRT panel.
  *
- * In production this comes from GET /api/mind (see backend/src/routes/mind.ts),
- * which will read the live reasoning engine. For now both sides serve the same
- * mock shape, and the frontend falls back to MIND_FALLBACK when the API is
- * unreachable so the panel always renders something honest.
+ * Comes from GET /api/mind (see backend/src/routes/mind.ts), which serves what
+ * the brain last pushed. There is NO mock fallback: before the first response
+ * the panel renders a skeleton, and when the feed is unreachable it says so —
+ * the monitor never shows figures the mind didn't report.
  */
 
 export interface MindKpi {
@@ -44,9 +44,9 @@ export interface MindCharts {
 export const OFF_AIR_MS = 15 * 60 * 1000;
 
 /** Age of the snapshot in ms — 0 when there is nothing to be stale relative to
- *  (mock fallback, or a feed that never came up). */
-export const mindAgeMs = (mind: MindSnapshot, live: boolean): number =>
-  live && mind.capturedAt ? Date.now() - Date.parse(mind.capturedAt) : 0;
+ *  (no snapshot yet, or a feed that never came up). */
+export const mindAgeMs = (mind: MindSnapshot | null, live: boolean): number =>
+  live && mind?.capturedAt ? Date.now() - Date.parse(mind.capturedAt) : 0;
 
 export interface MindSnapshot {
   /** What tokeniko is doing right now, one line. */
@@ -57,11 +57,7 @@ export interface MindSnapshot {
    * much older. Absent on the mock fallback (nothing to be stale relative to).
    */
   capturedAt?: string;
-  /**
-   * Operational state shown as the screen header.
-   * `'wondering'` (the brain's historical re-evaluation pass) is type-local to
-   * this mock; the live snapshot reuses the existing four — no API/route change.
-   */
+  /** Operational state shown as the screen header. */
   state: 'thinking' | 'idle' | 'ingesting' | 'refuting' | 'wondering';
   /** Seconds since the mind last (re)started. */
   uptimeSec: number;
@@ -71,34 +67,5 @@ export interface MindSnapshot {
   charts: MindCharts;
 }
 
-export const MIND_FALLBACK: MindSnapshot = {
-  doing: 'following a thought to its end — “Mari exists”',
-  state: 'thinking',
-  uptimeSec: 1_788_540,
-  kpis: [
-    { label: 'Definitions', value: '3,235', unit: 'vocabulary', trend: 1 },
-    { label: 'Axioms & rules', value: '14', unit: 'ground truths', trend: 1 },
-    { label: 'Theorems', value: '6', unit: 'derived', trend: 1 },
-    { label: 'Dictionary', value: '2,925', unit: 'base vectors', trend: 0 },
-    { label: 'Chains', value: '4,902', unit: 'multi-hop', trend: 1 },
-    { label: 'Anchors', value: '128', unit: 'semantic', trend: 0 },
-  ],
-  activity: [
-    { at: '2026-06-21T09:41:12Z', text: 'followed a thought to its end — Mari is human, so Mari exists' },
-    { at: '2026-06-21T09:41:09Z', text: 'caught a contradiction — “the door is open and not open” — and spoke up' },
-    { at: '2026-06-21T09:41:02Z', text: 'told two people apart — Mari is not Luca' },
-    { at: '2026-06-21T09:40:54Z', text: 'met a new word — guessed “flabbergasting” ≈ overwhelming, to confirm later' },
-    { at: '2026-06-21T09:40:51Z', text: 'grounded “a raven is an animal” — raven → bird → animal' },
-    { at: '2026-06-21T09:40:38Z', text: 'held the floor — refused a ≠ a' },
-    { at: '2026-06-21T09:40:20Z', text: 'measured love against hate — 0.86, not opposites' },
-  ],
-  charts: {
-    inferenceTrend: [38, 41, 36, 52, 48, 63, 59, 71, 66, 80, 77, 92],
-    beliefsByDomain: [
-      { label: 'vocabulary', value: 88 },
-      { label: 'taxonomy', value: 61 },
-      { label: 'logic', value: 47 },
-      { label: 'self', value: 24 },
-    ],
-  },
-};
+/** Honest empty scope — used when a snapshot predates the charts field. */
+export const EMPTY_CHARTS: MindCharts = { inferenceTrend: [], beliefsByDomain: [] };

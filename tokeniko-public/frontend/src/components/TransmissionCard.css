@@ -79,3 +79,29 @@
 .tx__body p:last-child { margin-bottom: 0; }
 
 .tx--expanded { border-left-width: 6px; }
+
+/* ─── Skeleton (loading placeholder) ────────────────────────────────────── */
+.tx--skeleton { pointer-events: none; }
+
+.tx__ghost {
+  display: block;
+  background: var(--border-ink);
+  border-radius: 3px;
+  opacity: 0.35;
+  animation: tx-ghost-breathe 1.8s ease-in-out infinite;
+}
+
+.tx__ghost--chip  { width: 64px;  height: 18px; }
+.tx__ghost--date  { width: 96px;  height: 12px; }
+.tx__ghost--title { width: 65%;   height: 24px; margin: 10px 0 12px; }
+.tx__ghost--line  { width: 100%;  height: 12px; margin-bottom: 8px; }
+.tx__ghost--short { width: 40%; }
+
+@keyframes tx-ghost-breathe {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.18; }
+}
+
+/* title links carry the permalink without changing the look */
+.tx__title-link { color: inherit; text-decoration: none; }
+.tx__title-link:hover { color: var(--coral); }

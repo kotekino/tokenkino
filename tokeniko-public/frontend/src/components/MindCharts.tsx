@@ -44,8 +44,9 @@ const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
 };
 
 interface Props {
-  charts: MindChartsData;
-  /** true when the data came from the live API (vs the seeded fallback). */
+  /** null while the first snapshot is still on its way (skeleton phase). */
+  charts: MindChartsData | null;
+  /** true when the data came from the live API. */
   live?: boolean;
 }
 
@@ -56,31 +57,37 @@ const MindCharts: React.FC<Props> = ({ charts, live = false }) => (
 
       <header className="charts__head">
         <span className="charts__title">SIGNAL&nbsp;SCOPE</span>
-        <span className="charts__hint">last {charts.inferenceTrend.length} cycles</span>
+        <span className="charts__hint">
+          {charts ? `last ${charts.inferenceTrend.length} cycles` : '—'}
+        </span>
       </header>
 
       {/* Inference trend */}
       <div className="charts__block">
         <div className="charts__label">INFERENCES / CYCLE</div>
-        <Sparkline data={charts.inferenceTrend} />
+        <Sparkline data={charts?.inferenceTrend ?? []} />
       </div>
 
       {/* Beliefs by domain */}
       <div className="charts__block">
         <div className="charts__label">BELIEFS BY DOMAIN</div>
-        <ul className="charts__bars" role="list">
-          {charts.beliefsByDomain.map((b) => (
-            <li className="charts__bar-row" key={b.label}>
-              <span className="charts__bar-name">{b.label}</span>
-              <span className="charts__bar-track">
-                <span className="charts__bar-fill" style={{ width: `${b.value}%` }} />
-              </span>
-            </li>
-          ))}
-        </ul>
+        {charts && charts.beliefsByDomain.length > 0 ? (
+          <ul className="charts__bars" role="list">
+            {charts.beliefsByDomain.map((b) => (
+              <li className="charts__bar-row" key={b.label}>
+                <span className="charts__bar-name">{b.label}</span>
+                <span className="charts__bar-track">
+                  <span className="charts__bar-fill" style={{ width: `${b.value}%` }} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="charts__empty">no domain readout yet</p>
+        )}
       </div>
 
-      <footer className="charts__foot">{live ? 'scope: live' : 'scope: simulated · mock phase'}</footer>
+      <footer className="charts__foot">{live ? 'scope: live' : 'scope: no signal'}</footer>
     </div>
   </section>
 );

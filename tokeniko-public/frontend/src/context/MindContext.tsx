@@ -9,8 +9,9 @@ import { useMind } from '../hooks/useMind';
  * status lamp that disagrees with its own monitor is worse than no lamp.
  */
 interface MindFeed {
-  mind: MindSnapshot;
-  /** true once a real API response has landed (vs the seeded fallback). */
+  /** null until the first real API response lands (skeleton phase). */
+  mind: MindSnapshot | null;
+  /** true once a real API response has landed. */
   live: boolean;
   /** true once the first fetch has resolved either way. */
   settled: boolean;
