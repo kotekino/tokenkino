@@ -112,6 +112,9 @@ LEGITIMATE divergences you must NOT flag:
   is the nearest AVAILABLE — flag it only when the chosen sense's MEANING contradicts the
   sentence's plain reading (that is a real lead: a dictionary coverage gap).
 - Function words, articles, tense/aspect nuances and politeness carry no leaf of their own.
+- The zip is PERSPECTIVE-RESOLVED by design: a second-person pronoun ("you") spoken TO tokeniko
+  legitimately binds tokeniko's identity uid on its role, and a speaker's "I" binds the speaker's.
+  Never flag this identity binding — it is the identity-bridge working, not a misattribution.
 
 Judge honestly and conservatively: verdict "ok" when the structure faithfully carries the
 sentence's predications, operators, polarity, quantification, mood and named individuals;

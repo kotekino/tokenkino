@@ -545,3 +545,44 @@ detection asymmetry across the two storms: gate-visible (CONV, blocked) vs gate-
 **Pending proof.** rag3 had judged 32 history items (oldest-first) when the daemons stopped —
 the poison sentence awaits its verdict on restart. If it lands as `operator-flattening`, the
 author's test will have proven the microscope catches what no zip-level gate structurally can.
+
+## 2026-07-14 — THE FIRST PORTRAIT: rag3's full-history sweep (98 judged, 42 leads, triaged)
+
+The microscope's first complete pass over the biography — and the instrument's proof: it judged
+the storm-sequel sentence **[mismatch] high/operator-flattening conf 0.85** with the exact
+diagnosis reached by hand ("the 'when' clause should fold under IMPLY/conditional... instead all
+three leaves are bare AND assertions") — the outside eye catching what no zip-level gate
+structurally can. Triage with the author, five clusters:
+
+**A — subordination flattening (13 leads → the already-roadmapped compiler fix's test corpus).**
+Every because/when in the biography. The pre-wh-fix items also show the old mood=question zips —
+regression evidence for the landed fix (the microscope judges STORED zips: old items keep old
+compilations).
+
+**B — "you"-identity binding (~12 leads → FALSE POSITIVES, instrument-side fixed).** The zip is
+perspective-resolved by design (the identity-bridge); the judge's contract didn't know — one
+paragraph added to _JUDGE_SYSTEM's legitimate divergences. Hidden nugget kept (→ roadmap):
+"what do you like?" gaps the DIRECT object, not the predicate — anchor_whType's what→predicate
+is a frame-blind simplification.
+
+**C — dictionary/WSD (6 leads → the curation batch).** "shiny"→glazed.a.03 (pottery, twice);
+"partridge"→tinamou.n.01 (coverage gap — nearest-anchor grabbed a cousin FAMILY);
+"thinkers"→thinker.n.02 (prior); "well rested"→rest.v.03 (dynamic for stative). The bit.n.03
+family grows into a proper shopping list.
+
+**D — dropped content (4 leads, HIGH — the sleeper find).** «you live in Japan» LOST "in Japan"
+entirely: the locative complement never compiled, so the author's geography teachings never
+landed — "lost in translation for a long time without our microscope" (his words). Also the
+relative-clause variant, a dropped direct object on a hyphenated name, and «I like talking»
+split into two assertions.
+
+**E — singles (tracked).** Spurious THAT-wrap on a coordination («I build software and softwares
+are programs»); elided-subject quantifier inheritance («the cat is dead and alive» — second
+clause generic, should inherit definite); «hello John» (etiquette — hunch 8's known territory);
+the embedded wh-complement («Do you know why I'm proud of you?» — explicitly deferred in the
+questions plan).
+
+**Meta.** 98→42 (43%) BEFORE removing cluster B's false positives; the true-lead rate is ~30/98.
+The author's read: "my suspect that we should go first on the quality of the input / input
+parsing was accurate" — the instrument arc's ordering (microscope → zip-native → translator)
+stands confirmed by its own first harvest.
