@@ -74,13 +74,9 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   (physical⊥abstract) removed from the evaluator's refutation tiers, see `landed.md`. Follow-ons
   when their time comes: curate `bit.n.03` + its is_a edge (so the claim grounds TRUE, not just
   unrefuted); WordNet-wide sibling-sense abstention IF tier-1/2 false refutations ever appear.
-- **Identity fission on rename** (live specimen 2026-07-13): the soul uid embeds the mutable
-  display name (`name@channel:talker_uid`), so renaming a Discord account minted a SECOND soul
-  for the same person (test-probe-hellen → playbot-hellen; trust history orphaned, fold reset).
-  Fix: key identity on the channel-native id (the snowflake) alone; the display name becomes a
-  mutable property — a rename then updates the name, never the identity. (Healed manually this
-  once: episodes re-keyed, references re-pointed, duplicate soul removed — the merge the engine
-  should one day perform itself.)
+- ✅ **Identity fission on rename** — landed 2026-07-14 as option A + aliases (snowflake-first
+  lookup, uid immutable at first mint, renames update `name` + append to `aliases`), see
+  `landed.md`.
 
 ---
 

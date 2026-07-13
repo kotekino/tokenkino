@@ -572,3 +572,18 @@ information» now grounds INSUFFICIENT (honest abstention, no trust dock) — ve
 the stored zip; "a cat is an idea" abstains too (the explicit price). 4 pure tests in
 `test_tier3_charity.py` (the incident's exact shape + tier-1/2 no-regression).
 **Gate 204 / 2 xfailed.**
+
+**Identity-on-snowflake — a rename never mints a soul (2026-07-14)**
+The fourth and last play find closed (option A + aliases, author-ratified): soul resolution goes
+uid → channel-native `contextKey` ("discord:<snowflake>", name-free — the schema already carried
+it) → mint, in both `io.get_stakeholder` and `trust.resolve_canonical`. A contextKey hit with a
+fresh display name is a RENAME reflex: `name` updates, the former name is appended to the new
+`MEMStakeholder.aliases` (the biography remembers who someone used to be called), and the uid
+stays AS MINTED — immutable, so every circulating reference (trust episodes, `taught:<uid>`
+premises, DM destination contextKeys) remains valid with ZERO migration. Individuals are
+EXCLUDED from the fallback everywhere: their contextKey is the talker SCOPE, shared by every
+individual that talker mentions — never an identity (the collision trap found in design).
+This is the reflex behind the 2026-07-13 manual merge (test-probe-hellen → playbot-hellen);
+the engine now performs it itself. 5 sandbox tests in `test_identity_snowflake.py` (rename
+round-trip, alias stacking, same-name≠same-soul, the individual-scope trap, resolver on a
+post-rename string). **Gate 209 / 2 xfailed.**

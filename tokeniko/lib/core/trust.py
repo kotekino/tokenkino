@@ -59,6 +59,13 @@ def resolve_canonical(ref: str) -> Optional[TKMemoryStakeholdersDoc]:
             doc = TKMemoryStakeholdersDoc.get(ObjectId(ref)).run()  # Bunnet: .run() executes
         except (InvalidId, TypeError):
             doc = None
+    if doc is None and "@" in ref:
+        # identity-on-snowflake (2026-07-14): a channel-scoped uid string may carry a display name
+        # the soul no longer wears (either side of a rename) — the channel-native contextKey is the
+        # stable key. Individuals excluded: their contextKey is a shared SCOPE, not an identity.
+        doc = TKMemoryStakeholdersDoc.find_one(
+            {"contextKey": ref.split("@", 1)[1], "kind": {"$ne": "individual"}}
+        ).run()
     if doc is None:
         return None
     if doc.canonical_uid:

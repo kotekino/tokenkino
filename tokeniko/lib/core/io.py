@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import ollama
@@ -6,6 +7,8 @@ from bunnet import init_bunnet
 from lib.core.models import TKAxiomDoc, TKBaseDoc, TKDefinitionDoc, TKDictionaryDoc, TKMarkerDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc, TKNameDoc, TKPlaceDoc, TKPropertyDoc, TKRelationDoc, TKDerivedRelationDoc, TKDerivedRuleDoc, TKTheoremDoc, TKIdeaDoc, TKActionDoc, TKBehaviorRuleDoc, TKBrainStateDoc, TKTrustEpisodeDoc
 from lib.core.constants import _ME_NAME, _ME_UID
 from lib.core.memory import MEMChannels
+
+logger = logging.getLogger("tokeniko-io")
 
 def init_io(mongo_uri: str = None, mongo_db_name: str = None, mongo_db_name_memory: str = None, ollama_uri: str = None):
    
@@ -75,17 +78,40 @@ def get_tokeniko():
 
     return tokeniko
 
-# try getting a stakeholder by uid
+# try getting a stakeholder by uid — SNOWFLAKE-FIRST across renames (identity fission fix,
+# 2026-07-14): the uid embeds the mutable display name ("hellen@discord:12345"), so a Discord
+# rename used to mint a SECOND soul for the same person (trust history orphaned). Resolution now
+# goes uid → channel-native contextKey ("discord:12345", name-free) → mint; a contextKey hit with
+# a fresh name is a RENAME — the doc keeps its uid as minted (immutable: every circulating
+# reference stays valid), updates `name`, and remembers the old one in `aliases`. Individuals are
+# EXCLUDED from the fallback: their contextKey is the SCOPE (the talker), shared by every
+# individual that talker mentions — never an identity.
 def get_stakeholder(name: str, channel: MEMChannels = MEMChannels.INTERNAL,
                     display_name: str = None, context_key: str = None):
 
     stakeholder = TKMemoryStakeholdersDoc.find_one({"uid": name}).run()
 
+    # a channel-scoped uid ("renzo@discord:12345") carries its own contextKey after the "@" —
+    # the same scheme as entity-linked individuals; outbound uses it to resolve a DM destination.
+    if context_key is None and "@" in name:
+        context_key = name.split("@", 1)[1]
+
+    if not stakeholder and context_key:
+        stakeholder = TKMemoryStakeholdersDoc.find_one(
+            {"contextKey": context_key, "kind": {"$ne": "individual"}}
+        ).run()
+        if stakeholder:
+            # same channel-native id, new surface uid -> a rename, never a new soul
+            new_name = display_name or name.split("@", 1)[0]
+            if new_name and new_name != stakeholder.name:
+                if stakeholder.name not in (stakeholder.aliases or []):
+                    stakeholder.aliases = (stakeholder.aliases or []) + [stakeholder.name]
+                logger.info("[io] rename detected on %s: %r -> %r (uid unchanged)",
+                            context_key, stakeholder.name, new_name)
+                stakeholder.name = new_name
+                stakeholder.save()
+
     if not stakeholder:
-        # a channel-scoped uid ("renzo@discord:12345") carries its own contextKey after the "@" —
-        # the same scheme as entity-linked individuals; outbound uses it to resolve a DM destination.
-        if context_key is None and "@" in name:
-            context_key = name.split("@", 1)[1]
         stakeholder = TKMemoryStakeholdersDoc(
             uid=name, name=display_name or name, isMe=False, channel=channel,
             contextKey=context_key,

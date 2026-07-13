@@ -32,6 +32,11 @@ class MEMStakeholder(BaseModel):
     ner_type: Optional[str] = None  # the spaCy NER label for an individual (PERSON/GPE/ORG/...)
     vector: Optional[list[float]] = None  # the 2925 type centroid (meaning=geometry); None for participants
     contextKey: Optional[str] = None  # "channel:talker_uid" scope of an individual's uid
+    # former display names (identity-on-snowflake, 2026-07-14): a rename updates `name` and appends
+    # the old one here — the biography remembers who someone used to be called. The uid stays as
+    # minted (immutable: every circulating reference — trust episodes, taught:<uid> premises —
+    # remains valid); the channel-native contextKey is the stable lookup key across renames.
+    aliases: list[str] = Field(default_factory=list)
     # --- the TRUST LEDGER (senses D, 2026-07-11) ---
     # `trust` is a FOLDED CACHE, never the source of truth: the permanent trail is the
     # trust_episodes collection (MEMTrustEpisode), and this scalar is recomputable from it at any
