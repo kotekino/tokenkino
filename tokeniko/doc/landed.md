@@ -511,3 +511,19 @@ The public window hardened for its public life; all six blocks live on tokeniko.
 - **The join disclosure** (author's ask): the Ping page + the Discord welcome text state the three
   rules before anyone talks to him — it REMEMBERS (permanent memory, like a person), DMs are
   private forever (constitution), the open channel may inspire anonymized transmissions.
+
+**THE STORM fix — assertedness gates the per-leaf extractors (2026-07-14)**
+The severest 2026-07-13 play find, closed: `_zip_is_asserted` (`lib/core/kb_extract.py`) — a leaf
+is an asserted statement ONLY when its whole item tree folds through AND with no attitude; a leaf
+under IMPLY/CONV/OR is a component of a compound thought («a person is wrong IF he says false»
+asserts the implication, never "persons are wrong"), a leaf under THAT is quoted thought. All
+three per-leaf extractors gate on it (rules / facts / generic is_a edges — edges count a
+`not_asserted_skip` stat). Design fork (author-ratified A): conservative whole-zip test —
+over-blocks mixed shapes, which is the right failure mode (knowledge stays in the KB; only the
+chainer's fuel is gated), and it is what caught the REAL storm zip: the taught "if" compiled to
+**CONV**, not IMPLY — a narrow IMPLY-only fix would have missed it. The recognized IMPLY shapes
+keep their dedicated extractors (property-conditioned; sufficiency's DNF taint). Verified against
+the archived poison zip (0 rules, 0 facts extracted). `tests/test_assertedness.py` (8 — the storm
+shape verbatim, attitude, asserted-universal/fact/edge still extract, skip-stat). **Gate 187 / 1
+xfailed.** The poison rule + 7 garbage theorems stay archived; re-teaching waits for the
+conditional-rule extractor (roadmap follow-on).

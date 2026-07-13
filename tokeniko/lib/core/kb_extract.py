@@ -55,6 +55,31 @@ def _zip_leaf_items(item) -> list:
             out += _zip_leaf_items(child)
     return out
 
+
+# ================================================================================================
+# ASSERTEDNESS (THE STORM fix, 2026-07-13). A leaf is an asserted statement ONLY when its whole
+# item tree folds through AND — a leaf under IMPLY/OR/... is a COMPONENT of a compound thought
+# («a person is wrong IF he says false» asserts the implication, never "persons are wrong"), and
+# a leaf under a THAT attitude is quoted thought («I believe that X» asserts the believing, not X).
+# The per-leaf extractors below (rules / facts / generic edges) must consume ONLY asserted leaves:
+# flattening the operator tree turned one taught conditional into unconditional PROPERTY rules and
+# the chainer mass-derived garbage over the person subtree («Kotekino is wrong», «a homo is false»).
+# Conservative whole-zip test (any non-AND op or any attitude anywhere -> nothing is asserted):
+# strictly sound for AND-only trees, over-blocks mixed shapes — which is the right failure mode
+# (knowledge stays stored in the KB either way; only the chainer's fuel is gated). The recognized
+# IMPLY shapes keep their own dedicated extractors (_extract_property_conditioned; definitional
+# sufficiency's DNF fold, which taints IMPLY branches the same way).
+# ================================================================================================
+def _zip_is_asserted(item) -> bool:
+    if getattr(item, "op", TKOperator.AND) != TKOperator.AND:
+        return False
+    if getattr(item, "attitude", None) is not None:
+        return False
+    c = item.content
+    if isinstance(c, list):
+        return all(_zip_is_asserted(child) for child in c)
+    return True
+
 # reliable disjointness tiers for ADMISSION. tier 1 (biological kingdoms) + tier 2 (organism/artifact/
 # substance) are trustworthy; tier 3 (physical⊥abstract) is NOT — WordNet arbitrarily files polysemous
 # nouns on either side. We reject a candidate ONLY when the disjointness fires at tier 1 or 2.
@@ -246,6 +271,9 @@ def extract_generic_isa_edges(axiom_docs, parents,
     seen: set = set()
     for doc in axiom_docs:
         leaves = _zip_leaves(doc.zip.items) if getattr(doc, "zip", None) else []
+        if leaves and not _zip_is_asserted(doc.zip.items):
+            stats["not_asserted_skip"] += len(leaves)  # THE STORM gate: compound zips mint no edges
+            continue
         for lf in leaves:
             s = getattr(lf, "senses", None) or {}
             subj, pred = s.get("subject"), s.get("predicate")
@@ -356,7 +384,10 @@ def extract_rules(docs) -> list:
     for doc in docs:
         if doc.zip is None:
             continue
-        for leaf in _zip_leaves(doc.zip.items):
+        # THE STORM gate: per-leaf rules only from fully-asserted (AND-only, attitude-free) zips.
+        # A compound zip still gets its shot below via _extract_property_conditioned (the one
+        # recognized IMPLY shape) — its leaves just never masquerade as standalone universals.
+        for leaf in (_zip_leaves(doc.zip.items) if _zip_is_asserted(doc.zip.items) else []):
             quantifier = getattr(leaf, "quantifier", None)
             senses = getattr(leaf, "senses", None) or {}
             subject = senses.get("subject")
@@ -462,6 +493,8 @@ def extract_facts(docs) -> list:
     for doc in docs:
         if doc.zip is None:
             continue
+        if not _zip_is_asserted(doc.zip.items):
+            continue  # THE STORM gate: a leaf under IMPLY/OR/attitude is not an asserted fact
         for leaf in _zip_leaves(doc.zip.items):
             if getattr(leaf, "quantifier", None) == TKQuantifier.UNIVERSAL:
                 continue

@@ -69,15 +69,10 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
 - **The vocative wart** — taught theorems store the address prefix («tokeniko, a coin has value»,
   «tokeniko, gold is beautiful»). Strip the vocative at materialization — sibling of deixis
   normalization (the brain must think straight; the polish scrubbing it from posts is not enough).
-- **Operator-aware chainer rules — conditionals must not flatten** (THE STORM, live 2026-07-13,
-  the severest find): the taught conditional «a person is wrong if he says false» entered the
-  chainer's rule pool clause-by-clause with the IMPLY dropped → unconditional PROPERTY rules
-  ("most persons are wrong/state/are false") → wondering walked the person subtree deriving+
-  POSTING garbage («Kotekino is wrong», «a homo is false», «a aged is wrong» — 7 theorems,
-  6 published, all retracted+archived; the poison rule archived until this fix). Fix: the rule
-  extraction in the harness must respect the operator tree — an IMPLY-zip fires ONLY as an
-  implication (antecedent satisfied → consequent), never as per-clause properties; re-teach the
-  rule after. Cascade-amplifies-noise, fulfilled to the letter.
+- ✅ **Operator-aware chainer rules (THE STORM fix)** — landed 2026-07-14, see `landed.md`.
+  Follow-on when its time comes: a dedicated conditional-rule extractor so a taught IMPLY/CONV
+  becomes a USABLE implication rule (today it is safely blocked, not exploited); re-teach
+  «a person is wrong if he says false» after that.
 - **Charity of interpretation — sense-revision before refutation** (live specimen 2026-07-13):
   «a bit is a unit of information» (TRUE, definitional) was REFUTED and the author's ledger docked
   −0.075 — WSD picked `bit.n.02` "small fragment" (the copular-circularity guard rightly excludes
