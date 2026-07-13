@@ -64,6 +64,31 @@ def parser_init():
 # --------------------------------------------------------------
 # utils
 # --------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------
+# the wh-POSITION test (R5, the wh-position bug — live specimens 2026-07-12/13). A wh-word marks the
+# utterance interrogative ONLY if it attaches to the ROOT clause: "WHEN do you sleep" (when→sleep,
+# the root) is a question; "I am happy WHEN I talk" (when→talk, an advcl under the root) is
+# subordination, and «a person is wrong WHEN he says false» is a taught rule — both were swallowed
+# as TIME questions before this walk. Walk the head chain to the root; crossing ANY embedded-clause
+# dependency (advcl/ccomp/xcomp/acl(:relcl)/csubj/parataxis — UD labels, ":"-subtypes normalized)
+# means embedded. Note "?" is judged separately (mood), but the GAP ROLE also uses this test: a
+# polar "you are happy when you sleep?" is a question about the conditional, not a TIME-gap wh.
+# ------------------------------------------------------------------------------------------------
+_WH_EMBEDDED_DEPS = {"advcl", "ccomp", "xcomp", "acl", "relcl", "csubj", "parataxis"}
+
+def _parser_whAttachesToRoot(token: Token) -> bool:
+    node = token
+    # bounded walk — compare INDICES, never Token objects: spaCy mints a fresh wrapper on every
+    # `.head` access, so an identity test at the root never terminates (the 43-minute gremlin)
+    for _ in range(len(token.doc)):
+        if node.dep_.split(":")[0] in _WH_EMBEDDED_DEPS:
+            return False
+        if node.head.i == node.i:  # the root heads itself
+            return True
+        node = node.head
+    return True
+
+
 # get operator corresponding to cc
 def parser_ccToOperator(token: Token | str) -> TKOperator:
     lemma = token.lemma_.lower() if isinstance(token, Token) else token
@@ -745,7 +770,8 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
         if tkSubject: tkMain.create_subject(fullEntity=tkSubject)
 
         # carry interrogative mood the same way the normal path does
-        whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")), None)
+        whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")
+                    and _parser_whAttachesToRoot(t)), None)
         if whToken is not None or any("?" in t.text for t in tokens):
             tkMain.dubitative = 1.0
             if whToken is not None:
@@ -810,7 +836,8 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # NB the "?" test is a SUBSTRING (not ==): stanza glues "??"/"?!"/"!?" into one PUNCT token, so an
     # exact match would miss them (R4a) — a "?" anywhere in a token's text marks the interrogative.
     # ----------------------------------------
-    whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")), None)
+    whToken = next((t for t in tokens if "Int" in t.morph.get("PronType")
+                    and _parser_whAttachesToRoot(t)), None)
     if whToken is not None or any("?" in t.text for t in tokens):
         tkMain.dubitative = 1.0
         if whToken is not None:

@@ -527,3 +527,19 @@ the archived poison zip (0 rules, 0 facts extracted). `tests/test_assertedness.p
 shape verbatim, attitude, asserted-universal/fact/edge still extract, skip-stat). **Gate 187 / 1
 xfailed.** The poison rule + 7 garbage theorems stay archived; re-teaching waits for the
 conditional-rule extractor (roadmap follow-on).
+
+**The wh-position fix — a wh-word interrogates only from the root clause (2026-07-14)**
+R5, both author-witnessed specimens closed: `_parser_whAttachesToRoot` (`lib/llc/parser.py`) —
+without a `?`, a wh-token marks the utterance interrogative ONLY if its head chain reaches the
+root without crossing an embedded-clause dependency (advcl/ccomp/xcomp/acl(:relcl)/csubj/
+parataxis, ":"-subtypes normalized); both detection sites gate on it, and the GAP ROLE does too
+(a polar "are you happy when you sleep?" is a question about the conditional — no TIME gap).
+«because I am happy when I talk…» and the taught «a person is wrong when he says false» now
+parse as the statements they are; "when do you sleep" (aux-inverted, no "?") still interrogates.
+The walk compares token INDICES bounded by doc length — spaCy mints a fresh wrapper per `.head`
+access, so an identity test at the root never terminates (the 43-minute gremlin, caught by
+stack-sampling the spinning test run). Surfaced en route: stanza never tags a bare-copular
+"?"-less wh (who is happy → empty morph) — a pre-existing detector gap, filed as xfail in
+`test_xfail_known_gaps.py` (a future second signal turns it xpass). `tests/test_wh_position.py`
+(6 — the live specimens verbatim, tree-position-not-line-position, both no-regression channels).
+**Gate 193 / 2 xfailed.**
