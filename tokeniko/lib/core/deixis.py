@@ -157,3 +157,27 @@ def normalize_deixis(text: str, speaker_name: Optional[str]) -> Optional[str]:
         cursor = end
     out.append(text[cursor:])
     return "".join(out)
+
+
+# --------------------------------------------------------------
+# VOCATIVE STRIP — the deixis sibling (the vocative wart, live specimens 2026-07-12/13). Channel
+# speech addressed by name («tokeniko, a coin has value») carries the ADDRESS, not content: the
+# parser already drops it from the zip (no vocative entity compiles), but the surface `original`
+# — the dedup key and the NL render source — kept it, so taught theorems stored the wart and the
+# blog polish had to scrub what the brain should never have held. Strip at materialization,
+# beside normalize_deixis.
+#
+# CONSERVATIVE by anchor: only a LEADING "<name>," or a TRAILING ", <name>" is a vocative — the
+# comma is the discriminator ("tokeniko is a machine" leads with the name as SUBJECT and must
+# survive untouched). Mid-sentence vocatives («gold, tokeniko, is valuable») and greeting forms
+# («hey tokeniko …») stay out of scope: rarer, riskier, and the greeting belongs to the etiquette
+# layer (hunch 8). A message that is ONLY the address («tokeniko!») passes through unchanged —
+# stripping to emptiness is never an improvement. PURE, stdlib-only, like everything here.
+# --------------------------------------------------------------
+def strip_vocative(text: str, addressee_name: Optional[str]) -> str:
+    if not text or not addressee_name:
+        return text
+    name = re.escape(addressee_name)
+    out = re.sub(rf"^\s*{name}\s*,\s*", "", text, flags=re.IGNORECASE)
+    out = re.sub(rf"\s*,\s*{name}\s*([.!?…]*)\s*$", r"\1", out, flags=re.IGNORECASE)
+    return out if out.strip() else text

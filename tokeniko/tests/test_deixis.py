@@ -158,3 +158,40 @@ def test_materialize_theorem_normalizes_the_speakers_perspective(_io, clean_deix
     thm = TKTheoremDoc.find_one({"original": "I am kind"}).run()
     assert thm is not None                                        # held in TOKENIKO's perspective
     assert TKTheoremDoc.find_one({"original": "you are kind"}).run() is None
+
+
+# ---- strip_vocative (the vocative wart — live specimens 2026-07-12/13) -----------------------------
+# pure-function tests: the address is stripped, the SUBJECT survives, emptiness never wins.
+
+from lib.core.deixis import strip_vocative
+
+
+def test_vocative_leading_is_stripped():
+    assert strip_vocative("tokeniko, a coin has value", "tokeniko") == "a coin has value"
+
+
+def test_vocative_leading_case_insensitive():
+    assert strip_vocative("Tokeniko, gold is beautiful", "tokeniko") == "gold is beautiful"
+
+
+def test_vocative_trailing_is_stripped_keeping_terminal_punctuation():
+    assert strip_vocative("a coin has value, tokeniko.", "tokeniko") == "a coin has value."
+    assert strip_vocative("a coin has value, tokeniko", "tokeniko") == "a coin has value"
+
+
+def test_name_as_subject_survives():
+    # NO comma after the leading name -> it is the subject, never a vocative
+    assert strip_vocative("tokeniko is a machine", "tokeniko") == "tokeniko is a machine"
+
+
+def test_name_mid_sentence_survives():
+    # mid-sentence mentions are content (out of the conservative scope)
+    assert strip_vocative("I like tokeniko, truly", "tokeniko") == "I like tokeniko, truly"
+
+
+def test_address_only_message_passes_through():
+    assert strip_vocative("tokeniko,", "tokeniko") == "tokeniko,"
+
+
+def test_no_addressee_is_identity():
+    assert strip_vocative("tokeniko, a coin has value", None) == "tokeniko, a coin has value"

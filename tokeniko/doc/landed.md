@@ -543,3 +543,17 @@ stack-sampling the spinning test run). Surfaced en route: stanza never tags a ba
 `test_xfail_known_gaps.py` (a future second signal turns it xpass). `tests/test_wh_position.py`
 (6 — the live specimens verbatim, tree-position-not-line-position, both no-regression channels).
 **Gate 193 / 2 xfailed.**
+
+**The vocative strip — address is not content (2026-07-14)**
+The wart closed: `strip_vocative(text, addressee_name)` (`lib/core/deixis.py`, the deixis
+sibling) — a LEADING "<name>," or TRAILING ", <name>" is address, not content; the comma is the
+discriminator ("tokeniko is a machine" leads with the name as SUBJECT and survives). Mid-sentence
+mentions and greeting forms («hey tokeniko») stay out of scope (etiquette = hunch 8's layer); an
+address-only message passes through unchanged. Applied at BOTH materialization sites in
+`brain/thinking.py` (vocative first, then perspective — one norm), so the stored `original`
+finally matches the zip (the parser never compiled the vocative — only the surface string kept
+it). Biography repaired (author-authorized): «tokeniko, gold is beautiful» → «gold is beautiful»;
+the coin needed a ruling — the wart had DEFEATED THE DEDUP (a taught «tokeniko, a coin has value»
+0.9 and a later self-derived «a coin has value» 0.7 coexisted) — resolved by archiving the
+derived duplicate and stripping the taught original. 7 pure tests in `test_deixis.py`.
+**Gate 200 / 2 xfailed.**

@@ -24,7 +24,7 @@ from typing import Optional
 from bson import ObjectId
 
 import lib.core.evaluation_harness as evaluation_harness
-from lib.core.deixis import normalize_deixis
+from lib.core.deixis import normalize_deixis, strip_vocative
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
@@ -213,7 +213,9 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
     # perspective → refuse). None → remembered, not believed — the memory item stays either way.
     speaker = trust.resolve_canonical(item.sourceId)
     speaker_name = speaker.name if (speaker is not None and not speaker.isMe) else None
-    norm = normalize_deixis(item.original, speaker_name)
+    # the vocative is ADDRESS, not content («tokeniko, a coin has value») — strip it before the
+    # perspective pass (the zip never carried it; this keeps `original` consistent with the zip).
+    norm = normalize_deixis(strip_vocative(item.original, get_tokeniko().name), speaker_name)
     if norm is None:
         logger.info("[thinking] derived «%s» not normalizable (deixis) — remembered, not believed",
                     item.original)
@@ -283,7 +285,8 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
     # teacher's uid); normalizing `original` here keeps the dedup key + NL render source consistent
     # with it. Unnormalizable (a deictic the conservative table can't fix) → refuse the belief; the
     # memory item is the episodic record either way (remembered, not believed).
-    norm = normalize_deixis(item.original, soul.name)
+    # vocative first (address, not content), then perspective — both boundary passes, one norm.
+    norm = normalize_deixis(strip_vocative(item.original, get_tokeniko().name), soul.name)
     if norm is None:
         logger.info("[thinking] taught «%s» not normalizable (deixis) — remembered, not believed",
                     item.original)

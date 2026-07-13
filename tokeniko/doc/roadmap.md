@@ -63,9 +63,9 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
 - ✅ **The wh-position bug** — landed 2026-07-14 (`_parser_whAttachesToRoot` gates both detection
   sites), see `landed.md`. Surfaced en route: the bare-copular "?"-less question detector gap
   (tracked as xfail — a second detection signal is future work, designed deliberately).
-- **The vocative wart** — taught theorems store the address prefix («tokeniko, a coin has value»,
-  «tokeniko, gold is beautiful»). Strip the vocative at materialization — sibling of deixis
-  normalization (the brain must think straight; the polish scrubbing it from posts is not enough).
+- ✅ **The vocative wart** — landed 2026-07-14 (`strip_vocative` beside deixis at both
+  materialization sites; the two polluted theorems repaired, the dedup-defeat duplicate
+  archived), see `landed.md`.
 - ✅ **Operator-aware chainer rules (THE STORM fix)** — landed 2026-07-14, see `landed.md`.
   Follow-on when its time comes: a dedicated conditional-rule extractor so a taught IMPLY/CONV
   becomes a USABLE implication rule (today it is safely blocked, not exploited); re-teach
