@@ -78,6 +78,19 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   lookup, uid immutable at first mint, renames update `name` + append to `aliases`), see
   `landed.md`.
 
+### Robustness — the storm sequel's leak (2026-07-14, the author's deliberate re-test)
+
+- **Subordination must survive compilation** (the deeper storm leak): «when a person say false he
+  is being wrong» compiled to three bare AND leaves — the "when"-clause's operator never reached
+  the zip (yesterday's "if" at least compiled to CONV, which the assertedness gate blocks; a LOST
+  operator is invisible to any zip-level gate) and the main clause lost its subject. Two property
+  rules leaked, wondering re-derived the storm's garbage line (contained — the playbook's second
+  run; specimen in `doc/ref/test-feedback.md` 2026-07-14). Fix class: the parser/compiler
+  subordinate handling (`compiler_parseMarker` and the when/if/because marker path) must carry
+  the subordinate operator into the zip's tree — then the gate sees it and the conditional-rule
+  extractor (the storm follow-on) can one day USE it. Until then: teach conditionals with "if"
+  (gate-visible), and the microscope watches for the flattening class from outside.
+
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
 
 The pattern the project keeps choosing, made explicit: big LLMs as *instruments around* a mind

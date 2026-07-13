@@ -512,3 +512,36 @@ mass-produces VALID knowledge. The trust ledger also priced correctly throughout
 = −0.15 × the refuted belief's own trust (John −0.045 vs Hellen −0.075), logic-violation −0.15
 flat, and the full epithet ladder (author / friend / new acquaintance / not-yet-trusted)
 appeared on the public blog in one morning without one name leaking.
+
+## 2026-07-14 — THE STORM SEQUEL: the author's deliberate re-test finds the deeper leak
+
+**Method note.** With all four play fixes landed, the author re-taught the wrongness rule THROUGH
+the fixed "when" path on purpose ("I wanted to test our when fix and at the same time... a bit
+more complex, so we check if our rag3 tracks any mismatch"). The test scored on every axis.
+
+**What passed.** «when a person say false he is being wrong» materialized as a TAUGHT theorem
+(0.9) — the wh-position fix held live (yesterday the same shape was swallowed as a TIME question
+and answered "I do not know").
+
+**What leaked — one layer DEEPER than the storm.** The taught zip compiled to THREE BARE AND
+LEAVES: the "when"-subordination was destroyed by the parser/compiler itself (yesterday's "if"
+at least reached the zip as a CONV op — which the assertedness gate reads and blocks; a lost
+operator is invisible to any zip-level gate). The main clause even lost its subject (a leaf with
+only `wrong.a.02`). Two generic PROPERTY rules leaked ("persons state", "persons are false") and
+wondering re-derived the same garbage line: «Kotekino states», «Kotekino is false», «a homo
+states», «a homo is false», «a aged states» — 5 derivatives in ~2 minutes, 4 published.
+
+**Containment** (the playbook's second run, minutes, zero residue): poison + 5 derivatives
+archived, 4 posts retracted, straggler from the in-flight tick caught (rules already loaded in
+memory survive an archive until the next KB load — expected), blog verified clean. The teaching
+NOTE posts stay (the lesson is honest content; the garbage was what wondering did with it).
+
+**The fix class** (→ roadmap, robustness): the subordinate operator must SURVIVE compilation —
+`compiler_parseMarker`/subordinate handling must carry "when/if/because"-clauses into the zip's
+operator tree; the assertedness gate is correct but can only refuse what it can see. Note the
+detection asymmetry across the two storms: gate-visible (CONV, blocked) vs gate-invisible
+(flattened, leaked) — the microscope (rag3) is the instrument that sees BOTH, from the outside.
+
+**Pending proof.** rag3 had judged 32 history items (oldest-first) when the daemons stopped —
+the poison sentence awaits its verdict on restart. If it lands as `operator-flattening`, the
+author's test will have proven the microscope catches what no zip-level gate structurally can.
