@@ -13,6 +13,7 @@ from lib.llc.decompiler import decompiler_init
 from senses.inbound import handle_discord_message
 from senses.outbound import outbound_executor_task
 from senses.blog_outbound import blog_outbound_task
+from senses.microscope import microscope_task
 
 load_dotenv()
 
@@ -102,6 +103,9 @@ async def main():
             # blog P3: the PUBLIC-channel executor — publishes transmissions + mind snapshots to the
             # public website API (dry-run unless SENSES_DELIVER_DRYRUN=0 AND INGEST_API_KEY is set).
             blog_task = tg.create_task(blog_outbound_task())
+            # rag3 P1: the microscope — the post-hoc QA oracle over every heard sentence
+            # (observer-only; RAG3_DISABLED=1 or a missing ANTHROPIC_API_KEY disarms it).
+            microscope = tg.create_task(microscope_task())
 
             # Waiting for sigterms
             await stop_event.wait()
@@ -113,6 +117,7 @@ async def main():
                 discord_task.cancel()
             outbound_task.cancel()
             blog_task.cancel()
+            microscope.cancel()
             
     except* Exception as eg:
         logger.error(f"❌ Critical error: {eg}")

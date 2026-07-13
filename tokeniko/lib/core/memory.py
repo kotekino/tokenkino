@@ -84,6 +84,25 @@ class MEMTrustEpisode(BaseModel):
     note: Optional[str] = None                 # short human-readable why (log/debug)
     timestamp: int = Field(default_factory=lambda: int(time.time()))
 
+# rag3 — the microscope's finding (the instrument arc, 2026-07-14). One judged (sentence, zip)
+# pair: does the compiled structure say what the sentence says? Entries are LEADS for the crew's
+# triage, never verdicts and never beliefs — the collection is DIAGNOSTIC (about the pipeline,
+# not tokeniko's life) and nothing in the mind ever reads it back.
+class MEMZipDebug(BaseModel):
+    item_id: str                               # the judged memory item's Mongo id (dedup key)
+    original: str                              # the sentence as heard
+    digest: str                                # the zip's structural digest shown to the judge
+    verdict: str                               # "ok" | "mismatch"
+    confidence: float = Field(default=0.5)     # the judge's own 0..1
+    severity: Optional[str] = None             # "low" | "medium" | "high" (mismatch only)
+    category: Optional[str] = None             # wrong-sense | wrong-structure | missed-negation |
+                                               # missed-quantifier | missed-mood | dropped-content |
+                                               # operator-flattening | other
+    note: Optional[str] = None                 # the judge's one-paragraph why
+    model: Optional[str] = None                # which judge (model id) produced this
+    timestamp: int = Field(default_factory=lambda: int(time.time()))
+
+
 # mem item properties
 class MEMItemProperties(BaseModel):
     trusted: float = Field(default=0.5) # 0 not trusted, 1 fully trusted

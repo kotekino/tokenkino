@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMTrustEpisode, BrainState
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMTrustEpisode, MEMZipDebug, BrainState
 
 _VECTOR_INDEX = "vector_index"
 
@@ -183,6 +183,13 @@ class TKBehaviorRuleDoc(MEMBehaviorRule, Document):
 # trust_episodes: the trust ledger's permanent trail (senses D) — the SOURCE OF TRUTH the
 # stakeholder's folded `trust` scalar is recomputed from (lib/core/trust.fold_trust). Append-only
 # biography, never wiped (post-ceremony discipline).
+# rag3 — the microscope's findings (diagnostic, never read back by the mind). Dedup key: item_id.
+class TKZipDebugDoc(MEMZipDebug, Document):
+    item_id: Annotated[str, Indexed()] = ""            # non-unique index (one entry per item in
+    class Settings:                                    # practice; the poller dedups before judging)
+        name = "tkzipdebug"
+
+
 class TKTrustEpisodeDoc(MEMTrustEpisode, Document):
     stakeholder_uid: Annotated[str, Indexed()] = ""   # non-unique (many episodes per stakeholder)
     class Settings:

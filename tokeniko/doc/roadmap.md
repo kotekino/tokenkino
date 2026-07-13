@@ -89,18 +89,12 @@ beside it, the translator last.
 1. **rag3 — the microscope** (hunch 11, "the Graal"): a continuous oracle that turns every live
    sentence into a judged test case. **Inputs-only** (author's call — the self-render path is
    about to be retired by item 2, and the output rendering belongs to item 3's verifier).
-   - *P1 — the instrument*: a **post-hoc poller** (a senses task tailing the memory collection —
-     zero latency risk to the live path, trivially disableable, and it can re-scan history from
-     day one) + the `tkzipdebug` collection + the judge: for each (original sentence,
-     `decompiler_raw` render, structural digest — senses/quantifier/negation/mood/wh_role/
-     operator-tree/identities), ONE Claude call (**Opus on everything** — the author's economics:
-     judge hardest while traffic is small and errors are dense) with a mini-RAG of the pipeline's
-     CONTRACT (the blog polish's hard-rules pattern), answering *does the structure say what the
-     sentence says?* → `{verdict, confidence, severity, category, note}`. Strictly OBSERVER:
-     writes to tkzipdebug and nothing else — the microscope never touches the specimen.
-   - *P2 — the harvest loop*: entries are LEADS, not verdicts (deixis/vocative/anonymization
-     legitimately diverge from input) — triage stays with the crew; confirmed leads become
-     `test-feedback.md` entries → regression tests → fixes. The self-growing seedbank.
+   - ✅ *P1 — the instrument* — landed 2026-07-14 (`senses/microscope.py`: post-hoc poller +
+     `tkzipdebug` + the Opus judge with the contract mini-RAG), see `landed.md`.
+   - *P2 — the harvest loop* (the active frontier once the first sweep runs): entries are LEADS,
+     not verdicts (deixis/vocative/anonymization legitimately diverge from input) — triage stays
+     with the crew; confirmed leads become `test-feedback.md` entries → regression tests → fixes.
+     The self-growing seedbank.
 2. **Zip-native derivation — no internal compilation** (core consistency, the author's gut made
    rank): wondering's conclusions are born as ZIPS — the NL render → recompile round-trip retires
    from the derivation loop (NL remains only at the I/O boundary). Kills the round-trip corruption

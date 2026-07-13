@@ -587,3 +587,22 @@ This is the reflex behind the 2026-07-13 manual merge (test-probe-hellen → pla
 the engine now performs it itself. 5 sandbox tests in `test_identity_snowflake.py` (rename
 round-trip, alias stacking, same-name≠same-soul, the individual-scope trap, resolver on a
 post-rename string). **Gate 209 / 2 xfailed.**
+
+**rag3 P1 — the microscope's instrument (2026-07-14, the instrument arc opens)**
+`senses/microscope.py` — the continuous QA oracle over every sentence tokeniko hears:
+- **digest_zip** (pure): a deterministic structural rendering of a compiled zip — per leaf the
+  fold operator (the storm's tell), role→sense map, quantifier/negation/mood/wh_role, identities,
+  unknown/reflexive flags. No vectors (geometry is not the judge's business), no re-render
+  (memory items carry no LLC — the digest IS the compiled meaning).
+- **judge**: ONE `claude-opus-4-8` call per item (the author's economics: judge hardest while
+  traffic is small and errors are dense) with the pipeline-CONTRACT mini-RAG (field semantics +
+  the legitimate divergences: vocative strip, dictionary sense granularity) → validated
+  `{verdict ok|mismatch, confidence, severity, category, note}`; ANY failure returns None
+  (logged, item retried next pass) — diagnostics never block, never raise.
+- **microscope_pass / microscope_task**: the post-hoc poller (senses task, 🔬, default 60s,
+  RAG3_DISABLED / key-less disarm) — INPUTS-ONLY (speech from other souls), oldest-first (the
+  day-one pass re-scans the whole biography), dedup by item_id. Strictly OBSERVER: writes to
+  `tkzipdebug` (MEMZipDebug/TKZipDebugDoc, registered in init_io) and nothing else.
+9 tests in `test_microscope.py` (digest determinism/operators/mood/identity; judge validation +
+never-raises discipline; the sandbox pass: inputs-only filter, dedup, verdict written).
+**Gate 218 / 2 xfailed.** P2 (the harvest loop) opens with the first live sweep.
