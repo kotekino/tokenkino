@@ -121,14 +121,20 @@ missed-quantifier | missed-mood | dropped-content | operator-flattening | other.
 badly a reasoning engine would be misled (low/medium/high). The note: ONE terse paragraph naming
 exactly what diverges — write it for the engineer who will turn it into a regression test."""
 
+# NB no null unions: the structured-output validator rejects enum values against a
+# ["string","null"] type array (live lesson, first sweep 2026-07-14) — sentinel "none"/"" strings
+# instead, mapped back to None client-side in judge().
 _JUDGE_SCHEMA = {
     "type": "object",
     "properties": {
         "verdict": {"type": "string", "enum": ["ok", "mismatch"]},
         "confidence": {"type": "number"},
-        "severity": {"type": ["string", "null"], "enum": ["low", "medium", "high", None]},
-        "category": {"type": ["string", "null"]},
-        "note": {"type": ["string", "null"]},
+        "severity": {"type": "string", "enum": ["low", "medium", "high", "none"]},
+        "category": {"type": "string", "enum": ["wrong-sense", "wrong-structure",
+                                                "missed-negation", "missed-quantifier",
+                                                "missed-mood", "dropped-content",
+                                                "operator-flattening", "other", "none"]},
+        "note": {"type": "string"},
     },
     "required": ["verdict", "confidence", "severity", "category", "note"],
     "additionalProperties": False,
@@ -163,12 +169,16 @@ async def judge(original: str, digest: str, client=None) -> Optional[dict]:
         if data["verdict"] not in ("ok", "mismatch"):
             raise ValueError(f"invalid verdict {data['verdict']!r}")
         confidence = max(0.0, min(1.0, float(data["confidence"])))
+        # sentinel -> None (the schema carries no null unions; see the schema note above)
+        severity = data.get("severity") if data.get("severity") not in ("none", "", None) else None
+        category = data.get("category") if data.get("category") not in ("none", "", None) else None
+        note = data.get("note") if (data.get("note") or "").strip() else None
         return {
             "verdict": data["verdict"],
             "confidence": confidence,
-            "severity": data.get("severity"),
-            "category": data.get("category"),
-            "note": data.get("note"),
+            "severity": severity,
+            "category": category,
+            "note": note,
             "model": _JUDGE_MODEL,
         }
     except Exception as error:

@@ -144,3 +144,12 @@ def test_pass_judges_only_others_inputs_and_dedups(_io, clean_microscope):
 
     # second pass: everything already judged -> nothing written (dedup by item_id)
     assert asyncio.run(microscope.microscope_pass(client=fake, batch=10)) == 0
+
+
+def test_judge_maps_sentinels_to_none():
+    # the schema carries no null unions (the API rejects enum-vs-type-array) — "none"/"" come back
+    # as sentinels and must land as real Nones in the entry
+    payload = {"verdict": "ok", "confidence": 0.95, "severity": "none", "category": "none", "note": ""}
+    out = asyncio.run(microscope.judge("s", "d", client=_FakeClient(text=json.dumps(payload))))
+    assert out["verdict"] == "ok"
+    assert out["severity"] is None and out["category"] is None and out["note"] is None
