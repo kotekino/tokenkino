@@ -78,6 +78,43 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   lookup, uid immutable at first mint, renames update `name` + append to `aliases`), see
   `landed.md`.
 
+### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
+
+The pattern the project keeps choosing, made explicit: big LLMs as *instruments around* a mind
+that stays pure, small, and inspectable — a microscope on its understanding, verified translators
+at its ears and mouth. Order settled at the summit: **the microscope first** (its evidence
+compounds with calendar time and writes the translator's spec), the core-consistency surgery
+beside it, the translator last.
+
+1. **rag3 — the microscope** (hunch 11, "the Graal"): a continuous oracle that turns every live
+   sentence into a judged test case. **Inputs-only** (author's call — the self-render path is
+   about to be retired by item 2, and the output rendering belongs to item 3's verifier).
+   - *P1 — the instrument*: a **post-hoc poller** (a senses task tailing the memory collection —
+     zero latency risk to the live path, trivially disableable, and it can re-scan history from
+     day one) + the `tkzipdebug` collection + the judge: for each (original sentence,
+     `decompiler_raw` render, structural digest — senses/quantifier/negation/mood/wh_role/
+     operator-tree/identities), ONE Claude call (**Opus on everything** — the author's economics:
+     judge hardest while traffic is small and errors are dense) with a mini-RAG of the pipeline's
+     CONTRACT (the blog polish's hard-rules pattern), answering *does the structure say what the
+     sentence says?* → `{verdict, confidence, severity, category, note}`. Strictly OBSERVER:
+     writes to tkzipdebug and nothing else — the microscope never touches the specimen.
+   - *P2 — the harvest loop*: entries are LEADS, not verdicts (deixis/vocative/anonymization
+     legitimately diverge from input) — triage stays with the crew; confirmed leads become
+     `test-feedback.md` entries → regression tests → fixes. The self-growing seedbank.
+2. **Zip-native derivation — no internal compilation** (core consistency, the author's gut made
+   rank): wondering's conclusions are born as ZIPS — the NL render → recompile round-trip retires
+   from the derivation loop (NL remains only at the I/O boundary). Kills the round-trip corruption
+   class at the root: sense-pinning becomes unnecessary, the storm's render leg disappears. A mind
+   should think in its own representation — NL is I/O, not thought.
+3. **The translator apparatus** (hunch 10 — the Japan-translator philosophy: the mind is the mind,
+   the voice is the voice of the translator): rag1-in (typos, convolution unwinding, translation —
+   NORMALIZATION, never interpretation; `item.original` always preserved) + rag2-in (meaning-
+   preservation verifier — input polish sits on the BELIEF path, so the verifier matters MORE here
+   than on output) + rag2-out (= the consensus-over-the-polisher follow-on, folded in). **Spec'd
+   from rag3's harvest** (author's ruling): the microscope's evidence decides what is genuinely
+   messy input (rag1's job) versus parser bugs (fixed, never papered over — the good voice must
+   not fix the brain one layer earlier).
+
 ---
 
 ## Doc map
