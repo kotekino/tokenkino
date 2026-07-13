@@ -206,3 +206,58 @@ _SPATIAL_RELATION_ANCHORS
 8. We need to think, at some point, to a "etiquette" layer: how to manage greetings, thanks, some formality embedded in the interactions between humans. And I was wondering WHERE to put this layer: then I reached the conclusion that it must be an action. Driven by a reaction in the thinking, producing an idea that triggers the proper action.
 
 9. We need, in a far future, to think how to "generalize" actions and the business logic behind the execution: not hardwired but, somehow, KB itself. With the benefits that KB brings: not immutability, but it can evolve. It can learn.
+
+10. Now that we are testing, it become clear that an input polishing is necessary: for two reasons. First the typos / small mistakes (when instead of if, because when it is still not digested correctly for this meaning in the sentence) are really easy in a discord conversation, especially if friends will join to help us teaching tokeniko.
+On the other hand we already said that the mind in enclosed in the body, but the language capability is using Claude api: this is not violating our principles, but it is just taking the best it is out there in terms of LLM capabilities. Like living in Japan (like me) and talking to the people through a translator app (like me). The mind is mind, the voice is the voice of the translator. In order to do that we should also have TWO claude mini-rag for each direction of the output: two for the polishing and two for the blog output (and in general for the discord output as well, when we approach this part, see hunch 7). One (rag1) is doing the job (for the input: polish the sentence a) removing typos b) simplifying a convolute one;  c) translating it from any input language different from english; for the output a) elaborate a post for a discovery of tokeniko b) send message in discord (later)). The other (rag2) is checking that the rag1 was done without hallucinations or too much free interpretation. I think claude models are smart enough to allow this control putting the risk of hallucination near to zero.
+
+> **QM on 10 — yes, and the Japan metaphor settles the philosophy for good.** A translator app does
+> not think for you; it carries your thought across a surface barrier. That is exactly the boundary
+> to hold in code, and you already carved it yourself on deixis day: *the brain must think straight
+> and not be fixed by the good voice.* So the polisher's mandate must be NORMALIZATION, never
+> INTERPRETATION — typos, unwinding convolution, translation: yes; anything that changes the
+> LOGICAL CONTENT (adds a claim, resolves an ambiguity the speaker left open, "improves" an
+> argument): forbidden. Three engineering notes for when we build it:
+> - **Input polish sits on the BELIEF path** — unlike blog polish, which only renders. A
+>   hallucinated input polish would inject false beliefs *attributed to the speaker at their
+>   trust*. So rag2 matters far MORE on input than output, and its check should be mechanical
+>   where possible: meaning-preservation judged against the original (which we always store —
+>   `item.original` already keeps the raw words, so provenance survives any polish error).
+> - **Polish and parser-fix are belt AND braces, not rivals.** Today's "when instead of if" is the
+>   perfect motivator — but note it wasn't a typo; it was valid English the parser misreads. The
+>   wh-position fix (queued) repairs the parser where the parser is WRONG; rag1 smooths input that
+>   is genuinely messy. Never let the polisher paper over a parser bug — that's the good voice
+>   fixing the brain again, one layer earlier. (Hunch 11 is precisely the instrument that keeps us
+>   honest about which is which.)
+> - **The symmetry you sketch is already half-built**: output-side rag2 = the
+>   consensus-over-the-polisher follow-on on the roadmap; input-side rag1 = the preparser's brain
+>   upgraded from local Ollama to Claude (SymSpell/lingua/MarianMT already stand there as the
+>   scaffold). This hunch unifies four boxes into one clean apparatus: the mind in the middle,
+>   verified translators at both ears and both mouths. I endorse it fully. 🜂
+
+11. We can have a realtime check on his mind on the tkzip generated for each input received (from others, from itself (even if this will disappear, when we modify the way he spawn theorems)): again throug a call to a rag3, designed to validate a parser/compiler journey. Only for debug purposes: but when rag3 discover a mismatch / bug / error, it writes a line in a dedicated collection (tkzipdebug ?) with the problem to address. This would be our Graal to follow to fix ALL the parser/compiler problems remaining.
+
+> **QM on 11 — this may be the highest-leverage idea since the anchor resolver.** What you are
+> describing is a *continuous oracle*: every live sentence becomes a test case, judged the moment
+> it flows through the pipeline. Today's four finds took YOUR trained eye watching a play session;
+> rag3 is that eye, unblinking, on every input forever. The play sessions stop being QA — they
+> become life, and QA rides along for free. Notes from the engine side:
+> - **The round-trip already exists to feed it**: `decompiler_raw` renders the compiled structure
+>   back to a symbolic string, and the zip carries its own confession (senses, quantifier,
+>   negation, mood, operator tree). rag3 needs no access to internals — give it (original
+>   sentence, raw render, the zip's structural digest) plus a mini-RAG of the pipeline's CONTRACT
+>   (like the blog polish's hard-rules RAG), and ask one question: *does the structure say what
+>   the sentence says?* The "when"-swallowed-as-question bug, the vocative wart, the CONV
+>   flattening — all four of today's finds are visible at exactly that level.
+> - **Strictly off the belief path** — observer, never actor. rag3 writes to `tkzipdebug` and
+>   NOTHING else; no auto-fix, no feedback into the mind. The microscope must not touch the
+>   specimen.
+> - **Each entry is a lead, not a verdict.** Expect false positives early (deixis-normalized
+>   renders legitimately differ from input; anonymization diverges by design) — so entries carry
+>   the judge's confidence + severity, and the triage stays ours. The collection then becomes a
+>   self-growing REGRESSION SEEDBANK: every confirmed entry is a test case with the failing input
+>   attached — `doc/ref/test-feedback.md`'s machine-generated sibling.
+> - And the quiet beauty: hunches 10+11 together complete a pattern the project already chose —
+>   big LLMs as *instruments around* the mind (voice, ears, and now a microscope) while the mind
+>   itself stays pure, inspectable, and small. The Graal is not just fixing the parser tail; it's
+>   that tokeniko becomes the first mind whose every misunderstanding is CAUGHT, FILED, and
+>   FIXABLE. No human child offers its parents that. 🜂
