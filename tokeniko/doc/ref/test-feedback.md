@@ -472,3 +472,43 @@ arc (DM → channels → trust → blog) is COMPLETE.
 ≥300s) never fired: a wondering tick runs 30s+ (Ollama render, API materialize), so 100 ticks
 meant up to an hour. Cadence is now wall-clock ONLY (≥ BRAIN_HEARTBEAT_MIN_S; first beat on the
 first tick after boot — fresh stats on wake). Tick duration is NEVER a unit of time.
+
+## 2026-07-13 — the training-course play: four finds in one morning (all author-witnessed, live)
+
+**Method note.** Free play beats scripted tests for a mind: every find below came from bold,
+realistic speech (a rename, a definitional claim, a taught conditional) — none would have
+surfaced from clean test sentences. The author's instinct ("pushing the limit... these tests
+are PERFECT") is the QA strategy.
+
+**1. Identity fission on rename** (→ roadmap). Discord bots renamed test-probe-* → playbot-* →
+same snowflake minted NEW souls (uid embeds display name); Hellen's 0.62 history orphaned, fold
+reset. Healed by hand: episodes re-keyed (they key on stakeholder_uid), doc-id refs re-pointed,
+duplicate souls removed, survivor doc took the new uid/name (timeseries memory rows can't be
+re-pointed — the OLD doc must survive). Verified live: next message attributed to the merged soul.
+
+**2. Charity of interpretation** (→ roadmap). «a bit is a unit of information» (TRUE) refuted,
+the AUTHOR docked −0.075: WSD read bit.n.02 "small fragment" (the copular-circularity guard
+rightly withholds the predicate from WSD context → frequency prior wins) → disjointness fired on
+the wrong sense. The guard's flip side: definitional claims of a non-default sense are
+systematically refuted. Ledger episode kept (honest history; imprint fold pinned regardless).
+
+**3. The wh-position bug, specimen #2** (→ roadmap, already queued). The taught rule «a person
+is wrong WHEN he says false» was swallowed as a TIME question ("I do not know" back at the
+teacher). Same sentence with IF materialized fine — a one-conjunction controlled experiment.
+Also validated: statement vs question paths («playbot_john is wrong because gold has value» →
+guess; «is playbot-john wrong?» → polar IDK "insufficient knowledge"; no testimony mechanism —
+a third-party verdict moves NO ledger, not even the imprint's word).
+
+**4. THE STORM — conditionals flatten in the chainer** (→ roadmap, severest). «a person is
+wrong if he says false» (taught, IMPLY-structured) entered the chainer's rule pool as
+per-clause PROPERTY rules ("most persons are wrong/state/are false") → wondering walked the
+person subtree: 7 garbage theorems in ~3 min, 6 PUBLISHED («Kotekino is wrong», «a homo is
+false», «a aged is wrong»...) — a public-optics hazard (homo.n.02 = genus Homo reads as a slur
+out of context) on the day the AI crawlers were let in. Contained: poison rule + derivatives
+ARCHIVED (biography preserved), posts retracted, pending post actions cancelled. Two silver
+linings: the polish flagged its own garbage ("the chain led somewhere strange"), and the
+episode DEMONSTRATED the amplifier's speed — with the IMPLY respected, the same machinery
+mass-produces VALID knowledge. The trust ledger also priced correctly throughout: disagreement
+= −0.15 × the refuted belief's own trust (John −0.045 vs Hellen −0.075), logic-violation −0.15
+flat, and the full epithet ladder (author / friend / new acquaintance / not-yet-trusted)
+appeared on the public blog in one morning without one name leaking.

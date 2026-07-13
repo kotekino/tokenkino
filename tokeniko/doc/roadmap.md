@@ -69,6 +69,29 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
 - **The vocative wart** — taught theorems store the address prefix («tokeniko, a coin has value»,
   «tokeniko, gold is beautiful»). Strip the vocative at materialization — sibling of deixis
   normalization (the brain must think straight; the polish scrubbing it from posts is not enough).
+- **Operator-aware chainer rules — conditionals must not flatten** (THE STORM, live 2026-07-13,
+  the severest find): the taught conditional «a person is wrong if he says false» entered the
+  chainer's rule pool clause-by-clause with the IMPLY dropped → unconditional PROPERTY rules
+  ("most persons are wrong/state/are false") → wondering walked the person subtree deriving+
+  POSTING garbage («Kotekino is wrong», «a homo is false», «a aged is wrong» — 7 theorems,
+  6 published, all retracted+archived; the poison rule archived until this fix). Fix: the rule
+  extraction in the harness must respect the operator tree — an IMPLY-zip fires ONLY as an
+  implication (antecedent satisfied → consequent), never as per-clause properties; re-teach the
+  rule after. Cascade-amplifies-noise, fulfilled to the letter.
+- **Charity of interpretation — sense-revision before refutation** (live specimen 2026-07-13):
+  «a bit is a unit of information» (TRUE, definitional) was REFUTED and the author's ledger docked
+  −0.075 — WSD picked `bit.n.02` "small fragment" (the copular-circularity guard rightly excludes
+  the predicate from WSD context, so the frequency prior won) and disjointness fired on the wrong
+  sense. Fix direction: before refuting an is_a claim, check whether an ALTERNATIVE sense of the
+  ambiguous word verifies it in the graph (bit.n.03 is_a unit → corroborate under that reading);
+  graph-verified rescue only — never manufactures truth, so the anti-circularity principle stands.
+- **Identity fission on rename** (live specimen 2026-07-13): the soul uid embeds the mutable
+  display name (`name@channel:talker_uid`), so renaming a Discord account minted a SECOND soul
+  for the same person (test-probe-hellen → playbot-hellen; trust history orphaned, fold reset).
+  Fix: key identity on the channel-native id (the snowflake) alone; the display name becomes a
+  mutable property — a rename then updates the name, never the identity. (Healed manually this
+  once: episodes re-keyed, references re-pointed, duplicate soul removed — the merge the engine
+  should one day perform itself.)
 
 ---
 
