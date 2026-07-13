@@ -16,14 +16,22 @@
 #   strong-FALSE ONLY when the two senses sit under DIFFERENT members of a small, hand-vetted set of
 #   mutually-exclusive anchors — and we compare at the FINEST TIER where both senses are placed:
 #     tier 1 — biological kingdoms (animal/plant/fungus/bacteria/microorganism) under organism;
-#     tier 2 — kinds of physical thing (organism/artifact/natural_object/substance) under object;
-#     tier 3 — physical vs abstract (physical_entity/abstraction) under entity.
+#     tier 2 — kinds of physical thing (organism/artifact/natural_object/substance) under object.
 #   So cat vs dog (both animal) and cat vs person (both organism) correctly do NOT refute, while cat
-#   vs plant (animal⊥plant), cat vs car (organism⊥artifact) and cat vs idea (physical⊥abstract) do —
-#   and "a cat is a plant" refutes whether "plant" reads as the botanical kingdom OR the factory
-#   artifact. A sense placed in no tier (e.g. cat.n.03 "woman") yields NO refutation — it falls through
-#   to definition-grounding / INSUFFICIENT. Keeps the false-FALSE rate near zero at the cost of missing
-#   some true disjointness (acceptable: refutation is the strong claim, so it must be the cautious one).
+#   vs plant (animal⊥plant) and cat vs car (organism⊥artifact) do — and "a cat is a plant" refutes
+#   whether "plant" reads as the botanical kingdom OR the factory artifact. A sense placed in no
+#   tier (e.g. cat.n.03 "woman") yields NO refutation — it falls through to definition-grounding /
+#   INSUFFICIENT. Keeps the false-FALSE rate near zero at the cost of missing some true disjointness
+#   (acceptable: refutation is the strong claim, so it must be the cautious one).
+#   TIER 3 (physical_entity ⊥ abstraction) was REMOVED from refutation (2026-07-14, the bit
+#   incident): WordNet arbitrarily files polysemous nouns on either side of that split — the
+#   extractor's edge-admission gate (kb_extract) had distrusted it from day one for exactly that
+#   reason, and «a bit is a unit of information» (TRUE, definitional) proved it live: the
+#   dictionary's only sense bit.n.02 "fragment" reads physical, unit reads abstract → a confident
+#   false refutation and an unearned trust dock on the author. The evaluator now shares the
+#   extractor's epistemology: tier 3 never refutes; such claims fall through to an honest
+#   INSUFFICIENT. ("a cat is an idea" thereby also abstains — the price of never again refuting a
+#   true definition on WordNet's filing habits; charity's TRUE-side rescue is unaffected.)
 # ------------------------------------------------------------------------------------------------
 from typing import Callable, Optional
 
@@ -36,8 +44,7 @@ _DISJOINT_TIERS: tuple[frozenset[str], ...] = (
                "bacteria.n.01", "microorganism.n.01"}),
     # tier 2 — kinds of physical thing (under object/whole / matter)
     frozenset({"organism.n.01", "artifact.n.01", "natural_object.n.01", "substance.n.01"}),
-    # tier 3 — physical vs abstract (under entity)
-    frozenset({"physical_entity.n.01", "abstraction.n.06"}),
+    # tier 3 (physical_entity.n.01 ⊥ abstraction.n.06) REMOVED — see header (the bit incident).
 )
 
 Parents = Callable[[str], list[str]]

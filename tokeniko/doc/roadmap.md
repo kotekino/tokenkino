@@ -70,13 +70,10 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   Follow-on when its time comes: a dedicated conditional-rule extractor so a taught IMPLY/CONV
   becomes a USABLE implication rule (today it is safely blocked, not exploited); re-teach
   «a person is wrong if he says false» after that.
-- **Charity of interpretation — sense-revision before refutation** (live specimen 2026-07-13):
-  «a bit is a unit of information» (TRUE, definitional) was REFUTED and the author's ledger docked
-  −0.075 — WSD picked `bit.n.02` "small fragment" (the copular-circularity guard rightly excludes
-  the predicate from WSD context, so the frequency prior won) and disjointness fired on the wrong
-  sense. Fix direction: before refuting an is_a claim, check whether an ALTERNATIVE sense of the
-  ambiguous word verifies it in the graph (bit.n.03 is_a unit → corroborate under that reading);
-  graph-verified rescue only — never manufactures truth, so the anti-circularity principle stands.
+- ✅ **Charity of interpretation (the bit incident)** — landed 2026-07-14 as option A: tier 3
+  (physical⊥abstract) removed from the evaluator's refutation tiers, see `landed.md`. Follow-ons
+  when their time comes: curate `bit.n.03` + its is_a edge (so the claim grounds TRUE, not just
+  unrefuted); WordNet-wide sibling-sense abstention IF tier-1/2 false refutations ever appear.
 - **Identity fission on rename** (live specimen 2026-07-13): the soul uid embeds the mutable
   display name (`name@channel:talker_uid`), so renaming a Discord account minted a SECOND soul
   for the same person (test-probe-hellen → playbot-hellen; trust history orphaned, fold reset).

@@ -557,3 +557,18 @@ the coin needed a ruling — the wart had DEFEATED THE DEDUP (a taught «tokenik
 0.9 and a later self-derived «a coin has value» 0.7 coexisted) — resolved by archiving the
 derived duplicate and stripping the taught original. 7 pure tests in `test_deixis.py`.
 **Gate 200 / 2 xfailed.**
+
+**Charity of interpretation — tier 3 removed from refutation (2026-07-14)**
+The bit incident closed, better-diagnosed than roadmapped: the charitable TRUE-side cross-product
+ALREADY existed (`_ground_relationally` tries every dictionary sense pair before refuting) — it
+was STARVED, not broken: the dictionary's only bit sense is `bit.n.02` "fragment" (bit.n.03, the
+information unit, never entered the curated set; the graph has no bit.n.03 node either). The
+refutation then fired at **tier 3** (fragment→physical_entity ⊥ unit→abstraction) — the very
+split the EXTRACTOR's edge-admission gate had distrusted from day one ("WordNet arbitrarily files
+polysemous nouns on either side"). Fix (author-ratified option A): the evaluator now shares the
+extractor's epistemology — `_DISJOINT_TIERS` loses tier 3 (`e_relations.py`, the header carries
+the incident story); tiers 1–2 and the TRUE-side charity untouched. «a bit is a unit of
+information» now grounds INSUFFICIENT (honest abstention, no trust dock) — verified live against
+the stored zip; "a cat is an idea" abstains too (the explicit price). 4 pure tests in
+`test_tier3_charity.py` (the incident's exact shape + tier-1/2 no-regression).
+**Gate 204 / 2 xfailed.**
