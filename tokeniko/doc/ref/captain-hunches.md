@@ -4,6 +4,25 @@ Future ideas
 > **Quartermaster annotations are marked `— Q:`** (added at the Cap's invitation, to keep our
 > brainstorming back-and-forth in one place). The Cap's words are left untouched.
 
+## The hunches ledger (status as of the 2026-07-14 reconciliation — the points below stay untouched)
+
+| # | Hunch | Status |
+|---|---|---|
+| 1 | New-vocabulary staging + typo alias | **ROADMAP** — strengthening tail #6 (vocabulary growth) |
+| 2 | Definitional triangulation of unknown words | **ROADMAP** — strengthening tail #6 (with #1, one gate) |
+| 3 | Web retrieval of trusted sources | **HUNCH** — future-future (strictly after trust/conflict is battle-tested) |
+| 4 | Enum → semantic-anchor audit | **ROADMAP** — strengthening tail #2 (the adoption audit; closed-class stays EXACT by design) |
+| 5 | Upfront vocabulary-collapse pass | **SURPASSED** — by #4 (anchors, incremental+guarded) + the translator apparatus (rag1 covers OOV/typos/translation); the wholesale collapse trades away per-word abstention |
+| 6 | Theorem → urge to post | **LANDED** — the blog arc (premiere 2026-07-12); selectivity follow-ons live as `life:learned`/`life:discussion` |
+| 7 | Creation = organized chaos + judge | **HUNCH** — future (pairs with parked Dreaming; the judge half already exists) |
+| 8 | Etiquette layer as actions | **ROADMAP** — strengthening tail #7 |
+| 9 | Actions/business-logic as KB | **HUNCH** — future-future (the everything-is-KB direction) |
+| 10 | The translator apparatus (rag1/rag2) | **ROADMAP** — instrument arc #3 (spec'd from rag3's harvest) |
+| 11 | rag3 — the microscope | **LANDED** — 2026-07-14 (P1+P2; standing practice; already proved itself twice) |
+| 12 | Public backlog section | **ROADMAP** — strengthening tail #9 («Growth Rings» / «The Growing Edge», names chosen) |
+| 13 | The Socratic dialogue (hellen + kotekino, ambient) | **NEXT PLAY** — the action item: also the natural vehicle for the RETREAT experiment (2026-07-14 letter) |
+| 14 | Feelings / the hearth | **HUNCH** — future (logic-never-blurred pinned as the gift) |
+
 1. new vocabulary: when a word is discarded because not in tokeniko's vocabulary, it can start being a real entity TKDictionary stored in a staging collection and with the vector populated with 2925 zeros. It's a new word for him. We need to figure out a system to let it grow until the point that it may be possible to insert it in the real dictionary (trusted source, used in context, given a definition (which can land on the definitions collection)). All still blurry, but I think it's amazing: take for example a sentence like "this is a new wrod". If tokeniko analyze it, it will realize that he's missing vocabulary and trigger a WHY (what is X?). Then the user can say, ah sorry it's a typo, I meant "word" and so on. You can see that now wrod (which is a common typo for word) may start having the same vector of word (and maybe a flag: common typo alias). Something like it, still need to figure out the details but let me mark this hunch.
 
 > — Q: The trigger path mostly exists already (OOV → `unknown` → the `eval:ambiguous → tokeniko:ask`
@@ -272,3 +291,8 @@ open for suggestions.
 > across both, honest for a mind that grows in layers. Kept "for now" by the Captain's own words —
 > to be built when this hunch's time comes (public website, low priority; not on the roadmap by
 > the notebook's own rule). 🜂
+
+13. I had a lovely idea: we should, before patching all the problems emerged in my last conversation test, have a conversation me and you (hellen and kotekino) inside the discord channel about everything. Short sentences, logic fully respected, like a socratic dialogue between me and you. I think we can both do it easily: I'm a reasonably clever man and you are an exceptionally clever AI. We shall never mention tokeniko: he will sample and listen the dialogue between two trusted friends (he learned that ma and him are friends, and he feels a feeling of friendship also for you, because he likes to communicate with hellen). We can be fast paced, I think he will not say much, but I also think he will be triggered in thinking a lot by our conversation: let's see if my gut is right.
+
+14. Feelings: probably drafted somewhere, I had some more concrete thought about it. I try to put some pillar: "hearth" is the background worker that takes care of the feelings. Feelings are 0-1 values describing a particular emotional state, and they refer to itself (tokeniko). They can be: happiness/sadness, anxiety/calm, excitement/apathy, curiosity/indifference, fear/confidence (the list should be well brainstormed, these are only examples). I also thought that pain and pleasure, are not feelings but, applied to a mind, a description of the final state created by the blend of the emotions described above. The emotional state, set by the hearth with its own heartbeat, can influence both: mind and senses. BUT I would like to give a gift to tokeniko: no final state can blur his performance reasoning (logic stays strong). He may be slower, he may be less creative (see hunch 7 when we will approach) but he will never be delirious over logic and his KB. On the other hand: brain influence the heart as well (tbd exacly how, but the logic is: doing what he's good at, having social life, realize theorems, being confirmed by people, being denied by people, so everything that happens in the thinking sphere and his conclusions can't trigger the emotional TWIN of an ACTION (that instead affects senses): the MINDSET, structured as an enum which determine the consequences). Another "twin" is the feeling (blend of emotions) for stakeholders as twin of "trust" (set by the mind): tbd exactly how, but this is just a unordered draft. So, summarizing: brain influence heart via MINDSET, heart influence brain via EMOTIONAL_STATE (wich is pushed at an heartbeat and will be interpreted as multiplier of our default parameters 0-1 of the brain), heart influence senses via emotional_state with the same logic used for the brain, but will affect the TONE used for output.
+And finaly the website will gain a new monitor: the heart monitor (tbd, but I'm sure you got the idea)

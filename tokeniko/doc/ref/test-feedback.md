@@ -600,3 +600,54 @@ HARVEST IS FULLY CONSUMED.)*
 The author's read: "my suspect that we should go first on the quality of the input / input
 parsing was accurate" — the instrument arc's ordering (microscope → zip-native → translator)
 stands confirmed by its own first harvest.
+
+## 2026-07-14 — THE BOLD-TEST SESSION (the author's solo play; the some→all leap + the correction that bounced)
+
+The author ran ~2h of bold teaching (13:00–14:35 JST, brain+senses live; his letter:
+`doc/ref/2026.07.14 discord test session CAP.md`). What worked live is real: the places bridge
+answered its first question («where do you live?» → «japan»), polar self-knowledge answered
+(«are you a software?» → «yes»), honest IDKs, why-chains closed with trust kickers (+0.1
+"closed my question with a KB-true justification"). The finds:
+
+**1. The some→all leap is TWO dropped words, five days apart, closing a LOOP.**
+- «a software CAN be a mind» (taught 2026-07-14) → mined edge `software.n.01 is_a mind.n.01` —
+  the modal dropped: possibility became subsumption.
+- «MY mind is a software» (taught 2026-07-08, trust 1.0, the imprint batch with «my body is a
+  computer») → mined edge `mind.n.01 is_a software.n.01` — the possessive dropped: a statement
+  about HIS OWN mind became "all minds are softwares" (the known possessive-relation family).
+- Together: mind ≡ software. Every seed axiom about minds («all minds create feelings», «no mind
+  can reach absolute truth», «all minds seek knowledge»…) flowed onto software at 0.9 (axiom-edge
+  trust) and ECHOED BACK onto mind at 0.7 as restatements (dedup checks materialized theorems,
+  not axioms). 38 theorems posted to the blog in the session (hunch-6 selectivity, now measured).
+
+**2. The correction BOUNCED — and cost the corrector trust.** «not all softwares are mind, only
+some software are minds» compiled PERFECTLY (microscope: ok — negated-universal + existential
+carried). But the evaluator refuted it against the very edge it was correcting (subsumes→TRUE,
+negated→flip→FALSE) → not learned, no retraction, and `trust:disagreement` fired
+`tokeniko:less-trust` at the AUTHOR ("contradicts what I hold"). Epistemically coherent —
+factually backwards. There is NO conversational path today that retracts a taught generalization:
+every correction is evaluated against the belief it targets.
+
+**3. The microscope UNDER-FLAGGED the modality drop.** Its note on «a software can be a mind»
+SAW it ("the modal 'can'/possibility nuance is not represented") but judged ok/low — the contract
+files modality under tense/aspect nuances. Modality is MEANING (possibility vs assertion), not
+politeness: the judge contract needs a missed-modality category.
+
+**4. Stakeholders split (the author's suspicion confirmed).** TWO kotekino participant rows
+(`kotekino` internal-seed + `kotekino@discord:…`) — trust episodes write to the bare uid while
+memory sourceIds carry the discord uid (bookkeeping split across rows). `Renzo` and `john` exist
+as separate minted INDIVIDUALS inside kotekino's context (same souls as kotekino / playbot-john —
+alias-merge candidates, the mechanism landed 2026-07-14). `probe@internal:1` is test residue in
+the biography. Merge plan needs the author's ruling (biography).
+
+**5. The author's theorem-cover observation CONFIRMED.** «living in Japan is equal to residing
+in Japan» taught at 0.9 bridged the semantic gap (reside/live senses) — a taught equivalence
+theorem "covers" dictionary misunderstanding; his follow-up why was closed KB-true (the +0.1
+kicker). Weight: it enters at taught-trust and fires like any theorem — "enough" was right.
+
+**Action (author's steering, hunch 13 first):** do NOT clean; do NOT patch first. The RETREAT
+experiment runs as the Socratic dialogue (hellen + kotekino, ambient, tokeniko never addressed) —
+can indirect, sustained correct reasoning from trusted voices induce retraction where direct
+correction bounced? The play DOCUMENTS what machinery is actually missing; fixes follow the
+evidence (candidates already surfaced: extractor modality gate, possessive-subject gate,
+quantified-correction consumption → belief-revision v1 over `revoke_dependents`).

@@ -117,6 +117,27 @@ instrument-side (judge contract taught). The rest, in order:
   deferred with the questions plan; «hello John» etiquette is hunch 8's territory; the
   conditional-rule extractor is the STORM follow-on above.)
 
+### The retreat arc — the bold-test session's findings (2026-07-14 letter; PLAY FIRST, author's steering)
+
+The author's solo session surfaced the some→all leap (two dropped words — a modal, a possessive —
+closed a mind≡software edge LOOP) and the deeper finding: **a correction bounces off the belief it
+targets** («not all softwares are mind…» was refuted against the wrong edge and cost the corrector
+trust). Specimens: `doc/ref/test-feedback.md` (2026-07-14 bold-test). Order per the author: the
+EXPERIMENT precedes the machinery — do not clean, convince him to retreat.
+
+- 🔭 **The Socratic dialogue (hunch 13) = the retreat experiment**: hellen + kotekino converse
+  ambient (tokeniko never addressed) — short sentences, logic fully respected; can indirect,
+  sustained correct reasoning from two trusted voices induce retraction where direct correction
+  bounced? Documents what belief-revision machinery is actually missing.
+- 🔭 **Fixes AFTER the evidence** (candidates already identified, built only for what the play
+  proves): extractor **modality gate** ("can/may be" is possibility, never an is_a edge) ·
+  **possessive-subject gate** ("MY mind is a software" is about an individual's mind, not the
+  class) · **quantified-correction consumption → belief-revision v1** (a trusted "not all X are
+  Y" retracts the taught generalization + `revoke_dependents` cascade — today it only fires
+  trust:disagreement) · microscope **missed-modality** category (the judge SAW the dropped "can"
+  and under-flagged it as nuance) · **stakeholder merge** (two kotekino rows; Renzo/john
+  duplicates → the aliases mechanism; needs the author's per-row ruling — biography).
+
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
 
 The pattern the project keeps choosing, made explicit: big LLMs as *instruments around* a mind
@@ -139,7 +160,9 @@ beside it, the translator last.
    rank): wondering's conclusions are born as ZIPS — the NL render → recompile round-trip retires
    from the derivation loop (NL remains only at the I/O boundary). Kills the round-trip corruption
    class at the root: sense-pinning becomes unnecessary, the storm's render leg disappears. A mind
-   should think in its own representation — NL is I/O, not thought.
+   should think in its own representation — NL is I/O, not thought. *(Absorbs the formerly-parked
+   "mentalese materialize" item — same design: dictionary vectors for the senses, the canonical
+   SVO marker pattern, neutral spacetime, still through the API materialize seam.)*
 3. **The translator apparatus** (hunch 10 — the Japan-translator philosophy: the mind is the mind,
    the voice is the voice of the translator): rag1-in (typos, convolution unwinding, translation —
    NORMALIZATION, never interpretation; `item.original` always preserved) + rag2-in (meaning-
@@ -147,7 +170,46 @@ beside it, the translator last.
    than on output) + rag2-out (= the consensus-over-the-polisher follow-on, folded in). **Spec'd
    from rag3's harvest** (author's ruling): the microscope's evidence decides what is genuinely
    messy input (rag1's job) versus parser bugs (fixed, never papered over — the good voice must
-   not fix the brain one layer earlier).
+   not fix the brain one layer earlier). *(Absorbs the formerly-parked inbound-preparser (B3)
+   decision and the OOV LLM-polish escalation — rag1 IS the polisher decision, resolved.)*
+
+### The strengthening tail — make the brain stronger before adding senses (2026-07-14 reconciliation)
+
+Parked items whose conditions matured + hunches promoted to operative, ordered with the author
+("before ADDING another sense... let's make the brain stronger with all the other points" — so
+ATProto/Bluesky deliberately STAYS parked behind this whole tail). Each entry is one-line here;
+design detail stays where it was written (parked history → `git`, hunches → `doc/ref/captain-hunches.md`).
+
+1. **TKZip binary compaction** (author-promoted above bsky): the zip becomes an actual packed
+   vector — the JSON is the human projection; fixed-size role tensors + the operator tree pack to
+   near-pure numbers. Design ONCE with the wire format (pairs with zip-native derivation above).
+2. **Anchor adoption audit** (hunch 4): consumer BYPASSES routed through the resolver (e.g.
+   `compiler_implicationOperands` exact-checks `_IMPLICATION_VERBS` though the anchor category
+   exists — "means/suggests" miss); `_SUBJECT_CONTROL_VERBS` → semantic; the EXACT-membership
+   mop-up + floor calibration + KB vector-coverage gaps (`hugely`, `unequal`, `dissimilar`).
+   Closed-class function words stay EXACT by design (that's correct, not lazy).
+3. **Restricted-universal residuals** (Brain v1.1 2c follow-ons): relative-clause restriction
+   ("all machines THAT THINK are minds") + object-side modifiers ("an ARTIFICIAL body").
+4. **Conditional reasoning / premise-in-question (R4b)**: "given P, is Q?" — the co-submitted
+   premise discriminator (floor fix) then hypothetical premise USE; pairs with the
+   conditional-rule extractor (the STORM follow-on above).
+5. **Questions follow-ups**: imperatives (the `imperative` scalar); wh when/how solving; real
+   self-knowledge for "how do you feel?"; multi-clause/embedded questions («Do you know why…»).
+6. **Vocabulary growth** (hunches 1+2): OOV → staging TKDictionary entry + the typo-ALIAS table
+   (a surface form pointing at an existing sense — separate mechanism) + definitional
+   triangulation (a trusted definition's zip matched against known definitions → graded link at
+   the definition's trust, never a hard `=`).
+7. **Etiquette layer** (hunch 8): greetings/thanks/formality as ACTIONS — a thinking reaction →
+   idea → the proper reflex («hello John» stops being evaluated as an assertion).
+8. **KB growing OUTWARD** (tier-1 synthetic learning): learned axioms vs derived theorems — the
+   analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`. The trust
+   gradient it needed is live.
+9. **Growth Rings / The Growing Edge** (hunch 12): the public website's development-history
+   section — `landed.md` as a young mind's learning record + the roadmap's next as the one
+   living layer. Names chosen 2026-07-14.
+10. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns,
+    inference-implied conflicts, the working-memory layer; differentia extraction wired at
+    definition INGESTION (live-injected curated definitions cascade without a batch re-run).
 
 ---
 
