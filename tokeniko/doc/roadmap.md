@@ -108,12 +108,13 @@ instrument-side (judge contract taught). The rest, in order:
   lead was a judge gloss-hallucination; partridge was already healed by the frequency-prior
   guard), see `landed.md`. New lead surfaced en route: «a coin STORES bits» resolves
   store→shop.n.01 (POS/parse — tracked with the singles).
-- 🔭 **Singles** (cluster E + the B-nugget): spurious THAT-wrap on a coordination; **wh-gap by
-  verb frame** ("what do you like?" gaps the DIRECT object, not the predicate — `anchor_whType`'s
-  what→predicate is frame-blind); elided-subject quantifier inheritance («the cat is dead and
-  alive» — the second clause should inherit definite); «a coin STORES bits» → store resolves
-  shop.n.01 (a POS/parse miss, found by the WSD diagnosis probe). (The embedded wh-complement
-  stays deferred with the questions plan; «hello John» etiquette is hunch 8's territory; the
+- ✅ **Singles** — landed 2026-07-14, the portrait's last four leads in one batch (S1 suspect-ccomp
+  co-assertion via the honest attitude floor · S2 wh-gap by verb frame + the solver's DIRECT case ·
+  S3 elided-subject quantifier inheritance · S4 the do-support degenerate-parse retry — «a coin
+  stores bits of information» compiles coin/store.v/bit.n.06), see `landed.md`.
+  **THE FIRST PORTRAIT'S HARVEST IS FULLY CONSUMED** (A subordination ✅ · B judge contract ✅ ·
+  C WSD selection ✅ · D places bridge ✅ · E singles ✅). (The embedded wh-complement stays
+  deferred with the questions plan; «hello John» etiquette is hunch 8's territory; the
   conditional-rule extractor is the STORM follow-on above.)
 
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)

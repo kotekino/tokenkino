@@ -246,13 +246,25 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
     # CAUSAL/HYPOTETIC/TEMPORAL->CONV, CCOMP->THAT, everything else co-asserts with AND.
     operator: TKOperator = compiler_subordinateOperator(subordinateType)
 
+    # SUSPECT CCOMP (2026-07-14, the THAT-wrap single): a clausal complement only rides an attitude
+    # when the matrix verb can HOLD one. A ccomp under a below-floor verb ("build" — no attitude
+    # anchor is near) is a misparse signature: stanza flattened a coordination («I build software
+    # and softwares are programs» hung the second clause as ccomp of build). Co-assert (AND), no
+    # attitude wrap — the speaker asserted both halves. XCOMP is untouched: an open complement is
+    # structurally reliable (subject control), it keeps THAT whatever the attitude.
+    attitude = compiler_classifyAttitude(matrixVerb) \
+        if subordinateType in (TKClauseType.CCOMP, TKClauseType.XCOMP) else None
+    if subordinateType == TKClauseType.CCOMP and attitude is not None and attitude.klass is None:
+        operator = TKOperator.AND
+        attitude = None
+
     result = compiler_evaluateStatement(statement, statementIdx, statementId + (reference.id,), subordinateType, operator)
 
     # ccomp/xcomp is the propositional complement X bound by THAT: tag it with the matrix predicate's
     # attitude class (factive/doxastic/desiderative/reportative) so the semantic layer can project
     # («I like talking» — the complement rides like's attitude, exactly as «I think that P» does)
-    if subordinateType in (TKClauseType.CCOMP, TKClauseType.XCOMP) and result:
-        result[0].attitude = compiler_classifyAttitude(matrixVerb)
+    if attitude is not None and result:
+        result[0].attitude = attitude
 
     return result
 
@@ -315,15 +327,22 @@ def compiler_evaluateSubordinates(subordinates: list[TKEntityReference], entitie
 # the leaf renders "cat alive" instead of "cat be alive". Inherit each onto a conjunct leaf ONLY when
 # it lacks it — SUBJECT + predicate AUX only, so each predicate keeps its own object ("the cat eats
 # fish and chases mice" stays correct). Per-leaf deepcopy so leaves don't alias one reference.
-def _inherit_shared(items: list[TKLLCItem], subject_ref, pred_aux) -> None:
+def _inherit_shared(items: list[TKLLCItem], subject_ref, pred_aux, head_quantifier=None) -> None:
     for it in items:
         if isinstance(it.content, TKLLCContent):
             if it.content.subject is None and subject_ref is not None:
                 it.content.subject = copy.deepcopy(subject_ref)
+                # the elided subject brings its DETERMINER along (2026-07-14, cluster E): the
+                # conjunct's quantifier was computed before inheritance, off a subject that wasn't
+                # there -> GENERIC. «THE cat is dead and alive» must read definite on BOTH leaves —
+                # a generic second leaf claims all cats. Only the default is overwritten (an own
+                # determiner, had the clause carried one, already set a non-generic value).
+                if head_quantifier is not None and it.content.quantifier == TKQuantifier.GENERIC:
+                    it.content.quantifier = head_quantifier
             if pred_aux is not None and it.content.predicate is not None and it.content.predicate.aux is None:
                 it.content.predicate.aux = copy.deepcopy(pred_aux)
         else:
-            _inherit_shared(it.content, subject_ref, pred_aux)
+            _inherit_shared(it.content, subject_ref, pred_aux, head_quantifier)
 
 
 # evaluate conjuncts: return the head clause plus one item per coordinated sibling, as a
@@ -344,7 +363,7 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
             # the conjunct sub-statement lacks the shared subject + copula aux; inherit them (see _inherit_shared)
             if isinstance(mainContent, TKLLCContent):
                 head_aux = mainContent.predicate.aux if mainContent.predicate else None
-                _inherit_shared(subItems, mainContent.subject, head_aux)
+                _inherit_shared(subItems, mainContent.subject, head_aux, mainContent.quantifier)
             result.extend(subItems)
         else:
             # a coordinated entity: clone the head clause and swap entityId -> this sibling

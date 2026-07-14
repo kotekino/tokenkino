@@ -153,7 +153,12 @@ _ATTITUDE_ANCHORS = {
     "say": ("reportative", 0.5), "claim": ("reportative", 0.4), "tell": ("reportative", 0.5),
     "report": ("reportative", 0.6), "argue": ("reportative", 0.4),
 }
-_ATTITUDE_DEFAULT = ("doxastic", 0.5)
+# below-floor default: klass None = "this verb holds NO attitude" (2026-07-14, the THAT-wrap
+# single). The old (doxastic, 0.5) gave EVERY verb an attitude, so a stanza-misparsed ccomp under
+# "build" («I build software and softwares are programs») wrapped as reported belief. None lets
+# the compiler treat that ccomp as the suspect parse it is (a flattened coordination — co-assert);
+# genuine attitude verbs still resolve through the anchors.
+_ATTITUDE_DEFAULT = (None, 0.5)
 
 # matrix verbs that, with two clausal operands, express logical implication ("X implies/entails Y"):
 # the two clauses combine under IMPLY(antecedent, consequent) instead of an AND of THAT-complements.

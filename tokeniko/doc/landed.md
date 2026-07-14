@@ -710,3 +710,33 @@ under — the June known-gap `test_robin_has_feathers`, promoted to a permanent 
 New lead surfaced en route: «a coin STORES bits» resolves store→shop.n.01 (a POS/parse miss —
 tracked with the singles). 4 regression tests (`test_wsd_curation.py`) — exact-sense asserts,
 INTENTIONAL here (the curated selection is the regression target). **Gate 240 / 1 xfailed.**
+
+**The harvest singles — the portrait's last four leads, one batch (2026-07-14)**
+Cluster E + the B-nugget + the WSD-probe lead, each root-caused before fixing:
+- **S1 — the THAT-wrap** («I build software and softwares are programs»): stanza flattened the
+  coordination (the second clause hung as ccomp of "build"), and the attitude default
+  `(doxastic, 0.5)` gave EVERY verb an attitude — so the misparse wrapped as reported belief.
+  Two honest moves: `_ATTITUDE_DEFAULT` is now `(None, 0.5)` (below the anchor floor = "this verb
+  holds no attitude"; `TKLLAttitude.klass` Optional), and a ccomp under a no-attitude matrix verb
+  CO-ASSERTS (AND — the suspect-parse signature; the speaker asserted both halves). XCOMP keeps
+  THAT regardless (structurally reliable — F2 untouched); genuine attitude verbs keep THAT via
+  the anchors («I think that…» → THAT/doxastic, regression-tested).
+- **S2 — wh-gap by verb frame** («what do you like?»): anchor_whType's what→PREDICATE is the
+  COPULAR frame; on the verb-root path the gap is the verb's missing DIRECT object. Refined at
+  the parser site (content verb + no cop → DIRECT) + `e_wh_solve` gains the DIRECT case (same
+  subject + predicate in the KB → read the object off the stored fact).
+- **S3 — quantifier inheritance** («THE cat is dead and alive»): the conjunct's quantifier was
+  computed before subject inheritance → GENERIC where the head said DEFINITE (a generic second
+  leaf claims all cats). `_inherit_shared` now brings the head's determiner along with the elided
+  subject — only overwriting the GENERIC default (an own determiner survives:
+  «the cat sleeps and a dog runs» keeps definite/indefinite).
+- **S4 — the do-support degenerate-parse retry** («a coin stores bits of information»): stanza
+  AND spaCy-lg both read the sentence as ONE verbless noun phrase ("stores" NOUN-compound; even
+  «gold stores value» parses verbless). Recovery by DO-SUPPORT, a meaning-preserving English
+  transform: a verbless multi-token parse with a plural-surface NOUN whose lemma has a dictionary
+  VERB sense, in S-V-O position, retries as "does <lemma>" — accepted only when the retry yields
+  a VERB root, else the original stands (honest fragment). The judge's lead sentence now compiles
+  `coin.n.01 / store.v.01 / bit.n.06` — the retry and the morning's curated sense clicking
+  together. Gated tight: a true NP («the red cats») is never rewritten.
+**THE FIRST PORTRAIT'S HARVEST IS FULLY CONSUMED** — all five clusters closed within 24h of the
+sweep. 10 regression tests (`test_harvest_singles.py`).

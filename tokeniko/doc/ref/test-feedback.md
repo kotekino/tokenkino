@@ -589,7 +589,12 @@ assembly; see `landed.md`. Root cause was NOT the parser — the place branch of
 are programs»); elided-subject quantifier inheritance («the cat is dead and alive» — second
 clause generic, should inherit definite); «hello John» (etiquette — hunch 8's known territory);
 the embedded wh-complement («Do you know why I'm proud of you?» — explicitly deferred in the
-questions plan).
+questions plan). *(→ CLOSED 2026-07-14 same-day (+ the B-nugget wh-gap + the store→shop lead):
+S1 honest attitude floor + suspect-ccomp co-assertion; S2 wh-gap verb frame + solver DIRECT;
+S3 determiner rides the inherited subject; S4 the do-support degenerate-parse retry — stanza AND
+spaCy read «a coin stores bits» as a verbless NP; emphatic do forces the verb, adopted only on a
+VERB-root retry. See `landed.md`. Etiquette + embedded wh stay deferred as noted. THE PORTRAIT'S
+HARVEST IS FULLY CONSUMED.)*
 
 **Meta.** 98→42 (43%) BEFORE removing cluster B's false positives; the true-lead rate is ~30/98.
 The author's read: "my suspect that we should go first on the quality of the input / input

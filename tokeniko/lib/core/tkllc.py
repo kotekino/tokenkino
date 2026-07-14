@@ -97,7 +97,9 @@ class TKLLCContent(BaseModel):
 # zip math is left to the semantic-calculation layer.
 class TKLLAttitude(BaseModel):
     verb: Optional[str] = None  # the embedding predicate lemma ("assume")
-    klass: str = "doxastic"     # factive | doxastic | desiderative | reportative
+    # factive | doxastic | desiderative | reportative — or None: the matrix verb holds NO attitude
+    # (below the anchor floor; a ccomp under a non-attitude verb is a suspect parse)
+    klass: Optional[str] = "doxastic"
     confidence: float = 0.5
 
 class TKLLCItem(BaseModel):

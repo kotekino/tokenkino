@@ -8,7 +8,7 @@ from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.tk import EntityPayload, TKAux, TKClause, TKClauseType, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements
+from lib.core.tk import EntityPayload, TKAux, TKClause, TKClauseType, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements, TKWhRole
 import re
 from lib.core.models import TKDictionaryDoc, TKPlaceDoc, TKMemoryStakeholdersDoc
 from lib.core.places import place_type_sense
@@ -932,7 +932,16 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     if whToken is not None or any("?" in t.text for t in tokens):
         tkMain.dubitative = 1.0
         if whToken is not None:
-            tkMain.wh_role = anchor_whType(whToken.lemma_)
+            # VERB-FRAME refinement (2026-07-14, the B-nugget): anchor_whType's what->PREDICATE is
+            # the COPULAR frame ("what is a cat?" — the gap is the copular complement). On this
+            # path the root is a CONTENT verb (the copular path returns earlier), so "what do you
+            # LIKE?" gaps the verb's missing DIRECT object — the KB query must fill like's object,
+            # not replace like itself. who/where/when/why/how are frame-independent (unchanged).
+            role = anchor_whType(whToken.lemma_)
+            if role == TKWhRole.PREDICATE and root.pos_ == "VERB" \
+                    and not any(ch.dep_ == "cop" for ch in children):
+                role = TKWhRole.DIRECT
+            tkMain.wh_role = role
 
     #return statement
     return tkMain
@@ -960,6 +969,37 @@ def parser_core(tokens: list[Token]) -> TKStatements:
     return statements
 
 # --------------------------------------------------------------
+# DEGENERATE-PARSE RETRY (2026-07-14, the store→shop single): stanza (AND spaCy-lg) read
+# «a coin stores bits of information» as ONE noun phrase — "stores" tagged NOUN-compound, no verb
+# anywhere, the whole sentence a single mute NP. The recovery is DO-SUPPORT, a meaning-preserving
+# English transform: when a multi-token input parses with NO verb at all, find a plural-surface
+# NOUN whose lemma has a dictionary VERB sense, sitting between a nominal and its object (the
+# S-V-O signature), rewrite it "does <lemma>" («a coin DOES STORE bits...») and reparse — emphatic
+# do forces the verb reading, tense stays present, semantics untouched. Accepted ONLY if the
+# retry yields a VERB root; else the original parse stands (honest fragment).
+# --------------------------------------------------------------
+def _parser_degenerateRetry(doc, text: str):
+    if len(doc) < 3 or any(t.pos_ in ("VERB", "AUX") for t in doc):
+        return doc
+    for t in doc:
+        if t.pos_ != "NOUN" or not t.text.lower().endswith("s"):
+            continue
+        lemma = t.lemma_.lower()
+        if lemma == t.text.lower():
+            continue  # not an -s inflection of a distinct lemma
+        # the S-V-O signature: a nominal BEFORE it and at least one token AFTER it
+        if t.i >= len(doc) - 1 or not any(p.pos_ in ("NOUN", "PROPN", "PRON") for p in doc[:t.i]):
+            continue
+        if TKDictionaryDoc.find_one({"word": lemma, "pos": "v"}).run() is None:
+            continue  # the lemma is not a verb tokeniko knows
+        rewritten = text[:t.idx] + "does " + lemma + text[t.idx + len(t.text):]
+        retry = nlp_stanza(rewritten)
+        root = next((r for r in retry if r.dep_ == "root"), None)
+        if root is not None and root.pos_ == "VERB":
+            return retry
+    return doc
+
+# --------------------------------------------------------------
 # MAIN entry point to parse an input text
 # --------------------------------------------------------------
 def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> TKStatements:
@@ -977,8 +1017,8 @@ def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, contex
     _talker =talker
     _tokeniko = tokeniko
 
-    # spacy parse
-    doc = nlp_stanza(tokens)
+    # spacy parse (+ the verbless-NP do-support retry, above)
+    doc = _parser_degenerateRetry(nlp_stanza(tokens), tokens)
 
     # get all tokens
     tkStatements: TKStatements = parser_core(list(doc))

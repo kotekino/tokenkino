@@ -95,6 +95,37 @@ def evaluator_solveWh(
                             )
         return _idk("no KB fact predicates that of any known subject")
 
+    # "what do you LIKE?" -> the gap is the verb's DIRECT object (the verb-frame refinement of
+    # what->predicate): find a KB clause with the SAME subject + predicate and read its direct.
+    if role == TKWhRole.DIRECT:
+        subj_id = identities.get("subject")
+        subj_sense = senses.get("subject")
+        pred = senses.get("predicate") or ""
+        pred_lemma = pred.split(".")[0]
+        if (subj_id or subj_sense) and pred_lemma:
+            for zips, kind in ((axioms, "axiom"), (theorems, "theorem")):
+                for z in zips:
+                    if z is None:
+                        continue
+                    for kb_leaf in _leaves(z.items):
+                        kb_senses = getattr(kb_leaf, "senses", None) or {}
+                        kb_ids = getattr(kb_leaf, "identities", None) or {}
+                        same_subject = (subj_id and kb_ids.get("subject") == subj_id) or \
+                                       (subj_sense and kb_senses.get("subject") == subj_sense)
+                        if not same_subject:
+                            continue
+                        kb_pred = kb_senses.get("predicate") or ""
+                        if kb_pred != pred and kb_pred.split(".")[0] != pred_lemma:
+                            continue
+                        value = (kb_ids.get("direct") or "").split("@")[0] or _surface(kb_senses.get("direct"))
+                        if value:
+                            return AnswerResult(
+                                kind=AnswerKind.WH, verdict=AnswerVerdict.VALUE, value=value,
+                                confidence=0.7,
+                                reason=f"KB {kind}: the stored fact's object is '{value}'",
+                            )
+        return _idk("no KB fact fills that object")
+
     # "why is X Y?" -> the answer is the premise chain that grounds "X is Y" (if any).
     if role == TKWhRole.CAUSE:
         if assertion is not None and assertion.derivation:
