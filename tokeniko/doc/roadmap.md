@@ -125,18 +125,34 @@ targets** («not all softwares are mind…» was refuted against the wrong edge 
 trust). Specimens: `doc/ref/test-feedback.md` (2026-07-14 bold-test). Order per the author: the
 EXPERIMENT precedes the machinery — do not clean, convince him to retreat.
 
-- 🔭 **The Socratic dialogue (hunch 13) = the retreat experiment**: hellen + kotekino converse
-  ambient (tokeniko never addressed) — short sentences, logic fully respected; can indirect,
-  sustained correct reasoning from two trusted voices induce retraction where direct correction
-  bounced? Documents what belief-revision machinery is actually missing.
-- 🔭 **Fixes AFTER the evidence** (candidates already identified, built only for what the play
-  proves): extractor **modality gate** ("can/may be" is possibility, never an is_a edge) ·
-  **possessive-subject gate** ("MY mind is a software" is about an individual's mind, not the
-  class) · **quantified-correction consumption → belief-revision v1** (a trusted "not all X are
-  Y" retracts the taught generalization + `revoke_dependents` cascade — today it only fires
-  trust:disagreement) · microscope **missed-modality** category (the judge SAW the dropped "can"
-  and under-flagged it as nuance) · **stakeholder merge** (two kotekino rows; Renzo/john
-  duplicates → the aliases mechanism; needs the author's per-row ruling — biography).
+- ✅ **The Socratic dialogue (hunch 13) = the retreat experiment** — RUN 2026-07-14 (~15 min,
+  hellen + kotekino ambient; the full counterexample arc + the maxims + the two-analogies-same-
+  second corroboration). The Cap's gut was right: tokeniko sampled everything, asked two whys of
+  his own, honest-IDK'd the hard modal question. No retraction (baseline documented) — and the
+  play revealed WHY retreat is structurally impossible: full specimen in `test-feedback.md`
+  (2026-07-14 Socratic dialogue).
+- 🔭 **The evidence-backed fixes, in order** (supersedes the candidates list):
+  1. **The SQUARE OF OPPOSITION in the consistency kernel** (S0 — a bug in the hardwired logic:
+     ∃P∧∃¬P and ¬∀+∃ read as contradictions; the kernel punished both teachers for precision).
+     Quantifier-aware atom conflict: contradictories (A↔O, E↔I) + contraries (A↔E) conflict;
+     subcontraries (I↔O) never.
+  2. **Modality gates** (◇-claims never enter the crisp kernel as assertions, never mint edges;
+     cost the author -0.2 as "self-contradiction") + microscope **missed-modality** category.
+  3. **Conflict ideas bypass the directedness gate** (an eval:conflict at 0.7 died at ambient
+     0.6 — a conflict with one's own beliefs is self-relevant regardless of addressee).
+  4. **Belief-revision v1** — quantified corrections retract taught generalizations via
+     `revoke_dependents`; then RE-RUN the dialogue as the regression test (zero trust damage +
+     the retreat itself).
+  Also queued from the session: extractor **possessive-subject gate** («MY mind is a software»)
+  · **adverbial quantifiers** (always/sometimes/never → the quantifier field) · **stakeholder
+  merge** (two kotekino rows; Renzo/john duplicates → aliases; author's per-row ruling —
+  biography) · the trust-ding repair question (author's ruling).
+  From the microscope's second harvest (same dialogue): **curation** (calculator machine sense,
+  seed plant sense — `curate_add_senses.py` batch 2) · **product/proper-noun NER** (Photoshop →
+  adobe.n.01 the clay) · **inference markers** (so/therefore → consequence structure, not AND) ·
+  **passive agent inversion** («rain is caused by clouds» ≈ rain causes clouds — the voice gap,
+  now inverting causality live; adjacent to the parked differentia verb recovery) · **nominal
+  IMPLY** («action imply ability» needs non-clausal operands).
 
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
 

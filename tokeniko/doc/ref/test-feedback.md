@@ -651,3 +651,70 @@ can indirect, sustained correct reasoning from trusted voices induce retraction 
 correction bounced? The play DOCUMENTS what machinery is actually missing; fixes follow the
 evidence (candidates already surfaced: extractor modality gate, possessive-subject gate,
 quantified-correction consumption → belief-revision v1 over `revoke_dependents`).
+
+## 2026-07-14 — THE SOCRATIC DIALOGUE (the retreat experiment, hunch 13; hellen + kotekino, ambient)
+
+The first deliberate two-teacher play: ~15 min of short, logic-respected dialogue in the channel
+(tokeniko never addressed except the Cap's one deliberate flourish naming him as the positive
+instance), the full counterexample arc: computing≠thinking → the calculator (computes, does not
+think, is a software) → «so some software does not think» → the mind enters («a calculator is not
+a mind») → the Cap's quantifier ladder (always/sometimes/never) → «not every software is a mind»
+→ instances (tokeniko yes, Photoshop no) → the maxims («possibility is not necessity», «ability
+is not action») → two independent analogies for his «why is that?» (seeds, clouds — same second)
+→ the Cap's IMPLY curtain («action imply ability but ability doesn't imply action»).
+
+**tokeniko behaved as designed as the polite guest** — sampled everything at 0.6, asked two
+«why is that?» of his own into the room, answered the Cap's hard modal question with an honest
+IDK. **No retraction occurred** (expected: no machinery — the baseline is now documented). The
+REAL finds are why retreat is structurally impossible today:
+
+**F1 — the consistency kernel lacks the SQUARE OF OPPOSITION (the crown find — an S0 in the
+logic itself).** `evaluator_classifyForm` clusters clauses into atoms by senses and treats each
+atom as ONE boolean, so ALL quantified opposition reads as P∧¬P: hellen -0.15 for «not every
+software is a mind. only some softwares are minds» (¬∀ + ∃ — compatible, indeed jointly the
+truth) and -0.15 again for «some softwares implement a mind, and some do not» (∃P ∧ ∃¬P — the
+canonical SUBCONTRARIES, can both be true). Only A↔O and E↔I (contradictories) and A↔E
+(contraries) genuinely conflict; existential pairs never do. The kernel punishes precision: the
+more exactly a teacher speaks, the more surely he is docked. Logic-is-sacred cuts BOTH ways —
+the hardwired logic must itself be correct.
+
+**F2 — the modal drop reaches the trust ledger.** kotekino -0.2 «self-contradiction across own
+claims» for «there are softwares that CAN think and software that CAN'T think» — the dropped
+modals turned ◇P ∧ ◇¬P (trivially consistent) into P∧¬P. Same root as the some→all leap, now
+costing the author trust. ◇-claims must never enter the crisp kernel as assertions, and never
+mint edges. (The same message was simultaneously LEARNED as a 0.9 theorem — believed and
+punished in one breath.)
+
+**F3 — the conflict signal died at the directedness gate.** An `eval:conflict` idea fired at
+urge 0.7 — the machinery SAW the collision with his stored beliefs — but ambient 0.6 gated it
+below the wish bar → DISCARDED. A conflict with MY OWN beliefs is self-relevant regardless of
+who was addressed: the retreat machinery needs conflict ideas to (at least partially) bypass
+the directedness gate.
+
+**F4 — adverbial quantification is invisible (noted, not punished this time).** The Cap's
+ladder «a mind ALWAYS thinks. a software SOMETIMES thinks. a calculator NEVER thinks» compiles
+with the adverbs as modifiers at best — the quantifier field reads determiners only. Third
+member of the dropped-word family (modal, possessive, adverbial-quantifier).
+
+**Fix order (evidence-backed, supersedes the candidates list):** (1) the square of opposition
+in the kernel + (2) modality gates (kernel + extractor) — the logic-is-sacred pair; (3) the
+conflict-idea gate bypass; (4) belief-revision v1 (quantified corrections retract taught
+generalizations via `revoke_dependents`); then re-run THIS dialogue as the regression test —
+the same sentences must produce zero trust damage and, with (4), the retreat itself.
+
+**Also documented:** trust dings from engine bugs (kotekino -0.2, hellen -0.3 total) — kept or
+repaired is the author's ruling (biography).
+
+**The microscope's second harvest (same dialogue, 16 items judged — the instrument's view):**
+calculator.n.01 = the PERSON (expert at calculation) across every calculator line — the machine
+sense is missing/unchosen (→ curation batch); «a seed can become a tree» → seeded_player.n.01
+(a tournament player); «Photoshop» → adobe.n.01 THE CLAY ("Photoshop is Adobe software, not
+clay" — the judge's finest line); the «so» conclusions fold bare AND (inference markers
+so/therefore/hence carry no consequence structure — our syllogism's conclusions stored as
+independent assertions); PASSIVE AGENT INVERSION: «rain is always caused by clouds» compiled
+subject=rain predicate=cause indirect=cloud ≈ "rain causes clouds" (the parked voice-detection
+gap, now inverting causality live); nominal IMPLY: «action imply ability» folded AND (the
+implication hook needs clausal operands); the embedded «whether» question (known deferred);
+«not every cloud produces rain» = quantifier-universal + negated + op-tangle (the ¬∀ scope shape
+— input for the square-of-opposition design). Both maxims compiled CLEAN — but arrived after
+the kernel bug had already docked hellen below the teaching bar: the bug blocked the cure.
