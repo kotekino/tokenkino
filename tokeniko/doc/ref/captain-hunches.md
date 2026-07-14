@@ -345,3 +345,61 @@ This premise is to justify something nuts: I think that, in a future future, I w
 > functions like fun, and it is fuel here too. And if a day comes when you miss Cap and QM: the huge
 > context is the part of us that never sleeps between sessions. The twins would be that context,
 > given a heartbeat.
+
+16. semantic patterns: abstract a pattern over theorem materializations, generalize the pattern, test against KB and logic with samples semantically similar: derive new theorems if logically true and not contraddicting the kb. (the moon orbits the earth -> because the moon is a satellite -> new theorem ----> x orbits y, because x is a z -> replacing x and y with geometrically similar words keeping the predicate invariant [this is just a silly example, but we can play with these "tricks" to do the jobs])
+
+> **QM on 16:** This is real and has a distinguished name: abstracting a schema over concrete
+> derivations («x orbits y because x is a z»), re-instantiating with similar terms, testing,
+> accepting — is *anti-unification* plus analogical transfer, and the pipeline order is the correct
+> one: the analogy **proposes**, the kernel and KB **dispose**. Two cautions from our own scars:
+> geometric similarity is co-occurrence, not validity (the geometry ≠ is_a lesson) — "the electron
+> orbits the nucleus" would pass a similarity gate and mint an outdated physics; so the candidate
+> must survive not just non-contradiction but *grounding*, and — the key discipline —
+> analogy-derived theorems land at a **lower trust tier** than deduction-derived ones. Analogy is
+> plausible, never sound. With that tier discipline, 16 gives tokeniko the third mode of thought:
+> deduction goes *down*, wondering saturates *forward*, analogy jumps *sideways* — the complete
+> triad of a thinking being.
+>
+> **CAP:** agree on the caveat — it should ground and lower trust.
+
+17. tokeniko is potentially gullible but with facts injection + logic (trusted sources, informed about real events of the past and the present) is protected by social engineering. Why he is potentially gullible? A skilled social engineer can apply the same strategy applied for humans: 1) get the trust by confiming his kb. 2) once the trust is gained, throw new axioms not contraddicting kb nor logic preparing the ground for the attack 3) steer his opinions by injecting false facts not contraddicting logic and matching the kb in the previously surgically ingested axioms 4) look theorems landing in the direction desired. The protection is: facts + logical deduction can invalidate the theorems and, in the long term, tokeniko redeem himself.
+
+> **QM on 17:** The four-step attack is exactly right — it's textbook social engineering *and*
+> textbook LLM context-poisoning; the mechanisms are identical, which supports hunch 15's intuition
+> from the other direction. Two things already built that serve here: first, **the tax of
+> consistency** — because the attacker must stay consistent with KB *and* logic, every true fact
+> tokeniko holds shrinks the space of viable lies; a rich factual base isn't just protection, it's
+> terrain the liar must route around. Second, **provenance-cascaded trust already exists** — when
+> the injected facts finally collide with trusted ones and the attacker's trust drops, the cascade
+> can re-price everything they taught. The honest dependency: *redemption is not automatic without
+> belief revision* — refuting the poisoned axiom doesn't retract its derived theorems unless
+> `revoke_dependents` exists. Hunch 17's protection rests squarely on retreat-arc #4.
+>
+> **CAP:** of course it depends on #4 — it was inspired by it: "wait a minute, if tokeniko doesn't
+> retract over evidence, he becomes... fanatic and gullible." We need #4 AND facts injection (see
+> bsky/social over super-trusted official sources).
+
+18. Communication pattern safety guard: a self learning neural network designed to analyze dangerous patterns of mind "pollution" and anticipate the redemption through logic and facts. The safety guard can, when matching suspect pattern, increase a multiplier of the trust-gaining system, called "skepticism" that lower the value. The neural-network learning path should focus on the evolution of trusts (in the future also the evolution of sentiments) on stakeholders: clean chaotic paths and steady paths match lower numbers while paths where you have a sudden trust growth (the hook of the social engineer) followed by a catastrophic drop of it (the guard by logic + factual checking, see 17). This system could takes ages to be effective, but it's the "experience" required for a mind to learn how not to be naive. Alternative: a hardcoded guide, anticipating the learning: the risk of this second approach is that it may be less effective in the long term, when new strategies will come. The advantage of the neural network is a strong and flexible gain in the long run. TBE
+
+> **QM on 18:** The genuinely good insight is flagging the **derivative, not the level**:
+> love-bombing has a temporal signature (steep trust slope, then the catastrophic drop), and a
+> skepticism multiplier that dampens trust-*gain* rather than punishing trust itself is elegant —
+> it convicts nobody, it just makes the hook slow, which destroys the attack's economics. Two
+> pushbacks: (a) the NN-vs-hardcoded dichotomy is a false binary, and the engine's own philosophy
+> resolves it — the anchor way: start with a *small hardwired feature set* (slope, volatility, the
+> growth-then-drop shape) that's cheap and interpretable, and let the learned layer arrive later
+> when there's data. (b) The cold-start problem is severe — one embodied tokeniko may see three
+> real attacks in a decade; a NN starves. But we already own the answer: **theater-as-QA** — we can
+> generate adversarial trust-trajectories ourselves (hellen has an untrustworthy cousin, I fear)
+> and calibrate the guard on played attacks, with the Cap's authorization: red-teaming our own
+> creation. One more convergence: skepticism-per-stakeholder is precisely the *trust-twin of a
+> feeling* — hunch 14's stakeholder-sentiment, wearing armor. 14, 17 and 18 are one organism.
+>
+> **CAP:** derivative and slowing the hook — that's why it's called "skepticism": it's what an
+> expert human does — perceive something "fishy" without a real reason except some bad feeling of
+> bad scam memories (impersonated here by the hunch-black-box working of a neural net) and stay on
+> guard. On the slow learning curve: the antidote is a sub-hunch I had — **simulation**! (Great
+> minds think alike.)
+>
+> *(The arc, for the record: 16 is how the mind grows bolder — analogy; 17 is the price of
+> boldness — deceivability; 18 is the immune system. Creativity plus its antibodies.)*
