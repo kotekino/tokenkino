@@ -18,6 +18,7 @@ from dataclasses import dataclass
 from itertools import product
 from typing import Callable, Optional
 
+from lib.core.tk import TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent
 from .e_compare import evaluator_compareContent
 from .e_statement import _collect_contents, _fold_statement
@@ -45,6 +46,46 @@ def _sense_lemma(sense: Optional[str]) -> str:
     return sense.split(".", 1)[0]
 
 
+# ------------------------------------------------------------------------------------------------
+# THE SQUARE OF OPPOSITION (2026-07-14, the Socratic dialogue — an S0 in the hardwired logic).
+# Before this, every quantified opposition read as P∧¬P: «some S are P» + «some S are not P»
+# (SUBCONTRARIES — can both be true, and usually ARE the truth together) docked a teacher -0.15,
+# twice. A leaf's crisp meaning depends on its QUANTIFIER — Aristotle's corners:
+#   A (all S are P) · E (no S is P) · I (some S are P) · O (some S are not P)
+# On the SAME atom (same subject+predicate geometry): contradictories (A↔O, E↔I) and contraries
+# (A↔E, Aristotelian — KB class atoms are kind-level, non-empty) cannot BOTH hold; subcontraries
+# (I↔O) and subalterns (A↔I, E↔O) can. Corner mapping is CONSERVATIVE (never punish a consistent
+# reading): a negated universal is ambiguous between E («all S are not P») and O («not every S is
+# P» — the negation-scope tangle) → read as the WEAKER O, since INCONSISTENT demands certainty
+# under every reading. INDEFINITE («a S is P») is generic-ambiguous → read existentially (I/O).
+# DEFINITE/GENERIC leaves stay CRISP: the original boolean-atom behavior (an individual, or a
+# kind-level claim, opposed by its own negation is still a genuine contradiction).
+# A MODAL leaf (◇-claim) has NO corner: it never enters an atom as an assertion at all.
+_CORNER_A, _CORNER_E, _CORNER_I, _CORNER_O = "A", "E", "I", "O"
+_CORNER_CRISP, _CORNER_MODAL = "CRISP", "MODAL"
+# corner pairs that cannot both hold on the same atom
+_SQUARE_MUTEX = {(_CORNER_A, _CORNER_O), (_CORNER_O, _CORNER_A),
+                 (_CORNER_E, _CORNER_I), (_CORNER_I, _CORNER_E),
+                 (_CORNER_A, _CORNER_E), (_CORNER_E, _CORNER_A)}
+# corners strong enough for the antonym contrary-predicate mutex (an existential pair of antonym
+# predicates — "some cats are dead and some are alive" — is NOT a contradiction)
+_STRONG_CORNERS = {_CORNER_A, _CORNER_E, _CORNER_CRISP}
+
+
+def _corner(c: TKZipContent) -> str:
+    if getattr(c, "modal", None):
+        return _CORNER_MODAL
+    q = getattr(c, "quantifier", TKQuantifier.GENERIC)
+    neg = bool(getattr(c, "negated", False))
+    if q == TKQuantifier.UNIVERSAL:
+        return _CORNER_O if neg else _CORNER_A     # negated universal -> the weaker O reading
+    if q == TKQuantifier.NEGATIVE:
+        return _CORNER_I if neg else _CORNER_E     # ¬(no S is P) = some S is P
+    if q in (TKQuantifier.EXISTENTIAL, TKQuantifier.INDEFINITE):
+        return _CORNER_O if neg else _CORNER_I
+    return _CORNER_CRISP                           # DEFINITE / GENERIC: the original behavior
+
+
 # coppie di atomi CONTRARI: due atomi (non-unknown) che predicano l'uno l'antonimo dell'altro sullo
 # STESSO soggetto ("X è vivo" / "X è morto"). i contrari non possono valere insieme (1,1) ma possono
 # essere entrambi falsi (0,0) — quindi è un vincolo di mutua esclusione, NON P/¬P. guardie conservative:
@@ -54,6 +95,7 @@ def _contrary_pairs(
     reps: list[TKZipContent],
     reps_unknown: list[bool],
     antonyms: Optional[Callable[[str], list[str]]],
+    reps_corner: Optional[list[str]] = None,
 ) -> list[tuple[int, int]]:
     if antonyms is None:
         return []
@@ -62,8 +104,14 @@ def _contrary_pairs(
     for i in range(n):
         if reps_unknown[i]:
             continue
+        # square-gate: antonym contrariety needs a STRONG claim on both sides — an existential
+        # pair of antonym predicates ("some cats are dead and some are alive") is consistent.
+        if reps_corner is not None and reps_corner[i] not in _STRONG_CORNERS:
+            continue
         for j in range(i + 1, n):
             if reps_unknown[j]:
+                continue
+            if reps_corner is not None and reps_corner[j] not in _STRONG_CORNERS:
                 continue
             rep_i, rep_j = reps[i], reps[j]
             si = (getattr(rep_i, "senses", None) or {}).get("subject")
@@ -100,6 +148,7 @@ def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], 
     constants: dict[int, float] = {}
     reps: list[TKZipContent] = []
     reps_unknown: list[bool] = []
+    reps_corner: list[str] = []
     # per ogni atomo, le foglie (indice, segno) che vi mappano — serve per la detail string.
     atom_leaves: list[list[tuple[int, int]]] = []
 
@@ -110,11 +159,15 @@ def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], 
             constants[id(c)] = 0.0 if getattr(c, "negated", False) else 1.0
             continue
 
-        if getattr(c, "unknown", False):
-            # vocabolario ignoto: atomo proprio, segno +1, non fonde con nulla (skippato nel match).
+        corner = _corner(c)
+
+        if getattr(c, "unknown", False) or corner == _CORNER_MODAL:
+            # vocabolario ignoto O ◇-claim: atomo proprio, segno +1, non fonde con nulla.
+            # (un modale non è un'asserzione crisp: ◇P non contraddice né ◇¬P né ¬P)
             atom_index = len(reps)
             reps.append(c)
             reps_unknown.append(True)
+            reps_corner.append(corner)
             atom_leaves.append([(leaf_index, 1)])
             mapping[id(c)] = (atom_index, 1)
             continue
@@ -123,8 +176,16 @@ def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], 
         for atom_index, rep in enumerate(reps):
             if reps_unknown[atom_index]:
                 continue
+            # square-of-opposition: una foglia si fonde solo con un atomo dello STESSO corner.
+            # CRISP+CRISP mantiene il sign-fold originale (P/¬P); i corner quantificati (A/E/I/O)
+            # portano la polarità NEL corner (segno sempre +1) e i conflitti vivono nelle mutex.
+            if reps_corner[atom_index] != corner:
+                continue
             if evaluator_compareContent(c, rep) >= _ALIAS_THRESHOLD:
-                sign = 1 if c.negated == rep.negated else -1
+                if corner == _CORNER_CRISP:
+                    sign = 1 if c.negated == rep.negated else -1
+                else:
+                    sign = 1
                 mapping[id(c)] = (atom_index, sign)
                 atom_leaves[atom_index].append((leaf_index, sign))
                 matched = True
@@ -134,6 +195,7 @@ def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], 
             atom_index = len(reps)
             reps.append(c)
             reps_unknown.append(False)
+            reps_corner.append(corner)
             atom_leaves.append([(leaf_index, 1)])
             mapping[id(c)] = (atom_index, 1)
 
@@ -144,16 +206,34 @@ def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], 
         return FormClass(False, False, None)
 
     # 1c. coppie di atomi CONTRARI (predicati antonimi sullo stesso soggetto): vincolo di mutua
-    # esclusione sull'enumerazione — i due atomi non possono valere entrambi 1.
-    contrary_pairs = _contrary_pairs(reps, reps_unknown, antonyms)
+    # esclusione sull'enumerazione — i due atomi non possono valere entrambi 1. square-gated:
+    # solo corner FORTI (A/E/CRISP) su entrambi i lati.
+    contrary_pairs = _contrary_pairs(reps, reps_unknown, antonyms, reps_corner)
+
+    # 1d. mutex del QUADRATO: atomi quantificati con la stessa geometria (stessa claim affermativa
+    # — la negazione è un flag, mai piegata nei vettori) e corner incompatibili (contraddittorî
+    # A↔O, E↔I; contrarî A↔E) non possono valere entrambi 1. I subcontrarî (I↔O) e i subalterni
+    # restano liberi — la correzione del 2026-07-14.
+    square_pairs: list[tuple[int, int]] = []
+    for i in range(k):
+        if reps_unknown[i] or reps_corner[i] == _CORNER_CRISP:
+            continue
+        for j in range(i + 1, k):
+            if reps_unknown[j] or reps_corner[j] == _CORNER_CRISP:
+                continue
+            if (reps_corner[i], reps_corner[j]) not in _SQUARE_MUTEX:
+                continue
+            if evaluator_compareContent(reps[i], reps[j]) >= _ALIAS_THRESHOLD:
+                square_pairs.append((i, j))
+    mutex_pairs = contrary_pairs + square_pairs
 
     # 2. enumerazione crisp {0,1} su tutti gli atomi: traccia il massimo e il minimo della formula.
     maxF = float("-inf")
     minF = float("inf")
     for assignment in product((0.0, 1.0), repeat=k):
-        # i contrari non possono valere insieme: scarta l'angolo (1,1) di ogni coppia contraria.
+        # le mutex non possono valere insieme: scarta l'angolo (1,1) di ogni coppia.
         # (0,0) resta ammessa -> una disgiunzione di contrari resta soddisfacibile e NON tautologica.
-        if any(assignment[i] >= 1.0 - _EPS and assignment[j] >= 1.0 - _EPS for (i, j) in contrary_pairs):
+        if any(assignment[i] >= 1.0 - _EPS and assignment[j] >= 1.0 - _EPS for (i, j) in mutex_pairs):
             continue
         def ground(c, _a=assignment):
             if id(c) in constants:
@@ -184,6 +264,15 @@ def evaluator_classifyForm(statement: TKZip, antonyms: Optional[Callable[[str], 
             shown = ", ".join(str(i) for i in idxs)
             detail = (
                 f"self-contradiction: clauses {{{shown}}} assert P and ¬P and cannot hold together"
+            )
+        elif square_pairs:
+            i, j = square_pairs[0]
+            li = atom_leaves[i][0][0]
+            lj = atom_leaves[j][0][0]
+            kind = "contraries" if (reps_corner[i], reps_corner[j]) in ((_CORNER_A, _CORNER_E), (_CORNER_E, _CORNER_A)) else "contradictories"
+            detail = (
+                f"quantifier contradiction (square of opposition): clauses {{{li},{lj}}} are "
+                f"{kind} ({reps_corner[i]} vs {reps_corner[j]}) of the same claim and cannot both hold"
             )
         elif contrary_pairs:
             # nessuna polarità mista, ma esistono predicati antonimi dello stesso soggetto: contrarietà.

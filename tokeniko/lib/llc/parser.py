@@ -14,7 +14,7 @@ from lib.core.models import TKDictionaryDoc, TKPlaceDoc, TKMemoryStakeholdersDoc
 from lib.core.places import place_type_sense
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
-from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _WSD_FALLBACK_MIN_SIMILARITY, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS
+from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _WSD_FALLBACK_MIN_SIMILARITY, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS, _MODAL_POSSIBILITY
 from lib.core.utilities import util_expandContractions, util_removeSpace
 from functools import cmp_to_key
 import textacy
@@ -704,6 +704,12 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     # get auxiliary
     aux = next((s for s in children if s.dep_ in ["cop","aux"]), None)
     tense = parser_getTense(token, aux) if isPredicate else None
+    # MODALITY (the Socratic-dialogue fix): a possibility modal among the aux children scopes the
+    # whole clause as a ◇-claim ("a software CAN be a mind" asserts possibility, not membership).
+    # Closed grammatical class -> EXACT is correct (like the quantifier determiners). Checked over
+    # ALL aux children (the modal and the copula coexist: "can be" -> aux "can" + cop "be").
+    modal = next((s.lemma_.lower() for s in children
+                  if s.dep_ in ("aux", "aux:pass") and s.lemma_.lower() in _MODAL_POSSIBILITY), None)
     if aux:
         posAux = TKPosMapper.get_wn_pos(aux.pos_)
         dictAux = parser_getMeaning(aux, posAux)
@@ -712,7 +718,8 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
         # "...know how are you"); TKGeneric carries no .vector, so fall back to an empty vector
         # (a valid TKAux, same as the no-aux branch below).
         auxVector = getattr(dictAux, "vector", None) or []
-        tkAux = TKAux(lemma=aux.lemma_, vector=auxVector, tense=tense)
+        tkAux = TKAux(lemma=aux.lemma_, vector=auxVector, tense=tense,
+                      modal="possibility" if modal else None)
     elif tense:
         # no auxiliary, but stash the predicate verb's own tense for the spacetime time axis
         tkAux = TKAux(tense=tense)

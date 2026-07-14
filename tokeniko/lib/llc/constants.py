@@ -211,6 +211,11 @@ _TEMPORAL_PREP_DURATION = {"for", "during"}
 # NER entity labels treated as resolvable real places (looked up in the places knowledge base)
 _GEO_NER_LABELS = {"GPE", "LOC", "FAC"}
 
+# possibility modals (closed grammatical class -> EXACT, like the quantifier determiners): an aux
+# child with one of these lemmas scopes the clause as a ◇-claim ("can be" asserts possibility,
+# never membership). Necessity modals (must/shall) are a future, separate carrier.
+_MODAL_POSSIBILITY = {"can", "could", "may", "might"}
+
 # spacetime — SPACE axis
 # locative case markers -> spatial relation. for now only used to detect that a reference is a
 # place (so the clause is located there); the relation value (contain/dest/origin/near/far) is

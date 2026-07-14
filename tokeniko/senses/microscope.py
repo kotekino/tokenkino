@@ -55,6 +55,9 @@ def _digest_leaf(op: str, attitude, c: TKZipContent) -> str:
     parts.append(f"mood={'question' if dub == 1.0 else 'statement'}")
     if wh is not None:
         parts.append(f"wh_role={getattr(wh, 'value', wh)}")
+    modal = getattr(c, "modal", None)
+    if modal:
+        parts.append(f"modal={modal}")
     identities = getattr(c, "identities", None) or {}
     if identities:
         parts.append("identities={" + ", ".join(f"{k}: {v}" for k, v in identities.items()) + "}")
@@ -104,6 +107,10 @@ The digest's contract:
   'indefinite'), negative (no/none), definite (the/this), generic (bare plural).
 - `negated=True` means the clause asserts NOT-P. `mood` is question/statement; `wh_role` is the
   question's gap (subject/predicate/direct/location/time/manner/cause).
+- `modal=possibility` means a modal (can/could/may/might) scopes the clause: a ◇-claim, asserting
+  possibility rather than fact. MODALITY IS MEANING, not a tense/aspect nuance: a sentence whose
+  plain reading is modal ("a software CAN be a mind") but whose clause shows NO modal flag has
+  LOST the possibility — flag it as missed-modality (a real lead, not a legitimate divergence).
 - `identities` binds a role to a named INDIVIDUAL's uid (name@channel:... for persons; a known
   place is GLOBAL: name@place, e.g. japan@place). A named person/place should carry an identity;
   a common noun should not. A place identity has no `senses` entry for its role BY DESIGN (a place
@@ -128,7 +135,8 @@ Judge honestly and conservatively: verdict "ok" when the structure faithfully ca
 sentence's predications, operators, polarity, quantification, mood and named individuals;
 "mismatch" otherwise. Confidence is YOUR calibrated certainty in the verdict (0..1). On mismatch
 pick the single dominant category: wrong-sense | wrong-structure | missed-negation |
-missed-quantifier | missed-mood | dropped-content | operator-flattening | other. Severity: how
+missed-quantifier | missed-mood | missed-modality | dropped-content | operator-flattening |
+other. Severity: how
 badly a reasoning engine would be misled (low/medium/high). The note: ONE terse paragraph naming
 exactly what diverges — write it for the engineer who will turn it into a regression test."""
 
@@ -143,7 +151,8 @@ _JUDGE_SCHEMA = {
         "severity": {"type": "string", "enum": ["low", "medium", "high", "none"]},
         "category": {"type": "string", "enum": ["wrong-sense", "wrong-structure",
                                                 "missed-negation", "missed-quantifier",
-                                                "missed-mood", "dropped-content",
+                                                "missed-mood", "missed-modality",
+                                                "dropped-content",
                                                 "operator-flattening", "other", "none"]},
         "note": {"type": "string"},
     },

@@ -740,3 +740,35 @@ Cluster E + the B-nugget + the WSD-probe lead, each root-caused before fixing:
   together. Gated tight: a true NP («the red cats») is never rewritten.
 **THE FIRST PORTRAIT'S HARVEST IS FULLY CONSUMED** — all five clusters closed within 24h of the
 sweep. 10 regression tests (`test_harvest_singles.py`).
+
+**The square of opposition + the modality carrier (2026-07-14 — the S0 in the hardwired logic)**
+The Socratic dialogue's crown finding, fixed the same day. The consistency kernel clustered
+leaves into boolean atoms by geometry alone, so EVERY quantified opposition read as P∧¬P — it
+docked hellen -0.15 twice for stating subcontraries (∃P∧∃¬P — usually the truth together) and
+the author -0.2 for a ◇P∧◇¬P whose modals dropped. Logic-is-sacred cuts both ways: the
+hardwired logic itself must be right.
+- **The square** (`e_consistency.py`): each leaf gets a CORNER — A/E/I/O over quantifier ×
+  negation (UNIVERSAL+→A; NEGATIVE+→E; EXISTENTIAL/INDEFINITE→I/O; the negated universal reads
+  as the WEAKER O — «not every S is P» vs «all S are not P» is a scope ambiguity, and
+  INCONSISTENT demands certainty under every reading; DEFINITE/GENERIC stay CRISP booleans, the
+  original behavior). Same-corner leaves share an atom; incompatible corners on the same claim
+  (contradictories A↔O, E↔I; Aristotelian contraries A↔E — KB class atoms are kind-level) become
+  mutex constraints on the crisp enumeration — the same machinery contrary-pairs already used.
+  Subcontraries (I↔O) and subalterns stay free. Antonym contrariety is square-gated to STRONG
+  corners («some cats are dead and some are alive» is true in every barn).
+- **The ◇ carrier**: a possibility modal among the aux children (can/could/may/might — closed
+  grammatical class, EXACT) rides `TKAux.modal` → LLC → `TKZipContent.modal`. A ◇-leaf is not a
+  crisp assertion: the kernel gives it no corner (never merges, never conflicts), the extractor's
+  `_leaf_is_crisp` gate skips it at ALL SIX consumption sites (rules, facts, generic edges,
+  definition edges, differentia, sufficiency) — «a software can be a mind» now mints NOTHING
+  (the some→all leap is impossible by construction) — and the relational grounder abstains
+  (honest INSUFFICIENT). Old stored zips default modal=None (honest: they predate the field).
+- **The microscope learned modality is meaning**: digest emits `modal=possibility`; the judge
+  contract + schema gain the missed-modality category (it had SEEN the dropped "can" and filed
+  it under nuances).
+- Free consequence: `cross_item_conflict` (same kernel) now reads a stored «all softwares are
+  minds» vs a new «not every software is a mind» as a GENUINE A-vs-O conflict — the exact
+  trigger belief-revision v1 hangs from.
+14 regression tests (`test_square_of_opposition.py`) — the dialogue's own bounced sentences as
+the corpus; genuine contradictions (A+O, E+I, A+E, definite P∧¬P, definite dead-and-alive) still
+fire. **Gate 264 / 1 xfailed.**

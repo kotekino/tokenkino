@@ -435,6 +435,11 @@ def evaluator_evaluateStatement(
             # a PLACE-CONTAINMENT claim ("Japan is IN Asia" — the marker decides) is tried first of
             # all: the places table's complete chains decide it outright.
             verdict = None
+            # MODALITY (2026-07-14): a ◇-claim («a software CAN be a mind») asserts possibility —
+            # the crisp relational machinery can neither prove nor refute it. Skip every graph/
+            # chainer grounder; the Pillar-3 post-pass then abstains it honestly (INSUFFICIENT).
+            if getattr(c, "modal", None):
+                continue
             if place_contains is not None:
                 verdict = _ground_place_containment(c, place_contains)
             is_partwhole = _partof_senses(c) is not None

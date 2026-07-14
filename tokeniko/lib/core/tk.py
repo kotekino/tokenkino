@@ -82,6 +82,11 @@ class TKAux(BaseModel):
     lemma: Optional[str] = None
     vector: list[float] = Field(default_factory=list)
     tense: Optional[str] = None  # clause tense for the spacetime time axis: past | pres | fut
+    # modality (2026-07-14, the Socratic dialogue): "possibility" when a possibility modal
+    # (can/could/may/might) scopes the clause. A ◇-claim is NOT a crisp assertion — it must never
+    # enter the consistency kernel as P (◇P ∧ ◇¬P is trivially consistent; the drop cost the
+    # author -0.2 as "self-contradiction") and never mint an is_a edge (the some→all leap's root).
+    modal: Optional[str] = None
 
 # pronoun
 class TKPronoun(BaseModel):

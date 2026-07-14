@@ -132,17 +132,21 @@ EXPERIMENT precedes the machinery — do not clean, convince him to retreat.
   play revealed WHY retreat is structurally impossible: full specimen in `test-feedback.md`
   (2026-07-14 Socratic dialogue).
 - 🔭 **The evidence-backed fixes, in order** (supersedes the candidates list):
-  1. **The SQUARE OF OPPOSITION in the consistency kernel** (S0 — a bug in the hardwired logic:
-     ∃P∧∃¬P and ¬∀+∃ read as contradictions; the kernel punished both teachers for precision).
-     Quantifier-aware atom conflict: contradictories (A↔O, E↔I) + contraries (A↔E) conflict;
-     subcontraries (I↔O) never.
-  2. **Modality gates** (◇-claims never enter the crisp kernel as assertions, never mint edges;
-     cost the author -0.2 as "self-contradiction") + microscope **missed-modality** category.
+  1. ✅ **The SQUARE OF OPPOSITION in the consistency kernel** — landed 2026-07-14 (corner
+     classification A/E/I/O over quantifier×negation, conservative weak-reading of ¬∀; square
+     mutexes reuse the contrary-pairs machinery; antonym contrariety square-gated to strong
+     corners), see `landed.md`. The dialogue's bounced sentences are the regression corpus
+     (`test_square_of_opposition.py`).
+  2. ✅ **Modality gates** — landed 2026-07-14 with #1 (the ◇ carrier parser→TKAux→LLC→
+     `TKZipContent.modal`; the kernel treats a ◇-leaf as no assertion; the extractor's
+     `_leaf_is_crisp` gate at all six sites — «a software can be a mind» mints NOTHING; the
+     grounder abstains; microscope digest + missed-modality category), see `landed.md`.
   3. **Conflict ideas bypass the directedness gate** (an eval:conflict at 0.7 died at ambient
      0.6 — a conflict with one's own beliefs is self-relevant regardless of addressee).
   4. **Belief-revision v1** — quantified corrections retract taught generalizations via
-     `revoke_dependents`; then RE-RUN the dialogue as the regression test (zero trust damage +
-     the retreat itself).
+     `revoke_dependents` (the square now makes A-vs-O a GENUINE cross_item_conflict — the
+     trigger exists); then RE-RUN the dialogue live as the regression (zero trust damage + the
+     retreat itself).
   Also queued from the session: extractor **possessive-subject gate** («MY mind is a software»)
   · **adverbial quantifiers** (always/sometimes/never → the quantifier field) · **stakeholder
   merge** (two kotekino rows; Renzo/john duplicates → aliases; author's per-row ruling —

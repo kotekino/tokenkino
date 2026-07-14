@@ -80,6 +80,13 @@ def _zip_is_asserted(item) -> bool:
         return all(_zip_is_asserted(child) for child in c)
     return True
 
+# MODALITY gate (2026-07-14, the Socratic dialogue — the some→all leap's root): a ◇-leaf
+# («a software CAN be a mind») asserts POSSIBILITY, never membership/property — it is not
+# extractable fuel of any kind (no edge, no rule, no fact). Per-leaf companion of the per-tree
+# assertedness gate above.
+def _leaf_is_crisp(leaf) -> bool:
+    return not getattr(leaf, "modal", None)
+
 # reliable disjointness tiers for ADMISSION. tier 1 (biological kingdoms) + tier 2 (organism/artifact/
 # substance) are trustworthy; tier 3 (physical⊥abstract) is NOT — WordNet arbitrarily files polysemous
 # nouns on either side. We reject a candidate ONLY when the disjointness fires at tier 1 or 2.
@@ -161,7 +168,7 @@ def extract_differentia_rules(definition_docs, parents) -> tuple[list[dict], Cou
     rules: list[dict] = []
     seen: set = set()
     for d in definition_docs:
-        leaves = _zip_leaves(d.zip.items) if d.zip else []
+        leaves = [lf for lf in (_zip_leaves(d.zip.items) if d.zip else []) if _leaf_is_crisp(lf)]
         X = genus = genus_leaf = None
         for lf in leaves:
             s = getattr(lf, "senses", None) or {}
@@ -219,7 +226,7 @@ def _disjoint_tier(note: str) -> int:
 def _candidate_edges(definition_docs):
     out = []
     for d in definition_docs:
-        leaves = _zip_leaves(d.zip.items) if d.zip else []
+        leaves = [lf for lf in (_zip_leaves(d.zip.items) if d.zip else []) if _leaf_is_crisp(lf)]
         for lf in leaves:
             s = getattr(lf, "senses", None) or {}
             subj, genus = s.get("subject"), s.get("predicate")
@@ -275,6 +282,9 @@ def extract_generic_isa_edges(axiom_docs, parents,
             stats["not_asserted_skip"] += len(leaves)  # THE STORM gate: compound zips mint no edges
             continue
         for lf in leaves:
+            if not _leaf_is_crisp(lf):
+                stats["modal_skip"] += 1  # ◇-claim: possibility never mints an is_a edge
+                continue
             s = getattr(lf, "senses", None) or {}
             subj, pred = s.get("subject"), s.get("predicate")
             # the taxonomic SHAPE first (noun-noun bare copular, class subject)
@@ -388,6 +398,8 @@ def extract_rules(docs) -> list:
         # A compound zip still gets its shot below via _extract_property_conditioned (the one
         # recognized IMPLY shape) — its leaves just never masquerade as standalone universals.
         for leaf in (_zip_leaves(doc.zip.items) if _zip_is_asserted(doc.zip.items) else []):
+            if not _leaf_is_crisp(leaf):
+                continue  # ◇-claim: possibility never becomes a rule
             quantifier = getattr(leaf, "quantifier", None)
             senses = getattr(leaf, "senses", None) or {}
             subject = senses.get("subject")
@@ -496,6 +508,8 @@ def extract_facts(docs) -> list:
         if not _zip_is_asserted(doc.zip.items):
             continue  # THE STORM gate: a leaf under IMPLY/OR/attitude is not an asserted fact
         for leaf in _zip_leaves(doc.zip.items):
+            if not _leaf_is_crisp(leaf):
+                continue  # ◇-claim: possibility never becomes a fact
             if getattr(leaf, "quantifier", None) == TKQuantifier.UNIVERSAL:
                 continue
             identities = getattr(leaf, "identities", None) or {}
@@ -670,7 +684,8 @@ def extract_sufficient_rules(definition_docs, parents) -> tuple[list[dict], Coun
     rules: list[dict] = []
     seen: set = set()
     for d in definition_docs:
-        leaves = _zip_leaves(d.zip.items) if getattr(d, "zip", None) else []
+        leaves = [lf for lf in (_zip_leaves(d.zip.items) if getattr(d, "zip", None) else [])
+                  if _leaf_is_crisp(lf)]
         X = genus_sense = genus_leaf = None
         for lf in leaves:
             s = getattr(lf, "senses", None) or {}

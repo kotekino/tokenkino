@@ -31,6 +31,12 @@ class TKZipContent(BaseModel):
     # itself rides `dubitative` (statement 0.5 / question 1.0). the brain answers questions instead of
     # asserting them: it routes off the assertion path and skips the cross-item conflict check.
     wh_role: Optional[TKWhRole] = Field(default=None)
+    # modality (2026-07-14): "possibility" when a modal (can/could/may/might) scopes the clause.
+    # A ◇-claim is not a crisp assertion: the consistency kernel never treats it as P (◇P ∧ ◇¬P is
+    # consistent), the extractor never mints rules/facts/edges from it (the some→all leap's root),
+    # and the relational grounder abstains on it. None = plain assertion (all stored zips predate
+    # the field and default honestly to None).
+    modal: Optional[str] = Field(default=None)
     # WSD-assigned WordNet synset key per populated role ("subject"/"predicate"/"direct"/"indirect0"…).
     # carried (out of band of the geometry) so the evaluator can reach the is_a relations graph for
     # taxonomic grounding/refutation. only roles whose entity has a non-empty sense appear.
