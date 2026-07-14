@@ -229,6 +229,12 @@ def compiler_subordinateOperator(subordinateType) -> TKOperator:
         return TKOperator.CONV
     if subordinateType == TKClauseType.CCOMP:
         return TKOperator.THAT
+    # XCOMP -> THAT (the gerund/control complement, 2026-07-14 cluster D): «I like talking» folded
+    # AND — two coordinate assertions ("I like" ∧ "I talk"), losing like's object AND asserting an
+    # unasserted proposition. an open complement is the matrix verb's PROPOSITIONAL argument, same
+    # as ccomp: attitude-wrapped, gate-visible, nothing spuriously asserted.
+    if subordinateType == TKClauseType.XCOMP:
+        return TKOperator.THAT
     return TKOperator.AND
 
 
@@ -242,9 +248,10 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
 
     result = compiler_evaluateStatement(statement, statementIdx, statementId + (reference.id,), subordinateType, operator)
 
-    # ccomp is the propositional complement X bound by THAT: tag it with the matrix predicate's
+    # ccomp/xcomp is the propositional complement X bound by THAT: tag it with the matrix predicate's
     # attitude class (factive/doxastic/desiderative/reportative) so the semantic layer can project
-    if subordinateType == TKClauseType.CCOMP and result:
+    # («I like talking» — the complement rides like's attitude, exactly as «I think that P» does)
+    if subordinateType in (TKClauseType.CCOMP, TKClauseType.XCOMP) and result:
         result[0].attitude = compiler_classifyAttitude(matrixVerb)
 
     return result

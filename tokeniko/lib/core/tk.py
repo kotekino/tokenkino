@@ -53,6 +53,13 @@ class TKPlace(BaseModel):
     path_geo: list[str] = Field(default_factory=list)
     physical_features: Optional[list[str]] = None
     location: Optional[GeoPoint] = None
+    # identity-bridge (places join it like TKName): a place is a NAMED INDIVIDUAL of the world —
+    # GLOBAL scope ("japan@place": the same individual for every talker, unlike person names), with
+    # an honest TYPE-centroid semantic vector (its `type` column: country/city/planet/... — never a
+    # noise vector; the 2925 space stays grounded). The uid is the KEY back into the places table,
+    # where the full dependency map (path_admin/path_geo/physical_features/coords) stays reachable.
+    uid: Optional[str] = None
+    vector: list[float] = Field(default_factory=list)  # 2925 type centroid, or [] when unresolvable
 
 # marker for indirects
 class TKMarker(BaseModel):

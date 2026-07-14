@@ -106,8 +106,9 @@ def compiler_zipGetEntityVector(entity: TKLLEntityMap, properties: list[TKLLEnti
 
     # get semantic for entities. dictionary words carry their sense vector; an entity-linked named
     # individual ("name") carries its NER type centroid (Slice 3a) in the same semantic_vector slot
-    # (meaning lives in the grounded 2925 geometry — a bare name still has []).
-    if entity.entity.entity_type in ("dictionary", "name"):
+    # (meaning lives in the grounded 2925 geometry — a bare name still has []). a known place
+    # ("place") carries its type-column centroid (country/city/planet/... — the places bridge).
+    if entity.entity.entity_type in ("dictionary", "name", "place"):
         if len(entity.entity.semantic_vector) > 0:
             entityVec = np.array(entity.entity.semantic_vector, dtype=np.float32)
 
@@ -277,6 +278,21 @@ def compiler_contentIdentities(content: TKLLCContent) -> dict[str, str]:
             identities[role] = u
     return identities
 
+# collect the per-role marker (preposition/case) LEMMAS into {role -> word}, mirroring senses/
+# identities — the zip's third symbolic map (RELATORS). the geometry already folds the marker into
+# the 300 dims; this keeps it readable so the evaluator can tell "Japan is IN Asia" (containment)
+# from "Japan is Asia" (identity). only roles that carry a marker appear.
+def compiler_contentMarkers(content: TKLLCContent) -> dict[str, str]:
+    markers: dict[str, str] = {}
+    role_refs = [("subject", content.subject), ("predicate", content.predicate), ("direct", content.direct)]
+    for i, ind in enumerate(content.indirects):
+        role_refs.append((f"indirect{i}", ind))
+    for role, ref in role_refs:
+        word = ref.marker.word if (ref is not None and ref.marker is not None) else None
+        if word:
+            markers[role] = word.lower()
+    return markers
+
 # calculate final vector for the content
 def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     ironic = content.properties.ironic
@@ -290,7 +306,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     for i in content.indirects:
         indirects.append(compiler_zipGetVector(i))
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, quantifier=content.quantifier, wh_role=content.wh_role, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), identities=compiler_contentIdentities(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, quantifier=content.quantifier, wh_role=content.wh_role, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), identities=compiler_contentIdentities(content), markers=compiler_contentMarkers(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:

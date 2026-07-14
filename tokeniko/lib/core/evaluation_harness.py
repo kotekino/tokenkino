@@ -26,6 +26,7 @@ from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, Evaluat
 # _zip_leaves/_zip_leaf_items are re-exported here for the many probe/brain callers that import them
 # from this module (the historical home).
 from lib.core.kb_extract import _zip_leaves, _zip_leaf_items, extract_logic
+from lib.core.places import place_contains, place_parent, place_type_of
 from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh, evaluator_forwardChain
 
 # verbose wondering trace — shares the brain's "tokeniko-brain" logger/handler so it prints to the
@@ -562,6 +563,13 @@ def _load_active_kb() -> dict:
         "part_of": _make_partof_reader(),
         "antonyms": _make_antonym_reader(),
         "senses_of": _make_senses_reader(),
+        # the PLACES BRIDGE readers (lib/core/places.py, module-cached — the table is static):
+        # containment over the complete path_admin/path_geo chains, the type-column is_a synthesis,
+        # and the immediate container ("where is Rome?" -> "lazio"). lazy reads of the curated 4.7M
+        # table — never materialized into the relations collection.
+        "place_contains": place_contains,
+        "place_type": place_type_of,
+        "place_parent": place_parent,
         "rules": axiom_rules + derived_rules + theorem_rules,
         "facts": axiom_logic["facts"] + theorem_facts,
         "tier_subjects": tier_subjects,
@@ -684,6 +692,7 @@ def evaluate_zip(statement: TKZip) -> dict:
         relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
         senses_of=kb["senses_of"],
         rules=kb["rules"], facts=kb["facts"], edge_source=kb["edge_source"],
+        place_contains=kb["place_contains"], place_type=kb["place_type"],
     )
 
     # map the best (kind, index) back to a concrete document
@@ -744,11 +753,13 @@ def answer_zip(statement: TKZip) -> Optional[dict]:
         relations=kb["relations"], part_of=kb["part_of"], antonyms=kb["antonyms"],
         senses_of=kb["senses_of"],
         rules=kb["rules"], facts=kb["facts"], edge_source=kb["edge_source"],
+        place_contains=kb["place_contains"], place_type=kb["place_type"],
     )
 
     if wh_leaf is None:
         answer = _polar_answer(result)
     else:
-        answer = evaluator_solveWh(wh_leaf, kb["axiom_zips"], kb["theorem_zips"], kb["relations"], assertion=result)
+        answer = evaluator_solveWh(wh_leaf, kb["axiom_zips"], kb["theorem_zips"], kb["relations"],
+                                   assertion=result, place_parent=kb["place_parent"])
 
     return {"answer": answer, "result": result}

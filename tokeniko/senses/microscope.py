@@ -58,6 +58,9 @@ def _digest_leaf(op: str, attitude, c: TKZipContent) -> str:
     identities = getattr(c, "identities", None) or {}
     if identities:
         parts.append("identities={" + ", ".join(f"{k}: {v}" for k, v in identities.items()) + "}")
+    markers = getattr(c, "markers", None) or {}
+    if markers:
+        parts.append("markers={" + ", ".join(f"{k}: {v}" for k, v in markers.items()) + "}")
     for flag in ("unknown", "reflexive"):
         if getattr(c, flag, False):
             parts.append(f"{flag}=True")
@@ -101,8 +104,13 @@ The digest's contract:
   'indefinite'), negative (no/none), definite (the/this), generic (bare plural).
 - `negated=True` means the clause asserts NOT-P. `mood` is question/statement; `wh_role` is the
   question's gap (subject/predicate/direct/location/time/manner/cause).
-- `identities` binds a role to a named INDIVIDUAL's uid (name@channel:...). A named person/place
-  should carry an identity; a common noun should not.
+- `identities` binds a role to a named INDIVIDUAL's uid (name@channel:... for persons; a known
+  place is GLOBAL: name@place, e.g. japan@place). A named person/place should carry an identity;
+  a common noun should not. A place identity has no `senses` entry for its role BY DESIGN (a place
+  is an individual, not a class — its type/containment live in the places knowledge base).
+- `markers` carries the preposition/case lemma per marked role ("indirect0: in") — the RELATOR.
+  A locative/prepositional complement is faithfully carried when its role shows the identity (or
+  sense) plus the marker.
 - `unknown=True` = out-of-vocabulary clause (legitimate for gibberish); `reflexive=True` = an
   identity claim (a = a).
 

@@ -40,6 +40,12 @@ class TKZipContent(BaseModel):
     # 2925 geometry so the evaluator can recognize the SAME individual across statements. only roles
     # whose entity is an entity-linked named individual appear.
     identities: dict[str, str] = Field(default_factory=dict)
+    # the marker (preposition/case) LEMMA per marked role ("indirect0": "in", "predicate": "in" …) —
+    # the zip's third symbolic map (senses = classes, identities = individuals, markers = RELATORS).
+    # geometry already carries the marker in the 300 dims; this surfaces it out of band so the
+    # evaluator can tell "Japan is IN Asia" (containment) from "Japan is Asia" (identity), and the
+    # extractor follow-on can keep "lives IN japan" ≠ "runs FROM japan". only marked roles appear.
+    markers: dict[str, str] = Field(default_factory=dict)
     sentiment: list[float] = Field(default_factory=lambda: ([0.0] * 2925))
     # statement core elements
     subject: Optional[list[float]] = Field(default_factory=list, min_length=3237, max_length=3237) # 300 (marker) + 2925 (semantic) + spacetime (12)

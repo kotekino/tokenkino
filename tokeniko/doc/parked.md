@@ -54,17 +54,6 @@ the genus untangle runs at compile time (write-gated to storing paths, never `/e
 a definition via `ingest.py` makes it wondering-fuel with no manual re-run. (Batch stays for bulk;
 NOT auto-run on the noisy WordNet 3,235 — decision A.)
 
-**Predicate-complement capture (Brain v1.1 #2 — parser-level)** — the rule/fact extractor reads only
-the DIRECT object (`senses['direct']`), so a **prepositional** complement ("run **in** a hardware" →
-rule `(run, obj=None)` → derives "tokeniko run") and an **infinitival/control** complement ("want **to
-know** their creator", which even mis-compiles to a spurious `IMPLY`) are DROPPED — the derived theorem
-loses its meaning. *New specimen (2026-07-03 theorem autopsy): the **possessive relation** — "kotekino
-is MY creator" flattens to the bare class membership `kotekino is_a creator.n.02`; the actual BOND
-(creator-of-ME, a tokeniko↔kotekino relation) is dropped with the possessive. Same family: a relational
-argument the zip doesn't carry.* Deep fix at the parser/compiler (Stanza-level, adjacent to the parked D3a
-subject-rebinding + prepositional-complement work). Workaround today: phrase with a direct object ("all
-softwares need hardware", "all thinkers seek their creator"). The deepest pole of the Brain v1.1 arc.
-
 **Differentia-rule VERB recovery (definitions-as-rules, step-5 residual)** — the strict differentia
 gate (step 5.1) keeps only reliably-clean rules zip-only: adjective differentia ("all apples sweet") +
 transitive verbs WITH a direct object ("all bathrooms contain a bathtub"). It conservatively DROPS the

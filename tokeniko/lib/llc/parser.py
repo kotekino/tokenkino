@@ -11,6 +11,7 @@ import numpy as np
 from lib.core.tk import EntityPayload, TKAux, TKClause, TKClauseType, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements
 import re
 from lib.core.models import TKDictionaryDoc, TKPlaceDoc, TKMemoryStakeholdersDoc
+from lib.core.places import place_type_sense
 from lib.core.mappers import TKPosMapper
 from lib.core.tkllc import TKLLC
 from lib.llc.constants import _SPACY_MODEL, _SPACY_MAX_SIMILAR_RESULTS, _WSD_FALLBACK_MIN_SIMILARITY, _OPERATORS_BASE_ANCHORS, _OPERATORS_SIMILARITY_THRESHOLD, _GEO_NER_LABELS
@@ -219,12 +220,22 @@ def parser_isStatement(token: Token) -> bool:
 # resolve a geo-NER proper noun (GPE/LOC/FAC) to a known place with coordinates, else None.
 # NB: name lookup is not disambiguated by prominence, so homonyms resolve to whichever the
 # places knowledge base returns first (e.g. "Paris" may be Paris, Ontario).
+# identity-bridge: a known place is a NAMED INDIVIDUAL — it gets a GLOBAL uid ("japan@place",
+# the same individual for every talker) + its `type` column's dictionary centroid as the honest
+# SEMANTIC vector (country/city/planet/... — richer than the flat GPE location.n.01, and never
+# a noise vector). The uid is the KEY back into the places table, where the dependency map
+# (path_admin/path_geo) stays reachable at reasoning time.
 def parser_getPlace(token: Token) -> TKPlace | None:
     if token.ent_type_ not in _GEO_NER_LABELS:
         return None
     # place names are stored lowercased in the knowledge base
     doc = TKPlaceDoc.find_one({"name": token.text.lower()}).run()
-    return TKPlace(**doc.model_dump(exclude={"id"})) if doc else None
+    if doc is None:
+        return None
+    place = TKPlace(**doc.model_dump(exclude={"id"}))
+    place.uid = f"{place.name}@place"
+    place.vector = _parser_placeTypeCentroid(place.type) or []
+    return place
 
 # --------------------------------------------------------------
 # NAMED-INDIVIDUAL ENTITY-LINKING (Slice 3a)
@@ -258,6 +269,13 @@ def _parser_typeCentroid(sense: str) -> list[float] | None:
     if vec is not None:
         _TYPE_CENTROID_CACHE[sense] = vec
     return vec
+
+# a place's `type` column (country/city/planet/... — the places table's closed set) -> its 2925
+# semantic centroid. the type->sense selection is the SHARED places-bridge resolver
+# (lib/core/places.py — the evaluator's readers use the same one); the vector fetch reuses the
+# type-centroid cache above.
+def _parser_placeTypeCentroid(place_type: str) -> list[float] | None:
+    return _parser_typeCentroid(place_type_sense(place_type))
 
 # is the surface form a REAL word (known to the spaCy lg vectors), not OOV gibberish? the parser
 # tokens come from the stanza pipeline, which carries NO word vectors (token.has_vector is always
@@ -300,7 +318,12 @@ def parser_getIndividual(token: Token, talker: MEMStakeholder) -> TKName | None:
 # genuinely ambiguous -> None (never guess an identity). READ-ONLY (/evaluate stays pure).
 # --------------------------------------------------------------
 def parser_getKnownIndividual(token: Token, talker: MEMStakeholder) -> TKName | None:
-    name = (token.lemma_ or token.text or "").strip()
+    return _parser_knownIndividualByName((token.lemma_ or token.text or "").strip(), talker)
+
+# the name-string core of the known-individual recognition (shared by the token path above and the
+# COMPOUND-NAME assembly in parser_getMeaning — "test-probe-hellen" is looked up as the whole
+# assembled string).
+def _parser_knownIndividualByName(name: str, talker: MEMStakeholder) -> TKName | None:
     if not name:
         return None
     matches = TKMemoryStakeholdersDoc.find(
@@ -529,6 +552,20 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
 
     tkMeaning = None
 
+    # COMPOUND-NAME assembly (cluster D, 2026-07-14): a hyphenated/multi-token name
+    # ("test-probe-hellen", "Jean-Pierre") tokenizes into pieces — the head alone misses the
+    # known-individual lookup (^hellen$ never matches "test-probe-hellen") and the OOV mint-gate
+    # rightly refuses it, so the role compiled mute. try the ASSEMBLED span (leftmost compound
+    # descendant -> token, original text) against the known stakeholders FIRST. RECOGNITION ONLY —
+    # an exact full-name match against an already-known identity; it can never mint.
+    compound_kids = [c for c in token.children if c.dep_ == "compound"]
+    if compound_kids:
+        start = min([token.i] + [d.i for k in compound_kids for d in k.subtree])
+        span_name = token.doc[start: token.i + 1].text.strip()
+        known = _parser_knownIndividualByName(span_name, _talker)
+        if known:
+            return known
+
     # should be in the dictionary (exclude auxiliaries, pronouns)
     doc_result: TKDictionary = None
     if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
@@ -629,6 +666,12 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
     # get single entity or statement
     tkMarker = parser_getMarker(token)
     tkMeaning = parser_getMeaning(token, pos)
+
+    # an ASSEMBLED multi-token name consumed its compound children — they are pieces of the NAME
+    # ("test"/"probe" in "test-probe-hellen"), not restrictive modifiers; keep them out of the
+    # properties (and out of the 2925 blend / the subject_mod{i} senses).
+    if isinstance(tkMeaning, TKName) and tkMeaning.uid and tkMeaning.name.lower() != (token.lemma_ or "").lower():
+        children = [c for c in children if c.dep_ != "compound"]
 
     # get properties (for each token directly bound to the result)
     doc_properties = parser_getProperties(children)

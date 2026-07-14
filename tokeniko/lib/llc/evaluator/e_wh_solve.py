@@ -54,6 +54,7 @@ def evaluator_solveWh(
     theorems: list[TKZip],
     parents: Parents,
     assertion: Optional[EvaluatorResult] = None,
+    place_parent=None,
 ) -> AnswerResult:
     role = getattr(leaf, "wh_role", None)
     senses = getattr(leaf, "senses", None) or {}
@@ -103,5 +104,46 @@ def evaluator_solveWh(
             )
         return _idk("no derivation available to explain it")
 
-    # where / when / how — not yet answerable (no structured spatial/temporal/manner KB query). honest.
+    # "where is/does X …?" -> the gap is a LOCATION. two sources, in order:
+    #   (1) the subject is itself a known place ("where is Rome?") -> its immediate container from
+    #       the places table (admin preferred: the human answer is "Lazio", not "Eurasia").
+    #   (2) a KB fact about the same subject + predicate that carries a place identity in a non-gap
+    #       role ("where do you live?" <- the stored «you live in Japan») -> that place's name.
+    if role == TKWhRole.LOCATION:
+        subj_id = identities.get("subject")
+        if subj_id and subj_id.endswith("@place") and place_parent is not None:
+            parent = place_parent(subj_id)
+            if parent:
+                name, chain = parent
+                return AnswerResult(
+                    kind=AnswerKind.WH, verdict=AnswerVerdict.VALUE, value=name,
+                    confidence=0.9, reason=f"places: {subj_id.split('@')[0]} is in {name} ({chain})",
+                )
+        pred = senses.get("predicate")
+        pred_lemma = (pred or "").split(".")[0]
+        if subj_id and pred_lemma:
+            for zips, kind in ((axioms, "axiom"), (theorems, "theorem")):
+                for z in zips:
+                    if z is None:
+                        continue
+                    for kb_leaf in _leaves(z.items):
+                        kb_senses = getattr(kb_leaf, "senses", None) or {}
+                        kb_ids = getattr(kb_leaf, "identities", None) or {}
+                        if kb_ids.get("subject") != subj_id:
+                            continue
+                        kb_pred = kb_senses.get("predicate") or ""
+                        if kb_pred != pred and kb_pred.split(".")[0] != pred_lemma:
+                            continue
+                        place = next((u for r, u in kb_ids.items()
+                                      if r != "subject" and (u or "").endswith("@place")), None)
+                        if place:
+                            value = place.split("@")[0]
+                            return AnswerResult(
+                                kind=AnswerKind.WH, verdict=AnswerVerdict.VALUE, value=value,
+                                confidence=0.7,
+                                reason=f"KB {kind}: the stored fact carries the place '{value}'",
+                            )
+        return _idk("no spatial knowledge for that subject/predicate")
+
+    # when / how — not yet answerable (no structured temporal/manner KB query). honest.
     return _idk(f"answering a '{role.value if role else '?'}' question is not yet supported")

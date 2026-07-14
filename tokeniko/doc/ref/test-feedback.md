@@ -574,7 +574,10 @@ family grows into a proper shopping list.
 entirely: the locative complement never compiled, so the author's geography teachings never
 landed — "lost in translation for a long time without our microscope" (his words). Also the
 relative-clause variant, a dropped direct object on a hyphenated name, and «I like talking»
-split into two assertions.
+split into two assertions. *(→ CLOSED 2026-07-14 same-day: the places bridge — F1 place
+identity/centroid + `markers` + P2 places-table readers + F2 xcomp→THAT + F3 compound-name
+assembly; see `landed.md`. Root cause was NOT the parser — the place branch of
+`compiler_getEntity` carried no sense/uid/vector, so the role compiled all-zero.)*
 
 **E — singles (tracked).** Spurious THAT-wrap on a coordination («I build software and softwares
 are programs»); elided-subject quantifier inheritance («the cat is dead and alive» — second

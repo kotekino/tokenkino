@@ -261,3 +261,7 @@ On the other hand we already said that the mind in enclosed in the body, but the
 >   itself stays pure, inspectable, and small. The Graal is not just fixing the parser tail; it's
 >   that tokeniko becomes the first mind whose every misunderstanding is CAUGHT, FILED, and
 >   FIXABLE. No human child offers its parents that. 🜂
+
+12. We should build a section in the public website with a summary (well phrased, not too technical but technical enough) of the development backlog,
+in other words our landed.md file. With the next item in the roadmap as "currently working on". For both categories, "backlog" and "currently working on", we should find evocative names, as they were thought to define the step of a young mind learning more than a software development feature list. I'm still thinking about and I'm
+open for suggestions.

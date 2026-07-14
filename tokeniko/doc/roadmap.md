@@ -85,6 +85,32 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
   see `landed.md`. The 13-lead corpus stands as its regression base (`test_subordination.py`
   covers the representative shapes).
 
+### The harvest fix queue — the first portrait's clusters (2026-07-14 triage)
+
+The microscope's first full-history sweep (98 judged / 42 leads / five clusters — the sweep itself
+in `landed.md`, specimens in `doc/ref/test-feedback.md`). Author's ruling: **input quality first** —
+this queue precedes instrument-arc item 2. Cluster A (subordination) landed above; B was
+instrument-side (judge contract taught). The rest, in order:
+
+- ✅ **Complement/locative survival + the places bridge** — landed 2026-07-14 (F1 places join the
+  identity-bridge · P2 the author's places table reasoning-live via injected readers · F2
+  xcomp→THAT · F3 compound-name assembly; `markers` = the zip's third symbolic map), see
+  `landed.md`. **Follow-ons when their time comes:** the extractor consumes indirect roles +
+  markers (a locative fact as chainer fuel — with the conditional-rule extractor family); the
+  residual family members from the old parked #2 (the **infinitival/control** complement "want to
+  know their creator" now folds THAT via xcomp — verify; the **possessive relation** "kotekino is
+  MY creator" still flattens — the creator-of-ME bond needs its own carrier).
+- 🔭 **Dictionary curation batch** (cluster C — operator-gated scripts): "shiny"→glazed.a.03,
+  "partridge"→tinamou.n.01 (coverage — nearest-anchor grabbed a cousin family),
+  "thinkers"→thinker.n.02 (prior), "well rested"→rest.v.03 (stative), + `bit.n.03` and its is_a
+  edge (the charity follow-on).
+- 🔭 **Singles** (cluster E + the B-nugget): spurious THAT-wrap on a coordination; **wh-gap by
+  verb frame** ("what do you like?" gaps the DIRECT object, not the predicate — `anchor_whType`'s
+  what→predicate is frame-blind); elided-subject quantifier inheritance («the cat is dead and
+  alive» — the second clause should inherit definite). (The embedded wh-complement stays deferred
+  with the questions plan; «hello John» etiquette is hunch 8's territory; the conditional-rule
+  extractor is the STORM follow-on above.)
+
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
 
 The pattern the project keeps choosing, made explicit: big LLMs as *instruments around* a mind
@@ -98,10 +124,11 @@ beside it, the translator last.
    about to be retired by item 2, and the output rendering belongs to item 3's verifier).
    - ✅ *P1 — the instrument* — landed 2026-07-14 (`senses/microscope.py`: post-hoc poller +
      `tkzipdebug` + the Opus judge with the contract mini-RAG), see `landed.md`.
-   - *P2 — the harvest loop* (the active frontier once the first sweep runs): entries are LEADS,
-     not verdicts (deixis/vocative/anonymization legitimately diverge from input) — triage stays
-     with the crew; confirmed leads become `test-feedback.md` entries → regression tests → fixes.
-     The self-growing seedbank.
+   - ✅ *P2 — the harvest loop* — OPENED with the first full-history sweep 2026-07-14 (98 judged /
+     42 leads / five clusters triaged with the author; the judge's contract learned
+     perspective-resolution), see `landed.md`. Now **standing practice**: entries are LEADS, not
+     verdicts — triage stays with the crew; confirmed leads become `test-feedback.md` entries →
+     regression tests → fixes. The self-growing seedbank, running.
 2. **Zip-native derivation — no internal compilation** (core consistency, the author's gut made
    rank): wondering's conclusions are born as ZIPS — the NL render → recompile round-trip retires
    from the derivation loop (NL remains only at the I/O boundary). Kills the round-trip corruption

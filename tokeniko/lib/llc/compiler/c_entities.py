@@ -32,6 +32,13 @@ def compiler_getEntity(ent: TKEntity, id: int) -> TKLLEntity:
         uid = ent.payload.uid
     elif ent.payload.entity_type == "place":
         token = ent.payload.name
+        # identity-bridge (mirrors the "name" branch): a known place is a named individual — its
+        # GLOBAL uid ("japan@place") is the referential IDENTITY and the key back into the places
+        # table (dependency map reachable at reasoning time); its `type` centroid (country/city/
+        # planet/...) is the honest SEMANTIC vector. Without these the role compiled all-zero and
+        # senses/identities skipped it — the geography was lost in compilation.
+        semantic = ent.payload.vector or []
+        uid = ent.payload.uid
         # carry the place's coordinates ([lon, lat]) into the flat entity for the space axis
         if ent.payload.location and ent.payload.location.coordinates:
             geo = ent.payload.location.coordinates

@@ -236,6 +236,72 @@ def _ground_partof(content: TKZipContent,
         chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
     return truth, chain, []  # taxonomic verdict: is_a/part_of edges are bedrock, not premises
 
+# ---- the PLACES BRIDGE (spatial grounding over the curated places table) ------------------------
+# containment markers: closed-class prepositions, EXACT (like the quantifier anchors — function
+# words this closed need no semantic fallback). the marker is what separates a containment claim
+# ("Japan is IN Asia") from a bare identity claim ("Japan is Asia").
+_PLACE_UID_SUFFIX = "@place"
+_CONTAINMENT_MARKERS = {"in", "within", "inside", "on", "at"}
+
+# is this clause a PLACE-CONTAINMENT claim? subject identity is a place AND another role holds a
+# place identity behind a containment marker (copular "Japan is in Asia" lands the outer place as
+# the PREDICATE carrying marker "in"; verbal shapes land it as an indirect). returns
+# (inner_uid, outer_uid) or None.
+def _place_containment_pair(content: TKZipContent) -> Optional[tuple[str, str]]:
+    identities = getattr(content, "identities", None) or {}
+    markers = getattr(content, "markers", None) or {}
+    subj = identities.get("subject") or ""
+    if not subj.endswith(_PLACE_UID_SUFFIX):
+        return None
+    for role in ("predicate", "direct", "indirect0", "indirect1", "indirect2"):
+        outer = identities.get(role) or ""
+        if outer.endswith(_PLACE_UID_SUFFIX) and outer != subj \
+                and markers.get(role) in _CONTAINMENT_MARKERS:
+            return subj, outer
+    return None
+
+# ground a place-containment claim via the injected place_contains reader (the places table's two
+# COMPLETE chains — unlike the sparse part_of graph, non-containment between two known places is a
+# confident FALSE there). same net_flip convention as is_a/part_of.
+def _ground_place_containment(content: TKZipContent,
+                              place_contains) -> Optional[tuple[float, str, list]]:
+    pair = _place_containment_pair(content)
+    if pair is None:
+        return None
+    verdict = place_contains(*pair)
+    if verdict is None:
+        return None
+    contained, chain = verdict
+    base = _TAXO_TRUE if contained else _TAXO_FALSE
+    quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
+    negated = bool(getattr(content, "negated", False))
+    net_flip = (quantifier == TKQuantifier.NEGATIVE) != negated  # XOR
+    truth = (1.0 - base) if net_flip else base
+    chain += f" | quantifier={quantifier.value} negated={negated}"
+    if net_flip:
+        chain += f" -> flipped -> {'true' if truth >= 0.5 else 'false'}"
+    return truth, chain, []  # the places table is curated bedrock, not a revocable premise
+
+# a place-identity subject carries no dictionary sense — SYNTHESIZE one from its type column
+# ("is Japan a country?": subject japan@place -> the 'country' sense) so the WHOLE existing is_a
+# machinery (subsumption, charity, tiered disjointness, quantifier flip) decides unchanged.
+# gated off containment claims (the marker decides which claim this is).
+def _place_isa_pair(content: TKZipContent, place_type) -> Optional[tuple[str, str]]:
+    senses = getattr(content, "senses", None) or {}
+    identities = getattr(content, "identities", None) or {}
+    subj_uid = identities.get("subject") or ""
+    pred = senses.get("predicate")
+    if senses.get("subject") or not subj_uid.endswith(_PLACE_UID_SUFFIX):
+        return None
+    if not pred or ".n." not in pred:
+        return None
+    if _place_containment_pair(content) is not None:
+        return None
+    subj_sense = place_type(subj_uid)
+    if not subj_sense:
+        return None
+    return subj_sense, pred
+
 # try to decide a clause taxonomically via the injected is_a graph. returns (truth, chain) when the
 # graph decides it (subject —is_a*→ predicate ⇒ base TRUE; subject ⊥ predicate at the kingdom level
 # ⇒ base FALSE), else None (leave it to definition-grounding). `relations` is the parents(sense)
@@ -243,9 +309,12 @@ def _ground_partof(content: TKZipContent,
 #   net_flip = (quantifier == NEGATIVE) XOR (negated)
 # a NEGATIVE quantifier ("no cat is a plant") or a predicate negation ("a cat is not a plant") flips
 # the base verdict; both together cancel. universal/existential/definite/generic do not flip.
+# `pair`, when given, OVERRIDES the sense pair read off the clause (the places bridge synthesizes
+# (type_sense, predicate_sense) for a place-identity subject).
 def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[str]],
-                         senses_of: Optional[Callable[[str], list[str]]] = None) -> Optional[tuple[float, str, list]]:
-    pair = _isa_senses(content)
+                         senses_of: Optional[Callable[[str], list[str]]] = None,
+                         pair: Optional[tuple[str, str]] = None) -> Optional[tuple[float, str, list]]:
+    pair = pair if pair is not None else _isa_senses(content)
     if pair is None:
         return None
     subject_sense, object_sense = pair
@@ -326,6 +395,8 @@ def evaluator_evaluateStatement(
     facts: list | None = None,
     senses_of: Callable[[str], list[str]] | None = None,
     edge_source: Callable[[str, str], str | None] | None = None,
+    place_contains: Callable[[str, str], tuple[bool, str] | None] | None = None,
+    place_type: Callable[[str], str | None] | None = None,
 ) -> EvaluatorResult:
     axioms = axioms or []
     theorems = theorems or []
@@ -354,19 +425,26 @@ def evaluator_evaluateStatement(
     derivation: list[str] = []
     graph_decided: set[int] = set()
     premises_acc: set[str] = set()  # PROVENANCE: the KB-doc ids the graph-decided verdicts rest on
-    if relations is not None or part_of is not None or rules or facts:
+    if relations is not None or part_of is not None or rules or facts or place_contains is not None:
         for i, c in enumerate(contents):
             # a clause is EITHER a part-whole claim OR a taxonomic one — never both. recognize the
             # part-whole pattern FIRST (its predicate is a part-noun "part of" or a meronymic verb
             # "has/contains") and route it to part_of ONLY: otherwise the is_a copular path would
             # mis-read "X is part of Y" as "X is_a part" and spuriously refute it (part.n.01 is an
             # abstraction, X is physical -> false). a non-part clause falls through to is_a.
+            # a PLACE-CONTAINMENT claim ("Japan is IN Asia" — the marker decides) is tried first of
+            # all: the places table's complete chains decide it outright.
             verdict = None
+            if place_contains is not None:
+                verdict = _ground_place_containment(c, place_contains)
             is_partwhole = _partof_senses(c) is not None
-            if is_partwhole and part_of is not None:
+            if verdict is None and is_partwhole and part_of is not None:
                 verdict = _ground_partof(c, part_of)
-            elif not is_partwhole and relations is not None:
-                verdict = _ground_relationally(c, relations, senses_of)
+            elif verdict is None and not is_partwhole and relations is not None:
+                # the places bridge synthesizes (type_sense, predicate) for a place-identity subject
+                # ("is Japan a country?") — the is_a machinery then decides unchanged.
+                synth = _place_isa_pair(c, place_type) if place_type is not None else None
+                verdict = _ground_relationally(c, relations, senses_of, pair=synth)
             # forward-chaining grounder: a verb/adj-predicate clause (not is_a copular) falls through
             # the relational grounder; the chainer fires universal rules over the subject's is_a
             # closure (membership rules grow it; property rules derive properties) and corroborates

@@ -607,6 +607,18 @@ post-rename string). **Gate 209 / 2 xfailed.**
 never-raises discipline; the sandbox pass: inputs-only filter, dedup, verdict written).
 **Gate 218 / 2 xfailed.** P2 (the harvest loop) opens with the first live sweep.
 
+**THE FIRST PORTRAIT — rag3 P2's first sweep + triage (2026-07-14)**
+The microscope's full-history pass over the biography: **98 judged, 42 leads, five clusters**
+triaged with the author (specimens: `doc/ref/test-feedback.md` 2026-07-14). The instrument proved
+itself — it independently judged the storm-sequel sentence *high/operator-flattening 0.85* with
+the exact diagnosis reached by hand. Cluster **A** (13 subordination leads) became the
+subordination fix's regression corpus; **B** (~12 "you"-identity leads) were instrument-side
+FALSE POSITIVES — the judge's contract now knows the zip is perspective-resolved (one paragraph
+in `_JUDGE_SYSTEM`); **C/D/E** became the roadmap's harvest fix queue (dictionary curation ·
+complement/locative survival · the singles). The author's input-quality-first instinct confirmed
+by the harvest itself ("my suspect... was accurate"). P2 is now **standing practice**: the poller
+judges new conversation within ~a poll (60s); triage stays with the crew.
+
 **The subordination fix — three dominoes, one storm class closed (2026-07-14)**
 The sequel's root cause ran deeper than the compiler: **stanza parses wh-subordinators as
 `advmod`, not `mark`** («…WHEN he says false»), so the subordinate marker search came up empty →
@@ -627,3 +639,37 @@ do this -> I do that"). Landed, author-ruled L1a+L2:
 6 regression tests (`test_subordination.py`): the sequel sentence both ways + two fragment
 shapes fold non-AND and yield ZERO chainer fuel; plain assertions stay asserted; embedded
 because keeps its op. **Gate 225 / 2 xfailed.**
+
+**Complement/locative survival + the places bridge (2026-07-14, cluster D — the sleeper closed)**
+«you live in Japan» compiled the geography AWAY: the parser/LLC carried Japan perfectly, but the
+place branch of `compiler_getEntity` gave it no sense, no uid, no vector — an all-zero role slot
+that `senses`/`identities` skipped. The author's teachings never landed. Four fixes, all
+author-ruled:
+- **F1 — places join the identity-bridge** (`tk.py` TKPlace.uid/vector · `parser_getPlace` ·
+  `c_entities.py` · `c_zip.py`): a known place is a named INDIVIDUAL with a **GLOBAL** uid
+  ("japan@place" — the same individual for every talker) + its `type`-column dictionary centroid
+  (country/city/planet/… — richer than flat location.n.01, never noise) as the honest semantic
+  vector. The uid is the KEY back into the places table.
+- **`markers` — the zip's THIRD symbolic map** (senses = classes, identities = individuals,
+  markers = RELATORS): the preposition/case lemma per marked role, surfaced out of band
+  (`compiler_contentMarkers`) so "Japan is IN Asia" (containment) is distinguishable from
+  "Japan is Asia" (identity), and the extractor follow-on can keep "lives IN" ≠ "runs FROM".
+- **P2 — the places table reasoning-live** (`lib/core/places.py` readers, injected via the
+  harness): the author's hand-built spatial ontology (~4.7M docs, COMPLETE `path_admin`/`path_geo`
+  chains + `type` + `physical_features`) grounds containment («Japan is in Asia» → TRUE 1.0 via
+  path_admin; «Japan is in Europe» → FALSE 0.0 — complete chains make absence evidence, unlike the
+  sparse part_of graph), synthesizes the is_a subject sense from `type` («Japan is a country» →
+  TRUE — the synthesized country.n.02 met WSD's nation.n.02 through the EXISTING charity
+  cross-product, no new machinery), and answers **where** («where is Rome?» → "lazio" from the
+  table; «where do you live?» → "japan" off the stored fact — `e_wh_solve` LOCATION landed).
+  Lazy reads of the curated table — never materialized into the relations collection (the
+  cascade-noise lesson).
+- **F2 — xcomp folds THAT** (`compiler_subordinateOperator` + the attitude tag): «I like talking»
+  was TWO coordinate assertions ("I like" ∧ "I talk") — now an attitude-bound complement,
+  gate-visible, nothing spuriously asserted.
+- **F3 — compound-name assembly** (`_parser_knownIndividualByName` + the span assembly in
+  `parser_getMeaning`): "test-probe-hellen" is looked up as the ASSEMBLED string against known
+  stakeholders (recognition only — the OOV mint-gate is untouched); name pieces stay out of the
+  properties/modifiers. "Jean-Pierre" works day one.
+The microscope's digest + judge contract learned the new fields (markers; place identities have
+no sense BY DESIGN). 11 regression tests (`test_places_bridge.py`).
