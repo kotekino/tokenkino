@@ -568,7 +568,13 @@ is a frame-blind simplification.
 **C — dictionary/WSD (6 leads → the curation batch).** "shiny"→glazed.a.03 (pottery, twice);
 "partridge"→tinamou.n.01 (coverage gap — nearest-anchor grabbed a cousin FAMILY);
 "thinkers"→thinker.n.02 (prior); "well rested"→rest.v.03 (dynamic for stative). The bit.n.03
-family grows into a proper shopping list.
+family grows into a proper shopping list. *(→ CLOSED 2026-07-14 same-day, REDRAWN by the
+diagnosis probe: thinker was a JUDGE gloss-hallucination (n.02 IS the plain reading — the judge
+now gets the grounded glossary); partridge already healed by the frequency-prior guard; shiny =
+two stacked selection bugs (first-POS-bucket break hid all satellite senses + Lesk credited the
+gloss for mentioning the query word itself); rested = passive-participle routing; bit.n.06 = the
+one true coverage gap (curated, `scripts/curate_add_senses.py`). See `landed.md`. NEW LEAD en
+route: «a coin STORES bits» resolves store→shop.n.01 — a POS/parse miss, tracked.)*
 
 **D — dropped content (4 leads, HIGH — the sleeper find).** «you live in Japan» LOST "in Japan"
 entirely: the locative complement never compiled, so the author's geography teachings never

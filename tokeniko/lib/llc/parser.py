@@ -442,12 +442,18 @@ def _wsd_centroid(token: Token) -> np.ndarray | None:
     others = [v for i, v in vecs.items() if i not in excluded]
     return np.mean(others, axis=0) if others else None
 
-# Lesk overlap: how many of a gloss's content words appear among the sentence's content lemmas
-def _wsd_lesk(definition: str, doc) -> int:
+# Lesk overlap: how many of a gloss's content words appear among the sentence's content lemmas.
+# the QUERY TOKEN ITSELF is excluded from the sentence side (2026-07-14, the shiny incident):
+# a gloss that merely MENTIONS the query word ("glazed: having a SHINY surface" vs «gold is
+# shiny») is self-reference, not context fit — it let the mentioning sense beat the synset that
+# IS the word. overlap must measure how the gloss fits the REST of the sentence.
+def _wsd_lesk(definition: str, doc, query: Token | None = None) -> int:
     if not definition:
         return 0
     glossWords = {w for w in (t.strip(".,;:()'\"`") for t in definition.lower().split()) if len(w) > 2 and w.isalpha()}
-    ctx = {t.lemma_.lower() for t in doc if t.pos_ in _WSD_CONTENT_POS and not t.is_stop}
+    exclude = {query.lemma_.lower(), query.text.lower()} if query is not None else set()
+    ctx = {t.lemma_.lower() for t in doc
+           if t.pos_ in _WSD_CONTENT_POS and not t.is_stop} - exclude
     return len(glossWords & ctx)
 
 # choose the best sense among candidates (the dictionary docs for token's lemma+POS, >=1)
@@ -459,7 +465,7 @@ def parser_disambiguateSense(token: Token, candidates: list[TKDictionaryDoc]) ->
     # signal on the sparse explicit vectors — a raw centroid cosine can confidently mis-rank (it scores
     # the "gossip" sense of cat ABOVE the animal sense next to "mammal", while the animal gloss is the
     # only one that contains "mammal"). pick the UNIQUE top-overlap sense.
-    leskScored = [(_wsd_lesk(c.definition or "", token.doc), c) for c in candidates]
+    leskScored = [(_wsd_lesk(c.definition or "", token.doc, query=token), c) for c in candidates]
     maxLesk = max(s for s, _ in leskScored)
     leaders = [c for s, c in leskScored if s == maxLesk]
     if maxLesk > 0 and len(leaders) == 1:
@@ -566,17 +572,36 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
         if known:
             return known
 
+    # STATIVE PARTICIPLE (cluster C, 2026-07-14): a copular participle predicate («I am well
+    # RESTED») is a STATE, but stanza lemmatizes it to the dynamic verb ("rest" + VERB), so the
+    # adjective sense (rested.a.01 "not tired; refreshed") is never even a candidate. When the
+    # participle sits under a copula, try the SURFACE form's adjective senses first —
+    # existence-gated: no adjective entry in the dictionary, no behavior change.
+    if token.pos_ == "VERB" and "Part" in token.morph.get("VerbForm") \
+            and any(ch.dep_ == "cop" or (ch.dep_ in ("aux", "aux:pass") and ch.lemma_ == "be")
+                    for ch in token.children):
+        adjCandidates = TKDictionaryDoc.find(
+            {"word": token.text.lower(), "pos": {"$in": ["a", "s"]}}).to_list()
+        if adjCandidates:
+            chosen = parser_disambiguateSense(token, adjCandidates)
+            return TKDictionary(**chosen.model_dump(exclude={"id"}))
+
     # should be in the dictionary (exclude auxiliaries, pronouns)
     doc_result: TKDictionary = None
     if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
-        # search in dictionary — gather the candidate senses for this POS and pick by context (WSD),
-        # falling back to the most-frequent sense when context can't decide.
+        # search in dictionary — gather the candidate senses across ALL the mapped POS buckets and
+        # pick by context (WSD), falling back to the most-frequent sense when context can't decide.
+        # UNION, not first-bucket-wins (cluster C, 2026-07-14): ADJ maps to BOTH 'a' and 's'
+        # (satellites ARE adjectives — the a/s split is a WordNet artifact), and breaking on the
+        # first non-empty bucket hid every satellite sense ("shiny": only glazed.a.03 was ever a
+        # candidate; glistening.s.01 — the synset whose lemma IS shiny — never entered the pool).
+        candidates = []
         for p in pos:
-            candidates = TKDictionaryDoc.find({"word": token.lemma_, "pos": p}).to_list()
-            if candidates:
-                doc_result = parser_disambiguateSense(token, candidates)
-                break
-                
+            candidates.extend(TKDictionaryDoc.find({"word": token.lemma_, "pos": p}).to_list())
+        if candidates:
+            doc_result = parser_disambiguateSense(token, candidates)
+
+
         # semantic fallback — only for tokens that actually carry a vector, and only accepting a
         # candidate whose cosine similarity clears _WSD_FALLBACK_MIN_SIMILARITY. an OOV/gibberish
         # token has no real vector (its query vector is all-zeros / unrelated), so force-matching it

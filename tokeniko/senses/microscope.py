@@ -162,17 +162,50 @@ def _get_client():
     return _client
 
 
-async def judge(original: str, digest: str, client=None) -> Optional[dict]:
+# the GROUNDED GLOSSARY (2026-07-14, the thinker incident): the judge was hallucinating WordNet
+# glosses from memory (it believed thinker.n.02 = "a philosopher" — actually "someone who
+# exercises the mind" — and flagged a CORRECT pick). Fetch the digest's senses' REAL definitions
+# from the dictionary and hand them to the judge, so sense-fidelity is judged against ground
+# truth, never recall. Failure-safe: any error returns "" (the judge runs without it).
+def sense_glossary(zp: TKZip) -> str:
+    try:
+        from lib.core.models import TKDictionaryDoc
+        senses: set = set()
+        def collect(item):
+            c = item.content
+            if isinstance(c, TKZipContent):
+                senses.update(v for v in (getattr(c, "senses", None) or {}).values() if v)
+            elif isinstance(c, list):
+                for ch in c:
+                    collect(ch)
+        collect(zp.items)
+        lines = []
+        for s in sorted(senses):
+            d = TKDictionaryDoc.find_one({"sense": s}).run()
+            if d is not None and d.definition:
+                lines.append(f"- {s}: {d.definition}")
+        return "\n".join(lines)
+    except Exception as error:
+        logger.warning("[microscope] glossary failed (%s: %s) — judging without it",
+                       type(error).__name__, error)
+        return ""
+
+
+async def judge(original: str, digest: str, client=None, glossary: str = "") -> Optional[dict]:
     """One judged verdict for (sentence, digest), or None on ANY failure (logged, never raised).
 
     A None simply skips the item this pass — the microscope is diagnostics, never a blocker."""
     try:
         cl = client if client is not None else _get_client()
+        user = f"SENTENCE:\n{original}\n\nDIGEST:\n{digest}"
+        if glossary:
+            user += ("\n\nGLOSSARY (the chosen senses' ACTUAL dictionary definitions — judge "
+                     f"sense fidelity against THESE, never your recall):\n{glossary}")
         response = await cl.messages.create(
             model=_JUDGE_MODEL,
             max_tokens=1024,
             system=_JUDGE_SYSTEM,
-            messages=[{"role": "user", "content": f"SENTENCE:\n{original}\n\nDIGEST:\n{digest}"}],
+            messages=[{"role": "user", "content": user}],
             output_config={"format": {"type": "json_schema", "schema": _JUDGE_SCHEMA}},
         )
         text = next(b.text for b in response.content if b.type == "text")
@@ -216,7 +249,7 @@ async def microscope_pass(client=None, batch: int = 5) -> int:
     written = 0
     for item in pending_items(me_id, judged_ids, batch):
         dig = digest_zip(item.zip)
-        verdict = await judge(item.original, dig, client=client)
+        verdict = await judge(item.original, dig, client=client, glossary=sense_glossary(item.zip))
         if verdict is None:
             continue  # judge failure: leave unjudged, the next pass retries
         TKZipDebugDoc(item_id=str(item.id), original=item.original, digest=dig,

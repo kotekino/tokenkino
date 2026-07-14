@@ -673,3 +673,40 @@ author-ruled:
   properties/modifiers. "Jean-Pierre" works day one.
 The microscope's digest + judge contract learned the new fields (markers; place identities have
 no sense BY DESIGN). 11 regression tests (`test_places_bridge.py`).
+
+**The WSD selection fixes — cluster C, redrawn by diagnosis (2026-07-14)**
+The triage read cluster C as "dictionary coverage gaps"; the diagnosis probe (a spy on
+`parser_disambiguateSense` printing each stage's scores) showed the truth was richer:
+- **thinker → JUDGE false positive**: thinker.n.02 ("someone who exercises the mind") IS the plain
+  reading of «all minds are thinkers» — the judge had hallucinated the WordNet glosses reversed.
+  Fixed instrument-side: `sense_glossary` fetches the digest's senses' REAL definitions and the
+  judge is told to judge sense fidelity against THEM, never recall. Kills the class.
+- **partridge → already healed by history**: today's WSD picks partridge.n.01 via the landed
+  frequency-prior guard (the tinamou zip predates it). Residual: n.01 is the food sense; the
+  charity cross-product covers the truth side. Accepted.
+- **shiny → TWO stacked selection bugs**: (1) `parser_getMeaning` broke on the FIRST non-empty POS
+  bucket, so ADJ='a' hid every satellite ('s') sense — glistening.s.01, the synset whose lemma IS
+  shiny, never entered the pool; now the candidate pool UNIONS all mapped buckets. (2) Lesk let
+  glazed.a.03 win on its gloss merely MENTIONING "shiny" — the query token is now excluded from
+  the sentence side (self-reference is not context fit). «gold is shiny» → glistening.s.01
+  ("reflecting light"); the cat/mammal Lesk design case survives (the overlap word is CONTEXT).
+- **rested → POS routing**: stanza lemmatizes the copular participle to rest+VERB (and reads
+  "am rested" as PASSIVE — aux:pass, not cop), so rested.a.01 was never a candidate; a copular/
+  be-passive participle now tries the SURFACE form's adjective senses first (existence-gated).
+  «I am well rested» → rested.a.01 ("not tired; refreshed").
+- **bit → the one true coverage gap**: the ingestion's max_per_pos=3 cut bit.n.06 (the information
+  unit; its is_a/part_of edges were already in relations). Curated via the new operator-gated
+  `scripts/curate_add_senses.py` — the vector computed by the SAME algorithm as the ingestion
+  (115 nonzero dims; top anchors bit=1.0, unit=0.909, then the unit-of-measurement family).
+The fix VALIDATED ITSELF through the gate: two chaining tests broke because the sandbox's stored
+fixture axiom «all carnivores eat meat» carried eat.v.02 ("EAT a meal" — old-Lesk's self-mention
+credit, the exact bug fixed) while fresh inputs now correctly compile eat.v.01 — the stale
+fixtures were deleted from the sandbox and recompile clean on bootstrap. The same drift exists in
+the LIVE biography (old items keep old compilations; chainer rule-matching is sense-EXACT) — a
+recompile pass over the live KB is the operator remedy when its time comes; drift only narrows
+matching, never poisons. AND the fix healed a month-old xfail as a side effect: «a robin has
+feathers» now resolves TRUE (the recompiled birds-rule keys on the sense robin disambiguates
+under — the June known-gap `test_robin_has_feathers`, promoted to a permanent regression test).
+New lead surfaced en route: «a coin STORES bits» resolves store→shop.n.01 (a POS/parse miss —
+tracked with the singles). 4 regression tests (`test_wsd_curation.py`) — exact-sense asserts,
+INTENTIONAL here (the curated selection is the regression target). **Gate 240 / 1 xfailed.**

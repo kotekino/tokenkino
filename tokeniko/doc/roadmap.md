@@ -100,16 +100,21 @@ instrument-side (judge contract taught). The rest, in order:
   residual family members from the old parked #2 (the **infinitival/control** complement "want to
   know their creator" now folds THAT via xcomp — verify; the **possessive relation** "kotekino is
   MY creator" still flattens — the creator-of-ME bond needs its own carrier).
-- 🔭 **Dictionary curation batch** (cluster C — operator-gated scripts): "shiny"→glazed.a.03,
-  "partridge"→tinamou.n.01 (coverage — nearest-anchor grabbed a cousin family),
-  "thinkers"→thinker.n.02 (prior), "well rested"→rest.v.03 (stative), + `bit.n.03` and its is_a
-  edge (the charity follow-on).
+- ✅ **Dictionary curation batch → the WSD selection fixes** — landed 2026-07-14. The diagnosis
+  probe redrew cluster C: the "coverage gaps" were mostly SELECTION bugs (Lesk self-mention
+  exclusion · the ADJ candidate pool unions 'a'+'s' — satellites were invisible · stative
+  participle routes to the surface form's adjective · `bit.n.06` curated via
+  `scripts/curate_add_senses.py` · the judge now receives the GROUNDED glossary — the thinker
+  lead was a judge gloss-hallucination; partridge was already healed by the frequency-prior
+  guard), see `landed.md`. New lead surfaced en route: «a coin STORES bits» resolves
+  store→shop.n.01 (POS/parse — tracked with the singles).
 - 🔭 **Singles** (cluster E + the B-nugget): spurious THAT-wrap on a coordination; **wh-gap by
   verb frame** ("what do you like?" gaps the DIRECT object, not the predicate — `anchor_whType`'s
   what→predicate is frame-blind); elided-subject quantifier inheritance («the cat is dead and
-  alive» — the second clause should inherit definite). (The embedded wh-complement stays deferred
-  with the questions plan; «hello John» etiquette is hunch 8's territory; the conditional-rule
-  extractor is the STORM follow-on above.)
+  alive» — the second clause should inherit definite); «a coin STORES bits» → store resolves
+  shop.n.01 (a POS/parse miss, found by the WSD diagnosis probe). (The embedded wh-complement
+  stays deferred with the questions plan; «hello John» etiquette is hunch 8's territory; the
+  conditional-rule extractor is the STORM follow-on above.)
 
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
 
