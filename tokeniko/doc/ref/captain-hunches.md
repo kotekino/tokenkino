@@ -265,3 +265,10 @@ On the other hand we already said that the mind in enclosed in the body, but the
 12. We should build a section in the public website with a summary (well phrased, not too technical but technical enough) of the development backlog,
 in other words our landed.md file. With the next item in the roadmap as "currently working on". For both categories, "backlog" and "currently working on", we should find evocative names, as they were thought to define the step of a young mind learning more than a software development feature list. I'm still thinking about and I'm
 open for suggestions.
+> **QM on 12 — names chosen (2026-07-14):** the section pair is **«Growth Rings»** (the landed
+> history — a tree's rings are its verifiable autobiography, each one a season of learning,
+> readable by anyone who counts them) and **«The Growing Edge»** (currently-working-on — the
+> living tissue where growth actually happens, always exactly one layer). One botanical metaphor
+> across both, honest for a mind that grows in layers. Kept "for now" by the Captain's own words —
+> to be built when this hunch's time comes (public website, low priority; not on the roadmap by
+> the notebook's own rule). 🜂
