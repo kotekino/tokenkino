@@ -214,70 +214,31 @@ def compiler_classifyAttitude(verb: str) -> TKLLAttitude:
     klass, confidence = anchor_resolve(verb, "attitudes")
     return TKLLAttitude(verb=verb or None, klass=klass, confidence=confidence)
 
+# the subordinate-type -> fold-operator table, extracted so BOTH the reference path
+# (compiler_evaluateSubordinate) and the root-fragment path (compiler_resolveStatements) share one
+# mapping. TEMPORAL -> CONV since 2026-07-14 (the storm sequel; author-ruled L1a): the author's
+# drafted-core comment already knew "I always do this when I do that => I do this -> I do that" —
+# AND was the parked placeholder that let «when a person say false he is being wrong» flatten into
+# chainer fuel. CONV over-claims slightly on episodic "when" (a time anchor, not a rule), but AND
+# was wrong there too — and CONV is GATE-VISIBLE (a non-AND op is never extracted as an asserted
+# rule), so the storm class is closed by construction.
+def compiler_subordinateOperator(subordinateType) -> TKOperator:
+    if subordinateType == TKClauseType.FINAL:
+        return TKOperator.IMPLY
+    if subordinateType in (TKClauseType.CAUSAL, TKClauseType.HYPOTETIC, TKClauseType.TEMPORAL):
+        return TKOperator.CONV
+    if subordinateType == TKClauseType.CCOMP:
+        return TKOperator.THAT
+    return TKOperator.AND
+
+
 # evaluate subordinate clause
 def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStatement, statementIdx: int, statementId: tuple[int, ...], matrixVerb: str = "") -> list[TKLLCItem]:
     subordinateType = compiler_parseMarker(reference.marker)
 
-    # analyze subordinate to flatten it with an operator and modify properties
-    operator: TKOperator = TKOperator.AND
-    if subordinateType == TKClauseType.FINAL:
-        # finale (imply) -> subject implied to be explicited
-        # I do x to obtain y => [hope++] if I do this I obtain y => [hope++] I do this IMPLY I obtain y (same subject)
-        # I do x to have you doing y =>[hope++] if I do this you doing y => [hope++] I do this IMPLY you doing y (different subject)
-        operator = TKOperator.IMPLY
-
-        # increase hope feeling (properties) of the main sentence
-        # subProperties.sentiment = sentiment_generate(sentiment=['hope', 'goal'])
-    elif subordinateType == TKClauseType.PARATAXIS:
-        # loose juxtaposition: not a propositional complement -> co-assert with AND
-        operator = TKOperator.AND
-
-    elif subordinateType == TKClauseType.CAUSAL:
-        # causale (imply) -> simple obvious
-        # i do this because I done that => I do this CONV i done that
-        operator = TKOperator.CONV
-
-    elif subordinateType == TKClauseType.HYPOTETIC:
-        # ipotetica (imply) -> simple, obvious
-        # I do this if you do that => you do that IMPLY (or EQ if only, only if) I do this
-        operator = TKOperator.CONV
-
-    elif subordinateType == TKClauseType.TEMPORAL:
-        # temporale (timespacemap, IMPLY) -> tricky can imply with a smooth degree
-        # I have done this when/after/before I was doing that => I do this T1 and I do this T2 = f(T1)
-        # I always do this when I do that => I do this -> I do that (always, often)
-        operator = TKOperator.AND
-
-    elif subordinateType == TKClauseType.LOCATIVE:
-        # locativa (timespacemap) -> obvious
-        # I do x in S1 and I go to S2 => I do x S1 and I do go S2
-        operator = TKOperator.AND
-
-    elif subordinateType == TKClauseType.CCOMP:
-        # clausal complement of an attitude/utterance verb ("I assume THAT you are fine"):
-        # the only genuine propositional-attitude case -> keep THAT (to be mapped by the
-        # matrix predicate's attitude class: factive/doxastic/desiderative/reportative)
-        operator = TKOperator.THAT
-
-    elif subordinateType == TKClauseType.ACL:
-        # adnominal clause (participial/infinitival noun modifier): intersective -> AND
-        operator = TKOperator.AND
-
-    elif subordinateType == TKClauseType.ACLRELCL:
-        # relative clause: intersective modification on the (now shared) referent -> AND
-        operator = TKOperator.AND
-
-    elif subordinateType == TKClauseType.ADVCL:
-        # adverbial adjunct clause: co-asserted related event -> AND
-        operator = TKOperator.AND
-
-    elif subordinateType == TKClauseType.XCOMP:
-        # open complement (subject shared, predicational): not a that-clause -> AND
-        operator = TKOperator.AND
-
-    else:
-        # other means it affects something else, but the operator is AND
-        operator = TKOperator.AND
+    # one shared type->operator table (compiler_subordinateOperator, above): FINAL->IMPLY,
+    # CAUSAL/HYPOTETIC/TEMPORAL->CONV, CCOMP->THAT, everything else co-asserts with AND.
+    operator: TKOperator = compiler_subordinateOperator(subordinateType)
 
     result = compiler_evaluateStatement(statement, statementIdx, statementId + (reference.id,), subordinateType, operator)
 
@@ -575,8 +536,18 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
     idx = 1
     for tks in tkStatements:
 
-        # evaluate statements
-        items = compiler_evaluateStatement(statement=tks, statementIdx=idx)
+        # the ROOT-mark fragment path (the storm-sequel fix): an utterance that IS a subordinate
+        # clause («because you think») carries its marker on the statement itself — fold it with
+        # the marker's subordinate operator (a fragment is a relation HALF, never a standalone
+        # assertion; the assertedness gate then sees the non-AND op and never extracts it as fuel).
+        if getattr(tks, "marker", None) is not None:
+            subType = compiler_parseMarker(tks.marker)
+            items = compiler_evaluateStatement(statement=tks, statementIdx=idx,
+                                               clauseType=subType,
+                                               operator=compiler_subordinateOperator(subType))
+        else:
+            # evaluate statements
+            items = compiler_evaluateStatement(statement=tks, statementIdx=idx)
 
         # append items to result
         result.extend(items)

@@ -8,7 +8,7 @@ from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.tk import EntityPayload, TKAux, TKClause, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements
+from lib.core.tk import EntityPayload, TKAux, TKClause, TKClauseType, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements
 import re
 from lib.core.models import TKDictionaryDoc, TKPlaceDoc, TKMemoryStakeholdersDoc
 from lib.core.mappers import TKPosMapper
@@ -184,6 +184,13 @@ def parser_parseSubordinate(token: Token, quotes: list[tuple[list[Token], list[T
 
     # get indirect marker 
     marker = next((s for s in childrenTokens if s.dep_ == "case" or s.dep_ == "mark"), None)
+    if marker is None:
+        # stanza parses wh-subordinators ("...WHEN he says false", "...WHERE you live") as advmod,
+        # not mark — the storm-sequel flattening: no marker -> dep-label fallback -> ADVCL -> AND.
+        # accept an advmod child as the marker ONLY when the anchors recognize it as a subordinate
+        # type (semantic catch, no fixed list; content adverbs like "very" resolve OTHER and pass).
+        marker = next((s for s in childrenTokens if s.dep_ == "advmod"
+                       and anchor_resolve(s.lemma_, "subordinate_types") != TKClauseType.OTHER), None)
     if marker and marker.has_vector: 
         tkMarker = TKMarker(dep=marker.dep_, word=marker.lemma_, vector=marker.vector, parent_dep=token.dep_)
 
@@ -766,6 +773,14 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
         tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=False, isTalking=True))
         tkMain.create_entity(payload=TKMetaEntity(who=_tokeniko, isListening=True, isTalking=False))
         tkMain.clause_type = clause_type
+        # ROOT-mark capture (the storm-sequel fix): a fragment utterance that IS a subordinate
+        # («because you think») carries its subordinating "mark" on the root — stash it on the
+        # statement so the compiler folds it with the subordinate operator instead of bare AND.
+        rootMark = next((t for t in children if t.dep_ == "mark"), None) if clause_type == TKClause.MAIN else None
+        if rootMark is not None:
+            tkMain.marker = TKMarker(dep=rootMark.dep_, word=rootMark.lemma_,
+                                     vector=rootMark.vector if rootMark.has_vector else [],
+                                     parent_dep=root.dep_)
         if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
         if tkSubject: tkMain.create_subject(fullEntity=tkSubject)
 
@@ -823,6 +838,14 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
         tkMain.create_entity(payload=TKMetaEntity(who=_tokeniko, isListening=True, isTalking=False))
         
     tkMain.clause_type = clause_type
+    # ROOT-mark capture (the storm-sequel fix): a fragment utterance that IS a subordinate
+    # («because you think») carries its subordinating "mark" on the root — stash it on the
+    # statement so the compiler folds it with the subordinate operator instead of bare AND.
+    rootMark = next((t for t in children if t.dep_ == "mark"), None) if clause_type == TKClause.MAIN else None
+    if rootMark is not None:
+        tkMain.marker = TKMarker(dep=rootMark.dep_, word=rootMark.lemma_,
+                                 vector=rootMark.vector if rootMark.has_vector else [],
+                                 parent_dep=root.dep_)
     if tkPredicate: tkMain.create_predicate(fullEntity=tkPredicate)
     if subjectToken: tkMain.create_subject(fullEntity=tkSubject)
     if directToken: tkMain.create_direct(fullEntity=tkDirect)

@@ -606,3 +606,24 @@ post-rename string). **Gate 209 / 2 xfailed.**
 9 tests in `test_microscope.py` (digest determinism/operators/mood/identity; judge validation +
 never-raises discipline; the sandbox pass: inputs-only filter, dedup, verdict written).
 **Gate 218 / 2 xfailed.** P2 (the harvest loop) opens with the first live sweep.
+
+**The subordination fix — three dominoes, one storm class closed (2026-07-14)**
+The sequel's root cause ran deeper than the compiler: **stanza parses wh-subordinators as
+`advmod`, not `mark`** («…WHEN he says false»), so the subordinate marker search came up empty →
+the dep-label fallback said ADVCL → AND; and even a reached TEMPORAL said AND — the drafted
+core's parked placeholder (its own comment already knew: "I always do this when I do that => I
+do this -> I do that"). Landed, author-ruled L1a+L2:
+- **The anchor-gated advmod marker** (`parser_parseSubordinate`): an advmod child is accepted as
+  the marker ONLY when the anchors recognize it as a subordinate type — semantic catch, no fixed
+  list ("very" resolves OTHER and passes). The wh-position fix keeps questions out by
+  construction (an interrogative "when" attaches to the root, never the subordinate path).
+- **TEMPORAL → CONV** via the extracted shared table `compiler_subordinateOperator` (FINAL→IMPLY,
+  CAUSAL/HYPOTETIC/TEMPORAL→CONV, CCOMP→THAT, else AND) — CONV slightly over-claims on episodic
+  "when" but AND was wrong there too, and CONV is GATE-VISIBLE: the storm class is closed by
+  construction.
+- **The root-mark fragment path**: `TKStatement.marker` (new field) — the parser stashes a root
+  `mark` (MAIN clauses only), `compiler_resolveStatements` folds the whole fragment with the
+  subordinate operator: «because you think» is a relation HALF, never a standalone assertion.
+6 regression tests (`test_subordination.py`): the sequel sentence both ways + two fragment
+shapes fold non-AND and yield ZERO chainer fuel; plain assertions stay asserted; embedded
+because keeps its op. **Gate 225 / 2 xfailed.**

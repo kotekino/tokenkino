@@ -80,42 +80,10 @@ perceives and speaks. Each carries an **open design question** to brainstorm bef
 
 ### Robustness — the storm sequel's leak (2026-07-14, the author's deliberate re-test)
 
-- **Subordination must survive compilation** (the deeper storm leak): «when a person say false he
-  is being wrong» compiled to three bare AND leaves — the "when"-clause's operator never reached
-  the zip (yesterday's "if" at least compiled to CONV, which the assertedness gate blocks; a LOST
-  operator is invisible to any zip-level gate) and the main clause lost its subject. Two property
-  rules leaked, wondering re-derived the storm's garbage line (contained — the playbook's second
-  run; specimen in `doc/ref/test-feedback.md` 2026-07-14). Fix class: the parser/compiler
-  subordinate handling (`compiler_parseMarker` and the when/if/because marker path) must carry
-  the subordinate operator into the zip's tree — then the gate sees it and the conditional-rule
-  extractor (the storm follow-on) can one day USE it. Until then: teach conditionals with "if"
-  (gate-visible), and the microscope watches for the flattening class from outside.
-  **The first sweep attached a 13-lead test corpus** (every because/when in the biography,
-  `tkzipdebug` category operator-flattening/wrong-structure).
-
-### Robustness — the microscope's first-sweep harvest (2026-07-14; 98 judged, 42 leads, triaged with the author)
-
-- **Complement/locative survival** (the sweep's sleeper find, HIGH): «you live in Japan» lost
-  "in Japan" entirely — the locative complement never reached the zip, so the author's geography
-  teachings never landed ("lost in translation for a long time without our microscope" — his
-  words). Same class: «the computer where you live is in Japan» (+ relative clause), a dropped
-  direct object on a hyphenated name («I like test-probe-hellen»), «I like talking» split into
-  two assertions (gerund complement). Fix: parser/compiler complement handling — indirects/
-  locatives/gerund objects must compile into their roles.
-- **Dictionary curation batch** (the bit.n.03 family grows — 6 leads): "shiny"→glazed.a.03
-  (pottery; twice), "partridge"→tinamou.n.01 (coverage gap, nearest-anchor grabbed a cousin
-  family), "thinkers"→thinker.n.02 over the plain .01 (prior), "well rested"→rest.v.03 (dynamic
-  for stative). Operator-gated curation scripts; add bit.n.03 from the charity follow-on to the
-  same batch.
-- **Spurious THAT-wrap on coordination** (medium): «I build software and softwares are programs»
-  wrapped the second conjunct under a doxastic attitude — coordination misread as complement.
-- **wh gap-role by verb frame** (nuance, from the triage's false-positive cluster): "what do you
-  like?" gaps the DIRECT object, not the predicate — anchor_whType's what→predicate is a
-  simplification; frame-aware gap assignment someday.
-- **Elided-subject quantifier inheritance** (minor): «the cat is dead and alive» — the shared
-  subject's second clause reads generic instead of inheriting definite.
-- *(Instrument-side, fixed with this harvest: the judge's contract now knows the zip is
-  perspective-resolved — the ~12 "you"-identity false positives vanish from future sweeps.)*
+- ✅ **Subordination must survive compilation** — landed 2026-07-14 (the storm-sequel fix,
+  three dominoes: the anchor-gated advmod-marker, TEMPORAL→CONV, the root-mark fragment path),
+  see `landed.md`. The 13-lead corpus stands as its regression base (`test_subordination.py`
+  covers the representative shapes).
 
 ### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
 

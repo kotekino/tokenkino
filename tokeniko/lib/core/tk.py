@@ -188,6 +188,14 @@ class TKStatement(BaseModel):
     # wh-question gap role (the variable X to solve for); None = polar question or declarative.
     wh_role: Optional[TKWhRole] = Field(default=None)
 
+    # the ROOT-level subordinating marker (the storm-sequel fix, 2026-07-14): a FRAGMENT utterance
+    # that IS a subordinate clause («because you think» as the whole message) carries its "mark"
+    # on the root, which the subordinate-reference path never sees — the causal/temporal relation
+    # died unread and the fragment compiled as a bare assertion. The parser now stashes the root
+    # mark here; the compiler folds the statement with the marker's subordinate operator (a
+    # fragment is a relation HALF, never a standalone assertion — the assertedness gate then sees it).
+    marker: Optional[TKMarker] = Field(default=None)
+
     # public fields
     subject: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
     predicate: Optional[TKEntityReference] = Field(default=None) # id of entity, mandatory, has semantic 2925 value
