@@ -61,6 +61,8 @@
 }
 .subpage__section a:hover { color: var(--violet-dark); }
 
+/* The intro above a values list belongs to it ("…three things going in:"), so the
+   gap there stays tight. */
 .subpage__values {
   display: flex;
   flex-direction: column;
@@ -68,6 +70,13 @@
   padding-left: var(--space-4);
   border-left: 3px solid var(--violet-light);
   margin-top: var(--space-4);
+}
+
+/* What follows a values list is a new thought and needs a real break — without
+   this the next paragraph butted straight against the rule. Only when something
+   actually follows: a list that ends its section already has the section's gap. */
+.subpage__values:not(:last-child) {
+  margin-bottom: var(--space-8);
 }
 
 .subpage__values li {

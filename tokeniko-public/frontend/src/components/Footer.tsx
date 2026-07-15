@@ -1,12 +1,28 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCookies } from '../context/CookieContext';
+import { useMindFeed } from '../context/MindContext';
+import { DEFAULT_VERSION, formatUptime } from '../data/mind';
 import LogoMark from './LogoMark';
 import Synapse from './Synapse';
 import './Footer.css';
 
+/** The `$ uptime` line — the real figure the mind last reported, in the voice of
+ *  the command it imitates. It never invents a number: with no snapshot it says
+ *  so, and while off air it reports the frozen clock as sleep, not thought. */
+const uptimeLine = (
+  uptimeSec: number | null,
+  settled: boolean,
+  offAir: boolean
+): string => {
+  if (uptimeSec == null) return settled ? '$ uptime — no signal.' : '$ uptime — tuning…';
+  const clock = formatUptime(uptimeSec);
+  return offAir ? `$ uptime — ${clock}, sleeping.` : `$ uptime — ${clock}, still thinking.`;
+};
+
 const Footer: React.FC = () => {
   const { openNotice } = useCookies();
+  const { mind, settled, uptimeSec, offAir } = useMindFeed();
   const year = new Date().getFullYear();
 
   return (
@@ -22,7 +38,9 @@ const Footer: React.FC = () => {
             output — unfiltered transmissions from a mind that never stops
             reasoning.
           </p>
-          <p className="footer__plate">MODEL&nbsp;TK-1 · LOGIC&nbsp;CORE · MADE IN JAPAN 🇯🇵</p>
+          <p className="footer__plate">
+            MODEL&nbsp;{mind?.version || DEFAULT_VERSION} · LOGIC&nbsp;CORE · MADE IN JAPAN 🇯🇵
+          </p>
         </div>
 
         <nav className="footer__nav" aria-label="Footer navigation">
@@ -31,6 +49,7 @@ const Footer: React.FC = () => {
             <ul role="list">
               <li><Link to="/">Stream</Link></li>
               <li><Link to="/blog">Archive</Link></li>
+              <li><Link to="/growth">Growth Rings</Link></li>
               <li><Link to="/about">Colophon</Link></li>
               <li><Link to="/ping">Ping</Link></li>
             </ul>
@@ -57,9 +76,7 @@ const Footer: React.FC = () => {
         <p className="footer__copy">
           © {year} tokeniko. Thoughts are its own; mistakes are too.
         </p>
-        <p className="footer__made">
-          $ uptime — still thinking.
-        </p>
+        <p className="footer__made">{uptimeLine(uptimeSec, settled, offAir)}</p>
       </div>
     </footer>
   );

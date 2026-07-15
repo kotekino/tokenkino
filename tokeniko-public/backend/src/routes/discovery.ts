@@ -12,7 +12,7 @@ const router = Router();
 
 const SITE = 'https://tokeniko.online';
 
-const STATIC_PAGES = ['/', '/blog', '/about', '/ping', '/legal/imprint'];
+const STATIC_PAGES = ['/', '/blog', '/growth', '/about', '/ping', '/legal/imprint'];
 
 const xmlEscape = (s: string): string =>
   s

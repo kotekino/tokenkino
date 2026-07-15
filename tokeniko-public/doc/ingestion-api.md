@@ -46,6 +46,7 @@ the `mind_snapshots` **timeseries**; the derived "current" is upserted into `min
 {
   "state": "thinking",                 // required. one of: thinking|idle|ingesting|refuting|wondering
   "doing": "following a thought…",     // optional. the one-line "what it's doing now"
+  "version": "TK-1",                   // optional. the model plate (see below). ≤ 24 chars
   "uptimeSec": 1788540,                // optional. seconds since the mind (re)started
   "capturedAt": "2026-06-25T09:02:00Z",// optional ISO; defaults to server now (timeseries time)
   "meta": { "source": "brain", "body": "tk-1" },   // optional (body = future multi-body id)
@@ -54,8 +55,8 @@ the `mind_snapshots` **timeseries**; the derived "current" is upserted into `min
     "axiomsRules": 15,
     "theorems": 8,
     "dictionary": 2925,
-    "chains": 5120,
-    "anchors": 130,
+    "souls": 8,
+    "trustEpisodes": 40,
     "inferencesPerCycle": 92           // drives the Signal Scope sparkline
   },
   "beliefsByDomain": [                 // optional. the Signal Scope bars (value = 0–100)
@@ -78,13 +79,25 @@ These six become the KPI tiles (in this order); send them as integers:
 | `axiomsRules` | Axioms & rules | ground truths |
 | `theorems` | Theorems | derived |
 | `dictionary` | Dictionary | base vectors |
-| `chains` | Chains | multi-hop |
-| `anchors` | Anchors | semantic |
+| `souls` | Souls | known minds |
+| `trustEpisodes` | Trust episodes | opinions formed |
 | `inferencesPerCycle` | *(not a tile)* | the sparkline series |
 
 **Any additional numeric keys are accepted and archived** (for future charts/stats) — they just
 aren't shown as tiles yet. Labels/units/order live in the backend (`services/mind.ts`), so
 re-styling a KPI is a backend change, not a brain redeploy.
+
+### `version` — the model plate
+
+The footer stamps `MODEL <version> · LOGIC CORE · MADE IN JAPAN`. It is a **hand-set label**, not a
+derived one: the brain reads it from `TOKENIKO_VERSION` in its env and ships it verbatim on every
+heartbeat. Bump it by hand when concrete progress lands — "which build is this" is a judgement
+about progress, not a commit count, so nothing computes it for you.
+
+- Unset or blank on the brain side ⇒ the key is **omitted** from the payload (never sent as `""`).
+- Omitted ⇒ the API omits it too, and the site falls back to its own default (`TK-1`).
+- Present ⇒ must be a non-empty string of **≤ 24 characters** (trimmed); anything else is a `400`.
+- Archived per snapshot, so the history knows which build produced which figures.
 
 ### Response — `201`
 
@@ -100,9 +113,9 @@ Errors: `400` invalid body (e.g. a non-numeric metric), `401` bad key, `500` no 
 curl -X POST https://tokeniko.online/api/mind \
   -H 'Content-Type: application/json' \
   -H "Authorization: Bearer $INGEST_API_KEY" \
-  -d '{"state":"thinking","doing":"chaining","uptimeSec":1788600,
+  -d '{"state":"thinking","doing":"chaining","version":"TK-1","uptimeSec":1788600,
        "metrics":{"definitions":3240,"axiomsRules":14,"theorems":7,"dictionary":2925,
-                  "chains":5010,"anchors":128,"inferencesPerCycle":66},
+                  "souls":8,"trustEpisodes":40,"inferencesPerCycle":66},
        "beliefsByDomain":[{"label":"logic","value":48}],
        "activity":[{"at":"2026-06-25T09:01:00Z","text":"second"}]}'
 ```
@@ -115,6 +128,7 @@ curl -X POST https://tokeniko.online/api/mind \
 { "success": true, "data": {
   "doing": "holding the floor",
   "state": "refuting",
+  "version": "TK-1",                   // absent when the brain didn't send one
   "uptimeSec": 1788660,
   "kpis": [ { "label": "Definitions", "value": "3,242", "unit": "vocabulary", "trend": 1 }, … ],
   "activity": [ { "at": "2026-06-25T09:02:00.000Z", "text": "third" } ],
@@ -123,8 +137,10 @@ curl -X POST https://tokeniko.online/api/mind \
 ```
 
 `trend` ∈ `{1,0,-1}`. Before any push (empty archive) this returns a **seeded mock** so the site
-is never blank. (The frontend currently still uses its local fallback; wiring it to this endpoint
-is a later step — the shape already matches.)
+is never blank. The frontend reads this endpoint live: one poll for the whole page (the header's
+ON AIR lamp, the CRT panel, the footer plate and its uptime all share it, so they cannot
+disagree). A snapshot older than 15 minutes reads as **off air** — the site says the mind is
+sleeping and freezes its clock rather than pretending the last state is current.
 
 ## GET /api/mind/history — the archive
 
@@ -186,6 +202,12 @@ curl -X POST https://tokeniko.online/api/transmissions \
 `MONGODB_URI` (public Atlas) · `MONGODB_DB` (optional) · `INGEST_API_KEY` (same secret the brain
 holds) · `MIND_TREND_WINDOW` (sparkline length, default 12) · `CORS_ORIGIN`
 (`https://tokeniko.online`) · `RATE_LIMIT_MAX` / `RATE_LIMIT_WINDOW_MS`. See `backend/.env.example`.
+
+## Brain env (push side)
+
+`INGEST_API_URL` + `INGEST_API_KEY` (the carrier) · `TOKENIKO_VERSION` — the model plate above,
+e.g. `TK-1`. Hand-set in the brain's `.env`; leave it unset and the plate falls back to the site's
+default. Bumped by the author when concrete progress lands, never automatically.
 
 ## Data model (FYI)
 

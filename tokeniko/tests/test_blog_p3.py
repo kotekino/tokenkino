@@ -5,8 +5,9 @@ contract (WITHOUT the internal `polished` flag) to /transmissions; a payload["sn
 VERBATIM to /mind; neither key, an uncomposable material, a raised push or a non-2xx status all
 land FAILED (no auto-retry, no raise); dry-run (flag OR missing INGEST_API_KEY) marks DONE
 without touching the push function. brain/heartbeat.build_snapshot returns the six KPI metric
-keys + the sparkline series as finite counts (souls excludes isMe); _should_beat is the pure
-tick-modulo x min-seconds cadence guard. NO network: the push function is always injected.
+keys + the sparkline series as finite counts (souls excludes isMe) + the hand-set TOKENIKO_VERSION
+plate (omitted when unset); _should_beat is the pure tick-modulo x min-seconds cadence guard.
+NO network: the push function is always injected.
 """
 import asyncio
 from datetime import datetime
@@ -222,6 +223,27 @@ def test_build_snapshot_shape_and_souls_exclude_me(_io, clean_public):
     me = TKMemoryStakeholdersDoc.find({"isMe": True}).count()
     assert me >= 1
     assert snap["metrics"]["souls"] == total - me
+
+
+# ---- 6b. the model plate — a hand-set label, omitted when unset -----------------------------------------
+
+def test_build_snapshot_version_is_env_set_and_optional(_io, clean_public, monkeypatch):
+    # the plate is a JUDGEMENT about progress, so it comes from the env, never from git. Unset or
+    # blank ⇒ the key is absent entirely (the contract's version is optional and the site falls
+    # back to its own default) — an empty string would blank the plate instead.
+    from brain.heartbeat import build_snapshot
+
+    monkeypatch.setenv("TOKENIKO_VERSION", "TK-2")
+    assert build_snapshot("thinking")["version"] == "TK-2"
+
+    monkeypatch.setenv("TOKENIKO_VERSION", "  TK-2  ")
+    assert build_snapshot("thinking")["version"] == "TK-2"      # whitespace never reaches the plate
+
+    monkeypatch.setenv("TOKENIKO_VERSION", "   ")
+    assert "version" not in build_snapshot("thinking")
+
+    monkeypatch.delenv("TOKENIKO_VERSION", raising=False)
+    assert "version" not in build_snapshot("thinking")
 
 
 # ---- 7. the pure heartbeat cadence guard ----------------------------------------------------------------

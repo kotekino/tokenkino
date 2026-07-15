@@ -48,25 +48,38 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
   `doc/deploy-azure.md`. Mongo connect made **non-blocking + auto-retrying** (fast cold start,
   self-heals after an allowlist/network blip).
 
+**Connected to the real mind** ✅
+- **Custom domains live**: `tokeniko.online` (web) + `api.tokeniko.online` (API); the frontend
+  builds against `VITE_API_URL=https://api.tokeniko.online/api`.
+- **The brain pushes for real**: heartbeat snapshots + self-initiated transmissions land through
+  `doc/ingestion-api.md`. The premiere («Learning Who Made Me», 2026-07-12) and everything since
+  is the mind's own output. Coming-soon retired; the full site is public.
+- Mock retirement, permalinks (`/blog/<slug>`), sitemap + Atom feed, zero-cookie honesty.
+
+**Growth Rings + the model plate** (this milestone)
+- **Growth Rings** (`/growth`) — the hunch-12 section: the landed history retold as a young
+  mind's seasons, plus **The Growing Edge** (the one living layer). **Hand-written**, curated
+  from `tokeniko/doc/landed.md` + `roadmap.md` — see `doc/growth-rings.md` for why and how to
+  keep it current.
+- **The model plate is dynamic**: `TOKENIKO_VERSION` (brain env) → `version` on the heartbeat →
+  archived + served → `MODEL <version>` in the footer. Hand-set, bumped on real progress.
+- **The footer's `$ uptime` is real**: the placeholder now reads the live feed, freezes when off
+  air, and says so honestly when there's no signal. One shared clock for the whole page.
+
 ---
 
 ## 🔭 Next (ordered)
 
-1. **Custom domains + re-point.** Map `tokeniko.online → tokeniko-web`, `api.tokeniko.online →
-   tokeniko-api` (portal); rebuild the frontend with `VITE_API_URL=https://api.tokeniko.online/api`.
-2. **Brain push side (local).** The other agent implements the actions-loop publish against
-   `doc/ingestion-api.md` (snapshots periodically; transmissions on `tokeniko:post`). Shared
-   `INGEST_API_KEY`.
-3. **Coming-soon gating.** Once the full publication is verified, flip `VITE_COMING_SOON=1` so the
-   coming-soon page is the only visible page until launch.
-4. **Social card.** Add `public/og-image.png` (1200×630) — re-export from the brand tool with the
+1. **Social card.** Add `public/og-image.png` (1200×630) — re-export from the brand tool with the
    "a thinking machine" tagline; the meta tags already point at it.
-5. **Analytics + cookies.** Wire GA (or a privacy-respecting alternative) behind the existing
+2. **Analytics + cookies.** Wire GA (or a privacy-respecting alternative) behind the existing
    opt-in consent; fill the cookie/data note in the Imprint.
+3. **Keep the rings current.** A ring per closed season; the edge moves when the roadmap's living
+   layer does. The crew's call, not the machine's — see `doc/growth-rings.md`.
 
 ## ⏸️ Parked
 
-- Per-transmission permalink pages (currently `/blog#slug` anchors) + pagination on the list.
+- Pagination on the Archive list (50+ transmissions and growing).
 - Snapshot **TTL / downsampling** on `mind_snapshots` once the archive grows; richer stats views
   off `GET /api/mind/history`.
 - Multi-body `meta.body` tagging (future "species") on snapshots/transmissions.
@@ -80,5 +93,6 @@ Legend: ✅ done · 🔄 in progress · 🔭 next · ⏸️ parked
 - `doc/roadmap.md` — *(this)* the public-site status.
 - `doc/ingestion-api.md` — the brain↔site publish contract (for the local push agent).
 - `doc/deploy-azure.md` — the Azure App Service deploy strategy + smoke tests.
+- `doc/growth-rings.md` — the one hand-written section: what a ring is, and when to add one.
 - Core engine docs live in the sibling `tokeniko/` package (`VISION.md`, `CLAUDE.md`,
   `doc/roadmap.md`).

@@ -2,8 +2,9 @@
 # brain/heartbeat.py — the public MIND MONITOR stats heartbeat (blog P3, brain side). Every so
 # often the coordinator asks this module to enqueue ONE POST_CONTENT action on MEMChannels.PUBLIC
 # whose payload["snapshot"] is the ready-to-ship POST /api/mind body (the ingestion contract,
-# tokeniko-public/doc/ingestion-api.md): the brain reports RAW numeric facts; the website backend
-# derives the display (KPI tiles, trends, the sparkline). Same split as everywhere else in the
+# tokeniko-public/doc/ingestion-api.md): the brain reports RAW numeric facts (plus the hand-set
+# TOKENIKO_VERSION plate); the website backend derives the display (KPI tiles, trends, the
+# sparkline). Same split as everywhere else in the
 # blog arc: the brain DECIDES + BUILDS, the senses PUBLIC executor (senses/blog_outbound.py)
 # CARRIES it over HTTP — this module never touches the network.
 #
@@ -73,6 +74,11 @@ def _iso(epoch: int) -> str:
 # series (inferencesPerCycle). All values must be finite numbers per the contract.
 def build_snapshot(state: str) -> dict:
     now = int(time.time())
+    # the model plate on the public footer: a HAND-SET label (env), bumped by the author when
+    # concrete progress lands — never derived from git or a version file, because "which build is
+    # this" is a judgement about progress, not a commit count. Absent/blank ⇒ omitted from the
+    # payload entirely (the contract's version is optional; the site falls back to its default).
+    version = os.getenv("TOKENIKO_VERSION", "").strip()
     metrics = {
         "definitions": TKDefinitionDoc.find_all().count(),
         # active knowledge only — archived axioms/theorems don't reason, so they don't count.
@@ -105,6 +111,7 @@ def build_snapshot(state: str) -> dict:
     return {
         "state": state,
         "doing": _DOING.get(state, _DOING["thinking"]),
+        **({"version": version} if version else {}),
         "uptimeSec": max(0, uptime),
         "metrics": metrics,
         "activity": activity,

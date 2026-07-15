@@ -7,6 +7,7 @@ import Layout from './components/Layout';
 import Home from './pages/Home';
 import About from './pages/About';
 import Blog from './pages/Blog';
+import Growth from './pages/Growth';
 import TransmissionPage from './pages/Transmission';
 import Contact from './pages/Contact';
 import Imprint from './pages/Imprint';
@@ -41,6 +42,7 @@ const App: React.FC = () => {
                     <Route path="/about" element={<About />} />
                     <Route path="/blog" element={<Blog />} />
                     <Route path="/blog/:slug" element={<TransmissionPage />} />
+                    <Route path="/growth" element={<Growth />} />
                     <Route path="/ping" element={<Contact />} />
                     <Route path="/legal/imprint" element={<Imprint />} />
                     <Route path="*" element={<NotFound />} />

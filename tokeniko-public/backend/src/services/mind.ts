@@ -17,6 +17,12 @@ export interface MindCharts { inferenceTrend: number[]; beliefsByDomain: MindBar
 export interface MindData {
   doing: string;
   state: string;
+  /**
+   * The build the mind is running (e.g. "TK-1") — stamped on the site's footer
+   * plate. Set by hand on the brain side (TOKENIKO_VERSION) and bumped when
+   * real progress lands; absent on snapshots that predate the field.
+   */
+  version?: string;
   uptimeSec: number;
   kpis: MindKpi[];
   activity: MindActivity[];
@@ -37,6 +43,7 @@ export interface MindIngest {
   meta: { source: string; body?: string };
   state: string;
   doing: string;
+  version?: string;
   uptimeSec: number;
   metrics: Record<string, number>;
   beliefsByDomain: MindBar[];
@@ -45,6 +52,9 @@ export interface MindIngest {
 
 /** The metric whose per-snapshot value drives the Signal Scope sparkline. */
 export const SERIES_METRIC = 'inferencesPerCycle';
+
+/** A model number, not a changelog — the plate has room for "TK-1", not prose. */
+const VERSION_MAX_LEN = 24;
 
 /** Ordered map: which metrics become KPIs, and how they're labelled. */
 const KPI_CONFIG: { key: string; label: string; unit: string }[] = [
@@ -81,6 +91,7 @@ export function buildDerived(
   return {
     doing: raw.doing,
     state: raw.state,
+    ...(raw.version ? { version: raw.version } : {}),
     uptimeSec: raw.uptimeSec,
     kpis: buildKpis(raw.metrics, prevMetrics),
     activity: raw.activity.map((a) => ({ at: a.at.toISOString(), text: a.text })),
@@ -95,6 +106,20 @@ export function parseMindBody(body: unknown): MindIngest {
 
   if (typeof b.state !== 'string' || !b.state.trim()) {
     throw createError('`state` is required (a non-empty string)', 400);
+  }
+
+  // `version` is optional (older brains don't send it), but when present it is
+  // stamped straight onto the footer plate — so it must be a short, sane label
+  // rather than anything the plate would have to swallow.
+  let version: string | undefined;
+  if (b.version !== undefined && b.version !== null && b.version !== '') {
+    if (typeof b.version !== 'string' || !b.version.trim()) {
+      throw createError('`version` must be a non-empty string when present', 400);
+    }
+    version = b.version.trim();
+    if (version.length > VERSION_MAX_LEN) {
+      throw createError(`\`version\` must be at most ${VERSION_MAX_LEN} characters`, 400);
+    }
   }
 
   const metrics = b.metrics;
@@ -141,6 +166,7 @@ export function parseMindBody(body: unknown): MindIngest {
     },
     state: b.state.trim(),
     doing: typeof b.doing === 'string' ? b.doing : '',
+    ...(version ? { version } : {}),
     uptimeSec: isFiniteNum(b.uptimeSec) ? b.uptimeSec : 0,
     metrics: cleanMetrics,
     beliefsByDomain: cleanBeliefs,
@@ -155,6 +181,7 @@ export function parseMindBody(body: unknown): MindIngest {
 export const MOCK_MIND: MindData = {
   doing: 'following a thought to its end — “Mari exists”',
   state: 'thinking',
+  version: 'TK-1',
   uptimeSec: 1_788_540,
   kpis: [
     { label: 'Definitions', value: '3,235', unit: 'vocabulary', trend: 1 },

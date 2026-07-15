@@ -42,6 +42,9 @@ const MindSnapshotSchema = new Schema(
     },
     state: { type: String, required: true },
     doing: { type: String, default: '' },
+    /** The build the brain was running at capture (e.g. "TK-1") — archived per
+     *  snapshot so the history knows which mind produced which figures. */
+    version: { type: String },
     uptimeSec: { type: Number, default: 0 },
     metrics: { type: Schema.Types.Mixed, default: {} },
     beliefsByDomain: { type: [BeliefBarSchema], default: [] },

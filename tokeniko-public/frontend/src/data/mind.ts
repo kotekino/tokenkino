@@ -52,6 +52,12 @@ export interface MindSnapshot {
   /** What tokeniko is doing right now, one line. */
   doing: string;
   /**
+   * The build the mind is running, stamped on the footer plate (e.g. "TK-1").
+   * Set by hand on the brain side (TOKENIKO_VERSION) and bumped when real
+   * progress lands. Absent on snapshots that predate the field.
+   */
+  version?: string;
+  /**
    * When the brain captured this snapshot (ISO) — the transmitter "ping".
    * Heartbeats land every ~5 min; the panel goes "off air" when the stamp is
    * much older. Absent on the mock fallback (nothing to be stale relative to).
@@ -69,3 +75,18 @@ export interface MindSnapshot {
 
 /** Honest empty scope — used when a snapshot predates the charts field. */
 export const EMPTY_CHARTS: MindCharts = { inferenceTrend: [], beliefsByDomain: [] };
+
+/** The plate reading when no snapshot has reported a version — the first build,
+ *  and the only model number that ever shipped without one. */
+export const DEFAULT_VERSION = 'TK-1';
+
+/** `5d 22:26:30` — the appliance clock. Shared by every readout of the uptime
+ *  (the CRT panel, the footer) so two clocks on one page can never disagree. */
+export const formatUptime = (totalSec: number): string => {
+  const d = Math.floor(totalSec / 86_400);
+  const h = Math.floor((totalSec % 86_400) / 3_600);
+  const m = Math.floor((totalSec % 3_600) / 60);
+  const s = Math.floor(totalSec % 60);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
+};

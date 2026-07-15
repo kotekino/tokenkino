@@ -1,15 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { MindSnapshot, OFF_AIR_MS, mindAgeMs } from '../data/mind';
+import React from 'react';
+import { MindSnapshot, OFF_AIR_MS, formatUptime, mindAgeMs } from '../data/mind';
 import './MindPanel.css';
-
-const formatUptime = (totalSec: number): string => {
-  const d = Math.floor(totalSec / 86_400);
-  const h = Math.floor((totalSec % 86_400) / 3_600);
-  const m = Math.floor((totalSec % 3_600) / 60);
-  const s = Math.floor(totalSec % 60);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d}d ${pad(h)}:${pad(m)}:${pad(s)}`;
-};
 
 const formatClock = (iso: string) =>
   new Date(iso).toLocaleTimeString('en-GB', {
@@ -31,24 +22,11 @@ interface Props {
   live: boolean;
   /** true once the first fetch resolved either way. */
   settled: boolean;
+  /** The running clock from the shared feed — null while there is no snapshot. */
+  uptimeSec: number | null;
 }
 
-const MindPanel: React.FC<Props> = ({ mind, live, settled }) => {
-  const baseUptime = useRef(mind?.uptimeSec ?? 0);
-  const [tick, setTick] = useState(0);
-
-  // Re-seed the uptime clock whenever a fresh snapshot arrives.
-  useEffect(() => {
-    baseUptime.current = mind?.uptimeSec ?? 0;
-    setTick(0);
-  }, [mind?.uptimeSec]);
-
-  // Let the uptime clock breathe so the screen feels alive.
-  useEffect(() => {
-    const id = window.setInterval(() => setTick((t) => t + 1), 1000);
-    return () => window.clearInterval(id);
-  }, []);
-
+const MindPanel: React.FC<Props> = ({ mind, live, settled, uptimeSec }) => {
   // ── Skeleton phase — no snapshot ever received. Before the first fetch
   // resolves the screen is "tuning"; after, it is honestly unreachable. The
   // layout mirrors the live screen so the real data lands without a jump.
@@ -102,8 +80,8 @@ const MindPanel: React.FC<Props> = ({ mind, live, settled }) => {
   }
 
   // Off-air detection — only meaningful on a live feed with a capture stamp.
-  // `tick` re-evaluates the age every second, so the light goes dark on its
-  // own in an open tab.
+  // The shared clock re-renders this every second, so the light goes dark on
+  // its own in an open tab.
   const ageMs = mindAgeMs(mind, live);
   const offAir = ageMs > OFF_AIR_MS;
   const sinceMin = Math.floor(ageMs / 60_000);
@@ -139,7 +117,7 @@ const MindPanel: React.FC<Props> = ({ mind, live, settled }) => {
         <div className="mind__uptime">
           <span className="mind__uptime-label">UPTIME</span>
           <span className="mind__uptime-value">
-            {formatUptime(baseUptime.current + (offAir ? 0 : tick))}
+            {formatUptime(uptimeSec ?? mind.uptimeSec)}
           </span>
         </div>
 

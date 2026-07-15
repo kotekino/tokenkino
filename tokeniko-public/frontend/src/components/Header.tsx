@@ -8,6 +8,7 @@ import './Header.css';
 const navItems = [
   { label: 'Stream', path: '/' },
   { label: 'Archive', path: '/blog' },
+  { label: 'Growth', path: '/growth' },
   { label: 'Colophon', path: '/about' },
   { label: 'Ping', path: '/ping' },
 ];

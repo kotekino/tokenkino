@@ -8,7 +8,7 @@ import { useMeta } from '../hooks/useMeta';
 import './Home.css';
 
 const Home: React.FC = () => {
-  const { mind, live, settled } = useMindFeed();
+  const { mind, live, settled, uptimeSec } = useMindFeed();
   const { items, settled: txSettled } = useTransmissions();
 
   useMeta({
@@ -54,7 +54,7 @@ const Home: React.FC = () => {
 
         {/* Mind monitor + scope — ride at the top, beside the headline */}
         <div className="stream__rail">
-          <MindPanel mind={mind} live={live} settled={settled} />
+          <MindPanel mind={mind} live={live} settled={settled} uptimeSec={uptimeSec} />
           <MindCharts charts={mind?.charts ?? null} live={live} />
         </div>
       </div>

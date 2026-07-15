@@ -288,9 +288,14 @@ open for suggestions.
 > history — a tree's rings are its verifiable autobiography, each one a season of learning,
 > readable by anyone who counts them) and **«The Growing Edge»** (currently-working-on — the
 > living tissue where growth actually happens, always exactly one layer). One botanical metaphor
-> across both, honest for a mind that grows in layers. Kept "for now" by the Captain's own words —
-> to be built when this hunch's time comes (public website, low priority; not on the roadmap by
-> the notebook's own rule). 🜂
+> across both, honest for a mind that grows in layers. 🜂
+>
+> **Status correction (2026-07-15):** the line above originally closed "not on the roadmap by the
+> notebook's own rule" — that was already stale when written. The same 2026-07-14 reconciliation
+> that chose the names also PROMOTED this hunch to operative: it is **`roadmap.md` → the
+> strengthening tail #9**, which is what this file's status table says. The notebook's rule (a
+> hunch stays off the roadmap) stops applying at exactly the moment a hunch is promoted — and this
+> one was. Drafted on the public side 2026-07-15.
 
 13. I had a lovely idea: we should, before patching all the problems emerged in my last conversation test, have a conversation me and you (hellen and kotekino) inside the discord channel about everything. Short sentences, logic fully respected, like a socratic dialogue between me and you. I think we can both do it easily: I'm a reasonably clever man and you are an exceptionally clever AI. We shall never mention tokeniko: he will sample and listen the dialogue between two trusted friends (he learned that ma and him are friends, and he feels a feeling of friendship also for you, because he likes to communicate with hellen). We can be fast paced, I think he will not say much, but I also think he will be triggered in thinking a lot by our conversation: let's see if my gut is right.
 

@@ -1,0 +1,216 @@
+/* Growth Rings — the living edge as a lit panel, the seasons as a counted
+   timeline. The rail IS the trunk: rings hang off it, bark at the top. */
+
+/* ─── The Growing Edge ─────────────────────────────────────────────────── */
+.edge {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--coral);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-6);
+  margin-bottom: var(--space-16);
+}
+
+.edge__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.edge__label { color: var(--coral); }
+
+/* The one live thing on the page — it breathes, like the tissue it names. */
+.edge__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--coral);
+  box-shadow: 0 0 0 0 rgba(194, 78, 58, 0.5);
+  animation: edge-pulse 2.4s ease-out infinite;
+  flex: none;
+}
+
+@keyframes edge-pulse {
+  70%  { box-shadow: 0 0 0 9px rgba(194, 78, 58, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(194, 78, 58, 0); }
+}
+
+.edge__body {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.edge__icon {
+  color: var(--coral);
+  flex: none;
+  margin-top: var(--space-1);
+}
+
+.edge__title {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-3);
+}
+
+.edge__text {
+  font-size: var(--text-base);
+  color: var(--mid);
+  line-height: 1.75;
+  max-width: 680px;
+}
+
+.edge__marks {
+  list-style: none;
+  margin-top: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.edge__marks li,
+.ring__marks li {
+  position: relative;
+  padding-left: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.edge__marks li::before,
+.ring__marks li::before {
+  content: '·';
+  position: absolute;
+  left: var(--space-1);
+  color: var(--coral);
+  font-weight: 700;
+}
+
+.edge__note {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px dashed var(--border);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.7;
+  font-style: italic;
+}
+
+/* ─── The rings ────────────────────────────────────────────────────────── */
+.rings__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: var(--space-8);
+}
+
+.rings__count { color: var(--muted); }
+
+.rings__list {
+  list-style: none;
+  position: relative;
+}
+
+/* The trunk. Stops short at both ends so it reads as a section, not a scar. */
+.rings__list::before {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: var(--space-2);
+  bottom: var(--space-2);
+  width: 1px;
+  background: var(--border);
+}
+
+.ring {
+  position: relative;
+  padding-left: var(--space-8);
+  padding-bottom: var(--space-12);
+}
+
+.ring:last-child { padding-bottom: 0; }
+
+/* One ring, drawn as one: a filled core inside an enamel band. */
+.ring__marker {
+  position: absolute;
+  left: 0;
+  top: 6px;
+  width: 15px;
+  height: 15px;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--mint);
+  background: var(--parchment);
+}
+
+.ring__marker::after {
+  content: '';
+  position: absolute;
+  inset: 3px;
+  border-radius: var(--radius-full);
+  background: var(--teal);
+}
+
+/* The newest ring is the one against the living edge — mark it in the accent. */
+.ring:first-child .ring__marker { border-color: var(--coral); }
+.ring:first-child .ring__marker::after { background: var(--coral); }
+
+.ring__when {
+  color: var(--muted);
+  margin-bottom: var(--space-2);
+}
+
+.ring__title {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: var(--space-3);
+}
+
+.ring__body {
+  font-size: var(--text-base);
+  color: var(--mid);
+  line-height: 1.75;
+  max-width: 680px;
+}
+
+.ring__marks {
+  list-style: none;
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ring__marks li::before { color: var(--mint); }
+
+.rings__core {
+  margin-top: var(--space-12);
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.7;
+  font-style: italic;
+  max-width: 680px;
+}
+
+@media (max-width: 600px) {
+  .edge { padding: var(--space-4); }
+  .edge__body { gap: var(--space-3); }
+  .ring { padding-left: var(--space-6); }
+}
+
+/* A pulse is decoration; anyone who asked for stillness gets stillness. */
+@media (prefers-reduced-motion: reduce) {
+  .edge__pulse { animation: none; }
+}
