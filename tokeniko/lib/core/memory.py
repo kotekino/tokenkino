@@ -123,6 +123,10 @@ class MEMItem(BaseModel):
     # behavior rule's urge by this (behavior.effective_urge), so discretion — down to silence below
     # the act threshold — emerges from ONE scalar instead of parallel side-* tokens.
     directedness: float = Field(default=1.0)
+    # the translator at the ears (rag1-in, instrument arc #3): when a STUMBLING message was tidied
+    # and the polish passed the zip-verifier, the normalized text rides here and `zip` compiles
+    # from it — `original` ALWAYS keeps the speaker's raw words (true history be it).
+    normalized: Optional[str] = None
 
 # alias for list of memory items
 MEMContext = list[MEMItem]

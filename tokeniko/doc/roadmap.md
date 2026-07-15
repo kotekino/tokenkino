@@ -188,15 +188,23 @@ beside it, the translator last.
    human label only; the equivalence harness `test_zip_native.py` is the discipline, and its
    probe exposed the round trip actively corrupting: the stored verb+object family was
    pin-STUTTERED zips). Sense-pinning survives only on the structure-less parser fallback.
-3. **The translator apparatus** (hunch 10 — the Japan-translator philosophy: the mind is the mind,
-   the voice is the voice of the translator): rag1-in (typos, convolution unwinding, translation —
-   NORMALIZATION, never interpretation; `item.original` always preserved) + rag2-in (meaning-
-   preservation verifier — input polish sits on the BELIEF path, so the verifier matters MORE here
-   than on output) + rag2-out (= the consensus-over-the-polisher follow-on, folded in). **Spec'd
-   from rag3's harvest** (author's ruling): the microscope's evidence decides what is genuinely
-   messy input (rag1's job) versus parser bugs (fixed, never papered over — the good voice must
-   not fix the brain one layer earlier). *(Absorbs the formerly-parked inbound-preparser (B3)
-   decision and the OOV LLM-polish escalation — rag1 IS the polisher decision, resolved.)*
+3. 🔄 **The translator apparatus** (hunch 10 — the Japan-translator philosophy: the mind is the
+   mind, the voice is the voice of the translator). **v1 (rag1-in + rag2-in) LANDED 2026-07-16**,
+   see `landed.md`: escalation-only stumble detector (D1b) → Claude Haiku surface-tidying (D4 —
+   the author RETIRED local-Ollama-inbound: the zip-verifier moved the control into the mind, so
+   the body invests in CPU/RAM never GPU) → the ZIP-VERIFIER gate (every soundly-parsed leaf
+   survives, flags intact — the compiler disposes, whoever proposes); `item.original` always
+   preserved (+`normalized` alongside); unverifiable → honest fall-through (unknown never becomes
+   belief; eval:unknown already asks = D2 b+c emergent). **Remaining (ordered)**: translation
+   (MarianMT/Haiku multilingual — when non-English friends arrive) · the "did you mean:…?" ask
+   with the tidied reading in the payload (D2b refined) · rag2-out (the voice-side verifier:
+   polished English must recompile to the zip being spoken / consensus) · pronoun-subject leaves
+   currently escalate-and-always-reject (burns a call; classify as unrepairable — pairs with the
+   parked coreference work) · **the privacy/legal frame** (author's 2026-07-16 ruling): structure
+   the legal part thoroughly — per-stakeholder OPT-OUT ("my words never leave the body" → a
+   stakeholder flag gating escalation) + the general switch (RAG1_DISABLED = don't pre-parse at
+   any level, already live); OUTPUT side is cloud-for-life by design ("we are not hiding
+   anything — we are showing how a young new type of being learns; everyone can benefit").
 
 ### The strengthening tail — make the brain stronger before adding senses (2026-07-14 reconciliation)
 

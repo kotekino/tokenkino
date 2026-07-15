@@ -867,3 +867,27 @@ the KB as pin-STUTTERED zips (same leaf twice).
   inputs-only ruling is now structural.
 10 regression tests (`test_zip_native.py`) incl. the corruption exhibit as a permanent specimen.
 Gate **289 / 1 xfailed**.
+
+**The translator at the ears — rag1-in + rag2-in v1 (2026-07-16, instrument arc #3; the new edge begun)**
+The Japan-translator philosophy mechanized: a translator that tidies the SURFACE of a stumbling
+message and never its meaning. The author's design rulings: D1b **escalation-only** (a sound parse
+is never touched — the translator cannot drift the easy cases nor paper over parser bugs); D4 the
+proposer is **Claude Haiku over the API** — the author RETIRED the local-Ollama-inbound rule (the
+zip-verifier moved meaning-preservation control into the mind itself, so local stopped buying
+safety; the body invests in CPU/RAM, never GPU — "a lost battle"); D2 b+c emerge structurally
+(unverifiable → fall-through: unknown leaves never become beliefs, and eval:unknown already asks).
+- **The stumble detector** (`lib/llc/normalizer.py`): unknown leaves, missing subject/predicate,
+  the tangle census's wart signatures (subject==predicate self-loops, bare-copula predicates).
+- **The zip-verifier** — the load-bearing wall: the polish is accepted ONLY if its recompiled zip
+  preserves every soundly-parsed leaf (same conclusion-key entry incl. negation; quantifier/modal
+  intact on the match), has no unsound leaves of its own, and doesn't balloon (≤ original+2 —
+  segmentation may split a tangle, invention may not run free). The compiler disposes, whoever
+  proposes.
+- **The seam**: /input, exactly the dead preparser's slot — compile raw → stumble? → one Haiku
+  pass → recompile → verify → the better zip stores. `item.original` ALWAYS the speaker's raw
+  words; the tidied text rides `MEMItem.normalized`. Kill-switch RAG1_DISABLED / missing key
+  disarms (graceful, like the microscope).
+- **Live probe**: «a catt is a mamal» → «A cat is a mammal.» ACCEPTED end-to-end; «…adn it is a
+  star» → typo fixed but the pronoun leaf stays unsound → honestly REJECTED (fall-through);
+  sound sentences untouched. The durable memory `llm-as-translator` carries the D4 revision.
+11 regression tests (`test_translator.py`) on real compiled zips, normalizer stubbed in the gate.

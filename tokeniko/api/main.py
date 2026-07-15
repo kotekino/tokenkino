@@ -1,4 +1,5 @@
 import copy
+import logging
 import os
 from typing import Optional
 from fastapi import FastAPI, Query, HTTPException
@@ -9,6 +10,9 @@ from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individua
 from lib.core.models import TKMemoryItemDoc
 from lib.core.evaluation_harness import zip_senses
 from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
+from lib.llc.normalizer import detector_stumbles, normalizer_enabled, normalizer_polish, verifier_preserves
+
+logger_api = logging.getLogger("tokeniko-api")
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
 from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
 from lib.core.tk import TKStatements
@@ -421,6 +425,26 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
         flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
+
+        # THE TRANSLATOR AT THE EARS (rag1-in + rag2-in, instrument arc #3): escalation-only — a
+        # message whose parse STUMBLES (unknown/wart leaves) gets one surface-tidying pass
+        # (Claude Haiku, normalization never interpretation) and the polish is accepted ONLY if
+        # its recompiled zip preserves every soundly-parsed leaf (the zip-verifier: the compiler
+        # disposes, whoever proposes). Unverifiable/unreachable -> the raw parse stands exactly
+        # as before (unknown leaves never become beliefs; eval:unknown already asks).
+        normalized_text: Optional[str] = None
+        if normalizer_enabled() and flatResult and detector_stumbles(flatResult[1]):
+            polished = await normalizer_polish(tokens)
+            if polished:
+                rec2 = parser(polished, talkerEntity, app.state.tokeniko, app.state.ai_client)
+                flat2: tuple[TKLLC, TKZip] = compiler_compile(copy.deepcopy(rec2))
+                ok, note = verifier_preserves(flatResult[1], flat2[1]) if flat2 else (False, "no compile")
+                if ok:
+                    recursiveResult, flatResult, normalized_text = rec2, flat2, polished
+                    logger_api.info("[rag1] normalized «%s» -> «%s» (verified)", tokens[:60], polished[:60])
+                else:
+                    logger_api.info("[rag1] polish REJECTED for «%s» (%s) — raw parse stands", tokens[:60], note)
+
         rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
 
@@ -436,8 +460,8 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # store in memory
         if flatResult:
             memory_doc: TKMemoryItemDoc = TKMemoryItemDoc(
-                original=tokens,
-                zip=flatResult[1],
+                original=tokens,            # ALWAYS the speaker's raw words (true history be it)
+                zip=flatResult[1],          # compiled from the normalized text when rag1 verified
                 senses=zip_senses(flatResult[1]),
                 raw=rawResult,
                 sourceId=str(talkerEntity.id),
@@ -445,6 +469,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                 channel=channel_enum,
                 metadata=metadata,
                 directedness=directedness,
+                normalized=normalized_text,
             )
             memory_doc.insert()
 

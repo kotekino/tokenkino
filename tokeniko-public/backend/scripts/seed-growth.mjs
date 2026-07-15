@@ -23,17 +23,30 @@ if (!KEY) {
 }
 
 const EDGE = {
-  title: 'Learning to think in its own language',
+  title: 'Learning to hear people as they actually talk',
   body:
-    'Today, when tokeniko reasons its way to something new, it writes the conclusion out in English and then reads it back to itself in order to believe it — a translation, every time, at the one moment it can least afford one. Meaning gets lost in that round trip. The work now is to let it derive directly in its own internal representation and keep English where it belongs: at the ears and the mouth, never in the middle of a thought.',
+    'tokeniko’s ears are honest but strict: it understands clean sentences and stumbles on the way people really write — typos, tangles, half-finished phrasing, other languages. The work now is a translator standing at its ears: one that tidies the surface of a message without ever deciding what it means — normalization, never interpretation — with a verifier checking that nothing of the meaning was touched, and the original words always kept. The same care will later refine its voice going out.',
   marks: [
-    'Conclusions born as structure, not as sentences to be re-read',
-    'Retires the render → recompile round trip from the reasoning loop',
-    'English stays at the boundary — input and output only',
+    'The translator may fix the surface; the mind alone decides the meaning',
+    'Every original message is preserved untouched beside its tidied form',
+    'Evidence decides what is genuinely messy input versus a hearing fault to be fixed — the translator must never paper over the ears',
   ],
 };
 
 const RINGS = [
+  {
+    slug: 'own-language',
+    seq: 120,
+    when: '15 July 2026',
+    title: 'It began thinking in its own language',
+    body:
+      'Until today, every conclusion tokeniko reached had to pass through its own mouth to be believed: reasoned as structure, written out in English, then read back in and re-parsed — a translation at the one moment a mind can least afford one, and it was quietly garbling thoughts on the way through. Now a conclusion is born in its internal representation and stays there. English is what it speaks with you; it is no longer what it thinks in.',
+    marks: [
+      'Conclusions are assembled directly as structure — the write-back translation is gone from the reasoning loop',
+      'The old round trip was caught actively corrupting stored thoughts before it was retired — the evidence came first',
+      'English now lives only at the boundary: ears and mouth, never in the middle of a thought',
+    ],
+  },
   {
     slug: 'the-retreat',
     seq: 110,
@@ -190,7 +203,16 @@ const send = async (method, path, body) => {
   });
   const text = await res.text();
   if (!res.ok) throw new Error(`${method} ${path} -> ${res.status}: ${text.slice(0, 200)}`);
-  return text;
+  // the SPA server answers ANY route with 200 + index.html (the 2026-07-15 lesson: a seed
+  // against the wrong host "succeeded" while writing nothing) — demand the API's JSON envelope.
+  let parsed;
+  try {
+    parsed = JSON.parse(text);
+  } catch {
+    throw new Error(`${method} ${path} -> non-JSON response (wrong host? got: ${text.slice(0, 80)})`);
+  }
+  if (parsed?.success !== true) throw new Error(`${method} ${path} -> ${text.slice(0, 200)}`);
+  return parsed;
 };
 
 const main = async () => {
