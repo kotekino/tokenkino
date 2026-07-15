@@ -449,12 +449,17 @@ def _kb_wonder_one() -> bool:
             n_held_skip += 1
             continue  # unrenderable, or this conclusion is already a held theorem -> converged
         chain = _CHAIN_PREFIX + c["chain"]  # same proof convention as the memory-wondering path
-        senses = {"subject": c["subject"], "predicate": c["predicate"], "object": c.get("object")}
+        # ZIP-NATIVE (instrument arc #2): the conclusion's STRUCTURE is the thought — the API
+        # assembles the zip directly from it; the render above is only the human label. No parser
+        # in the belief path, nothing to pin.
+        structure = {"subject": c["subject"], "predicate": c["predicate"],
+                     "object": c.get("object"), "negated": c.get("negated", False),
+                     "subject_kind": c["subject_kind"]}
         # provenance gate (blog P1): postability = the AND over the conclusion's premise theorems —
         # one DM-tainted (postable=False) premise poisons the conclusion; axioms/graph edges pass.
         postable = _premises_postable(c["premises"])
         resp = api_client.materialize_theorem(nl, c["premises"], chain, derived_by="wondering",
-                                              trusted=c.get("trust", 0.9), senses=senses,
+                                              trusted=c.get("trust", 0.9), structure=structure,
                                               postable=postable)
         if resp is None or resp.get("status") != "complete":
             logger.warning("[wondering] KB-derive «%s» — API unavailable/failed, will retry", nl)

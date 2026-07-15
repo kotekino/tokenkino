@@ -214,6 +214,11 @@ def _execute_retreat(action: TKActionDoc) -> None:
     minted = None
     if weakened and weakened.get("tokens"):
         trusted = min(float(ct.get("corrector_trust", 0.9)), 0.9)  # taught ceiling
+        wsenses = weakened.get("senses") or {}
+        # ZIP-NATIVE (instrument arc #2): the subaltern is born as structure — no parser in the mint.
+        structure = ({"subject": wsenses.get("subject"), "predicate": wsenses.get("predicate"),
+                      "subject_kind": "class"}
+                     if wsenses.get("subject") and wsenses.get("predicate") else None)
         minted = api_client.materialize_theorem(
             tokens=weakened["tokens"],
             premises=[f"corrected-by:{ct.get('corrector')}"] + archived_ids,
@@ -221,7 +226,8 @@ def _execute_retreat(action: TKActionDoc) -> None:
                    f"{ct.get('corrector')} defeats «{retracted[0]}» -> subaltern survives"),
             derived_by="retreat",
             trusted=trusted,
-            senses=weakened.get("senses"),
+            structure=structure,
+            senses=wsenses if structure is None else None,
         )
         if minted is None:
             logger.warning("[actions] retreat mint «%s» skipped (API unreachable) — retreat itself complete",

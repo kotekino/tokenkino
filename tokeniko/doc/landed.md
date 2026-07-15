@@ -835,3 +835,35 @@ honest plate (live `$ uptime` frozen off-air; hand-set `TOKENIKO_VERSION` — TK
 first heartbeat) + version stickiness server-side (a versionless heartbeat inherits the last
 version sent; the archive stays as-sent). Deployed per the runbook (prebuilt artifacts,
 build-off); prod smoke: /api/growth public, writes 401 unauthed, /growth 200, plate TK-1.1.
+
+**Zip-native derivation — thinking in TKZip (2026-07-15, instrument arc #2; the Growing Edge made real)**
+The NL render → parse → recompile round trip RETIRES from the belief path: a derived conclusion
+is born as a zip, assembled directly from its own structure. NL is I/O, not thought — English
+now only speaks when spoken to. Evidence-first (the design conversation's P-order): the P1 probe
+caught the round trip ACTIVELY corrupting before any production change — «a cat feels curiosity»
+rendered→parsed splits into two wrong leaves and DROPS the direct object; the sense-pin then
+stamped the true conclusion onto both halves, so the whole wondered verb+object family sits in
+the KB as pin-STUTTERED zips (same leaf twice).
+- **The assembler** (`lib/core/zip_native.py`, parser-free by construction): semantic 2925 =
+  tanh(dictionary sense vector) — byte-identical to the compiler's own recipe (equivalence to
+  1e-6 on the shape battery); markers 300 = zeros (canonical SVO); spacetime neutral; flags
+  carried straight from the derivation. Probe-pinned defaults: bare individual subject →
+  GENERIC; vectorless identity → honest zeros (identity carries the reference). REFUSES over an
+  ungroundable sense — a belief is never assembled over a hole (`UngroundableConclusionError` →
+  422).
+- **The seam** (the author's D1 ruling — same endpoint, two entrances): materialize with
+  `structure` assembles natively, no parser, nothing to pin; structure-less falls back to
+  parse+pin (the bandage survives only where the wound still exists). Write-path invariant
+  untouched.
+- **The brain switch**: wondering (`_kb_wonder_one`) and the retreat's subaltern mint send
+  structure; `render_conclusion` output is the human label only. Discovery: the thinking-path
+  materialize already stored the perceived zip directly — wondering + the mint were the ONLY
+  round trips in the belief path.
+- **Dedup continuity without migration**: `conclusion_key` set-collapses identical leaves, so
+  the stored stutters equal their honest native single-leaf forms. `held`/`_dedup_suppressed`
+  stay as a cheap local cache (old wordings are biography), demoted from correctness-critical.
+- Free dividends: no spaCy/Stanza pass per thought (the CPU/GPU thanks him), the api process is
+  no longer a *cognitive* dependency for wondering's zips (only the seam), and the microscope's
+  inputs-only ruling is now structural.
+10 regression tests (`test_zip_native.py`) incl. the corruption exhibit as a permanent specimen.
+Gate **289 / 1 xfailed**.

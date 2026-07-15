@@ -50,13 +50,18 @@ def _post_json(path: str, body: dict) -> dict | None:
 # trusted. Returns the {status, data} dict (data = the theorem, existing or new), or None on failure.
 def materialize_theorem(tokens: str, premises: list[str], chain: str, derived_by: str = "wondering",
                         trusted: float = 0.9, senses: dict | None = None,
-                        postable: bool = True) -> dict | None:
+                        postable: bool = True, structure: dict | None = None) -> dict | None:
     # `postable` (blog P1): the provenance gate computed brain-side (the premise-AND over the
     # conclusion's premise theorems — "DM never public"); persisted on the stored theorem doc.
+    # `structure` (instrument arc #2): the conclusion's {subject, predicate, object?, negated?,
+    # subject_kind?} — the ZIP-NATIVE entrance: the API assembles the zip directly from it, the
+    # parser never runs, and `tokens` is only the human-readable label.
     body = {"tokens": tokens, "premises": premises, "chain": chain, "derived_by": derived_by,
             "trusted": trusted, "postable": postable}
+    if structure:
+        body["structure"] = structure
     if senses:
-        body["senses"] = senses  # the conclusion's known role senses — pinned server-side into the zip
+        body["senses"] = senses  # parser-fallback path only: pinned server-side into the compiled zip
     return _post_json("/api/v1/theorems/materialize", body)
 
 

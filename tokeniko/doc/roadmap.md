@@ -182,13 +182,12 @@ beside it, the translator last.
      perspective-resolution), see `landed.md`. Now **standing practice**: entries are LEADS, not
      verdicts — triage stays with the crew; confirmed leads become `test-feedback.md` entries →
      regression tests → fixes. The self-growing seedbank, running.
-2. **Zip-native derivation — no internal compilation** (core consistency, the author's gut made
-   rank): wondering's conclusions are born as ZIPS — the NL render → recompile round-trip retires
-   from the derivation loop (NL remains only at the I/O boundary). Kills the round-trip corruption
-   class at the root: sense-pinning becomes unnecessary, the storm's render leg disappears. A mind
-   should think in its own representation — NL is I/O, not thought. *(Absorbs the formerly-parked
-   "mentalese materialize" item — same design: dictionary vectors for the senses, the canonical
-   SVO marker pattern, neutral spacetime, still through the API materialize seam.)*
+2. ✅ **Zip-native derivation — no internal compilation** — LANDED 2026-07-15, see `landed.md`
+   (the parser-free assembler `lib/core/zip_native.py` + the native entrance in the SAME
+   materialize seam; wondering + the retreat mint send STRUCTURE — the render survives as the
+   human label only; the equivalence harness `test_zip_native.py` is the discipline, and its
+   probe exposed the round trip actively corrupting: the stored verb+object family was
+   pin-STUTTERED zips). Sense-pinning survives only on the structure-less parser fallback.
 3. **The translator apparatus** (hunch 10 — the Japan-translator philosophy: the mind is the mind,
    the voice is the voice of the translator): rag1-in (typos, convolution unwinding, translation —
    NORMALIZATION, never interpretation; `item.original` always preserved) + rag2-in (meaning-

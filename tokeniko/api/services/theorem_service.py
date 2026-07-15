@@ -18,6 +18,7 @@ from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
 from lib.core.evaluation_harness import conclusion_key, revoke_dependents, _zip_leaves
+from lib.core.zip_native import assemble_conclusion_zip
 from api.services.validation import assert_no_contradiction
 
 
@@ -27,6 +28,9 @@ class InvalidTheoremIdError(Exception):
 
 class TheoremNotFoundError(Exception):
     """No theorem found for the given object id."""
+
+class UngroundableConclusionError(Exception):
+    """Native assembly refused: a named role has no dictionary vector (a belief is never assembled over a hole)."""
 
 
 # the subject role tensor layout (tkzip.py): 300 markers + 2925 semantic + 12 spacetime
@@ -119,10 +123,27 @@ class TheoremService:
     # so a truth already held is not re-stored under different wording -> wondering converges. Returns
     # the existing theorem (no write) when the conclusion is already known, else the newly-stored one.
     def materialize(self, tokens: str, provenance: MEMProvenance, trusted: float = 0.9,
-                    senses: Optional[dict] = None, postable: bool = True) -> TKTheoremDoc:
-        fields = self.compile_fields(tokens)
-        if senses:
-            _pin_conclusion_senses(fields["zip"], senses)  # the derivation's senses ARE the truth
+                    senses: Optional[dict] = None, postable: bool = True,
+                    structure: Optional[dict] = None) -> TKTheoremDoc:
+        # ZIP-NATIVE ENTRANCE (instrument arc #2): when the caller sends the conclusion's full
+        # STRUCTURE, the zip is assembled directly from it — the parser never runs, `tokens` is
+        # only the human label, and there is nothing to re-pin (the senses are first-class inputs,
+        # not a repair). The parser path below stays as the structure-less fallback. Same seam,
+        # two entrances — the write-path invariant is untouched.
+        fields: dict
+        if structure and structure.get("subject") and structure.get("predicate"):
+            native = assemble_conclusion_zip(
+                structure["subject"], structure["predicate"], structure.get("object"),
+                bool(structure.get("negated", False)), subject_kind=structure.get("subject_kind"),
+            )
+            if native is None:
+                raise UngroundableConclusionError(
+                    f"native assembly refused (ungroundable role): {structure}")
+            fields = {"original": tokens, "zip": native, "raw": None}
+        else:
+            fields = self.compile_fields(tokens)
+            if senses:
+                _pin_conclusion_senses(fields["zip"], senses)  # the derivation's senses ARE the truth
         assert_no_contradiction(fields["zip"])  # logic-is-sacred: never store a contradictory form
         key = conclusion_key(fields["zip"])
         for existing in TKTheoremDoc.find({"archived": False}).to_list():

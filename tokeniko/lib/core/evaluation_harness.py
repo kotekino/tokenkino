@@ -474,7 +474,11 @@ def conclusion_key(statement) -> tuple:
     # sort key: stringify every slot — `x or ""` left the negated bool as True (bool<str TypeError
     # when two leaves tie on senses and differ only in negation, e.g. «clouds can produce rain but
     # not every cloud produces rain»). The KEY tuples are unchanged; only the ordering is normalized.
-    return tuple(sorted(leaves, key=lambda t: tuple("" if x is None else str(x) for x in t)))
+    # SET-collapse (zip-native P1): identical leaves assert the SAME thing — a duplicated leaf is
+    # the round-trip's stutter (the parser split «a cat feels curiosity» wrongly and the sense-pin
+    # stamped the true conclusion onto BOTH halves), not a second assertion. Collapsing makes the
+    # stored stutter equal its honest native single-leaf form — dedup continuity without migration.
+    return tuple(sorted(set(leaves), key=lambda t: tuple("" if x is None else str(x) for x in t)))
 
 
 # classifyForm over a synthetic conjunction of clauses (TKZipContent). Returns classifyForm's detail

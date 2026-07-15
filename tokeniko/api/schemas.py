@@ -95,7 +95,13 @@ class TheoremMaterializeIn(BaseModel):
     trusted: float = 0.9                                # min-trust inheritance (low when it rests on a tier edge)
     # the conclusion's KNOWN role senses (subject/predicate/object), straight from the derivation —
     # pinned into the compiled zip so the lossy NL round-trip can never corrupt the semantic dedup key.
+    # (Parser-fallback path only; the native entrance below has no round trip to repair.)
     senses: Optional[dict[str, Optional[str]]] = None
+    # ZIP-NATIVE ENTRANCE (instrument arc #2): the conclusion's full structure
+    # {subject, predicate, object?, negated?, subject_kind?}. When present, the zip is assembled
+    # directly from it (lib/core/zip_native) — the parser never runs and `tokens` is only the
+    # human-readable label. NL is I/O, not thought.
+    structure: Optional[dict] = None
     # provenance gate (blog P1): False when the conclusion rests on a DM-tainted premise theorem
     # ("DM never public"); computed brain-side, persisted on the doc. Default True — existing callers untouched.
     postable: bool = True
@@ -164,9 +170,13 @@ def memory_or_http(action):
     return _or_http(action, InvalidMemoryIdError, MemoryNotFoundError, "memory item")
 
 # run a create/patch/replace action, translating validation failures to HTTP 422:
-# a contradictory FORM (logic-is-sacred). Anything else re-raises.
+# a contradictory FORM (logic-is-sacred), or a native-assembly refusal (an ungroundable role —
+# a belief is never assembled over a hole). Anything else re-raises.
 def create_or_http(action):
+    from api.services.theorem_service import UngroundableConclusionError
     try:
         return action()
     except InconsistentStatementError as error:
+        raise HTTPException(status_code=422, detail=str(error))
+    except UngroundableConclusionError as error:
         raise HTTPException(status_code=422, detail=str(error))
