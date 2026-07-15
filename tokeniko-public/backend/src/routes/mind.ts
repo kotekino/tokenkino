@@ -59,8 +59,16 @@ router.post('/', requireIngestKey, async (req: Request, res: Response, next: Nex
     const prev = await MindCurrent.findOne({ key: 'current' }).lean();
     const prevMetrics = (prev?.metrics as Record<string, number>) ?? {};
 
-    // append to the append-only archive
+    // append to the append-only archive — BEFORE version inheritance, so the
+    // archive row stays exactly as sent (an honest per-capture record).
     await MindSnapshot.create(raw);
+
+    // VERSION STICKINESS: a snapshot without a version inherits the last one the
+    // brain ever sent — the plate must never regress to the site default just
+    // because one heartbeat came from a brain with the env unset. Only the
+    // derived CURRENT display inherits; the archive above does not.
+    const prevVersion = (prev?.data as { version?: string } | undefined)?.version;
+    if (!raw.version && prevVersion) raw.version = prevVersion;
 
     // recent series (incl. this one), oldest → newest, for the sparkline
     const recent = await MindSnapshot.find()

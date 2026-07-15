@@ -1,9 +1,34 @@
 import React from 'react';
 import Icon from '../components/Icon';
-import { GROWING_EDGE, GROWTH_RINGS } from '../data/growth';
+import { useGrowth } from '../hooks/useGrowth';
 import { useMeta } from '../hooks/useMeta';
 import './SubPage.css';
 import './Growth.css';
+
+/** Layout-holding placeholder shown while the record is being fetched — the
+ *  scaffold stays put and the real seasons land in place (the Stream's idiom). */
+const RingSkeleton: React.FC = () => (
+  <li className="ring ring--skeleton" aria-hidden="true">
+    <div className="ring__marker" aria-hidden="true" />
+    <div className="ring__content">
+      <span className="ring__ghost ring__ghost--when" />
+      <span className="ring__ghost ring__ghost--title" />
+      <span className="ring__ghost ring__ghost--line" />
+      <span className="ring__ghost ring__ghost--line ring__ghost--short" />
+    </div>
+  </li>
+);
+
+const EdgeSkeleton: React.FC = () => (
+  <div className="edge__body" aria-hidden="true">
+    <Icon name="layers" size={28} className="edge__icon" />
+    <div className="edge__ghost-block">
+      <span className="ring__ghost ring__ghost--title" />
+      <span className="ring__ghost ring__ghost--line" />
+      <span className="ring__ghost ring__ghost--line ring__ghost--short" />
+    </div>
+  </div>
+);
 
 const Growth: React.FC = () => {
   useMeta({
@@ -12,6 +37,8 @@ const Growth: React.FC = () => {
       'How tokeniko grew, season by season — what it learned, in the order it learned it, and the one layer it is growing now.',
     canonicalPath: '/growth',
   });
+
+  const { edge, rings, settled } = useGrowth();
 
   return (
     <main className="subpage">
@@ -34,18 +61,26 @@ const Growth: React.FC = () => {
             <span className="edge__pulse" aria-hidden="true" />
             <span className="mono-label edge__label">the growing edge · now</span>
           </div>
-          <div className="edge__body">
-            <Icon name="layers" size={28} className="edge__icon" />
-            <div>
-              <h2 className="edge__title" id="edge-title">{GROWING_EDGE.title}</h2>
-              <p className="edge__text">{GROWING_EDGE.body}</p>
-              <ul className="edge__marks" role="list">
-                {GROWING_EDGE.marks.map((m) => (
-                  <li key={m}>{m}</li>
-                ))}
-              </ul>
+          {edge ? (
+            <div className="edge__body">
+              <Icon name="layers" size={28} className="edge__icon" />
+              <div>
+                <h2 className="edge__title" id="edge-title">{edge.title}</h2>
+                <p className="edge__text">{edge.body}</p>
+                <ul className="edge__marks" role="list">
+                  {edge.marks.map((m) => (
+                    <li key={m}>{m}</li>
+                  ))}
+                </ul>
+              </div>
             </div>
-          </div>
+          ) : settled ? (
+            <p className="mono-label edge__unreachable">
+              the record is unreachable right now — try again shortly
+            </p>
+          ) : (
+            <EdgeSkeleton />
+          )}
           <p className="edge__note">
             A tree grows in one thin band of living tissue under the bark —
             everything else is finished wood. There is only ever one of these.
@@ -56,26 +91,37 @@ const Growth: React.FC = () => {
         <section className="rings" aria-label="Growth rings, most recent first">
           <div className="rings__head">
             <span className="mono-label">the rings · counting inward</span>
-            <span className="mono-label rings__count">{GROWTH_RINGS.length} seasons</span>
+            <span className="mono-label rings__count">
+              {rings ? `${rings.length} seasons` : '— seasons'}
+            </span>
           </div>
 
           <ol className="rings__list" role="list">
-            {GROWTH_RINGS.map((ring) => (
-              <li className="ring" key={ring.id} id={ring.id}>
-                <div className="ring__marker" aria-hidden="true" />
-                <div className="ring__content">
-                  <p className="mono-label ring__when">{ring.when}</p>
-                  <h3 className="ring__title">{ring.title}</h3>
-                  <p className="ring__body">{ring.body}</p>
-                  <ul className="ring__marks" role="list">
-                    {ring.marks.map((m) => (
-                      <li key={m}>{m}</li>
-                    ))}
-                  </ul>
-                </div>
-              </li>
-            ))}
+            {rings
+              ? rings.map((ring) => (
+                  <li className="ring" key={ring.slug} id={ring.slug}>
+                    <div className="ring__marker" aria-hidden="true" />
+                    <div className="ring__content">
+                      <p className="mono-label ring__when">{ring.when}</p>
+                      <h3 className="ring__title">{ring.title}</h3>
+                      <p className="ring__body">{ring.body}</p>
+                      <ul className="ring__marks" role="list">
+                        {ring.marks.map((m) => (
+                          <li key={m}>{m}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </li>
+                ))
+              : !settled
+                ? [0, 1, 2, 3].map((i) => <RingSkeleton key={i} />)
+                : null}
           </ol>
+          {rings === null && settled && (
+            <p className="mono-label rings__unreachable">
+              the seasons are unreachable right now — the tree is still standing
+            </p>
+          )}
         </section>
 
         <p className="rings__core">

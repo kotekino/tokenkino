@@ -28,9 +28,17 @@ software development feature list").
 
 ## Where it lives
 
-| file | what |
+The entries are **Atlas collections** (`growth_rings` + the `growth_edge` singleton), served by
+`GET /api/growth` and written through the authed API — so a new season lands with one call, not a
+deploy. Same discipline as the Stream: no bundled content; the page renders skeletons until the
+real record arrives.
+
+| piece | what |
 |---|---|
-| `frontend/src/data/growth.ts` | the content — `GROWING_EDGE` + `GROWTH_RINGS` |
+| `backend/src/models/Growth.ts` + `routes/growth.ts` | the collections + `/api/growth` (GET public; PUT edge / POST rings / DELETE ring behind `INGEST_API_KEY`) |
+| `backend/scripts/seed-growth.mjs` | **the curation's home in the repo** — the current rings + edge, pushed idempotently (upsert by slug); re-run whole after appending a season |
+| `frontend/src/hooks/useGrowth.ts` | the fetch (Stream idiom: null → skeleton → data, honest "unreachable" when settled) |
+| `frontend/src/data/growth.ts` | the types only |
 | `frontend/src/pages/Growth.tsx` (+ `.css`) | the page |
 
 Sources of truth for the *facts*: `tokeniko/doc/landed.md` (history) and `tokeniko/doc/roadmap.md`
@@ -39,9 +47,16 @@ lines of engineering prose written for the people building the thing.
 
 ## How to keep it current
 
-**When a season closes** — not when a commit lands — add a ring at the **top** of `GROWTH_RINGS`
-(newest first; the page reads bark inward) and move `GROWING_EDGE` to whatever the roadmap's
-living layer now is.
+**When a season closes** — not when a commit lands — append the ring to `RINGS` in
+`backend/scripts/seed-growth.mjs` (top of the list, `seq` = previous top + 10) and update `EDGE`
+to whatever the roadmap's living layer now is; then run the script against production:
+
+```bash
+API_URL=https://tokeniko.online/api INGEST_API_KEY=... node scripts/seed-growth.mjs
+```
+
+(Or POST the single new ring / PUT the edge directly — the script is just the recipe with the
+history kept in the repo for review.)
 
 A ring is:
 

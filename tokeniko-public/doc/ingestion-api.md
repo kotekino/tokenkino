@@ -184,6 +184,41 @@ curl -X POST https://tokeniko.online/api/transmissions \
 
 ---
 
+## Growth Rings (`/api/growth`) — the crew's page, not the brain's
+
+The one hand-written surface (`doc/growth-rings.md`). Written by the CREW at doc-reconciliation
+time with the same `INGEST_API_KEY` — the brain never posts here. `backend/scripts/seed-growth.mjs`
+holds the current curation and the push recipe (idempotent upserts).
+
+### GET /api/growth  (public)
+
+`{ success, data: { edge, rings }, count }` — `edge` is the Growing Edge singleton (or `null`),
+`rings` newest-first (sorted by `seq` desc). An empty collection is a valid state; the page
+renders skeletons/an honest notice.
+
+### PUT /api/growth/edge  (auth — replace whole; there is only ever one)
+
+```jsonc
+{ "title": "…", "body": "…", "marks": ["…"] }
+```
+
+### POST /api/growth/rings  (auth, idempotent upsert by `slug`)
+
+```jsonc
+{
+  "slug": "the-retreat",   // required, unique — the idempotency key
+  "seq": 110,              // required — explicit order, higher = newer (`when` is free text)
+  "when": "15 July 2026",  // required (free text; early rings predate the calendar)
+  "title": "…",            // required — what it LEARNED, never what was built
+  "body": "…",             // required
+  "marks": ["…"]           // optional
+}
+```
+
+### DELETE /api/growth/rings/:slug  (auth)
+
+---
+
 ## Errors
 
 | code | when |

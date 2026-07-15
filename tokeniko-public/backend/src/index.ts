@@ -10,6 +10,7 @@ import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 import healthRouter from './routes/health';
 import mindRouter from './routes/mind';
 import transmissionsRouter from './routes/transmissions';
+import growthRouter from './routes/growth';
 import discoveryRouter from './routes/discovery';
 
 const app = express();
@@ -61,6 +62,7 @@ if (process.env.NODE_ENV !== 'test') {
 app.use('/api/health', healthRouter);
 app.use('/api/mind', mindRouter);
 app.use('/api/transmissions', transmissionsRouter);
+app.use('/api/growth', growthRouter);
 app.use('/api', discoveryRouter);
 
 // ─── 404 & Error Handlers ───────────────────────────────────────────────────
