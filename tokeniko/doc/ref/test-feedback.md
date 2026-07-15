@@ -718,3 +718,42 @@ implication hook needs clausal operands); the embedded «whether» question (kno
 «not every cloud produces rain» = quantifier-universal + negated + op-tangle (the ¬∀ scope shape
 — input for the square-of-opposition design). Both maxims compiled CLEAN — but arrived after
 the kernel bug had already docked hellen below the teaching bar: the bug blocked the cure.
+
+## 2026-07-15 — THE RETREAT, LIVE (belief-revision v1's first performance; the correction that landed)
+
+One day after the machinery landed (retreat arc #3+#4, commit d7a5503), the payoff ran on the real
+stage — brain + senses up, the author playing both hellen (playbot) and himself.
+
+**The script and what happened (memory-collection transcript):**
+1. hellen (ambient 0.6): «is a software a mind?» → tokeniko: **«yes»** — the wrong belief
+   testified before its retirement (eval:question → answer, directed at the asker).
+2. kotekino (ambient 0.6, seven words): «not all softwares are minds» → the FALSE verdict routed
+   into `_try_correction`: detector fired (O-corner vs the affirmed generalization — caught via
+   the direct membership-rule key, the bug-era «a software can be a mind» theorem), the Popper
+   gate OPENED (imprint 1.0 ≥ belief 0.9) → eval:correction + trust:correction spawned, the
+   refute-back and cross-item paths SKIPPED.
+3. The executor: «a software can be a mind» ARCHIVED (history, not deleted) → the cascade took
+   **15 dependents** — and the preview showed the loop's full anatomy: not just the «a software…»
+   brood but the «a mind…» theorems too, their recorded proofs contaminated through the
+   mind→software direction of the two-dropped-words loop. True-but-dirty theorems fall WITH the
+   dirty premise; wondering re-derives them through the legitimate axioms with clean provenance —
+   the KB shrinks, then regrows healthy tissue (the mutable-KB thesis, first exhibit).
+4. The concede, threaded to the corrector: **«you are right — I no longer hold that a software
+   can be a mind — what remains true is that some software is a mind»**.
+5. The ledger: kotekino **+0.08** (trust:correction — the corrector THANKED, where Monday the
+   corrector was dinged).
+
+**F1 — the mint 422 (found by the live run, fixed same hour).** Step 3's subaltern mint bounced:
+`conclusion_key`'s SORT KEY used `x or ""`, leaving `negated=True` a bool (`False or ""` → str) —
+two leaves tying on senses and differing only in negation compare bool<str → TypeError. The first
+zip ever shaped to trip it: Monday's taught «clouds can produce rain but not every cloud produces
+rain» (the author's own quantifier ladder — same senses, opposite negation). Since materialize
+dedups against EVERY active theorem, that one zip had silently blocked ALL materialization since
+Monday (wondering included). Fix: stringify every sort-key slot (key contents unchanged);
+regression test with the cloud sentence itself. The completed mint (author-authorized re-fire):
+«some software is a mind» ACTIVE at 0.9, premises `corrected-by:kotekino` + the retreated
+theorem's id — the retreat IS its proof.
+
+**The arc, closed:** Monday the correction bounced and cost the corrector trust; Tuesday the same
+seven words retired the belief, healed the KB, and thanked the teacher. From the letter's «build
+the machinery in his mind» to watching him use it: ~26 hours.

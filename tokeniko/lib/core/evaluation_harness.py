@@ -471,7 +471,10 @@ def conclusion_key(statement) -> tuple:
         subject = identities.get("subject") or senses.get("subject")
         leaves.append((subject, senses.get("predicate"), senses.get("direct"),
                        bool(getattr(leaf, "negated", False))))
-    return tuple(sorted(leaves, key=lambda t: tuple(x or "" for x in t)))
+    # sort key: stringify every slot — `x or ""` left the negated bool as True (bool<str TypeError
+    # when two leaves tie on senses and differ only in negation, e.g. «clouds can produce rain but
+    # not every cloud produces rain»). The KEY tuples are unchanged; only the ordering is normalized.
+    return tuple(sorted(leaves, key=lambda t: tuple("" if x is None else str(x) for x in t)))
 
 
 # classifyForm over a synthetic conjunction of clauses (TKZipContent). Returns classifyForm's detail

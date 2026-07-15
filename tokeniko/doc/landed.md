@@ -808,3 +808,15 @@ LESSON: trust moves UP (+0.08 `trust:correction`), and the concede states what f
 13 regression tests (`test_belief_revision.py`): detector corners O/E, bedrock/readonly/
 unaffirmed immunity, both trust-gate directions, the full executor (archive+cascade+mint+
 concede), the compose voice, the #3 floor arithmetic.
+
+**The live retreat + the conclusion_key fix (2026-07-15, the same day — v1's first performance)**
+The machinery ran on the real stage hours after landing: the author's ambient «not all softwares
+are minds» (seven words) retired the bug-era «a software can be a mind», cascaded its 15
+contaminated dependents (BOTH directions of the two-dropped-words loop — true-but-dirty «a mind…»
+theorems fall with the dirty premise; wondering re-derives them clean), minted «some software is
+a mind» (active 0.9, premises = the correction + the retreated theorem), conceded in his own
+words, and CREDITED the corrector +0.08. Full specimen: `test-feedback.md` (2026-07-15). The run
+also flushed a latent blocker: `conclusion_key`'s sort key (`x or ""`) left `negated=True` a bool
+→ bool<str TypeError on negation-tied leaves; Monday's taught cloud sentence was the first zip
+shaped to trip it and had silently blocked ALL materialization since. Fixed (stringify sort-key
+slots; key contents unchanged) + regression test (the cloud sentence). Gate 278 / 1 xfailed.

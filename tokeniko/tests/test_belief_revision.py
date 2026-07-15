@@ -249,6 +249,19 @@ def test_retreat_executor_archives_cascades_and_concedes(
         evaluation_harness._kb_cache_fp = None
 
 
+# ---- the dedup key under negation ties (found by the LIVE retreat, 2026-07-15) --------------------
+
+def test_conclusion_key_negation_tie(compile_zip):
+    # «because clouds can produce rain but not every cloud produces rain» (taught in the Socratic
+    # dialogue): two leaves tie on senses and differ ONLY in negation — the sort key compared
+    # bool<str and raised, silently blocking EVERY materialize (the retreat's subaltern mint 422'd
+    # against it). The key must compute; the two leaves must stay distinct.
+    key = evaluation_harness.conclusion_key(
+        compile_zip("clouds can produce rain but not every cloud produces rain"))
+    assert isinstance(key, tuple) and len(key) >= 2
+    assert len(set(key)) == len(key)  # negation kept the tied leaves distinct
+
+
 # ---- the concede voice -----------------------------------------------------------------------------
 
 def test_compose_concede_states_the_retreat():

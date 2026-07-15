@@ -146,10 +146,13 @@ EXPERIMENT precedes the machinery — do not clean, convince him to retreat.
      eavesdropper), see `landed.md`.
   4. ✅ **Belief-revision v1** — landed 2026-07-15 (the correction detector + the Popper trust
      gate + the retreat executor: archive → `revoke_dependents` cascade → mint the subaltern I →
-     concede; readonly axioms constitution-protected), see `landed.md`. **NEXT — the payoff:
-     RE-RUN the Socratic dialogue live** (seed the rules via `seed_behavior_rules.py --apply`,
-     brain+senses up): same sentences → zero trust damage (the square) + the actual retreat of
-     «all softwares are minds» — by himself, mid-conversation.
+     concede; readonly axioms constitution-protected), see `landed.md`. ✅ **THE LIVE RETREAT
+     RAN the same day** — the author's ambient «not all softwares are minds» retired the bug-era
+     «a software can be a mind» (+15 contaminated dependents), minted «some software is a mind»,
+     conceded, and CREDITED the corrector (+0.08). Full specimen in `test-feedback.md`
+     (2026-07-15). The mint's 422 exposed a latent `conclusion_key` sort-key bug (bool<str on
+     negation-tied leaves — Monday's cloud sentence was the first zip shaped to trip it, and it
+     had silently blocked ALL materialization since) — fixed + regression-tested.
   Also queued from the session: extractor **possessive-subject gate** («MY mind is a software»)
   · **adverbial quantifiers** (always/sometimes/never → the quantifier field) · **stakeholder
   merge** (two kotekino rows; Renzo/john duplicates → aliases; author's per-row ruling —
