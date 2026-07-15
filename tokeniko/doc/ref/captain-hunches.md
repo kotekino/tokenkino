@@ -19,7 +19,7 @@ Future ideas
 | 9 | Actions/business-logic as KB | **HUNCH** — future-future (the everything-is-KB direction) |
 | 10 | The translator apparatus (rag1/rag2) | **ROADMAP** — instrument arc #3 (spec'd from rag3's harvest) |
 | 11 | rag3 — the microscope | **LANDED** — 2026-07-14 (P1+P2; standing practice; already proved itself twice) |
-| 12 | Public backlog section | **ROADMAP** — strengthening tail #9 («Growth Rings» / «The Growing Edge», names chosen) |
+| 12 | Public backlog section | **LANDED** — 2026-07-15, live at tokeniko.online/growth («Growth Rings» / «The Growing Edge»; Atlas-homed, curated at reconciliation time) |
 | 13 | The Socratic dialogue (hellen + kotekino, ambient) | **NEXT PLAY** — the action item: also the natural vehicle for the RETREAT experiment (2026-07-14 letter) |
 | 14 | Feelings / the hearth | **HUNCH** — future (logic-never-blurred pinned as the gift) |
 

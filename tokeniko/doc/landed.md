@@ -820,3 +820,18 @@ also flushed a latent blocker: `conclusion_key`'s sort key (`x or ""`) left `neg
 → bool<str TypeError on negation-tied leaves; Monday's taught cloud sentence was the first zip
 shaped to trip it and had silently blocked ALL materialization since. Fixed (stringify sort-key
 slots; key contents unchanged) + regression test (the cloud sentence). Gate 278 / 1 xfailed.
+
+**Growth Rings / The Growing Edge — strengthening tail #9, hunch 12 (2026-07-15, PUBLISHED)**
+The public website's development-history section, live at tokeniko.online/growth. Two layers,
+one botanical metaphor (names the Cap kept from the 2026-07-14 naming): **Growth Rings** —
+`landed.md` retold as the seasons of a young mind learning (11 rings, from «The core — learning
+to read» to «It changed its mind», the same-day retreat) — and **The Growing Edge** — the
+roadmap's living layer (zip-native derivation), always exactly one. Hand-CURATED by the crew
+(the one page the machine doesn't write; `llms.txt` discloses it), but Atlas-HOMED
+(`growth_rings` + `growth_edge` via `/api/growth`, Stream discipline: no bundled content,
+skeletons until the record arrives): a new season lands with one authed `seed-growth.mjs` run at
+doc-reconciliation time — never a deploy. Sibling work folded in the same arc: the footer's
+honest plate (live `$ uptime` frozen off-air; hand-set `TOKENIKO_VERSION` — TK-1.1 live on the
+first heartbeat) + version stickiness server-side (a versionless heartbeat inherits the last
+version sent; the archive stays as-sent). Deployed per the runbook (prebuilt artifacts,
+build-off); prod smoke: /api/growth public, writes 401 unauthed, /growth 200, plate TK-1.1.
