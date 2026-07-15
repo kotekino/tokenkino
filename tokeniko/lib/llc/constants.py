@@ -17,15 +17,34 @@ _WSD_FALLBACK_MIN_SIMILARITY: float = 0.5
 
 # operators
 _OPERATORS_BASE_ANCHORS = {
-    "and": TKOperator.AND, 
-    "or": TKOperator.OR, 
+    "and": TKOperator.AND,
+    "or": TKOperator.OR,
     "not": TKOperator.NOT,
     ",": TKOperator.AND,
     ":": TKOperator.AND,      # elaboration: co-asserted
     "so": TKOperator.IMPLY,   # result: "A so B" => A IMPLY B
-    "but": TKOperator.NOTIMPLY
+    "but": TKOperator.AND     # adversative: truth-conditionally AND (X∧Y ≡ X∧Y∧¬(X→¬Y), the
+                              # classical reduction) — the contrast nuance rides the `contrast`
+                              # FLAG (see _CONTRAST_MARKERS), never the operator tree. The old
+                              # NOTIMPLY mapping folded every true "X but Y" to 0 (M1, 2026-07-16).
     }
-_OPERATORS_SIMILARITY_THRESHOLD: float = 0.7 
+_OPERATORS_SIMILARITY_THRESHOLD: float = 0.7
+
+# adversative conjunctions/connectives -> the `contrast` clause flag (a carrier, like `modal`):
+# asserted content is the plain conjunction; the flag preserves the defied-expectation nuance for a
+# later consumer (default/generic reasoning), never entering the crisp truth layer. MIXED-POLARITY
+# anchor table: the additive/conclusive connectives are explicit False GUARDS — function words are
+# mutually close in spaCy space, so without them "and"/"also" could fuzzy-land near "but" above the
+# floor. An unseen connective resolves to its NEAREST anchor of either polarity (margin-guarded).
+_CONTRAST_MARKERS = {
+    # adversatives -> True
+    "but": True, "however": True, "yet": True, "nevertheless": True,
+    "nonetheless": True, "though": True, "although": True, "whereas": True,
+    # additives / conclusives / disjunctives -> False (guards)
+    "and": False, "or": False, "also": False, "moreover": False, "additionally": False,
+    "furthermore": False, "besides": False, "plus": False,
+    "therefore": False, "thus": False, "hence": False, "consequently": False, "so": False,
+}
 
 # subordinates
 _SUBORDINATE_TYPE_BASE_ANCHORS = {

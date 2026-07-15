@@ -31,6 +31,12 @@ class TKZipContent(BaseModel):
     # itself rides `dubitative` (statement 0.5 / question 1.0). the brain answers questions instead of
     # asserting them: it routes off the assertion path and skips the cross-item conflict check.
     wh_role: Optional[TKWhRole] = Field(default=None)
+    # adversative join ("but"/"however"/…): the clause is co-asserted (its op is AND) with a
+    # defied-expectation nuance — "X but Y" asserts exactly X∧Y; the contrast is implicature. A
+    # carrier flag like `modal`: the truth layer ignores it; a later consumer (default/generic
+    # reasoning) may read it as a hint at a background expectation "X normally ¬Y". All stored
+    # zips predate the field and default honestly to False. M1 2026-07-16.
+    contrast: bool = Field(default=False)
     # modality (2026-07-14): "possibility" when a modal (can/could/may/might) scopes the clause.
     # A ◇-claim is not a crisp assertion: the consistency kernel never treats it as P (◇P ∧ ◇¬P is
     # consistent), the extractor never mints rules/facts/edges from it (the some→all leap's root),

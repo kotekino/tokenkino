@@ -58,6 +58,8 @@ def _digest_leaf(op: str, attitude, c: TKZipContent) -> str:
     modal = getattr(c, "modal", None)
     if modal:
         parts.append(f"modal={modal}")
+    if getattr(c, "contrast", False):
+        parts.append("contrast=True")
     identities = getattr(c, "identities", None) or {}
     if identities:
         parts.append("identities={" + ", ".join(f"{k}: {v}" for k, v in identities.items()) + "}")
@@ -111,6 +113,11 @@ The digest's contract:
   possibility rather than fact. MODALITY IS MEANING, not a tense/aspect nuance: a sentence whose
   plain reading is modal ("a software CAN be a mind") but whose clause shows NO modal flag has
   LOST the possibility — flag it as missed-modality (a real lead, not a legitimate divergence).
+- `contrast=True` marks an ADVERSATIVE join ("but"/"however"/"yet"…): the clause folds as a plain
+  co-asserted AND — which is CORRECT and faithful ("X but Y" asserts exactly X-and-Y; the contrast
+  is implicature, carried by this flag). Do NOT flag "but"→AND+contrast as a lost adversative or a
+  wrong operator; DO flag an adversative sentence whose second clause shows neither (the contrast
+  vanished) or one folded as an implication (NOT IMPLY) — the pre-2026-07-16 corruption.
 - `identities` binds a role to a named INDIVIDUAL's uid (name@channel:... for persons; a known
   place is GLOBAL: name@place, e.g. japan@place). A named person/place should carry an identity;
   a common noun should not. A place identity has no `senses` entry for its role BY DESIGN (a place

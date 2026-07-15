@@ -98,6 +98,10 @@ def decompiler_raw_entity(ref: TKLLEntityReference, entities: list[TKLLEntity]) 
 # render an item operator, annotating THAT with its attitude (klass:confidence) when present
 def decompiler_raw_op(item) -> str:
     label = item.op.value
+    # adversative join: op is AND (co-asserted), the nuance rides the content's contrast flag —
+    # surface it in the raw render so the NL polish can say "but" instead of "and" (M1).
+    if getattr(getattr(item, "content", None), "contrast", False):
+        label = f"{label}[contrast]"
     if getattr(item, "attitude", None):
         label = f"{label}[{item.attitude.klass}:{item.attitude.confidence}]"
     return label

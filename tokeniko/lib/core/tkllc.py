@@ -84,6 +84,11 @@ class TKLLCContent(BaseModel):
     # wh-question gap role (the variable X to solve for); None = polar question or declarative.
     # mood itself rides `properties.dubitative` (statement 0.5 / question 1.0).
     wh_role: Optional[TKWhRole] = Field(default=None)
+    # adversative join ("but"/"however"/…): the clause is co-asserted (its op is AND) with a
+    # defied-expectation nuance. A carrier (like `modal`), never an operator — the asserted content
+    # of "X but Y" is exactly X∧Y; the contrast is implicature, preserved for a later consumer
+    # (default/generic reasoning). M1 2026-07-16.
+    contrast: bool = Field(default=False)
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 

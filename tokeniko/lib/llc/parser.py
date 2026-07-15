@@ -97,6 +97,13 @@ def parser_ccToOperator(token: Token | str) -> TKOperator:
     # unified anchor resolver: exact-hit -> nearest-anchor (polarity-guarded) -> default AND
     return anchor_resolve(lemma, "operators")
 
+# is the cc an ADVERSATIVE join ("but"/"however"/…)? Truth-conditionally it is AND (resolved above);
+# the defied-expectation nuance rides the clause `contrast` flag instead of the operator tree
+# (M1 2026-07-16 — the old NOTIMPLY mapping folded every true "X but Y" to 0).
+def parser_ccIsContrast(token: Token | str) -> bool:
+    lemma = token.lemma_.lower() if isinstance(token, Token) else token
+    return bool(anchor_resolve(lemma, "contrast"))
+
 # --------------------------------------------------------------
 # PARSING
 # --------------------------------------------------------------
@@ -107,6 +114,7 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
     # search operator, otherwise default
     opToken = next((tt for tt in list(token.subtree) if tt.dep_ == "cc" or tt.dep_ == "punct"), None)
     operator: TKOperator = parser_ccToOperator(opToken) if opToken else TKOperator.AND
+    contrast: bool = parser_ccIsContrast(opToken) if opToken else False
 
     # decide if its a conj single word or a sentence
     if isPredicate:
@@ -117,9 +125,9 @@ def parser_getRelatedEntity(token: Token, quotes: list[tuple[list[Token], list[T
                 forcedSubject = q.speaker[0] if len(q.speaker) > 0 else None
             continue
         sentence = parser_parseSentence(token, subtree, clause_type=TKClause.COORDINATE, subject=forcedSubject)
-        entity = TKFullEntity(entity=sentence, dep=token.dep_, aux=None, marker=None, token=None, properties=[], conjuncts=[], op=operator) if sentence else None
+        entity = TKFullEntity(entity=sentence, dep=token.dep_, aux=None, marker=None, token=None, properties=[], conjuncts=[], op=operator, contrast=contrast) if sentence else None
     else:
-        entity = parser_getFullEntity(token, quotes, operator)
+        entity = parser_getFullEntity(token, quotes, operator, contrast=contrast)
     
     # no entity found
     return entity
@@ -674,7 +682,7 @@ def parser_getTense(predicateToken: Token, auxToken: Token | None) -> str | None
     return tense[0].lower() if tense else None
 
 # get seamntic value from dictionary + properties
-def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND, isPredicate = False) -> TKFullEntity:
+def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Token], Span]] = [], op: TKOperator = TKOperator.AND, isPredicate = False, contrast: bool = False) -> TKFullEntity:
 
     # related tokens to the entity
     conjuncts = list(token.conjuncts)
@@ -737,7 +745,7 @@ def parser_getFullEntity(token: Token, quotes: list[tuple[list[Token], list[Toke
                 subordinates.append(subordinate)
 
     # primary entity (from token)
-    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, dep=token.dep_, op=op, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties, subordinates=subordinates)
+    primaryEntity: TKFullEntity = TKFullEntity(entity=tkMeaning, dep=token.dep_, op=op, contrast=contrast, token=token.text, aux=tkAux, marker=tkMarker, properties=doc_properties, subordinates=subordinates)
 
     # ----------------------------------------
     # coordinated entities (conjuncts)

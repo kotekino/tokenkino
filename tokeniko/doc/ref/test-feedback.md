@@ -784,7 +784,14 @@ the polarity-guard path) is landing on an implication op. "but" is a contrastive
 AND with the clauses' own polarities intact — never a conditional. This is the dominant NEW
 structural bug and it also drives half of M4-adjacent missed-negation (the trailing conjunct's
 negation is lost/inverted in the same misparse). *Action:* → third-harvest fix queue (item 1),
-live-confirm the "but" operator path first.
+live-confirm the "but" operator path first. *(→ CLOSED 2026-07-16 same-day: root cause was the
+anchor TABLE itself — `"but"→NOTIMPLY` in `_OPERATORS_BASE_ANCHORS`, and the Gödel fold
+`1−imply(a,b)` sent every TRUE "X but Y" to 0. The author's original NOTIMPLY reading
+«X∧Y∧¬(X→¬Y)» reduces classically to X∧Y — contrast is implicature, not assertion. Fix: "but" +
+adversatives → AND; the nuance rides the new `contrast` carrier flag (the modality pattern);
+digest/judge taught; `AND[contrast]` in the raw render. The «we are also different» negated=True
+lead was NOT a NOTIMPLY leak — "different" is the by-design negative comparison. See `landed.md`;
+7 tests in `test_contrast.py`.)*
 
 **M2 — causal "because" still folds AND / CONV (S1, residual of a landed cluster, ~7 leads).**
 The 07-14 "subordination must survive" fix carried temporal "when"→CONV and the advmod-marker, but

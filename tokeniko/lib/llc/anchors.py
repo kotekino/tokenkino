@@ -10,7 +10,8 @@
 #      input ("hugely"->greatly, "therefore"->IMPLY, "reckon"->doxastic).
 #
 # Le categorie sensibili alla polarita' sono ANTONYM-GUARDED: il fuzzy catch non puo' MAI ribaltare su
-# un opposto ("but" non deve MAI risolversi ad AND). EXACT e' riservato alle eccezioni vere (deixis di
+# un opposto ("or" non deve MAI risolversi ad AND per deriva fuzzy; gli avversativi risolvono ad AND
+# DELIBERATAMENTE, col flag `contrast` a parte — M1 2026-07-16). EXACT e' riservato alle eccezioni vere (deixis di
 # riferimento, etichette del parser) -- comunque registrate qui cosi' sono "flippabili" piu' avanti.
 #
 # Anchor-vector caching: i vettori delle ancore di ogni categoria SEMANTIC sono calcolati UNA volta
@@ -31,6 +32,7 @@ from lib.core.models import TKDictionaryDoc
 from lib.llc.utils import utils_antonyms
 from lib.llc.constants import (
     _OPERATORS_BASE_ANCHORS,
+    _CONTRAST_MARKERS,
     _SUBORDINATE_TYPE_BASE_ANCHORS,
     _PROP_BASE_ADVMOD_ANCHORS,
     _ATTITUDE_ANCHORS,
@@ -133,14 +135,17 @@ class Category:
 # siano nella tabella ESPLICITAMENTE (l'invariante e' che il fuzzy non possa mai contraddire il testo)
 _OPERATORS_ANCHORS_EXPANDED = {
     **_OPERATORS_BASE_ANCHORS,
-    # avversativi / contrasto -> NOT IMPLY
-    "however": TKOperator.NOTIMPLY,
-    "yet": TKOperator.NOTIMPLY,
-    "nevertheless": TKOperator.NOTIMPLY,
-    "nonetheless": TKOperator.NOTIMPLY,
-    "though": TKOperator.NOTIMPLY,
-    "although": TKOperator.NOTIMPLY,
-    "whereas": TKOperator.NOTIMPLY,
+    # avversativi / contrasto -> AND + flag `contrast` (M1 2026-07-16): il contenuto asserito e' la
+    # congiunzione (X∧Y); la sfumatura avversativa NON e' asserita e viaggia sul flag di clausola
+    # (categoria "contrast" qui sotto), mai nell'albero degli operatori — il vecchio NOTIMPLY
+    # piegava a 0 ogni "X but Y" vero.
+    "however": TKOperator.AND,
+    "yet": TKOperator.AND,
+    "nevertheless": TKOperator.AND,
+    "nonetheless": TKOperator.AND,
+    "though": TKOperator.AND,
+    "although": TKOperator.AND,
+    "whereas": TKOperator.AND,
     # conclusivi / risultativi -> IMPLY
     "therefore": TKOperator.IMPLY,
     "thus": TKOperator.IMPLY,
@@ -175,6 +180,15 @@ _REGISTRY: dict[str, Category] = {
         name="operators", table=_OPERATORS_ANCHORS_EXPANDED, strategy=Strategy.SEMANTIC,
         backend=Backend.SPACY, polarity_guard=True, floor=_OPERATOR_FLOOR,
         default=TKOperator.AND, margin=_OPERATOR_MARGIN,
+    ),
+    # avversativi -> flag `contrast` di clausola (M1 2026-07-16): set-category SEMANTIC cosi' un
+    # connettivo contrastivo mai visto ("albeit") viene comunque catturato per vicinanza; la
+    # tabella e' a POLARITA' MISTA (additivi/conclusivi = False espliciti) + margin guard, cosi'
+    # "and"/"also" non possono finirci per deriva fuzzy (le function word sono tutte vicine).
+    "contrast": Category(
+        name="contrast", table=_CONTRAST_MARKERS, strategy=Strategy.SEMANTIC,
+        backend=Backend.SPACY, polarity_guard=True, floor=_OPERATOR_FLOOR,
+        default=False, is_set=True, margin=_OPERATOR_MARGIN,
     ),
     "subordinate_types": Category(
         name="subordinate_types", table=_SUBORDINATE_TYPE_ANCHORS_EXPANDED, strategy=Strategy.SEMANTIC,

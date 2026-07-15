@@ -230,7 +230,7 @@ class TKStatement(BaseModel):
     # create subject
     def create_subject(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.subject = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.subject = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -242,7 +242,7 @@ class TKStatement(BaseModel):
     # create direct
     def create_direct(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.direct = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.direct = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -254,7 +254,7 @@ class TKStatement(BaseModel):
     # add indirect
     def add_indirect(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.indirects.append(TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux))
+        self.indirects.append(TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux))
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -266,7 +266,7 @@ class TKStatement(BaseModel):
     # create predicate
     def create_predicate(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.predicate = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.predicate = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -376,7 +376,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
+                e = TKEntityReference(op=c.op, contrast=c.contrast, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
                 reference.conjuncts.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -413,7 +413,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
+                e = TKEntityReference(op=c.op, contrast=c.contrast, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
                 reference.subordinates.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -434,6 +434,10 @@ class TKEntity(BaseModel):
 class TKFullEntity(BaseModel):
     # operator
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
+
+    # adversative join ("but"/"however"/…): the clause is co-asserted (op stays AND) with a
+    # defied-expectation nuance. A carrier flag (like modal), never an operator — M1 2026-07-16.
+    contrast: bool = Field(default=False)
 
     # original token
     token: Optional[str] = None
@@ -463,7 +467,10 @@ class TKFullEntity(BaseModel):
 class TKEntityReference(BaseModel):
     # logical operator
     op: TKOperator = Field(default=TKOperator.AND) # mandatory, default (AND), allows fuzzy-logic operations
-    
+
+    # adversative join flag (mirrors TKFullEntity.contrast through the reference)
+    contrast: bool = Field(default=False)
+
     # id
     id: int
 

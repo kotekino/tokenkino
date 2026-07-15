@@ -364,6 +364,10 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
             if isinstance(mainContent, TKLLCContent):
                 head_aux = mainContent.predicate.aux if mainContent.predicate else None
                 _inherit_shared(subItems, mainContent.subject, head_aux, mainContent.quantifier)
+            # adversative join: the flag lands on the conjunct's HEAD leaf (the one carrying the
+            # join op) — co-asserted content, contrast carried out of the operator tree (M1).
+            if coordReference.contrast and subItems and isinstance(subItems[0].content, TKLLCContent):
+                subItems[0].content.contrast = True
             result.extend(subItems)
         else:
             # a coordinated entity: clone the head clause and swap entityId -> this sibling
@@ -372,6 +376,8 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
                 continue  # unresolvable coordinate — skip rather than clone with a None reference
             rep = [coordReference.op, entityId, ef]
             dupContent = compiler_modifyContent(copy.deepcopy(mainContent), rep, coordReference.subordinates, coordReference.conjuncts, entities, entityId, statementIdx, statementId)
+            if coordReference.contrast and isinstance(dupContent, TKLLCContent):
+                dupContent.contrast = True
             result.append(TKLLCItem(op=coordReference.op, content=dupContent))
 
     return result

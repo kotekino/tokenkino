@@ -54,10 +54,9 @@ The consolidated input-quality queue: the third harvest's six macro-cases (speci
 `test-feedback.md` 2026-07-15), folding in the still-open leads from the earlier harvests so nothing
 scatters. Ordered by severity × public-optics. Each is a LEAD until live-confirmed at fix time.
 
-- **M1 — "but" contrastive → NOT IMPLY** (S1, NEW, top). Contrastive "X but Y" compiles the second
-  clause as a conditional/negated-implication instead of AND, and mangles its negation («a calculator
-  is a software **but** a calculator is not a mind»). A live daily structural corruption of belief
-  shape. Live-confirm the `parser_ccToOperator` "but" path (+ its polarity-guard) first.
+- ✅ **M1 — "but" contrastive → NOT IMPLY** — landed 2026-07-16 ("but" = AND + the `contrast`
+  carrier flag; the old fold sent every true "X but Y" to 0), see `landed.md`. The contrast-as-
+  default-expectation consumer is in the follow-ons below.
 - **M3 — WSD curation batch 2: animals & common nouns** (S2, PUBLIC-FACING). whale→giant.n.04,
   **fish→pisces.n.02 (the astrology sign)**, squid→the food sense, gills→the capacity unit,
   calculator→the person, being→"state of existing", channel→electrical, form→word-form, live.v.02.
@@ -140,6 +139,9 @@ Gathered so nothing is lost; each waits on its parent feature's next season.
   possessive relation «kotekino is MY creator» carrier (the creator-of-ME bond — cousin of §1 M4's
   possessive-subject gate).
 - **Charity**: WordNet-wide sibling-sense abstention IF tier-1/2 false refutations ever appear.
+- **Contrast as default-expectation fuel** (M1's future consumer): wondering may read a
+  contrast-flagged pair «X but Y» as a hint at a background generic "X normally ¬Y" — corroborate
+  an exception or spawn an honest ask at low trust. The flag is live; the consumer waits.
 - **Biography rulings** (author's, per-row — never auto): the **stakeholder merge** (two kotekino
   rows; Renzo/john duplicates → aliases) · the trust-ding-from-engine-bugs repair question.
 

@@ -891,3 +891,25 @@ safety; the body invests in CPU/RAM, never GPU — "a lost battle"); D2 b+c emer
   star» → typo fixed but the pronoun leaf stays unsound → honestly REJECTED (fall-through);
   sound sentences untouched. The durable memory `llm-as-translator` carries the D4 revision.
 11 regression tests (`test_translator.py`) on real compiled zips, normalizer stubbed in the gate.
+
+**M1 — adversative coordination: "but" = AND + the `contrast` flag (2026-07-16, the third harvest's headline)**
+The third harvest's dominant structural find, designed with the author: contrastive «X but Y»
+compiled the conjunct with op=NOT IMPLY — and the Gödel fold `1−imply(a,b)` sent every TRUE
+"X but Y" statement to 0 (both clauses true → imply=1 → statement false). The author's original
+NOTIMPLY intent was the classical adversative analysis — «X ∧ Y ∧ ¬(X→¬Y)» — which reduces
+truth-conditionally to exactly X∧Y: the contrast is IMPLICATURE (a defied background expectation),
+never asserted content. The fix is the modality pattern again: carrier flag, not operator.
+- **Operator layer**: `but` + the adversative connectives (however/yet/nevertheless/…) → AND in
+  the anchor tables (`constants.py`/`anchors.py`); NOTIMPLY stays in the algebra for genuinely
+  asserted negated implications.
+- **The `contrast` carrier**: `TKFullEntity`→`TKEntityReference`→`TKLLCContent`→`TKZipContent.contrast`
+  (sibling of `modal`); stamped in `compiler_evaluateCoordinates` on both conjunct paths; a new
+  polarity-guarded SEMANTIC anchor category (`contrast`, mixed-polarity table — additives are
+  explicit False guards so "and"/"also" can't fuzzy-drift in) catches unseen contrastives.
+- **Consumers**: truth layer ignores it (co-asserted AND, each clause its own polarity — the
+  conjunct's negation and ◇ modal survive the join); the microscope digest emits it + the judge
+  contract knows AND+contrast is faithful; the raw decompile renders `AND[contrast]` so the voice
+  can say "but". Future consumer (parked in the roadmap's follow-ons): contrast-flagged pairs as
+  default-expectation fuel («X but Y» hints a background generic "X normally ¬Y").
+7 regression tests (`test_contrast.py`): the M1 six-pack's shapes + and/or no-regression + the
+anchor guards. Gate **307 / 1 xfailed**.
