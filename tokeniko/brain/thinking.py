@@ -323,6 +323,63 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
 
 
 # --------------------------------------------------------------
+# BELIEF-REVISION v1 (retreat arc #4) — the correction path. A FALSE verdict may actually be THE
+# BOUNCE (2026-07-14 bold-test finding): a quantified correction («not all softwares are minds»)
+# evaluated against the very generalization it targets, refuted, and — worse — costing the CORRECTOR
+# trust ("contradicts what I hold"). The detector (harness `correction_target`) recognizes the shape:
+# an O/E-corner claim the active graph affirms through a LEARNED, doc-retractable hop.
+#
+# THE TRUST GATE (Popper, gated — the author's D2 ruling): one counterexample defeats a universal,
+# but only from a corrector whose trust >= the belief's own trust tier — a stranger cannot demolish
+# the imprinting (hunch 17: the gate is what keeps falsificationism from being a crowbar). Gate
+# holds -> the normal eval:false + DISAGREEMENT path stands (scaled by belief trust, as ever).
+#
+# Gate passes -> the correction REPLACES refute-back entirely:
+#   eval:correction  -> tokeniko:retreat (INTERNAL: archive source docs + revoke_dependents cascade
+#                       + mint the weakened subaltern I — executed in actions_phase)
+#   trust:correction -> more-trust (a valid correction is a LESSON, never a ding)
+# and the caller must ALSO skip the cross-item conflict check for this item: a self-correction
+# («actually, not all…» after teaching «all…») is deliberate revision — the very act this arc
+# exists to honor — not the honest-liar's unwitting contradiction.
+# --------------------------------------------------------------
+def _try_correction(item: TKMemoryItemDoc) -> bool:
+    ct = evaluation_harness.correction_target(item.zip)
+    if ct is None:
+        return False
+    soul = trust.resolve_canonical(item.sourceId)
+    if soul is None or soul.isMe:
+        return False
+    corrector_trust = 1.0 if soul.imprint else soul.trust
+    if corrector_trust < ct["belief_trust"]:
+        logger.info(
+            "[thinking] correction detected on «%s» (%s-corner vs %s) but the trust gate holds "
+            "(corrector %.2f < belief %.2f) — the belief stands",
+            item.original, ct["corner"], " -> ".join(ct["path"]),
+            corrector_trust, ct["belief_trust"],
+        )
+        return False
+    answer = dict(ct)
+    answer["corrector"] = soul.uid
+    answer["corrector_trust"] = corrector_trust
+    behavior.spawn_ideas_for(
+        EvalToken.CORRECTION.value, payload=item.zip, source=str(item.id),
+        answer=answer, target=item.sourceId,
+    )
+    behavior.spawn_ideas_for(
+        TrustEpisodeKind.CORRECTION.value, payload=item.zip, source=str(item.id),
+        answer={"note": f"a valid correction: {ct['corner']}-corner defeats "
+                        f"«{ct['sources'][0]['original']}» (Popper, trust-gated)"},
+        target=item.sourceId,
+    )
+    logger.info(
+        "[thinking] CORRECTION accepted: «%s» (%s, corrector %.2f >= belief %.2f) -> retreat of %s",
+        item.original, ct["corner"], corrector_trust, ct["belief_trust"],
+        [s["original"] for s in ct["sources"]],
+    )
+    return True
+
+
+# --------------------------------------------------------------
 # WONDERING (#4 D1c) — the lowest-priority REFLECTIVE pass. Where think_one REACTS to fresh memory,
 # wonder_one RE-EXAMINES memory tokeniko has ALREADY lived through, *because the KB has grown since*:
 # a new definition/axiom/theorem can make an old, once-INSUFFICIENT input now KB-derivable. It is
@@ -718,7 +775,15 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         result: EvaluatorResult = out["result"]
         token = status_to_token(result)
 
-        if token:
+        # BELIEF-REVISION v1 (retreat arc #4): a FALSE may be a valid quantified CORRECTION of a
+        # learned generalization — the correction path replaces refute-back (no eval:false, no
+        # DISAGREEMENT ding) AND the cross-item conflict check below (self-correction is deliberate
+        # revision, not the honest-liar's contradiction). See _try_correction.
+        corrected = token == EvalToken.FALSE.value and _try_correction(item)
+
+        if corrected:
+            pass  # the correction path spawned its own ideas (retreat + trust echo)
+        elif token:
             # B2 (the open-why): an UNKNOWN that answers my own recent question is a candidate
             # explanation — do not re-interrogate it (the why-regress). Other verdicts unaffected
             # (a false "because" still speaks up; a true one still corroborates/learns).
@@ -782,7 +847,9 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         #
         # DEFERRED: (1) cross-SPEAKER patterns — SAME-SPEAKER only; (2) inference-implied conflicts
         # ("eating" vs "dead") needing forward-chaining — DIRECT contraries (X∧¬X / antonym) only.
-        n_clauses = evaluation_harness._zip_leaves(item.zip.items)
+        # SKIPPED for an accepted correction (retreat arc #4): a self-correction is deliberate
+        # revision — never the honest-liar signal.
+        n_clauses = evaluation_harness._zip_leaves(item.zip.items) if not corrected else []
         priors = (
             TKMemoryItemDoc.find(
                 {"sourceId": item.sourceId, "timestamp": {"$lt": item.timestamp}}
@@ -790,7 +857,7 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             .sort("-timestamp")
             .limit(25)
             .to_list()
-        )
+        ) if not corrected else []
         for m in priors:
             if m.zip is None:
                 continue

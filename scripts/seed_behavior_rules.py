@@ -31,6 +31,14 @@ RULES = [
     (EvalToken.TRUE.value,         TokenikoAction.IGNORE.value,  0.2,  "corroboration: usually stay quiet"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
     (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
+    # belief-revision v1 (retreat arc #4): a trust-gated quantified correction. RETREAT is INTERNAL
+    # (raw urge, no directedness factor — a conclusion is never muted); CONCEDE is the directed
+    # acknowledgment spawned by the retreat HANDLER after the KB actually moved (eval:correction-done).
+    # Both correction triggers are SELF-RELEVANT (brain/behavior._SELF_RELEVANT_TRIGGERS): the
+    # directedness floors at addressed 0.9 when the correction was at least ambient, so an ambient
+    # dialogue correction still concedes (0.85 x 0.9 = 0.765) while an overheard-thread one stays quiet.
+    (EvalToken.CORRECTION.value,      TokenikoAction.RETREAT.value, 0.95, "a valid correction — revise the belief (archive + cascade + weaken)"),
+    (EvalToken.CORRECTION_DONE.value, TokenikoAction.CONCEDE.value, 0.85, "the retreat executed — acknowledge it to the corrector"),
     # the trust reflexes (senses D P2): trust:* triggers -> INTERNAL ledger updates. Their urges are
     # tokeniko's TRUST SENSITIVITY (a personality dial, editable as data): all clear the 0.5 keep
     # threshold — internal actions are exempt from the directedness multiplication (an overheard lie
@@ -40,6 +48,7 @@ RULES = [
     (TrustEpisodeKind.DISAGREEMENT.value,       TokenikoAction.LESS_TRUST.value, 0.6,  "contradicts a belief — scaled by that belief's own trust"),
     (TrustEpisodeKind.LOGIC_VIOLATION.value,    TokenikoAction.LESS_TRUST.value, 0.65, "a logic violation — logic is sacred"),
     (TrustEpisodeKind.SELF_INCONSISTENCY.value, TokenikoAction.LESS_TRUST.value, 0.7,  "self-contradiction — the honest-liar proxy"),
+    (TrustEpisodeKind.CORRECTION.value,         TokenikoAction.MORE_TRUST.value, 0.6,  "a valid correction taught him something — a lesson, never a ding (retreat arc #4)"),
     # the life reflexes (blog P1): life:* triggers -> tokeniko:post (channel PUBLIC; actions queue
     # PENDING until the P3 carrier). CALIBRATION — the spawned idea's urge = rule.urge x significance
     # (brain/thinking.py: base 0.7, +0.1 multi-hop, +0.2 personal, +0.1 taught, clamped [0,1];

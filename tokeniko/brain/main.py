@@ -133,6 +133,8 @@ def actions_phase() -> bool:
                     )
         else:
             logger.warning("[actions] malformed update_trust action %s dropped", str(action.id))
+    elif action.action_type == ActionType.REVISE_BELIEF:
+        _execute_retreat(action)
     else:
         logger.info(
             "[actions] would execute %s on channel=%s target=%s (internal KB-write — TODO)",
@@ -145,6 +147,104 @@ def actions_phase() -> bool:
     action.status = ActionStatus.DONE
     action.save()
     return True
+
+
+# --------------------------------------------------------------
+# BELIEF-REVISION v1 — the RETREAT executor (retreat arc #4). The payload's `answer` is the
+# harness `correction_target` detail (already trust-gated by thinking): retractable source docs,
+# defeated edge keys, the weakened subaltern, the corrector. Three moves + the follow-on:
+#   1. ARCHIVE each retractable source doc (readonly axioms were excluded at detection) — archiving
+#      IS the retreat: the doc stops yielding its edges at the next KB load (revocation durability
+#      by construction). Never deleted — "true history be it".
+#   2. CASCADE: revoke_dependents over the archived doc ids + the defeated edge keys — every
+#      theorem whose proof rests on the retreated belief falls with it (archived, kept as history).
+#   3. MINT the weakened subaltern (O-corner only): «all S are P» retreats down the square to
+#      «some S are P» via the API materialize seam (sense-pinned, semantically deduped, trusted at
+#      the corrector's level capped by the taught ceiling). API down -> logged skip, never a crash
+#      (the retreat itself is complete without the mint).
+#   4. SPAWN eval:correction-done -> tokeniko:concede (the directed acknowledgment): source = the
+#      correction memory item (so the reply threads under it), target = the corrector.
+# --------------------------------------------------------------
+def _execute_retreat(action: TKActionDoc) -> None:
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    from lib.core import evaluation_harness
+    from lib.core.models import TKAxiomDoc, TKTheoremDoc
+    from lib.core.memory import EvalToken
+    from brain import api_client
+
+    payload = action.payload or {}
+    ct = payload.get("answer") or {}
+    sources = ct.get("sources") or []
+    if not sources:
+        logger.warning("[actions] malformed revise_belief action %s dropped", str(action.id))
+        return
+
+    now = int(time.time())
+    retracted: list[str] = []
+    archived_ids: list[str] = []
+    for s in sources:
+        model = {"axiom": TKAxiomDoc, "theorem": TKTheoremDoc}.get(s.get("kind"))
+        if model is None:
+            continue
+        try:
+            doc = model.get(ObjectId(s["id"])).run()  # Bunnet: .run() executes
+        except (InvalidId, TypeError):
+            doc = None
+        if doc is None or doc.archived or getattr(doc, "readonly", False):
+            continue  # already gone, or hardwired-protected — never force
+        doc.archived = True
+        doc.archivedAt = now
+        doc.save()
+        archived_ids.append(str(doc.id))
+        retracted.append(doc.original)
+        logger.info("[actions] RETREAT: archived %s «%s» (corrected by %s)",
+                    s["kind"], doc.original, ct.get("corrector"))
+    if not archived_ids:
+        logger.warning("[actions] revise_belief %s: nothing retractable remained — no retreat",
+                       str(action.id))
+        return
+
+    # 2. the cascade: dependents of the retreated docs AND of the defeated edges fall together.
+    dependents = evaluation_harness.revoke_dependents(
+        archived_ids + list(ct.get("edge_keys") or []), dry_run=False)
+
+    # 3. retreat down the square: mint the surviving subaltern I (O-corner corrections only).
+    weakened = ct.get("weakened")
+    minted = None
+    if weakened and weakened.get("tokens"):
+        trusted = min(float(ct.get("corrector_trust", 0.9)), 0.9)  # taught ceiling
+        minted = api_client.materialize_theorem(
+            tokens=weakened["tokens"],
+            premises=[f"corrected-by:{ct.get('corrector')}"] + archived_ids,
+            chain=(f"retreat down the square: {ct.get('corner')}-corner correction by "
+                   f"{ct.get('corrector')} defeats «{retracted[0]}» -> subaltern survives"),
+            derived_by="retreat",
+            trusted=trusted,
+            senses=weakened.get("senses"),
+        )
+        if minted is None:
+            logger.warning("[actions] retreat mint «%s» skipped (API unreachable) — retreat itself complete",
+                           weakened["tokens"])
+
+    # 4. the follow-on acknowledgment (sequential by construction — it states what ACTUALLY fell).
+    behavior.spawn_ideas_for(
+        EvalToken.CORRECTION_DONE.value,
+        source=payload.get("source"),
+        answer={
+            "retracted": retracted,
+            "dependents": len(dependents),
+            "weakened": (weakened or {}).get("tokens"),
+            "corrector": ct.get("corrector"),
+        },
+        target=ct.get("corrector"),
+    )
+    logger.info(
+        "[actions] RETREAT complete: %d doc(s) archived, %d dependent theorem(s) cascaded, "
+        "subaltern %s -> concede spawned",
+        len(archived_ids), len(dependents),
+        f"minted «{(weakened or {}).get('tokens')}»" if minted else "not minted",
+    )
 
 
 # COLLAPSE ARBITRATION (#4 D2): a decision point = the ideas sharing (source, trigger) — the

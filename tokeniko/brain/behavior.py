@@ -21,7 +21,7 @@ from lib.core.models import (
     TKMemoryItemDoc,
     TKMemoryStakeholdersDoc,
 )
-from lib.core.memory import TokenikoAction, ActionType, MEMChannels
+from lib.core.memory import EvalToken, TokenikoAction, ActionType, MEMChannels
 from brain import compose
 
 # the channels tokeniko can currently ACT on (deliver an outward action). HARDWIRED for v1 (a small
@@ -52,12 +52,17 @@ _DISPATCH = {
     # target = the SPEAKER whose ledger moves (idea.target), never a message on the wire.
     TokenikoAction.MORE_TRUST.value: ActionType.UPDATE_TRUST,
     TokenikoAction.LESS_TRUST.value: ActionType.UPDATE_TRUST,
+    # belief-revision v1 (retreat arc #4): retreat = INTERNAL KB revision (brain-executed:
+    # archive + cascade + weaken); concede = the directed acknowledgment to the corrector
+    # (idea.target), spawned by the retreat HANDLER so it can state what was actually retracted.
+    TokenikoAction.RETREAT.value: ActionType.REVISE_BELIEF,
+    TokenikoAction.CONCEDE.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
 # the internal-reflex set: these reflexes are KB-writes addressed to tokeniko itself (the actual KB
 # write is step D), so their action targetId is tokeniko's own uid (an internal reflection loop).
-_INTERNAL = {TokenikoAction.GUESS.value, TokenikoAction.LEARN.value}
+_INTERNAL = {TokenikoAction.GUESS.value, TokenikoAction.LEARN.value, TokenikoAction.RETREAT.value}
 
 # the trust-reflex set: INTERNAL channel (brain-executed, never a senses carrier) but SPEAKER-targeted
 # (the ledger that moves is the speaker's, not tokeniko's).
@@ -113,9 +118,30 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
 # ACT is scaled, so discretion-to-silence emerges from the multiplication against the keep threshold
 # (e.g. answer 0.9 x ambient 0.6 = 0.54 speaks; why 0.6 x 0.6 = 0.36 stays quiet). No source, or a
 # source without the field (internal/self items), means fully directed — behave exactly as before.
+#
+# SELF-RELEVANT floor (retreat arc #3): a conflict with tokeniko's own worldview is inherently
+# addressed to HIM — the perception's directedness says nothing about how much the conflict matters
+# to him. Floored at ADDRESSED (0.9) when the perception was at least ambient; BELOW ambient (someone
+# else's thread) the scale stands — he stays the polite eavesdropper (the INTERNAL trust ledger is
+# already unscaled, so an overheard conflict still moves it). The correction family (#4) is
+# self-relevant for the same reason: a revision of his own beliefs — and its acknowledgment — is
+# about HIM, whoever the correction was nominally addressed to.
+_SELF_RELEVANT_TRIGGERS = {
+    EvalToken.CONFLICT.value,
+    EvalToken.CORRECTION.value,
+    EvalToken.CORRECTION_DONE.value,
+}
+_ADDRESSED_FLOOR = 0.9   # senses/inbound.grade_directedness: addressed
+_AMBIENT_GRADE = 0.6     # senses/inbound.grade_directedness: ambient
+
+
 def effective_urge(idea: TKIdeaDoc, src: Optional[TKMemoryItemDoc]) -> float:
     directedness = getattr(src, "directedness", None) if src is not None else None
-    return idea.urge * (directedness if directedness is not None else 1.0)
+    if directedness is None:
+        return idea.urge
+    if getattr(idea, "trigger", None) in _SELF_RELEVANT_TRIGGERS and directedness >= _AMBIENT_GRADE:
+        directedness = max(directedness, _ADDRESSED_FLOOR)
+    return idea.urge * directedness
 
 
 # the memory item that spawned the idea (idea.source), or None. The reply path reads its CHANNEL (where
@@ -175,8 +201,8 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         target = None
 
     payload = {"action_token": token, "trigger": idea.trigger}
-    if token in _TRUST:
-        payload["source"] = idea.source  # provenance: the memory item behind the episode
+    if token in _TRUST or token == TokenikoAction.RETREAT.value:
+        payload["source"] = idea.source  # provenance: the memory item behind the episode/correction
     if idea.answer is not None:
         payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
     if idea.material is not None:

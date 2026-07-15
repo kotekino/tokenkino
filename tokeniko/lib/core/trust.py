@@ -44,6 +44,9 @@ _EPISODE_WEIGHTS: dict[TrustEpisodeKind, float] = {
     TrustEpisodeKind.DISAGREEMENT: -0.15,   # × belief_trust
     TrustEpisodeKind.LOGIC_VIOLATION: -0.15,
     TrustEpisodeKind.SELF_INCONSISTENCY: -0.20,
+    # belief-revision v1 (retreat arc #4): a VALID correction is a lesson, never a ding — strong +
+    # (below the kicker: closing one of his own open questions still outranks correcting him).
+    TrustEpisodeKind.CORRECTION: +0.08,
 }
 
 

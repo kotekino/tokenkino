@@ -65,6 +65,7 @@ class TrustEpisodeKind(str, Enum):
     DISAGREEMENT = "trust:disagreement"            # eval:false — weighted by the belief's trust
     LOGIC_VIOLATION = "trust:logic-violation"      # eval:inconsistent — strong −
     SELF_INCONSISTENCY = "trust:self-inconsistency"  # eval:conflict — strong − (the honest-liar proxy)
+    CORRECTION = "trust:correction"                # eval:correction — the corrector TAUGHT him (belief revision v1): + (a valid counterexample is a lesson, never a ding)
 
 
 # the life:* trigger family (blog P1) — NOTEWORTHY LIFE EVENTS that stir an urge to post on the
@@ -210,6 +211,7 @@ class ActionType(str, Enum):
     CURL = "curl"
     POST_CONTENT = "post_content"
     UPDATE_TRUST = "update_trust"   # INTERNAL: record a trust episode + refold (brain-executed)
+    REVISE_BELIEF = "revise_belief"  # INTERNAL: belief-revision v1 — archive the corrected belief's source docs + revoke_dependents cascade + mint the weakened subaltern (brain-executed)
 
 # --------------------------------------------------
 # the meta-language (C) — reserved-token behavior layer. The grammar of behavior is HARDWIRED here
@@ -226,6 +228,10 @@ class EvalToken(str, Enum):
     TRUE = "eval:true"
     CONFLICT = "eval:conflict"  # a CROSS-ITEM (revisable CONTEXT) contradiction across a speaker's prior claims — NOT the hardwired logic INCONSISTENT (that is X∧¬X within ONE statement)
     QUESTION = "eval:question"  # the input is a QUESTION (interrogative) — to be ANSWERED, not asserted/believed/cross-item-checked
+    # belief-revision v1 (the retreat arc #4, Popper trust-gated): a quantified O/E correction from a
+    # sufficiently-trusted corrector defeats a LEARNED generalization — retreat, don't refute-back.
+    CORRECTION = "eval:correction"            # a valid correction detected -> tokeniko:retreat (INTERNAL)
+    CORRECTION_DONE = "eval:correction-done"  # the retreat EXECUTED (spawned by the handler) -> tokeniko:concede (the directed acknowledgment)
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):
@@ -243,6 +249,12 @@ class TokenikoAction(str, Enum):
     # reflex of the same source item; an overheard lie can cost trust AND be pushed back on).
     MORE_TRUST = "tokeniko:more-trust"
     LESS_TRUST = "tokeniko:less-trust"
+    # belief-revision v1 (retreat arc #4): RETREAT is the INTERNAL KB revision (archive + cascade +
+    # weaken — retreat down the square, A falls to its subaltern I); CONCEDE is the directed outward
+    # acknowledgment to the corrector, spawned by the retreat HANDLER (eval:correction-done) so it can
+    # truthfully state what was retracted — sequential by construction, never a collapse-sibling.
+    RETREAT = "tokeniko:retreat"
+    CONCEDE = "tokeniko:concede"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a

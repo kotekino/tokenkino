@@ -182,6 +182,102 @@ def revoke_dependents(premise_ids, dry_run: bool = True) -> list:
     return out
 
 
+# ------------------------------------------------------------------------------------------------
+# BELIEF-REVISION v1 — the correction detector (retreat arc #4, Popper trust-gated). Is this zip a
+# QUANTIFIED CORRECTION of a LEARNED generalization? A correction is an O-corner claim
+# («not all S are P»: UNIVERSAL + negated) or an E-corner claim («no S is P»: NEGATIVE quantifier)
+# whose is_a pair the ACTIVE union graph currently AFFIRMS through at least one LEARNED hop —
+# i.e. exactly the claim the old evaluator would refute-back ("the bounce"). One counterexample
+# defeats a universal (Popper's asymmetry); the TRUST GATE (corrector >= belief) is the caller's
+# (brain policy, not harness mechanics).
+#
+# v1 scope: only hops asserted by ACTIVE AXIOM/THEOREM docs are retractable (archiving the doc IS
+# the retreat — revocation durability by construction). Definition-tier hops (WordNet-gloss-mined)
+# are never retracted on conversational say-so; a path learned ONLY through them yields None (the
+# normal eval:false path stands). Pure-bedrock paths are substrate, not belief — None.
+#
+# The RETREAT DESTINATION (the square's subalternation): an O correction defeats A but leaves the
+# subaltern I standing («some S are P» — consistent with «not all»), so `weakened` carries the
+# I-mint (tokens + pinned senses). An E correction contests I too — nothing survives to mint.
+# ------------------------------------------------------------------------------------------------
+def correction_target(zip_obj: TKZip) -> Optional[dict]:
+    from lib.llc.evaluator.e_statement import _isa_senses
+    from lib.llc.evaluator.e_relations import relations_subsumes
+    from lib.core.kb_extract import _leaf_is_crisp
+
+    kb = _load_active_kb()
+    for leaf in _zip_leaves(zip_obj.items):
+        if not _leaf_is_crisp(leaf):
+            continue  # a ◇-claim asserts nothing — it corrects nothing (Pillar 3)
+        quantifier = getattr(leaf, "quantifier", TKQuantifier.GENERIC)
+        negated = bool(getattr(leaf, "negated", False))
+        is_o = quantifier == TKQuantifier.UNIVERSAL and negated
+        is_e = quantifier == TKQuantifier.NEGATIVE and not negated
+        if not (is_o or is_e):
+            continue
+        pair = _isa_senses(leaf)
+        if pair is None:
+            continue
+        subject_sense, object_sense = pair
+
+        # the affirmed generalization, in either KB representation: the DIRECT key catches a
+        # membership-RULE assertion («all softwares are minds» — no graph edge exists for it);
+        # the subsumes walk catches (possibly multi-hop) EDGE-minted taxonomy.
+        direct_key = _edge_key(subject_sense, object_sense)
+        learned_keys: list[str] = []
+        path = [subject_sense, object_sense]
+        if kb["edge_doc_sources"].get(direct_key):
+            learned_keys = [direct_key]
+        else:
+            walked = relations_subsumes(object_sense, subject_sense, kb["relations"])
+            if walked is None or len(walked) < 2:
+                continue  # the KB does not affirm the generalization — nothing to correct
+            path = walked
+            hops = list(zip(path, path[1:]))
+            learned_keys = [
+                _edge_key(s, o) for s, o in hops if kb["edge_source"](s, o) is not None
+            ]
+            if not learned_keys:
+                continue  # pure bedrock — substrate, not a retractable belief
+        sources = [
+            src for k in learned_keys for src in kb["edge_doc_sources"].get(k, [])
+        ]
+        retractable = [
+            s for s in sources
+            if s["kind"] == "theorem"
+            or (s["kind"] == "axiom" and not s.get("readonly", True))
+        ]
+        if not retractable:
+            # v1: vocabulary (definition-tier) and READONLY axioms (the seeded imprinting — the
+            # author's API privilege) are never retracted conversationally -> the normal
+            # eval:false path stands (he defends his constitution, honestly).
+            continue
+        belief_trust = min(
+            min((kb["edge_trust"].get(k) for k in learned_keys if k in kb["edge_trust"]),
+                default=_DERIVED_DEFAULT_TRUST),
+            min((kb["edge_trust"].get(s["id"]) for s in retractable if s["id"] in kb["edge_trust"]),
+                default=_DERIVED_DEFAULT_TRUST),
+        )
+        corner = "O" if is_o else "E"
+        weakened = None
+        if is_o:  # retreat down the square: A -> its subaltern I (pinned senses; dedup at materialize)
+            weakened = {
+                "tokens": f"some {_short(subject_sense)} is a {_short(object_sense)}",
+                "senses": {"subject": subject_sense, "predicate": object_sense},
+            }
+        return {
+            "corner": corner,
+            "subject": subject_sense,
+            "object": object_sense,
+            "path": path,
+            "edge_keys": learned_keys,
+            "sources": retractable,
+            "belief_trust": belief_trust,
+            "weakened": weakened,
+        }
+    return None
+
+
 # the injected part_of (meronymy) graph reader: wholes(sense) -> direct part_of wholes (the
 # senses Y such that `sense` is part_of Y). kept SEPARATE from the is_a reader — is_a and part_of
 # are different relations with different truth semantics. cached per evaluate_zip() call, same shape.
@@ -532,6 +628,39 @@ def _load_active_kb() -> dict:
         edge_trust[_edge_key(e["subject"], e["object"])] = _AXIOM_EDGE_TRUST
     for t in theorem_docs:
         edge_trust[str(t.id)] = t.trusted            # generational min-trust (step 3)
+
+    # EDGE -> SOURCE DOCS (belief-revision v1, retreat arc #4): which stored docs an in-memory edge
+    # was mined from. The retreat mechanism IS "archive the source doc" (revocation durability by
+    # construction — an archived doc simply stops yielding its edges at the next KB load), so a
+    # correction needs to walk from the defeated edge back to the docs that assert it. Definition-tier
+    # edges are mapped too but marked: v1 never retracts vocabulary on conversational say-so.
+    edge_doc_sources: dict[str, list[dict]] = {}
+    doc_originals = {str(a.id): a.original for a in axiom_docs}
+    doc_originals.update({str(t.id): t.original for t in theorem_docs})
+    axiom_readonly = {str(a.id): bool(a.readonly) for a in axiom_docs}
+    for e in axiom_edges:
+        edge_doc_sources.setdefault(_edge_key(e["subject"], e["object"]), []).append(
+            {"kind": "axiom", "id": e["source_id"], "original": doc_originals.get(e["source_id"], ""),
+             # readonly = the hardwired seed-tier protection: a readonly axiom cannot be archived,
+             # so it is NEVER conversationally retractable (the author's API privilege only).
+             "readonly": axiom_readonly.get(e["source_id"], True)})
+    for e in theorem_logic["edges"]:
+        edge_doc_sources.setdefault(_edge_key(e["subject"], e["object"]), []).append(
+            {"kind": "theorem", "id": e["source_id"], "original": doc_originals.get(e["source_id"], "")})
+    for d in derived_edge_docs:
+        edge_doc_sources.setdefault(_edge_key(d.subject, d.object), []).append(
+            {"kind": "definition-tier", "id": str(d.id), "original": d.source_original})
+    # a generalization has TWO KB representations (kb_extract): a generic copular mints an EDGE,
+    # an explicit universal («all softwares are minds») becomes a MEMBERSHIP RULE. Both assert
+    # "subject is_a predicate" — a correction must reach either, so unconditioned positive
+    # membership rules enter the same map under the same edge key.
+    for r, kind in ([(r, "axiom") for r in axiom_rules] + [(r, "theorem") for r in theorem_rules]):
+        if (r.get("kind") == "membership" and not r.get("negated")
+                and not r.get("cond_props") and r.get("subject") and r.get("predicate")):
+            entry = {"kind": kind, "id": r["source_id"], "original": r.get("original", "")}
+            if kind == "axiom":
+                entry["readonly"] = axiom_readonly.get(r["source_id"], True)
+            edge_doc_sources.setdefault(_edge_key(r["subject"], r["predicate"]), []).append(entry)
     # 2d: a conclusion derived THROUGH a generic rule is defeasible — the rule's source id enters the
     # trust map at generic strength (min with any theorem trust already there), and min-trust does
     # the rest (both materialize paths).
@@ -575,6 +704,7 @@ def _load_active_kb() -> dict:
         "tier_subjects": tier_subjects,
         "axiom_edges": axiom_edges,
         "edge_trust": edge_trust,
+        "edge_doc_sources": edge_doc_sources,   # belief-revision v1: edge key -> the docs asserting it
     }
     _kb_cache, _kb_cache_fp = kb, fp
     return kb

@@ -35,7 +35,23 @@ def compose_raw(action_token: str, trigger: Optional[str] = None, answer: Option
         return "can you tell me more about that?"
     if action_token == TokenikoAction.WHY.value:
         return "why is that?"
+    if action_token == TokenikoAction.CONCEDE.value:
+        # belief-revision v1 (retreat arc #4): state the retreat honestly — what fell, what survives.
+        return _compose_concede(answer or {})
     return ""  # post / internal reflexes have no Discord-reply text here
+
+
+# render the concession: the retracted belief(s) + the surviving subaltern (when the correction was
+# an O-corner — an E-corner leaves nothing standing to affirm). Terse; senses polishes.
+def _compose_concede(answer: dict) -> str:
+    retracted = answer.get("retracted") or []
+    weakened = answer.get("weakened")
+    parts = ["you are right"]
+    if retracted:
+        parts.append(f"I no longer hold that {retracted[0]}")
+    if weakened:
+        parts.append(f"what remains true is that {weakened}")
+    return " — ".join(parts)
 
 
 # render the raw answer text from an AnswerResult dict. POLAR reuses the truth verdict (a logic-certain

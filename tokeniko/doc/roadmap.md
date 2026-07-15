@@ -141,12 +141,15 @@ EXPERIMENT precedes the machinery — do not clean, convince him to retreat.
      `TKZipContent.modal`; the kernel treats a ◇-leaf as no assertion; the extractor's
      `_leaf_is_crisp` gate at all six sites — «a software can be a mind» mints NOTHING; the
      grounder abstains; microscope digest + missed-modality category), see `landed.md`.
-  3. **Conflict ideas bypass the directedness gate** (an eval:conflict at 0.7 died at ambient
-     0.6 — a conflict with one's own beliefs is self-relevant regardless of addressee).
-  4. **Belief-revision v1** — quantified corrections retract taught generalizations via
-     `revoke_dependents` (the square now makes A-vs-O a GENUINE cross_item_conflict — the
-     trigger exists); then RE-RUN the dialogue live as the regression (zero trust damage + the
-     retreat itself).
+  3. ✅ **The self-relevant directedness floor** — landed 2026-07-15 (eval:conflict + the
+     correction family floor at addressed 0.9 when ≥ ambient; below-ambient stays the polite
+     eavesdropper), see `landed.md`.
+  4. ✅ **Belief-revision v1** — landed 2026-07-15 (the correction detector + the Popper trust
+     gate + the retreat executor: archive → `revoke_dependents` cascade → mint the subaltern I →
+     concede; readonly axioms constitution-protected), see `landed.md`. **NEXT — the payoff:
+     RE-RUN the Socratic dialogue live** (seed the rules via `seed_behavior_rules.py --apply`,
+     brain+senses up): same sentences → zero trust damage (the square) + the actual retreat of
+     «all softwares are minds» — by himself, mid-conversation.
   Also queued from the session: extractor **possessive-subject gate** («MY mind is a software»)
   · **adverbial quantifiers** (always/sometimes/never → the quantifier field) · **stakeholder
   merge** (two kotekino rows; Renzo/john duplicates → aliases; author's per-row ruling —

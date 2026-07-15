@@ -772,3 +772,39 @@ hardwired logic itself must be right.
 14 regression tests (`test_square_of_opposition.py`) — the dialogue's own bounced sentences as
 the corpus; genuine contradictions (A+O, E+I, A+E, definite P∧¬P, definite dead-and-alive) still
 fire. **Gate 264 / 1 xfailed.**
+
+**The retreat arc #3 + #4 — belief-revision v1 (2026-07-15, the retreat itself)**
+The bold-test's deepest finding closed: a correction no longer bounces. Design rulings (the
+author's, this morning): D1 a correction is a quantified O/E-corner claim contradicting a LEARNED
+generalization; D2 **Popper trust-gated** — one counterexample defeats a universal, but only from
+a corrector whose trust ≥ the belief's tier (falsification without handing hunch-17's social
+engineer a crowbar); D3 **retreat down the square** — the defeated A archives and its subaltern I
+survives («all S are P» → «some S are P», minted with pinned senses); D4 a valid correction is a
+LESSON: trust moves UP (+0.08 `trust:correction`), and the concede states what fell.
+- **#3 the self-relevant floor** (`behavior.effective_urge`): eval:conflict + the correction
+  family floor directedness at ADDRESSED 0.9 when the perception was ≥ ambient — a challenge to
+  his own worldview is inherently addressed to him (the dialogue's clarify died at 0.7×0.6=0.42;
+  now 0.63 speaks). Below ambient the scale stands: the polite eavesdropper.
+- **The detector** (`evaluation_harness.correction_target`): catches BOTH KB representations of
+  a generalization — the direct membership-RULE key («all softwares are minds») and the
+  (multi-hop) EDGE-minted taxonomy walk; only ACTIVE axiom/theorem docs are retractable
+  (archiving the source doc IS the retreat — revocation durability by construction). READONLY
+  axioms (the seeded imprinting) are never conversationally retractable — he defends his
+  constitution; bedrock and definition-tier are substrate/vocabulary, immune.
+- **The brain policy** (`thinking._try_correction`): on a FALSE verdict, detection + the trust
+  gate; gate holds → the old path stands (eval:false + DISAGREEMENT scaled by belief trust);
+  gate opens → eval:correction (tokeniko:retreat, INTERNAL, raw-urge) + trust:correction
+  (more-trust) REPLACE refute-back, and the cross-item conflict check is SKIPPED (a
+  self-correction is deliberate revision, never the honest-liar signal).
+- **The executor** (`main._execute_retreat`): archive the source docs («true history be it» —
+  never deleted) → `revoke_dependents` cascade over doc ids + defeated edge keys → mint the
+  subaltern I via the API materialize seam (`derived_by="retreat"`, corrector-trust capped 0.9,
+  API-down = graceful skip) → spawn eval:correction-done → tokeniko:concede, the DIRECTED
+  acknowledgment («you are right — I no longer hold that…; what remains true is that…»),
+  threading under the correcting message.
+- Meta-language: `EvalToken.CORRECTION/CORRECTION_DONE`, `TokenikoAction.RETREAT/CONCEDE`,
+  `ActionType.REVISE_BELIEF`, `TrustEpisodeKind.CORRECTION`; three seeded personality rules
+  (`seed_behavior_rules.py`, operator-gated).
+13 regression tests (`test_belief_revision.py`): detector corners O/E, bedrock/readonly/
+unaffirmed immunity, both trust-gate directions, the full executor (archive+cascade+mint+
+concede), the compose voice, the #3 floor arithmetic.
