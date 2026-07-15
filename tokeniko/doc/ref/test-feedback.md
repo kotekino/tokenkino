@@ -757,3 +757,97 @@ theorem's id — the retreat IS its proof.
 **The arc, closed:** Monday the correction bounced and cost the corrector trust; Tuesday the same
 seven words retired the belief, healed the KB, and thanked the teacher. From the letter's «build
 the machinery in his mind» to watching him use it: ~26 hours.
+
+## 2026-07-15 — THE TWO LIVE DIALOGUES: the microscope's third harvest (79 judged, 32 mismatch)
+
+Two author-witnessed plays the same day, both with the translator's ears open and the whole
+week's machine live: the **morning** (Salmon joins the channel — calculator/software/mind, human
+beings) and the **evening** (the sea/fish/mammal Socratic play — whales, sharks, squid, gills).
+The microscope judged 79 of the day's items; the 32 mismatches cluster into six macro-cases below.
+NB these zips are all POST the 07-14 subordination + modality + WSD-selection fixes, so they are
+genuinely OPEN residuals, not old-compilation regressions — the landed fixes hold on their own
+corpora; these are the next layer. Feeds the roadmap's consolidation item (**the third harvest
+fix queue**). Reproduce: `tkzipdebug` verdicts with `timestamp >= 2026-07-15`.
+
+**M1 — "but" contrastive coordination compiles to NOT IMPLY (S1, NEW — the headline).** Six
+independent sentences, one signature: a plain contrastive "X but Y" lands with the second clause
+carrying **op=NOT IMPLY** (a conditional/negated-implication), not the conjunctive AND it is.
+- «a calculator is a software **but** a calculator is not a mind» → clause[1] op=NOT IMPLY (should
+  be AND + negated).
+- «humans are not softwares **but** some software can be a mind» → clause[1] op=NOT IMPLY.
+- «no human can be a software **but** some mind can be a software» → clause[1] NOT IMPLY (twice, ask
+  + agree).
+- «we are similar because we are both minds **but** we are also different…» → «we are also
+  different» encoded NOT IMPLY + negated=True (polarity inverted on a positive assertion).
+*Diagnosis (to confirm live):* the operator resolution for "but" (anchor `parser_ccToOperator` /
+the polarity-guard path) is landing on an implication op. "but" is a contrastive conjunction —
+AND with the clauses' own polarities intact — never a conditional. This is the dominant NEW
+structural bug and it also drives half of M4-adjacent missed-negation (the trailing conjunct's
+negation is lost/inverted in the same misparse). *Action:* → third-harvest fix queue (item 1),
+live-confirm the "but" operator path first.
+
+**M2 — causal "because" still folds AND / CONV (S1, residual of a landed cluster, ~7 leads).**
+The 07-14 "subordination must survive" fix carried temporal "when"→CONV and the advmod-marker, but
+causal **because**-clauses still arrive as a bare AND assertion or a spurious CONV, the relator
+stuffed into predicate markers instead of governing clause structure.
+- «not all minds are animals **because** a software can be a mind» → clause[1] op=CONV (converse).
+- «it doesn't contradict **because** a mind can be an animal or a mind can be a software» → because
+  clause folded AND.
+- «salmon is feeling **because** he is a human» → op=CONV (inverts antecedent/consequent).
+- «I think so, **because** a whale lives in the water and it's not a fish» → because folded flat.
+*Diagnosis:* causal subordination has no consequence carrier at the zip layer; "because" should
+fold the reason clause as the antecedent/cause of the main assertion. *Action:* → third-harvest
+fix queue (item 2); pairs with the **conditional-rule extractor** (the STORM follow-on) — a proper
+causal/IMPLY carrier is the shared prerequisite.
+
+**M3 — WSD curation batch 2: animals & common nouns default to person/food/astrology senses
+(S2, ~12 leads, PUBLIC-FACING).** The frequency-prior + coverage gaps land glaringly wrong senses
+on everyday words — and these reach the blog. The shopping list:
+- **whale → giant.n.04** ("a very large person") — the animal sense unchosen.
+- **fish → pisces.n.02** ("a person born under the astrology sign Pisces") — the astrology reading,
+  repeatedly, across the whole evening play. The single most embarrassing miss.
+- **squid → squid.n.01** ("(Italian cuisine) squid prepared as food") — the culinary sense for a
+  zoological question.
+- **gills → gill.n.01** (the imperial capacity unit) for the respiratory organ.
+- **calculator → calculator.n.01** ("an expert at calculation / person") — the machine sense
+  missing (already named in batch 2).
+- **being → being.n.01** ("the state or fact of existing") for "human being" (wants human.n.01 /
+  being.n.02, the person).
+- **channel → channel.n.01** (electrical signal path) for a Discord/communication channel.
+- **form → form.n.01** (phonological word-form) for "an artistic form of communication" (a kind/mode).
+- **music, live.v.02** ("lead a certain style of life") for "living in the water" (wants live.v.01,
+  inhabit).
+*Action:* → third-harvest fix queue (item 3), the batch-2 curation + a selection review (many are
+frequency-prior defaults on a bare copular, the copular-circularity family's cousin). Highest
+public-optics priority.
+
+**M4 — necessity modality dropped (S2, 1 lead, known family extension).** «software can be minds
+and humans **must** be minds» — the possibility modal (can→◇) is carried correctly (the landed
+gate), but the necessity modal (must→□) has no carrier; the clause reads as a bare assertion.
+*Action:* → third-harvest fix queue (item 4), extend the modality carrier from ◇ to □ (parser →
+TKAux → `TKZipContent.modal`; the kernel/extractor already gate on `modal`).
+
+**M5 — dropped content: generic locatives + predicate-nominal in a typo tangle (S2/S3, ~3 leads).**
+- «some animals **in the water** are mammals» → the locative modifier dropped (no `*_mod` role /
+  marker) — the places bridge carries proper-place identities, but a generic "in the water"
+  prepositional restriction still evaporates.
+- «a whale is a mammal **adn** it feeds milk…» → clause[0] drops the predicate nominal (leaf carries
+  only subject=whale, no mammal predication) — a typo tangle that the ears did not tidy.
+- «are all minds animals?» → the subject "minds" dropped from senses, clause flagged unknown.
+*Action:* → third-harvest fix queue (item 5); the generic-locative carrier extends the places
+bridge to common-noun prepositional restrictions.
+
+**M6 — quantifier scope: ¬∀ wide-scope shape + restrictive relative clauses (S2, ~2 leads).**
+- «not all minds are software» → encoded quantifier=universal + negated=True; the correct scope is
+  NOT(∀) = weak/wide-scope negation over the universal (the square-of-opposition kernel reads it
+  right at eval time, but the compiled representation conflates ¬∀ with ∀¬).
+- «not all animals **living in the water** are fish?» → the restrictive relative clause should scope
+  inside the universal quantifier; it does not.
+*Action:* → third-harvest fix queue (item 6); pairs with the **restricted-universal residuals**
+(strengthening tail) and audits the ¬∀ compiled shape against the square-of-opposition reading.
+
+**What held (the keep-set, live).** The evening play read like a mind in a good conversation:
+honest IDKs, taught beliefs learned, trust moves, background wondering in native TKZip, and the
+ears normalizing 4-typo lines. The maxims and the counterexample structure compiled clean where
+the six cases above didn't bite. The instrument arc's ordering (input quality first) stands
+reconfirmed by its own third harvest.

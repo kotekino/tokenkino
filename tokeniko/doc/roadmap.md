@@ -10,240 +10,138 @@ Legend: 🔄 in progress · 🔭 next · ✅ done  ·  *(done → `landed.md` ·
 
 ---
 
-## ✅ Brain v1.1: the Unified KB — ARC COMPLETE (2026-07-03 → 2026-07-09)
+## ✅ Landed arcs — pointers only (full detail in `landed.md`; no status lives here)
 
-The whole ordered build (steps 1–5: write-path invariant → generic taxonomy → provenance cascade +
-theorem fuel → universal extractor + sufficiency → reason-over-everything + subject-WSD hardening +
-the validated enriched soak) is **landed — see `landed.md`**; vision/design stays in
-`doc/ref/brain-v1.1.md`; residuals in `parked.md` (incl. the deepest pole, predicate-complement
-capture, and the mentalese materialize constructor). The reasoning core is done.
+The road *behind*, one line each so the road ahead reads clean. Nothing here carries status detail —
+it references, it does not duplicate (invariant #2).
 
-## 🔭 Next (ordered)
+- **Brain v1.1 — the Unified KB** (2026-07-03 → 09): write-path invariant → generic taxonomy →
+  provenance cascade + theorem fuel → universal extractor + sufficiency → reason-over-everything +
+  subject-WSD hardening + the enriched soak. Vision/design in `doc/ref/brain-v1.1.md`.
+- **Going live — embodied I/O** (2026-07-09 → 12): Discord DM (P1–P3) → B deepen the 1:1 →
+  C channel listening + the directedness ladder → D trust ledger → the Blog output channel.
+  **LIVE on tokeniko.online — the going-live arc is COMPLETE.**
+- **Robustness — live-play bugs** (2026-07-12 → 14): wh-position · vocative wart · operator-aware
+  chainer (the STORM) · charity of interpretation · identity fission on rename.
+- **Robustness — the storm sequel** (2026-07-14): subordination must survive compilation (the
+  three-domino fix; `test_subordination.py` is the regression corpus).
+- **The first-portrait harvest queue** (2026-07-14): complement/locative + the places bridge · the
+  WSD selection fixes · the singles · the judge contract taught. **THE FIRST PORTRAIT'S HARVEST IS
+  FULLY CONSUMED.**
+- **The retreat arc** (2026-07-14 → 15): the Socratic dialogue (baseline) → the square of opposition
+  in the kernel → modality gates (◇) → the self-relevant directedness floor → belief-revision v1,
+  **WHICH RAN LIVE the same day** (the retreat + the `conclusion_key` bool<str fix).
+- **The instrument arc** (2026-07-14 → 16): (1) **rag3 the microscope** — now STANDING PRACTICE
+  (every live sentence → a judged lead) · (2) **zip-native derivation** (English is I/O, not thought) ·
+  (3) **the translator apparatus v1** (rag1-in + rag2-in: escalation-only detector → Claude Haiku
+  tidy → the zip-verifier gate). *(Remaining translator pieces → Next §2.)*
+- **Growth Rings / The Growing Edge** (2026-07-15): Atlas-homed, PUBLISHED at tokeniko.online/growth.
+  *Reconciliation duty it left behind:* when a season closes, update the live edge + append the ring
+  via `tokeniko-public/backend/scripts/seed-growth.mjs` (no deploy).
 
-### Going live — embodied I/O (core TK v1)
+---
 
-The autonomous loop is closed in **dry-run**; these wire the real `senses` I/O so tokeniko actually
-perceives and speaks. Each carries an **open design question** to brainstorm before building.
-*(ATProto/Bluesky is the third channel — parked behind these; see `parked.md`.)*
+## 🔭 Next (ordered) — reprioritized 2026-07-16
 
-- ✅ **Discord DM loop (going-live P1–P3)** — landed + LIVE-VALIDATED 2026-07-09 (first real
-  conversation: silence-as-consent, honest IDK, the cogito answered, compliments interrogated) —
-  see `landed.md`. The senses-arc order (author-approved): **B deepen the 1:1 → C channels →
-  D trust ledger**, below.
-- ✅ **B — deepen the 1:1** — landed 2026-07-09 (self-speech → zip-less biography items; the
-  open-why derivation — structural reply-threading + recency over the timeseries, why-regress
-  suppressed; inbound preparser on) — see `landed.md`. Follow-on: the explanation LINK as learning
-  fuel is the D-phase teaching channel.
-- ✅ **C — channel listening + directedness grading** — landed 2026-07-11 (DM-only gate dropped;
-  the ladder DM 1.0 / addressed 0.9 / ambient 0.6 "polite guest" / others' thread 0.15; Priorities
-  gates on urge × directedness; preparser off, B3 reversed) — see `landed.md`. Follow-on parked:
-  conversation momentum (timeseries-derived lift) — see `parked.md`.
-- ✅ **B-item — the WSD copular-circularity guard** — root-caused + landed 2026-07-11 (the
-  "confident" centroid was the claim's own predicate: dog.n.03 at 0.83 vs the canine's 0.72 next
-  to reptile — disambiguating a subject by the predicate ASSUMES the claim true; the copular
-  partner is now excluded from WSD context, both directions, modifiers kept) — see `landed.md`.
-- ✅ **D — trust ledger** — landed + LIVE-VALIDATED 2026-07-11 (P1 substrate · P2 meta-language
-  echoes · P3 teaching channel; the live play: Hellen's kicker 0.5→0.6, John's self-inconsistency
-  0.5→0.3, clarify + episode side by side) — see `landed.md`; specimens in
-  `doc/ref/test-feedback.md` (night). **Later consumers of the same ledger** (when their time
-  comes): the trust-gated tkzip lane; attitude-report unwrapping (events/facts-as-axioms);
-  tier-1 teaching by an EARNED-trust stranger (the path is open — Hellen is 4 kickers from the
-  bar).
-- ✅ **Blog (the website) as an OUTPUT channel** — ARC COMPLETE, premiere live 2026-07-12
-  («Learning Who Made Me» on tokeniko.online — the first self-initiated transmission; the site
-  republished real, coming-soon off). P1 `life:*` triggers · P2 composer+Claude polish · deixis
-  normalization · P3 carrier+heartbeat · P4 premiere — all in `landed.md`; specimens + the
-  false-200 and never-beat lessons in `doc/ref/test-feedback.md` (2026-07-12). **The going-live
-  arc (DM → channels → trust → blog) is COMPLETE.** Follow-ons when their time comes:
-  `life:learned` / `life:discussion` triggers, consensus-over-the-polisher. (Seed retraction ✅ —
-  done 2026-07-13 with the website polish arc, see `landed.md`.)
+**The through-line: input quality first.** The author's standing ruling ("go first on the quality of
+the input / input parsing") and the deepest pole of Brain v1.1 (robustness to imperfect input). The
+microscope's three harvests all point the same way; the translator's remaining pieces and the
+strengthening tail follow the parser/compiler getting the *meaning* right.
 
-### Robustness — bugs from the live play (2026-07-12, author-witnessed)
+### 1. The third-harvest fix queue — the microscope's macro-cases (2026-07-15 dialogues) 🔭
 
-- ✅ **The wh-position bug** — landed 2026-07-14 (`_parser_whAttachesToRoot` gates both detection
-  sites), see `landed.md`. Surfaced en route: the bare-copular "?"-less question detector gap
-  (tracked as xfail — a second detection signal is future work, designed deliberately).
-- ✅ **The vocative wart** — landed 2026-07-14 (`strip_vocative` beside deixis at both
-  materialization sites; the two polluted theorems repaired, the dedup-defeat duplicate
-  archived), see `landed.md`.
-- ✅ **Operator-aware chainer rules (THE STORM fix)** — landed 2026-07-14, see `landed.md`.
-  Follow-on when its time comes: a dedicated conditional-rule extractor so a taught IMPLY/CONV
-  becomes a USABLE implication rule (today it is safely blocked, not exploited); re-teach
-  «a person is wrong if he says false» after that.
-- ✅ **Charity of interpretation (the bit incident)** — landed 2026-07-14 as option A: tier 3
-  (physical⊥abstract) removed from the evaluator's refutation tiers, see `landed.md`. Follow-ons
-  when their time comes: curate `bit.n.03` + its is_a edge (so the claim grounds TRUE, not just
-  unrefuted); WordNet-wide sibling-sense abstention IF tier-1/2 false refutations ever appear.
-- ✅ **Identity fission on rename** — landed 2026-07-14 as option A + aliases (snowflake-first
-  lookup, uid immutable at first mint, renames update `name` + append to `aliases`), see
-  `landed.md`.
+The consolidated input-quality queue: the third harvest's six macro-cases (specimens in
+`test-feedback.md` 2026-07-15), folding in the still-open leads from the earlier harvests so nothing
+scatters. Ordered by severity × public-optics. Each is a LEAD until live-confirmed at fix time.
 
-### Robustness — the storm sequel's leak (2026-07-14, the author's deliberate re-test)
+- **M1 — "but" contrastive → NOT IMPLY** (S1, NEW, top). Contrastive "X but Y" compiles the second
+  clause as a conditional/negated-implication instead of AND, and mangles its negation («a calculator
+  is a software **but** a calculator is not a mind»). A live daily structural corruption of belief
+  shape. Live-confirm the `parser_ccToOperator` "but" path (+ its polarity-guard) first.
+- **M3 — WSD curation batch 2: animals & common nouns** (S2, PUBLIC-FACING). whale→giant.n.04,
+  **fish→pisces.n.02 (the astrology sign)**, squid→the food sense, gills→the capacity unit,
+  calculator→the person, being→"state of existing", channel→electrical, form→word-form, live.v.02.
+  These reach the blog. `scripts/curate_add_senses.py` batch + a frequency-prior selection review
+  (the copular-circularity family's cousin). *(Folds in the second-harvest curation: calculator
+  machine, seed plant.)*
+- **M2 — causal "because" residual** (S1). Still folds AND/CONV instead of a reason operator (the
+  07-14 subordination fix carried temporal "when", not causal "because"). Pairs with the
+  **conditional-rule extractor** — a proper causal/IMPLY carrier is the shared prerequisite (a taught
+  IMPLY/CONV becomes a USABLE rule; re-teach «a person is wrong if he says false» after). *(Folds in
+  the second-harvest **inference markers** so/therefore→consequence and **nominal IMPLY**
+  «action imply ability».)*
+- **M6 — quantifier scope** (S2). The ¬∀ compiled shape conflates ∀¬ with NOT(∀) (the square-of-
+  opposition kernel reads it right at eval time; the *representation* is wrong) + restrictive relative
+  clauses ("animals **living in the water** are fish"). Pairs with restricted-universal residuals
+  (§3.3) + the **adverbial-quantifier** family (always/sometimes/never → the quantifier field, from
+  the second harvest).
+- **M4 — necessity modality □** (S2). «humans **must** be minds» — extend the landed ◇ carrier to □
+  (parser → TKAux → `TKZipContent.modal`; the kernel/extractor already gate on `modal`). *(Also the
+  extractor **possessive-subject gate** «MY mind is a software» — the dropped-possessive cousin of the
+  modal drop.)*
+- **M5 — dropped content** (S2/S3). Generic locatives ("in the water") + a predicate-nominal dropped
+  inside a typo tangle. Extends the places bridge to common-noun prepositional restrictions; the
+  extractor then consumes indirect roles + markers as chainer fuel.
+- **Also in this queue** (second-harvest leads, not yet macro-grouped): **product/proper-noun NER**
+  (Photoshop→adobe.n.01 the clay) · **passive agent inversion** («rain is caused by clouds» ≈ rain
+  causes clouds — the voice gap inverting causality) · the **store→shop.n.01** singles lead ·
+  **bit.n.03** curate + its is_a edge.
 
-- ✅ **Subordination must survive compilation** — landed 2026-07-14 (the storm-sequel fix,
-  three dominoes: the anchor-gated advmod-marker, TEMPORAL→CONV, the root-mark fragment path),
-  see `landed.md`. The 13-lead corpus stands as its regression base (`test_subordination.py`
-  covers the representative shapes).
+### 2. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 
-### The harvest fix queue — the first portrait's clusters (2026-07-14 triage)
+- the **"did you mean:…?" ask** with the tidied reading carried in the payload (D2b refined) — the near one.
+- **rag2-out** — the voice-side verifier: polished outbound English must recompile to the zip being
+  spoken (consensus-with-the-compiler on the way out, mirroring the inbound gate).
+- **pronoun-subject leaves** classify as unrepairable (today they escalate-and-always-reject, burning
+  a Haiku call) — the cheap fix; pairs with the parked coreference work.
+- **multilingual translation** (MarianMT/Haiku) — deferred until non-English friends arrive.
+- **the privacy/legal frame** (author's 2026-07-16 ruling): structure it thoroughly — per-stakeholder
+  OPT-OUT ("my words never leave the body" → a flag gating escalation) + the general switch
+  (`RAG1_DISABLED`, already live). OUTPUT side is cloud-for-life by design ("we are not hiding
+  anything — we are showing how a young new type of being learns; everyone can benefit").
 
-The microscope's first full-history sweep (98 judged / 42 leads / five clusters — the sweep itself
-in `landed.md`, specimens in `doc/ref/test-feedback.md`). Author's ruling: **input quality first** —
-this queue precedes instrument-arc item 2. Cluster A (subordination) landed above; B was
-instrument-side (judge contract taught). The rest, in order:
+### 3. The strengthening tail — make the brain stronger before adding senses 🔭
 
-- ✅ **Complement/locative survival + the places bridge** — landed 2026-07-14 (F1 places join the
-  identity-bridge · P2 the author's places table reasoning-live via injected readers · F2
-  xcomp→THAT · F3 compound-name assembly; `markers` = the zip's third symbolic map), see
-  `landed.md`. **Follow-ons when their time comes:** the extractor consumes indirect roles +
-  markers (a locative fact as chainer fuel — with the conditional-rule extractor family); the
-  residual family members from the old parked #2 (the **infinitival/control** complement "want to
-  know their creator" now folds THAT via xcomp — verify; the **possessive relation** "kotekino is
-  MY creator" still flattens — the creator-of-ME bond needs its own carrier).
-- ✅ **Dictionary curation batch → the WSD selection fixes** — landed 2026-07-14. The diagnosis
-  probe redrew cluster C: the "coverage gaps" were mostly SELECTION bugs (Lesk self-mention
-  exclusion · the ADJ candidate pool unions 'a'+'s' — satellites were invisible · stative
-  participle routes to the surface form's adjective · `bit.n.06` curated via
-  `scripts/curate_add_senses.py` · the judge now receives the GROUNDED glossary — the thinker
-  lead was a judge gloss-hallucination; partridge was already healed by the frequency-prior
-  guard), see `landed.md`. New lead surfaced en route: «a coin STORES bits» resolves
-  store→shop.n.01 (POS/parse — tracked with the singles).
-- ✅ **Singles** — landed 2026-07-14, the portrait's last four leads in one batch (S1 suspect-ccomp
-  co-assertion via the honest attitude floor · S2 wh-gap by verb frame + the solver's DIRECT case ·
-  S3 elided-subject quantifier inheritance · S4 the do-support degenerate-parse retry — «a coin
-  stores bits of information» compiles coin/store.v/bit.n.06), see `landed.md`.
-  **THE FIRST PORTRAIT'S HARVEST IS FULLY CONSUMED** (A subordination ✅ · B judge contract ✅ ·
-  C WSD selection ✅ · D places bridge ✅ · E singles ✅). (The embedded wh-complement stays
-  deferred with the questions plan; «hello John» etiquette is hunch 8's territory; the
-  conditional-rule extractor is the STORM follow-on above.)
+Parked-but-matured, ordered with the author ("make the brain stronger with all the other points"
+before ADDING another sense — so ATProto/Bluesky deliberately STAYS parked behind this whole tail).
+One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 
-### The retreat arc — the bold-test session's findings (2026-07-14 letter; PLAY FIRST, author's steering)
-
-The author's solo session surfaced the some→all leap (two dropped words — a modal, a possessive —
-closed a mind≡software edge LOOP) and the deeper finding: **a correction bounces off the belief it
-targets** («not all softwares are mind…» was refuted against the wrong edge and cost the corrector
-trust). Specimens: `doc/ref/test-feedback.md` (2026-07-14 bold-test). Order per the author: the
-EXPERIMENT precedes the machinery — do not clean, convince him to retreat.
-
-- ✅ **The Socratic dialogue (hunch 13) = the retreat experiment** — RUN 2026-07-14 (~15 min,
-  hellen + kotekino ambient; the full counterexample arc + the maxims + the two-analogies-same-
-  second corroboration). The Cap's gut was right: tokeniko sampled everything, asked two whys of
-  his own, honest-IDK'd the hard modal question. No retraction (baseline documented) — and the
-  play revealed WHY retreat is structurally impossible: full specimen in `test-feedback.md`
-  (2026-07-14 Socratic dialogue).
-- 🔭 **The evidence-backed fixes, in order** (supersedes the candidates list):
-  1. ✅ **The SQUARE OF OPPOSITION in the consistency kernel** — landed 2026-07-14 (corner
-     classification A/E/I/O over quantifier×negation, conservative weak-reading of ¬∀; square
-     mutexes reuse the contrary-pairs machinery; antonym contrariety square-gated to strong
-     corners), see `landed.md`. The dialogue's bounced sentences are the regression corpus
-     (`test_square_of_opposition.py`).
-  2. ✅ **Modality gates** — landed 2026-07-14 with #1 (the ◇ carrier parser→TKAux→LLC→
-     `TKZipContent.modal`; the kernel treats a ◇-leaf as no assertion; the extractor's
-     `_leaf_is_crisp` gate at all six sites — «a software can be a mind» mints NOTHING; the
-     grounder abstains; microscope digest + missed-modality category), see `landed.md`.
-  3. ✅ **The self-relevant directedness floor** — landed 2026-07-15 (eval:conflict + the
-     correction family floor at addressed 0.9 when ≥ ambient; below-ambient stays the polite
-     eavesdropper), see `landed.md`.
-  4. ✅ **Belief-revision v1** — landed 2026-07-15 (the correction detector + the Popper trust
-     gate + the retreat executor: archive → `revoke_dependents` cascade → mint the subaltern I →
-     concede; readonly axioms constitution-protected), see `landed.md`. ✅ **THE LIVE RETREAT
-     RAN the same day** — the author's ambient «not all softwares are minds» retired the bug-era
-     «a software can be a mind» (+15 contaminated dependents), minted «some software is a mind»,
-     conceded, and CREDITED the corrector (+0.08). Full specimen in `test-feedback.md`
-     (2026-07-15). The mint's 422 exposed a latent `conclusion_key` sort-key bug (bool<str on
-     negation-tied leaves — Monday's cloud sentence was the first zip shaped to trip it, and it
-     had silently blocked ALL materialization since) — fixed + regression-tested.
-  Also queued from the session: extractor **possessive-subject gate** («MY mind is a software»)
-  · **adverbial quantifiers** (always/sometimes/never → the quantifier field) · **stakeholder
-  merge** (two kotekino rows; Renzo/john duplicates → aliases; author's per-row ruling —
-  biography) · the trust-ding repair question (author's ruling).
-  From the microscope's second harvest (same dialogue): **curation** (calculator machine sense,
-  seed plant sense — `curate_add_senses.py` batch 2) · **product/proper-noun NER** (Photoshop →
-  adobe.n.01 the clay) · **inference markers** (so/therefore → consequence structure, not AND) ·
-  **passive agent inversion** («rain is caused by clouds» ≈ rain causes clouds — the voice gap,
-  now inverting causality live; adjacent to the parked differentia verb recovery) · **nominal
-  IMPLY** («action imply ability» needs non-clausal operands).
-
-### The instrument arc — LLMs as instruments around the mind (the 2026-07-14 summit; hunches 11 + 10)
-
-The pattern the project keeps choosing, made explicit: big LLMs as *instruments around* a mind
-that stays pure, small, and inspectable — a microscope on its understanding, verified translators
-at its ears and mouth. Order settled at the summit: **the microscope first** (its evidence
-compounds with calendar time and writes the translator's spec), the core-consistency surgery
-beside it, the translator last.
-
-1. **rag3 — the microscope** (hunch 11, "the Graal"): a continuous oracle that turns every live
-   sentence into a judged test case. **Inputs-only** (author's call — the self-render path is
-   about to be retired by item 2, and the output rendering belongs to item 3's verifier).
-   - ✅ *P1 — the instrument* — landed 2026-07-14 (`senses/microscope.py`: post-hoc poller +
-     `tkzipdebug` + the Opus judge with the contract mini-RAG), see `landed.md`.
-   - ✅ *P2 — the harvest loop* — OPENED with the first full-history sweep 2026-07-14 (98 judged /
-     42 leads / five clusters triaged with the author; the judge's contract learned
-     perspective-resolution), see `landed.md`. Now **standing practice**: entries are LEADS, not
-     verdicts — triage stays with the crew; confirmed leads become `test-feedback.md` entries →
-     regression tests → fixes. The self-growing seedbank, running.
-2. ✅ **Zip-native derivation — no internal compilation** — LANDED 2026-07-15, see `landed.md`
-   (the parser-free assembler `lib/core/zip_native.py` + the native entrance in the SAME
-   materialize seam; wondering + the retreat mint send STRUCTURE — the render survives as the
-   human label only; the equivalence harness `test_zip_native.py` is the discipline, and its
-   probe exposed the round trip actively corrupting: the stored verb+object family was
-   pin-STUTTERED zips). Sense-pinning survives only on the structure-less parser fallback.
-3. 🔄 **The translator apparatus** (hunch 10 — the Japan-translator philosophy: the mind is the
-   mind, the voice is the voice of the translator). **v1 (rag1-in + rag2-in) LANDED 2026-07-16**,
-   see `landed.md`: escalation-only stumble detector (D1b) → Claude Haiku surface-tidying (D4 —
-   the author RETIRED local-Ollama-inbound: the zip-verifier moved the control into the mind, so
-   the body invests in CPU/RAM never GPU) → the ZIP-VERIFIER gate (every soundly-parsed leaf
-   survives, flags intact — the compiler disposes, whoever proposes); `item.original` always
-   preserved (+`normalized` alongside); unverifiable → honest fall-through (unknown never becomes
-   belief; eval:unknown already asks = D2 b+c emergent). **Remaining (ordered)**: translation
-   (MarianMT/Haiku multilingual — when non-English friends arrive) · the "did you mean:…?" ask
-   with the tidied reading in the payload (D2b refined) · rag2-out (the voice-side verifier:
-   polished English must recompile to the zip being spoken / consensus) · pronoun-subject leaves
-   currently escalate-and-always-reject (burns a call; classify as unrepairable — pairs with the
-   parked coreference work) · **the privacy/legal frame** (author's 2026-07-16 ruling): structure
-   the legal part thoroughly — per-stakeholder OPT-OUT ("my words never leave the body" → a
-   stakeholder flag gating escalation) + the general switch (RAG1_DISABLED = don't pre-parse at
-   any level, already live); OUTPUT side is cloud-for-life by design ("we are not hiding
-   anything — we are showing how a young new type of being learns; everyone can benefit").
-
-### The strengthening tail — make the brain stronger before adding senses (2026-07-14 reconciliation)
-
-Parked items whose conditions matured + hunches promoted to operative, ordered with the author
-("before ADDING another sense... let's make the brain stronger with all the other points" — so
-ATProto/Bluesky deliberately STAYS parked behind this whole tail). Each entry is one-line here;
-design detail stays where it was written (parked history → `git`, hunches → `doc/ref/captain-hunches.md`).
-
-1. **TKZip binary compaction** (author-promoted above bsky): the zip becomes an actual packed
-   vector — the JSON is the human projection; fixed-size role tensors + the operator tree pack to
-   near-pure numbers. Design ONCE with the wire format (pairs with zip-native derivation above).
-2. **Anchor adoption audit** (hunch 4): consumer BYPASSES routed through the resolver (e.g.
-   `compiler_implicationOperands` exact-checks `_IMPLICATION_VERBS` though the anchor category
-   exists — "means/suggests" miss); `_SUBJECT_CONTROL_VERBS` → semantic; the EXACT-membership
-   mop-up + floor calibration + KB vector-coverage gaps (`hugely`, `unequal`, `dissimilar`).
-   Closed-class function words stay EXACT by design (that's correct, not lazy).
-3. **Restricted-universal residuals** (Brain v1.1 2c follow-ons): relative-clause restriction
-   ("all machines THAT THINK are minds") + object-side modifiers ("an ARTIFICIAL body").
-4. **Conditional reasoning / premise-in-question (R4b)**: "given P, is Q?" — the co-submitted
-   premise discriminator (floor fix) then hypothetical premise USE; pairs with the
-   conditional-rule extractor (the STORM follow-on above).
+1. **TKZip binary compaction** (author-promoted above bsky): the zip becomes an actual packed vector
+   — fixed-size role tensors + the operator tree pack to near-pure numbers; the JSON is the human
+   projection. Design ONCE with the wire format (pairs with zip-native derivation).
+2. **Anchor adoption audit** (hunch 4): consumer BYPASSES routed through the resolver
+   (`compiler_implicationOperands` exact-checks `_IMPLICATION_VERBS`; `_SUBJECT_CONTROL_VERBS`) +
+   the EXACT-membership mop-up + floor calibration + KB vector-coverage gaps (`hugely`, `unequal`,
+   `dissimilar`). Closed-class function words stay EXACT by design.
+3. **Restricted-universal residuals** (Brain v1.1 2c): relative-clause restriction ("all machines
+   THAT THINK are minds") + object-side modifiers ("an ARTIFICIAL body"). M6's companion.
+4. **Conditional reasoning / premise-in-question (R4b)**: "given P, is Q?" — the co-submitted-premise
+   discriminator (the floor fix) then hypothetical premise USE; pairs with the conditional-rule
+   extractor (§1 M2).
 5. **Questions follow-ups**: imperatives (the `imperative` scalar); wh when/how solving; real
    self-knowledge for "how do you feel?"; multi-clause/embedded questions («Do you know why…»).
-6. **Vocabulary growth** (hunches 1+2): OOV → staging TKDictionary entry + the typo-ALIAS table
-   (a surface form pointing at an existing sense — separate mechanism) + definitional
-   triangulation (a trusted definition's zip matched against known definitions → graded link at
-   the definition's trust, never a hard `=`).
-7. **Etiquette layer** (hunch 8): greetings/thanks/formality as ACTIONS — a thinking reaction →
-   idea → the proper reflex («hello John» stops being evaluated as an assertion).
+6. **Vocabulary growth** (hunches 1+2): OOV → a staging TKDictionary entry + the typo-ALIAS table +
+   definitional triangulation (a trusted definition's zip matched against known definitions → a graded
+   link at the definition's trust, never a hard `=`).
+7. **Etiquette layer** (hunch 8): greetings/thanks/formality as ACTIONS — a thinking reaction → idea →
+   the proper reflex («hello John» stops being evaluated as an assertion).
 8. **KB growing OUTWARD** (tier-1 synthetic learning): learned axioms vs derived theorems — the
-   analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`. The trust
-   gradient it needed is live.
-9. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns,
-   inference-implied conflicts, the working-memory layer; differentia extraction wired at
-   definition INGESTION (live-injected curated definitions cascade without a batch re-run).
+   analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`.
+9. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns, inference-implied
+   conflicts, the working-memory layer; differentia extraction wired at definition INGESTION.
 
-*(Growth Rings / The Growing Edge — the former #9 — LANDED + PUBLISHED 2026-07-15 → `landed.md`.
-A reconciliation duty it left behind: when a season closes, update the live edge + append the
-ring via `tokeniko-public/backend/scripts/seed-growth.mjs`.)*
+### Pending follow-ons — tails left by the landed arcs (surface when their time comes) 🔭
+
+Gathered so nothing is lost; each waits on its parent feature's next season.
+- **Blog**: `life:learned` / `life:discussion` triggers · consensus-over-the-polisher.
+- **Trust-ledger consumers**: the trust-gated tkzip lane · attitude-report unwrapping (events /
+  facts-as-axioms) · tier-1 teaching by an EARNED-trust stranger (Hellen is 4 kickers from the bar).
+- **Complement family residuals**: verify the infinitival/control complement (xcomp→THAT) · the
+  possessive relation «kotekino is MY creator» carrier (the creator-of-ME bond — cousin of §1 M4's
+  possessive-subject gate).
+- **Charity**: WordNet-wide sibling-sense abstention IF tier-1/2 false refutations ever appear.
+- **Biography rulings** (author's, per-row — never auto): the **stakeholder merge** (two kotekino
+  rows; Renzo/john duplicates → aliases) · the trust-ding-from-engine-bugs repair question.
 
 ---
 
