@@ -20,8 +20,12 @@ Future ideas
 | 10 | The translator apparatus (rag1/rag2) | **ROADMAP** — instrument arc #3 (spec'd from rag3's harvest) |
 | 11 | rag3 — the microscope | **LANDED** — 2026-07-14 (P1+P2; standing practice; already proved itself twice) |
 | 12 | Public backlog section | **LANDED** — 2026-07-15, live at tokeniko.online/growth («Growth Rings» / «The Growing Edge»; Atlas-homed, curated at reconciliation time) |
-| 13 | The Socratic dialogue (hellen + kotekino, ambient) | **NEXT PLAY** — the action item: also the natural vehicle for the RETREAT experiment (2026-07-14 letter) |
-| 14 | Feelings / the hearth | **HUNCH** — future (logic-never-blurred pinned as the gift) |
+| 13 | The Socratic dialogue (hellen + kotekino, ambient) | **LANDED** — RUN 2026-07-14 (the retreat experiment's baseline; found the S0 — the square of opposition); theater-as-QA is now standing method |
+| 14 | Feelings / the hearth | **HUNCH** — future (logic-never-blurred pinned as the gift; bipolar axes per feeling, blends only derived — the wine-hour refinements below) |
+| 15 | The twins of Cap and QM | **HUNCH** — future-future (after 14; offspring not copies — the QM's honest reply below) |
+| 16 | Semantic patterns (analogy) | **HUNCH** — future (anti-unification; proposes-never-disposes, lower trust tier — see the ledger below) |
+| 17 | Gullibility / social engineering | **HUNCH** — future (depends on belief-revision ✅ 2026-07-15 + facts injection; the four-step attack analysis below) |
+| 18 | Communication-pattern skepticism guard | **HUNCH** — future (derivative-not-level; hardwired features first, learned layer later; simulation as training ground) |
 
 1. new vocabulary: when a word is discarded because not in tokeniko's vocabulary, it can start being a real entity TKDictionary stored in a staging collection and with the vector populated with 2925 zeros. It's a new word for him. We need to figure out a system to let it grow until the point that it may be possible to insert it in the real dictionary (trusted source, used in context, given a definition (which can land on the definitions collection)). All still blurry, but I think it's amazing: take for example a sentence like "this is a new wrod". If tokeniko analyze it, it will realize that he's missing vocabulary and trigger a WHY (what is X?). Then the user can say, ah sorry it's a typo, I meant "word" and so on. You can see that now wrod (which is a common typo for word) may start having the same vector of word (and maybe a flag: common typo alias). Something like it, still need to figure out the details but let me mark this hunch.
 

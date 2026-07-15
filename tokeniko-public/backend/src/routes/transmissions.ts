@@ -72,14 +72,25 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     if (typeof req.query.kind === 'string' && KINDS.includes(req.query.kind as TransmissionKind)) {
       filter.kind = req.query.kind;
     }
+    // lazy-loading cursor: `before` (ISO date) pages the archive — a date cursor is stable under
+    // new publishes (an offset would drift when a post lands mid-scroll).
+    if (typeof req.query.before === 'string') {
+      const before = new Date(req.query.before);
+      if (!Number.isNaN(before.getTime())) filter.date = { $lt: before };
+    }
 
-    const items = await Transmission.find(filter)
-      .sort({ date: -1 })
-      .limit(limit)
-      .select(PROJECTION)
-      .lean();
+    const [items, total] = await Promise.all([
+      Transmission.find(filter).sort({ date: -1 }).limit(limit).select(PROJECTION).lean(),
+      Transmission.countDocuments(
+        typeof req.query.kind === 'string' && KINDS.includes(req.query.kind as TransmissionKind)
+          ? { kind: req.query.kind }
+          : {}
+      ),
+    ]);
 
-    res.json({ success: true, data: items, count: items.length });
+    // `total` = the whole record (unpaged), so the UI can say "N on record" honestly while
+    // holding only a page; `count` stays the page size for existing consumers.
+    res.json({ success: true, data: items, count: items.length, total });
   } catch (error) {
     next(error);
   }

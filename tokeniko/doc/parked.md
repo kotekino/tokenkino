@@ -61,8 +61,8 @@ a permanent regression test. The core selection fixes are in `landed.md`.)*
 **Parser / Stanza** — concessive + resultative clause types (`although`→OTHER, `so`→AND today); D3a
 relative-clause matrix subject (Stanza mis-root); `imply`→IMPLY parataxis robustness; clausal-subject
 support ("to err is human"); negative-quantifier subject rewrite ("nobody").
-- *(Property-restricted universal rules / cogito fork ii — **UN-PARKED**: now `roadmap.md`
-  In-progress 1a, the untangle-first step of wondering-v2.)*
+- *(Property-restricted universal rules / cogito fork ii — un-parked and since **LANDED** with
+  Brain v1.1 (the property-conditioned rule extractor in `kb_extract` — see `landed.md`).)*
 
 **Evaluator** — geometric negation-awareness in `compareContent`; quantifier effect on the *geometric*
 grounding; axiom/theorem `≡1` tautology creation guard; intrinsic comparison grounding (eq/noteq);

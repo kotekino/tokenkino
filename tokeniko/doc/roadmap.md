@@ -229,12 +229,13 @@ design detail stays where it was written (parked history → `git`, hunches → 
 8. **KB growing OUTWARD** (tier-1 synthetic learning): learned axioms vs derived theorems — the
    analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`. The trust
    gradient it needed is live.
-9. ✅ **Growth Rings / The Growing Edge** (hunch 12) — LANDED + PUBLISHED 2026-07-15, see
-   `landed.md` (the /growth page live at tokeniko.online; 11 rings + the edge Atlas-homed,
-   updated at doc-reconciliation time via `seed-growth.mjs` — no deploy per season).
-10. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns,
-    inference-implied conflicts, the working-memory layer; differentia extraction wired at
-    definition INGESTION (live-injected curated definitions cascade without a batch re-run).
+9. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns,
+   inference-implied conflicts, the working-memory layer; differentia extraction wired at
+   definition INGESTION (live-injected curated definitions cascade without a batch re-run).
+
+*(Growth Rings / The Growing Edge — the former #9 — LANDED + PUBLISHED 2026-07-15 → `landed.md`.
+A reconciliation duty it left behind: when a season closes, update the live edge + append the
+ring via `tokeniko-public/backend/scripts/seed-growth.mjs`.)*
 
 ---
 

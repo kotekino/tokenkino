@@ -4,3 +4,10 @@
   gap: var(--space-6);
   max-width: 760px;
 }
+
+/* lazy loading: the end-of-record line under the last page */
+.archive-end {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--space-8) 0 var(--space-4);
+}

@@ -9,7 +9,7 @@ import './Home.css';
 
 const Home: React.FC = () => {
   const { mind, live, settled, uptimeSec } = useMindFeed();
-  const { items, settled: txSettled } = useTransmissions();
+  const { items, total, settled: txSettled } = useTransmissions();
 
   useMeta({
     title: 'tokeniko — a thinking machine',
@@ -41,7 +41,7 @@ const Home: React.FC = () => {
             <div className="stream__feed-head">
               <span className="mono-label">latest transmissions</span>
               <span className="mono-label stream__count">
-                {items ? `${items.length} on record` : txSettled ? 'archive unreachable' : 'tuning…'}
+                {items ? `${total ?? items.length} on record` : txSettled ? 'archive unreachable' : 'tuning…'}
               </span>
             </div>
             <div className="stream__list">
