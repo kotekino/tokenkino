@@ -61,12 +61,12 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
   centroid self-poisoning root fix + the curated `preferred` rung in the WSD ladder + the
   gill/channel coverage adds; retrace 13/13), see `landed.md`. *(The seed plant sense: seed.n.01/02
   are both plant senses and own-lemma — already correctly preferred by the prior; no flag needed.)*
-- **M2 — causal "because" residual** (S1). Still folds AND/CONV instead of a reason operator (the
-  07-14 subordination fix carried temporal "when", not causal "because"). Pairs with the
-  **conditional-rule extractor** — a proper causal/IMPLY carrier is the shared prerequisite (a taught
-  IMPLY/CONV becomes a USABLE rule; re-teach «a person is wrong if he says false» after). *(Folds in
-  the second-harvest **inference markers** so/therefore→consequence and **nominal IMPLY**
-  «action imply ability».)*
+- ✅ **M2 — factive causality** — landed 2026-07-16 (because/so = AND + the `cause` carrier;
+  CONSECUTIVE clause type; fragments/if/when unchanged; the second-harvest inference markers
+  so/therefore land WITH it), see `landed.md`. **Remaining from its orbit** (→ the conditional-rule
+  extractor follow-on): consume `cause` links + taught IMPLY/CONV into USABLE chainer rules
+  (re-teach «a person is wrong if he says false» after) · **nominal IMPLY** («action imply
+  ability» — non-clausal operands for `compiler_implicationOperands`).
 - **M6 — quantifier scope** (S2). The ¬∀ compiled shape conflates ∀¬ with NOT(∀) (the square-of-
   opposition kernel reads it right at eval time; the *representation* is wrong) + restrictive relative
   clauses ("animals **living in the water** are fish"). Pairs with restricted-universal residuals

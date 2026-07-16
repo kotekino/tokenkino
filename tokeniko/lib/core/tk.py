@@ -182,6 +182,9 @@ class TKClauseType(str, Enum):
     COORDINATE = "coordinate"
     FINAL = "final"
     CAUSAL = "causal"
+    # consecutive/result ("so"/"therefore" heading the clause): the mirror of CAUSAL — the clause
+    # is the RESULT half of a factive causal pair (M2 2026-07-16). Folds AND + cause="result".
+    CONSECUTIVE = "consecutive"
     TEMPORAL = "temporal"
     HYPOTETIC = "hypotetic"
     LOCATIVE = "locative"
@@ -237,7 +240,7 @@ class TKStatement(BaseModel):
     # create subject
     def create_subject(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.subject = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.subject = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, cause=fullEntity.cause, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -249,7 +252,7 @@ class TKStatement(BaseModel):
     # create direct
     def create_direct(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.direct = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.direct = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, cause=fullEntity.cause, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -261,7 +264,7 @@ class TKStatement(BaseModel):
     # add indirect
     def add_indirect(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.indirects.append(TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux))
+        self.indirects.append(TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, cause=fullEntity.cause, marker=fullEntity.marker, aux=fullEntity.aux))
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -273,7 +276,7 @@ class TKStatement(BaseModel):
     # create predicate
     def create_predicate(self, fullEntity: TKFullEntity) -> TKEntityReference:
         entity = self.create_entity(payload=fullEntity.entity)
-        self.predicate = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, marker=fullEntity.marker, aux=fullEntity.aux)
+        self.predicate = TKEntityReference(id=entity.id, dep=fullEntity.dep, op=fullEntity.op, contrast=fullEntity.contrast, cause=fullEntity.cause, marker=fullEntity.marker, aux=fullEntity.aux)
         
         # add properties and conjuncts
         if len(fullEntity.properties) > 0: self.add_properties(fullEntity.properties, entity.id)
@@ -383,7 +386,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, contrast=c.contrast, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
+                e = TKEntityReference(op=c.op, contrast=c.contrast, cause=c.cause, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
                 reference.conjuncts.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -420,7 +423,7 @@ class TKStatement(BaseModel):
                 
                 # cereate property reference
                 entity = self.create_entity(payload=c.entity)
-                e = TKEntityReference(op=c.op, contrast=c.contrast, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
+                e = TKEntityReference(op=c.op, contrast=c.contrast, cause=c.cause, id=entity.id, dep=c.dep, marker=c.marker, aux=c.aux)
                 reference.subordinates.append(e)
 
                 # recurse properties and conjuncts of conjuncts (recursive)
@@ -445,6 +448,10 @@ class TKFullEntity(BaseModel):
     # adversative join ("but"/"however"/…): the clause is co-asserted (op stays AND) with a
     # defied-expectation nuance. A carrier flag (like modal), never an operator — M1 2026-07-16.
     contrast: bool = Field(default=False)
+
+    # conclusive join ("so"/"therefore"/…): co-asserted with the causal link on the flag
+    # ("result" = this clause is the conclusion half). M2 2026-07-16.
+    cause: Optional[str] = Field(default=None)
 
     # original token
     token: Optional[str] = None
@@ -477,6 +484,9 @@ class TKEntityReference(BaseModel):
 
     # adversative join flag (mirrors TKFullEntity.contrast through the reference)
     contrast: bool = Field(default=False)
+
+    # conclusive join flag (mirrors TKFullEntity.cause through the reference)
+    cause: Optional[str] = Field(default=None)
 
     # id
     id: int

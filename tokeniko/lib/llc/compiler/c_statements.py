@@ -222,10 +222,18 @@ def compiler_classifyAttitude(verb: str) -> TKLLAttitude:
 # chainer fuel. CONV over-claims slightly on episodic "when" (a time anchor, not a rule), but AND
 # was wrong there too — and CONV is GATE-VISIBLE (a non-AND op is never extracted as an asserted
 # rule), so the storm class is closed by construction.
-def compiler_subordinateOperator(subordinateType) -> TKOperator:
+def compiler_subordinateOperator(subordinateType, fragment: bool = False) -> TKOperator:
     if subordinateType == TKClauseType.FINAL:
         return TKOperator.IMPLY
-    if subordinateType in (TKClauseType.CAUSAL, TKClauseType.HYPOTETIC, TKClauseType.TEMPORAL):
+    # CAUSAL is FACTIVE (M2 2026-07-16): a full «A because B» asserts A, B, AND the link — the
+    # reason clause co-asserts (AND, truth-honest: a false reason refutes where CONV's
+    # imply(0,1)=1 shrugged) and carries `cause="reason"` for the future conditional-rule
+    # extractor. A root-mark FRAGMENT («because you think» alone) keeps CONV — a relation HALF,
+    # never a standalone assertion (the L2 ruling stands: fragment assertion force is
+    # context-dependent). HYPOTETIC (non-factive) and TEMPORAL (a generic rule, L1a) stay CONV.
+    if subordinateType in (TKClauseType.CAUSAL, TKClauseType.CONSECUTIVE):
+        return TKOperator.CONV if fragment else TKOperator.AND
+    if subordinateType in (TKClauseType.HYPOTETIC, TKClauseType.TEMPORAL):
         return TKOperator.CONV
     if subordinateType == TKClauseType.CCOMP:
         return TKOperator.THAT
@@ -243,7 +251,8 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
     subordinateType = compiler_parseMarker(reference.marker)
 
     # one shared type->operator table (compiler_subordinateOperator, above): FINAL->IMPLY,
-    # CAUSAL/HYPOTETIC/TEMPORAL->CONV, CCOMP->THAT, everything else co-asserts with AND.
+    # CAUSAL->AND+cause (full sentence; factive), HYPOTETIC/TEMPORAL->CONV, CCOMP->THAT,
+    # everything else co-asserts with AND.
     operator: TKOperator = compiler_subordinateOperator(subordinateType)
 
     # SUSPECT CCOMP (2026-07-14, the THAT-wrap single): a clausal complement only rides an attitude
@@ -266,7 +275,25 @@ def compiler_evaluateSubordinate(reference: TKEntityReference, statement: TKStat
     if attitude is not None and result:
         result[0].attitude = attitude
 
+    # the factive causal carrier (M2): every leaf of a full-sentence because/since clause is part
+    # of the REASON — co-asserted (op AND above) with the explanatory link out of the operator
+    # tree; a so/therefore clause is the mirror RESULT half.
+    if subordinateType == TKClauseType.CAUSAL:
+        _stamp_cause(result, "reason")
+    elif subordinateType == TKClauseType.CONSECUTIVE:
+        _stamp_cause(result, "result")
+
     return result
+
+
+# stamp the causal role on every content leaf of a (possibly nested) item list (M2: the whole
+# subordinate — including a coordinated reason like «because B1 or B2» — is the reason)
+def _stamp_cause(items: list[TKLLCItem], role: str) -> None:
+    for it in items:
+        if isinstance(it.content, TKLLCContent):
+            it.content.cause = role
+        elif isinstance(it.content, list):
+            _stamp_cause(it.content, role)
 
 # modify content
 def compiler_modifyContent(
@@ -368,6 +395,9 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
             # join op) — co-asserted content, contrast carried out of the operator tree (M1).
             if coordReference.contrast and subItems and isinstance(subItems[0].content, TKLLCContent):
                 subItems[0].content.contrast = True
+            # conclusive join (M2): «A so B» — every leaf of the conclusion half carries "result"
+            if coordReference.cause and subItems:
+                _stamp_cause(subItems, coordReference.cause)
             result.extend(subItems)
         else:
             # a coordinated entity: clone the head clause and swap entityId -> this sibling
@@ -378,6 +408,8 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
             dupContent = compiler_modifyContent(copy.deepcopy(mainContent), rep, coordReference.subordinates, coordReference.conjuncts, entities, entityId, statementIdx, statementId)
             if coordReference.contrast and isinstance(dupContent, TKLLCContent):
                 dupContent.contrast = True
+            if coordReference.cause and isinstance(dupContent, TKLLCContent):
+                dupContent.cause = coordReference.cause
             result.append(TKLLCItem(op=coordReference.op, content=dupContent))
 
     return result
@@ -576,7 +608,7 @@ def compiler_resolveStatements(tkStatements: TKStatements) -> list[TKLLCItem]:
             subType = compiler_parseMarker(tks.marker)
             items = compiler_evaluateStatement(statement=tks, statementIdx=idx,
                                                clauseType=subType,
-                                               operator=compiler_subordinateOperator(subType))
+                                               operator=compiler_subordinateOperator(subType, fragment=True))
         else:
             # evaluate statements
             items = compiler_evaluateStatement(statement=tks, statementIdx=idx)

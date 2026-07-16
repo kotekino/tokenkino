@@ -33,6 +33,7 @@ from lib.llc.utils import utils_antonyms
 from lib.llc.constants import (
     _OPERATORS_BASE_ANCHORS,
     _CONTRAST_MARKERS,
+    _CAUSE_CC_MARKERS,
     _SUBORDINATE_TYPE_BASE_ANCHORS,
     _PROP_BASE_ADVMOD_ANCHORS,
     _ATTITUDE_ANCHORS,
@@ -146,12 +147,14 @@ _OPERATORS_ANCHORS_EXPANDED = {
     "though": TKOperator.AND,
     "although": TKOperator.AND,
     "whereas": TKOperator.AND,
-    # conclusivi / risultativi -> IMPLY
-    "therefore": TKOperator.IMPLY,
-    "thus": TKOperator.IMPLY,
-    "hence": TKOperator.IMPLY,
-    "consequently": TKOperator.IMPLY,
-    "accordingly": TKOperator.IMPLY,
+    # conclusivi / risultativi -> AND + flag `cause`="result" (M2 2026-07-16): "A therefore B" e'
+    # FATTIVO — asserisce A, B, e il legame; il legame viaggia sul flag di clausola (categoria
+    # "cause" qui sotto), mai nell'albero degli operatori.
+    "therefore": TKOperator.AND,
+    "thus": TKOperator.AND,
+    "hence": TKOperator.AND,
+    "consequently": TKOperator.AND,
+    "accordingly": TKOperator.AND,
     # additivi -> AND
     "also": TKOperator.AND,
     "moreover": TKOperator.AND,
@@ -172,6 +175,14 @@ _SUBORDINATE_TYPE_ANCHORS_EXPANDED = {
     "though": TKClauseType.OTHER,
     "whereas": TKClauseType.OTHER,
     "albeit": TKClauseType.OTHER,
+    # conclusivi in testa alla clausola RISULTATO (M2 2026-07-16): stanza li tagga advmod, il
+    # gate advmod-marker li accetta solo se ancorati ≠ OTHER — CONSECUTIVE e' lo specchio di
+    # CAUSAL (fattivo: AND + cause="result"; «I think, therefore I exist» compila col legame).
+    "so": TKClauseType.CONSECUTIVE,
+    "therefore": TKClauseType.CONSECUTIVE,
+    "thus": TKClauseType.CONSECUTIVE,
+    "hence": TKClauseType.CONSECUTIVE,
+    "consequently": TKClauseType.CONSECUTIVE,
 }
 
 _REGISTRY: dict[str, Category] = {
@@ -189,6 +200,14 @@ _REGISTRY: dict[str, Category] = {
         name="contrast", table=_CONTRAST_MARKERS, strategy=Strategy.SEMANTIC,
         backend=Backend.SPACY, polarity_guard=True, floor=_OPERATOR_FLOOR,
         default=False, is_set=True, margin=_OPERATOR_MARGIN,
+    ),
+    # conclusivi -> flag `cause`="result" di clausola (M2 2026-07-16): stessa dottrina di contrast
+    # (tabella a polarita' mista + margin guard); il lato "reason" (because/since) arriva dal
+    # percorso subordinato (mark), non da qui.
+    "cause": Category(
+        name="cause", table=_CAUSE_CC_MARKERS, strategy=Strategy.SEMANTIC,
+        backend=Backend.SPACY, polarity_guard=True, floor=_OPERATOR_FLOOR,
+        default=None, margin=_OPERATOR_MARGIN,
     ),
     "subordinate_types": Category(
         name="subordinate_types", table=_SUBORDINATE_TYPE_ANCHORS_EXPANDED, strategy=Strategy.SEMANTIC,

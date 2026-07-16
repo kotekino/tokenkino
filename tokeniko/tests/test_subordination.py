@@ -73,7 +73,21 @@ def test_plain_assertion_still_asserted(compile_zip):
     zp = compile_zip("a cat is an animal")
     assert _zip_is_asserted(zp.items)
 
-def test_full_causal_sentence_keeps_subordinate_op(compile_zip):
-    # the embedded-because path (unchanged mechanism) still folds non-AND
-    zp = compile_zip("I go to sleep because I'm tired")
-    assert not _zip_is_asserted(zp.items)
+def test_full_causal_sentence_coasserts_with_cause(compile_zip):
+    # M2 (2026-07-16): a FULL «A because B» is FACTIVE — both halves co-assert (AND) and the
+    # reason clause carries cause="reason" (the link out of the operator tree). The old CONV
+    # expectation moved to the FRAGMENT path only (L2, unchanged above).
+    # (plain main clause — «go TO SLEEP» would add a FINAL/IMPLY purpose leaf, correctly unasserted)
+    zp = compile_zip("I sleep because I'm tired")
+    assert _zip_is_asserted(zp.items)
+    assert TKOperator.CONV not in _leaf_ops(zp)
+    def _leaves(item, out):
+        c = item.content
+        if isinstance(c, TKZipContent):
+            out.append(c)
+        elif isinstance(c, list):
+            for ch in c:
+                _leaves(ch, out)
+        return out
+    leaves = _leaves(zp.items, [])
+    assert any(c.cause == "reason" for c in leaves)

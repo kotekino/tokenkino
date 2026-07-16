@@ -22,13 +22,28 @@ _OPERATORS_BASE_ANCHORS = {
     "not": TKOperator.NOT,
     ",": TKOperator.AND,
     ":": TKOperator.AND,      # elaboration: co-asserted
-    "so": TKOperator.IMPLY,   # result: "A so B" => A IMPLY B
+    "so": TKOperator.AND,     # conclusive: FACTIVE ("A so B" asserts A, B, and the link) — the
+                              # link rides the `cause` flag ("result"), never the operator tree
+                              # (M2 2026-07-16; IMPLY under-asserted the halves)
     "but": TKOperator.AND     # adversative: truth-conditionally AND (X∧Y ≡ X∧Y∧¬(X→¬Y), the
                               # classical reduction) — the contrast nuance rides the `contrast`
                               # FLAG (see _CONTRAST_MARKERS), never the operator tree. The old
                               # NOTIMPLY mapping folded every true "X but Y" to 0 (M1, 2026-07-16).
     }
 _OPERATORS_SIMILARITY_THRESHOLD: float = 0.7
+
+# conclusive/causal connectives -> the `cause` clause flag ("result" on the conclusion half of
+# «A so B»; the "reason" side arrives via the subordinate mark path, not here). Same carrier
+# doctrine as contrast/modal: the halves co-assert (AND), the link never enters the operator
+# tree. MIXED-POLARITY table (additives/adversatives = explicit None guards, function words are
+# mutually close in spaCy space); an unseen conclusive ("ergo") resolves to its nearest anchor.
+_CAUSE_CC_MARKERS = {
+    "so": "result", "therefore": "result", "thus": "result", "hence": "result",
+    "consequently": "result", "accordingly": "result",
+    # guards
+    "and": None, "or": None, "but": None, "also": None, "moreover": None,
+    "however": None, "yet": None, "because": None,
+}
 
 # adversative conjunctions/connectives -> the `contrast` clause flag (a carrier, like `modal`):
 # asserted content is the plain conjunction; the flag preserves the defied-expectation nuance for a

@@ -87,5 +87,6 @@ def test_but_resolves_to_and_operator():
     from lib.llc.anchors import anchor_resolve
     assert anchor_resolve("but", "operators") == TKOperator.AND
     assert anchor_resolve("however", "operators") == TKOperator.AND
-    assert anchor_resolve("so", "operators") == TKOperator.IMPLY  # conclusives untouched
+    # conclusives are AND too since M2 (factive; the link rides cause="result")
+    assert anchor_resolve("so", "operators") == TKOperator.AND
     assert anchor_resolve("or", "operators") == TKOperator.OR

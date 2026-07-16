@@ -805,7 +805,15 @@ stuffed into predicate markers instead of governing clause structure.
 *Diagnosis:* causal subordination has no consequence carrier at the zip layer; "because" should
 fold the reason clause as the antecedent/cause of the main assertion. *Action:* → third-harvest
 fix queue (item 2); pairs with the **conditional-rule extractor** (the STORM follow-on) — a proper
-causal/IMPLY carrier is the shared prerequisite.
+causal/IMPLY carrier is the shared prerequisite. *(→ CLOSED 2026-07-16 same-day, REFRAMED by the
+probe: post-07-14 the canonical shapes already folded CONV in the right direction — the specimens
+were pre-fix compilations + tangles. The REAL defect was deeper: «A because B» is FACTIVE and CONV
+betrayed it (imply(0,1)=1 shrugged at a false reason; the reason clause was gate-invisible,
+unlearnable). Fix: full-sentence because → AND + `cause="reason"`; so/therefore → AND +
+`cause="result"` via the new CONSECUTIVE clause type (advmod-marker admitted); fragments/if/when
+stay CONV by their standing rulings; the link carried UN-JUDGED for the conditional-rule extractor
+arc. «I think, therefore I exist» now compiles with its consequence link. See `landed.md`;
+10 tests in `test_causal.py`.)*
 
 **M3 — WSD curation batch 2: animals & common nouns default to person/food/astrology senses
 (S2, ~12 leads, PUBLIC-FACING).** The frequency-prior + coverage gaps land glaringly wrong senses

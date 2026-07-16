@@ -37,6 +37,14 @@ class TKZipContent(BaseModel):
     # reasoning) may read it as a hint at a background expectation "X normally ¬Y". All stored
     # zips predate the field and default honestly to False. M1 2026-07-16.
     contrast: bool = Field(default=False)
+    # factive causal link (M2 2026-07-16): "reason" = this clause is the because/since half of a
+    # full sentence («A because B»); "result" = the so/therefore conjunct. Co-asserted (op AND):
+    # "because" is FACTIVE — the speaker asserts both halves AND the link. Truth is honest under
+    # AND (a false reason refutes, an unknown one abstains — CONV's imply(0,1)=1 shrugged at a
+    # false reason) and the reason clause is mintable under the normal gates. The explanatory
+    # link itself is carried here, un-judged, as the conditional-rule extractor's future fuel.
+    # Root-mark FRAGMENTS («because you think» alone) stay CONV/non-asserted (the L2 ruling).
+    cause: Optional[str] = Field(default=None)
     # modality (2026-07-14): "possibility" when a modal (can/could/may/might) scopes the clause.
     # A ◇-claim is not a crisp assertion: the consistency kernel never treats it as P (◇P ∧ ◇¬P is
     # consistent), the extractor never mints rules/facts/edges from it (the some→all leap's root),

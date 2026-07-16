@@ -60,6 +60,8 @@ def _digest_leaf(op: str, attitude, c: TKZipContent) -> str:
         parts.append(f"modal={modal}")
     if getattr(c, "contrast", False):
         parts.append("contrast=True")
+    if getattr(c, "cause", None):
+        parts.append(f"cause={c.cause}")
     identities = getattr(c, "identities", None) or {}
     if identities:
         parts.append("identities={" + ", ".join(f"{k}: {v}" for k, v in identities.items()) + "}")
@@ -118,6 +120,12 @@ The digest's contract:
   is implicature, carried by this flag). Do NOT flag "but"→AND+contrast as a lost adversative or a
   wrong operator; DO flag an adversative sentence whose second clause shows neither (the contrast
   vanished) or one folded as an implication (NOT IMPLY) — the pre-2026-07-16 corruption.
+- `cause=reason` marks the because/since half of a FULL sentence, `cause=result` a so/therefore
+  conjunct: both fold as co-asserted AND — CORRECT and faithful ("A because B" is factive, the
+  speaker asserts A, B, and the link; the link rides this flag). Do NOT flag because→AND+cause as
+  a lost causal relation; DO flag a full causal sentence whose reason/result clause shows no
+  `cause` at all. A standalone FRAGMENT («because you think» alone) folding CONV is correct by
+  design — a relation half, not an assertion. "if" folding CONV is correct (non-factive).
 - `identities` binds a role to a named INDIVIDUAL's uid (name@channel:... for persons; a known
   place is GLOBAL: name@place, e.g. japan@place). A named person/place should carry an identity;
   a common noun should not. A place identity has no `senses` entry for its role BY DESIGN (a place

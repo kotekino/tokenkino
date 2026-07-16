@@ -89,6 +89,12 @@ class TKLLCContent(BaseModel):
     # of "X but Y" is exactly X∧Y; the contrast is implicature, preserved for a later consumer
     # (default/generic reasoning). M1 2026-07-16.
     contrast: bool = Field(default=False)
+    # factive causal link (M2 2026-07-16): "reason" on the because/since clause of a FULL sentence
+    # («A because B» — B carries it), "result" on a so/therefore conjunct. The clause is co-asserted
+    # (op AND — "because" is factive: a false reason refutes, an unknown reason abstains, and the
+    # reason is learnable); the explanatory link rides this carrier for the conditional-rule
+    # extractor (future arc). Fragments («because you think» alone) stay CONV/non-asserted — L2.
+    cause: Optional[str] = Field(default=None)
     subject: Optional[TKLLEntityReference] = Field(default=None)
     predicate: Optional[TKLLEntityReference] = Field(default=None) 
     direct: Optional[TKLLEntityReference] = Field(default=None) 

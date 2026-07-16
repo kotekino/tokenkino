@@ -938,3 +938,26 @@ gaps — every target sense except gill/channel was already in the dictionary.
   now per-word) + channel.n.05 (the communication channel). Applied 2026-07-16.
 9 regression tests (`test_wsd_selection.py`): the poisoning regression, the ladder unit tests
 (Lesk-beats-preferred included), the live-flag cases. Retrace 13/13. Gate **316 / 1 xfailed**.
+
+**M2 — factive causality: "because"/"so" = AND + the `cause` carrier (2026-07-16, the carrier doctrine's third verse)**
+The design finding that reshaped the queue item: post the 07-14 subordination fixes, because-clauses
+already compiled CONV in the right direction — but «A because B» is FACTIVE (asserts A, B, AND the
+link) and CONV betrayed that twice: `imply(0,1)=1` shrugged at a FALSE reason («a cat runs because
+it is a robot» folded confidently TRUE), and the reason clause was gate-invisible — «salmon is a
+human» inside a because-sentence could never be learned. The author's approved design:
+- **because/since (full sentence)** → both halves co-assert (AND), the reason clause carries
+  `cause="reason"`; a false reason now refutes, an unknown one abstains, the reason is mintable
+  under the normal gates. **Root-mark FRAGMENTS stay CONV** (the L2 ruling stands — a relation
+  half, context-dependent assertion force); **"if"** (non-factive) and **"when"** (L1a, a generic
+  rule) stay CONV untouched.
+- **so/therefore/thus/hence (conclusives)** → the mirror: AND + `cause="result"`, via the new
+  **TKClauseType.CONSECUTIVE** — stanza tags them advmod, the storm-sequel's anchor-gated
+  advmod-marker admits them (subordinate anchors), and the cc path carries a parallel
+  `parser_ccCause` + mixed-polarity "cause" anchor category for genuinely cc-tagged conclusives.
+  Bonus: «I think, therefore I exist» now compiles with its consequence link.
+- The explanatory link itself is carried **un-judged** (the author's ruling) — explanatory adequacy
+  and rule-minting from the link belong to the conditional-rule extractor arc (roadmap follow-on).
+- Consumers: microscope digest emits `cause=reason/result` + judge contract taught; raw decompile
+  renders `AND[cause:…]` so the voice can say "because"/"so".
+10 regression tests (`test_causal.py`) + the subordination expectation moved with the design.
+Gate **326 / 1 xfailed**.

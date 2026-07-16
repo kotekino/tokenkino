@@ -309,7 +309,7 @@ def compiler_zipContent(content: TKLLCContent) -> TKZipContent:
     # modality rides the predicate's aux (parser-detected possibility modal) -> the zip flag
     modal = content.predicate.aux.modal if (content.predicate is not None and content.predicate.aux is not None) else None
 
-    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, quantifier=content.quantifier, wh_role=content.wh_role, contrast=content.contrast, modal=modal, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), identities=compiler_contentIdentities(content), markers=compiler_contentMarkers(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
+    return TKZipContent(ironic=ironic, dubitative=dubitative, imperative=imperative, negated=content.negated, reflexive=content.reflexive, quantifier=content.quantifier, wh_role=content.wh_role, contrast=content.contrast, cause=content.cause, modal=modal, unknown=compiler_zipContentUnknown(content), senses=compiler_contentSenses(content), identities=compiler_contentIdentities(content), markers=compiler_contentMarkers(content), sentiment=sentiment, subject=subject, direct=direct, predicate=predicate, indirects=indirects)
 
 # calculate final vectors for the statements
 def compiler_zip(items: list[TKLLCItem]) -> list[TKZipItem]:

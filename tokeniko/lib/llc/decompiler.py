@@ -102,6 +102,10 @@ def decompiler_raw_op(item) -> str:
     # surface it in the raw render so the NL polish can say "but" instead of "and" (M1).
     if getattr(getattr(item, "content", None), "contrast", False):
         label = f"{label}[contrast]"
+    # factive causal link (M2): surface reason/result so the polish can say "because"/"so"
+    cause = getattr(getattr(item, "content", None), "cause", None)
+    if cause:
+        label = f"{label}[cause:{cause}]"
     if getattr(item, "attitude", None):
         label = f"{label}[{item.attitude.klass}:{item.attitude.confidence}]"
     return label
