@@ -38,6 +38,14 @@ it references, it does not duplicate (invariant #2).
 - **Growth Rings / The Growing Edge** (2026-07-15): Atlas-homed, PUBLISHED at tokeniko.online/growth.
   *Reconciliation duty it left behind:* when a season closes, update the live edge + append the ring
   via `tokeniko-public/backend/scripts/seed-growth.mjs` (no deploy).
+- **THE HARVEST CONSUMPTION** (2026-07-16, both sessions): all six macro-cases (M1 contrast · M2
+  factive causality · M3 WSD curation · M4 necessity □ · M5 dropped content · M6 pt1 ¬∀) + the
+  second-harvest strays (passive normalization · title-case OOV guard · store/bit) + the
+  **conditional-rule extractor** (taught IF/CONV/when + cause pairs → class-conditioned chainer
+  rules). **Every lead from all three harvests is closed.**
+- **The bridge cleaning** (2026-07-16): the local-models retirement (D4) · `.env.template` ·
+  **`lib/rag/`** (the Claude machinery concentrated) · the **wondering-freeze fix**
+  (dictionary.sense index + idle-confirmed, preemptible wondering + the coordinator guard).
 
 ---
 
@@ -48,53 +56,22 @@ the input / input parsing") and the deepest pole of Brain v1.1 (robustness to im
 microscope's three harvests all point the same way; the translator's remaining pieces and the
 strengthening tail follow the parser/compiler getting the *meaning* right.
 
-### 1. The third-harvest fix queue — the microscope's macro-cases (2026-07-15 dialogues) 🔭
+### 1. Harvest follow-ons — the tails the consumed queue left behind 🔭
 
-The consolidated input-quality queue: the third harvest's six macro-cases (specimens in
-`test-feedback.md` 2026-07-15), folding in the still-open leads from the earlier harvests so nothing
-scatters. Ordered by severity × public-optics. Each is a LEAD until live-confirmed at fix time.
+The three harvests are FULLY CONSUMED (→ landed arcs above); these are the surviving threads,
+each waiting on its own seam:
 
-- ✅ **M1 — "but" contrastive → NOT IMPLY** — landed 2026-07-16 ("but" = AND + the `contrast`
-  carrier flag; the old fold sent every true "X but Y" to 0), see `landed.md`. The contrast-as-
-  default-expectation consumer is in the follow-ons below.
-- ✅ **M3 — WSD curation batch 2: animals & common nouns** — landed + APPLIED 2026-07-16 (the
-  centroid self-poisoning root fix + the curated `preferred` rung in the WSD ladder + the
-  gill/channel coverage adds; retrace 13/13), see `landed.md`. *(The seed plant sense: seed.n.01/02
-  are both plant senses and own-lemma — already correctly preferred by the prior; no flag needed.)*
-- ✅ **M2 — factive causality** — landed 2026-07-16 (because/so = AND + the `cause` carrier;
-  CONSECUTIVE clause type; fragments/if/when unchanged; the second-harvest inference markers
-  so/therefore land WITH it), see `landed.md`.
-- ✅ **The conditional-rule extractor** — landed 2026-07-16 (class-conditioned rules from taught
-  IF/CONV + same-subject `cause` pairs; chainer step 4 gates `cond_class`/`cond_extra`; re-teach
-  «a person is wrong if he says false» when the daemons wake), see `landed.md`. **Remaining from
-  the M2 orbit**: **nominal IMPLY** («action imply ability» — non-clausal operands for
-  `compiler_implicationOperands`) · the **observation-fact seam** (an eval:false verdict becoming
-  a "said false" property fact, so the says-false rule can FIRE — the D-phase follow-on; today
-  only single-predicate conditionals fire end-to-end).
-- ✅ **M6 part 1 — ¬∀ first-class** — landed 2026-07-16 (`TKQuantifier.NEGATED_UNIVERSAL`; the
-  extractor's O→E-rule hole closed; the retreat trigger regression-locked), see `landed.md`.
-  **Part 2 remaining**: restrictive relative clauses inside the quantifier ("animals **living in
-  the water** are fish") → merged with the restricted-universal residuals (§3.3) + the
-  **adverbial-quantifier** family (always/sometimes/never → the quantifier field, second harvest).
-- ✅ **M4 — necessity modality □** — landed 2026-07-16 (must → `modal="necessity"` on the ◇
-  machinery; "must not" = □+negated; the possessive-subject cousin was found ALREADY LANDED by
-  probe — `compiler_subjectIsPossessed`→DEFINITE, the retreat arc's step-4 fix), see `landed.md`.
-- ✅ **M5 — dropped content** — landed 2026-07-16 (subject-nmod restrictions carried as
-  `subject_mod{i}` + case marker, edge-mint protected; the inverted-question compound recovery;
-  the typo-tangle lead locked as a rag1 detector regression), see `landed.md`. *Left in its orbit:*
-  the extractor consuming indirect roles + markers as chainer fuel (the restricted-universal
-  residuals' companion, strengthening tail §3.3).
-- ✅ **The second-harvest strays** — landed 2026-07-16 (passive-voice normalization to the active
-  frame; the title-case OOV guard — no more Photoshop→clay, mid-sentence mints the individual;
-  store→shop.n.01 found already healed by the degenerate retry, locked; bit→bit.n.06 preferred
-  APPLIED — the is_a edge was already in the graph), see `landed.md`.
-  **THE HARVEST QUEUE IS FULLY CONSUMED** — every macro-case and stray from all three harvests is
-  closed; what remains of §1 lives in the M2-orbit follow-ons below.
+- **The observation-fact seam** (D-phase): an eval:false verdict becomes a "said false" property
+  fact on the speaker — what lets the taught «a person is wrong if he says false» rule FIRE
+  (it extracts well-formed today; only single-predicate conditionals fire end-to-end).
+- **Nominal IMPLY** («action imply ability» — non-clausal operands for
+  `compiler_implicationOperands`).
+- **Adverbial-quantifier family** (always/sometimes/never → the quantifier field; second harvest).
+- **Indirect roles + markers as chainer fuel** (M5's orbit) — pairs with the restricted-universal
+  residuals (§3.3), where M6 part 2's restrictive relative clauses also live.
 
 ### 2. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 
-- ✅ **`lib/rag/` consolidation** — landed 2026-07-16 (one client + `rag_call` + the instrument
-  registry; four call sites re-pointed, the `_get_client` borrow smell dead), see `landed.md`.
 - the **"did you mean:…?" ask** with the tidied reading carried in the payload (D2b refined) — the near one.
 - **rag2-out** — the voice-side verifier: polished outbound English must recompile to the zip being
   spoken (consensus-with-the-compiler on the way out, mirroring the inbound gate).
