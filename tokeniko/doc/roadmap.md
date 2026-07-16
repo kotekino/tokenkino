@@ -91,7 +91,8 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
   spoken (consensus-with-the-compiler on the way out, mirroring the inbound gate).
 - **pronoun-subject leaves** classify as unrepairable (today they escalate-and-always-reject, burning
   a Haiku call) — the cheap fix; pairs with the parked coreference work.
-- **multilingual translation** (MarianMT/Haiku) — deferred until non-English friends arrive.
+- **multilingual translation** (Haiku; the local MarianMT went unreferenced with the 2026-07-16
+  local-models retirement — machinery only) — deferred until non-English friends arrive.
 - **the privacy/legal frame** (author's 2026-07-16 ruling): structure it thoroughly — per-stakeholder
   OPT-OUT ("my words never leave the body" → a flag gating escalation) + the general switch
   (`RAG1_DISABLED`, already live). OUTPUT side is cloud-for-life by design ("we are not hiding

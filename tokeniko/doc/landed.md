@@ -993,3 +993,8 @@ pulls, or calls local models anymore. What the audit found and changed:
   parameter (lazy construct, zero network, nothing calls it — removing it is signature churn for
   no cost). CLAUDE.md + README reconciled (Ollama out of runtime deps; ANTHROPIC_API_KEY in).
 Gate **334 / 1 xfailed** (no behavior change on any tested path).
+
+*Retirement addendum (same day):* nothing imports `preparser.py` anymore → the import-time
+`transformers`/MarianMT load died with it (silent win: HF models no longer load in any process).
+`.env.template` added — the reviewed key inventory (all keys the code actually reads, with
+comments; secrets as placeholders).
