@@ -25,13 +25,14 @@
 # readers / the client factory, so `import senses.blog` is clean and tests can stay pure.
 # --------------------------------------------------------------
 import hashlib
-import json
 import logging
 import re
 from datetime import datetime, timezone
 from typing import Callable, Optional
 
 from pydantic import BaseModel, Field
+
+from lib.rag import BLOG_POLISH, rag_call
 
 logger = logging.getLogger("tokeniko-brain")
 
@@ -353,45 +354,9 @@ def render_raw(draft: PostDraft) -> dict:
 # POLISH — Claude as a strict syntax-only translator. Schema-constrained JSON out; the raw
 # render is the honest fallback on ANY failure (the cloud may never block his voice).
 # --------------------------------------------------------------
-_POLISH_MODEL = "claude-opus-4-8"
-
-_POLISH_SYSTEM = (
-    "You are the language-polish stage of tokeniko, a logic-first reasoning engine that keeps a "
-    "public journal of its own mental life. You receive the structured SUBSTANCE of one journal "
-    "entry: fact lines and proof lines. Your only job is surface rendering — turn that substance "
-    "into a short, readable entry in tokeniko's own voice. Hard rules: (1) First person — "
-    "tokeniko narrates. (2) NO new facts: every sentence you write must be traceable to a given "
-    "fact or proof line; never invent details, examples, names, dates, or circumstances. "
-    "(3) Keep the proof: the derivation lines are the backbone of the entry and must appear in "
-    "the body, faithfully — light rewording for flow is fine, changing their meaning is not. "
-    "(4) People are referred to exactly as given (e.g. 'my author', 'a trusted friend on "
-    "discord') — never invent names or identities. (5) Voice: plain and curious — a young mind "
-    "discovering logic; short sentences welcome; no marketing tone, no exclamation marks, no "
-    "emoji, no hashtags. Output JSON: title (under 60 characters), excerpt (one sentence), "
-    "body (2 to 4 short paragraphs)."
-)
-
-# no minLength/maxLength — unsupported by the structured-outputs API; validated client-side below.
-_POLISH_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "title": {"type": "string"},
-        "excerpt": {"type": "string"},
-        "body": {"type": "array", "items": {"type": "string"}},
-    },
-    "required": ["title", "excerpt", "body"],
-    "additionalProperties": False,
-}
-
-_client = None  # module-level cached AsyncAnthropic (constructed lazily, only when polish runs live)
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        import anthropic  # lazy: the module stays importable without the SDK
-        _client = anthropic.AsyncAnthropic(timeout=60.0)  # ANTHROPIC_API_KEY from env — never hardcoded
-    return _client
+# the system prompt (the strict syntax-only translator contract), model and response schema live
+# in the lib/rag registry (BLOG_POLISH); length constraints are validated client-side in polish()
+# (no minLength/maxLength — unsupported by the structured-outputs API).
 
 
 # the user content: the draft's substance serialized readably — kind, fact lines, proof lines,
@@ -410,16 +375,9 @@ async def polish(draft: PostDraft, client=None) -> tuple[dict, bool]:
 
     False means the returned dict is the deterministic raw render (never an error)."""
     try:
-        cl = client if client is not None else _get_client()
-        response = await cl.messages.create(
-            model=_POLISH_MODEL,
-            max_tokens=4096,
-            system=_POLISH_SYSTEM,
-            messages=[{"role": "user", "content": _polish_user_prompt(draft)}],
-            output_config={"format": {"type": "json_schema", "schema": _POLISH_SCHEMA}},
-        )
-        text = next(b.text for b in response.content if b.type == "text")
-        data = json.loads(text)
+        data = await rag_call(BLOG_POLISH, _polish_user_prompt(draft), client=client)
+        if data is None:
+            raise ValueError("rag call failed — see the [rag:blog-polish] log line")
         # client-side validation (the schema can't carry length constraints): keys present,
         # non-empty strings, body a non-empty list of non-empty strings.
         title, excerpt, body = data["title"], data["excerpt"], data["body"]

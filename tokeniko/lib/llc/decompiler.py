@@ -1,5 +1,4 @@
 import asyncio
-import os
 from collections import Counter
 import json
 from lib.core.tk import TKOperator
@@ -150,49 +149,16 @@ def decompiler_raw(tkLLC: TKLLC) -> str:
 # the CHANNEL voice no longer polishes at all (compose.py emits template English — polishing English
 # as English was two local-model calls of pure heat; rag2-out + hunch 7 will build the real voice).
 # Graceful: no API key -> the raw render returns unchanged (like the rag1 normalizer's disarm).
-_DECOMPILE_MODEL = os.getenv("RAG2_MODEL", "claude-haiku-4-5")  # the best SMALL model (author's D4)
-
-_DECOMPILE_SYSTEM = (
-    "You are a professional Logic-to-English syntactic decoder (System 2 Engine). "
-    "Your goal is to transform a flattened logical sequence (TKLL) into a natural, fluent English sentence."
-    "LOGICAL OPERATORS RULES:"
-    "- 'AND': Translate as 'and'."
-    "- 'AND[contrast]': Translate as 'but'."
-    "- 'AND[cause:reason]': Translate as 'because' introducing that clause."
-    "- 'AND[cause:result]': Translate as 'so' introducing that clause."
-    "- 'OR': Translate as 'or'."
-    "- 'IMPLY (A IMPLY B)': Translate as a conditional: 'If A, then B'."
-    "- 'CONV (B CONV A)': Translate as a causal link: 'B because A' (or 'B since A')."
-    "STRICT SYNTACTIC RULES:"
-    "1. NO HALLUCINATIONS: Do not add adjectives, objects, or concepts not present in the TKLL."
-    "2. COPULA INSERTION: Add 'to be' verbs for logical states (e.g., '[I] [happy]' -> 'I am happy')."
-    "3. POSSESSIVE MAPPING: Convert 'of [PRONOUN]' to possessive adjectives (e.g., 'cat of I' -> 'my cat')."
-    "4. VERB CONJUGATION: Conjugate verbs properly according to the subject."
-    "5. FLOW: Ensure the final sentence is fluent but preserves the exact logical meaning."
-    "OUTPUT FORMAT:"
-    "Return ONLY a JSON object: {'translation': 'your sentence'}. No explanations."
-    "Example Input: ((I happy) CONV (I play with (white AND gray) cat of I))"
-    "Example Output: {'translation': 'I am happy because I play with my white and gray cat.'}"
-)
-
+# the system prompt (operator rules mirroring decompiler_raw_op's labels) + model live in the
+# lib/rag registry (RAG2_DECOMPILE); rag_call is graceful by contract, json_envelope unwraps the
+# prompt-instructed {'translation': ...} object — any failure returns the raw render unchanged.
 async def decompiler_decompile(tokens: str) -> str:
-    from lib.llc.normalizer import _get_client
-    systemPrompt = _DECOMPILE_SYSTEM
-    try:
-        client = _get_client()
-        if client is None:
-            return tokens
-        resp = await client.messages.create(
-            model=_DECOMPILE_MODEL,
-            max_tokens=300,
-            system=systemPrompt,
-            messages=[{"role": "user", "content": f"Input: '{tokens}'"}],
-        )
-        text = (resp.content[0].text or "").strip()
-        data = json.loads(text[text.index("{"): text.rindex("}") + 1])
-        return (data.get("translation") or "").strip() or tokens
-    except Exception:
+    from lib.rag import RAG2_DECOMPILE, json_envelope, rag_call
+    text = await rag_call(RAG2_DECOMPILE, f"Input: '{tokens}'")
+    data = json_envelope(text)
+    if not data:
         return tokens
+    return (data.get("translation") or "").strip() or tokens
 
 
 # the OLD local-Ollama decompile — RETIRED MACHINERY (2026-07-16), kept unreferenced with

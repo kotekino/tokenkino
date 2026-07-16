@@ -1019,3 +1019,22 @@ three stacked brains thrashing the same collscans + clobbering the `brain_state`
 - **Coordinator per-tick exception guard**: a phase raise logs + backs off instead of silently
   killing the loop (the second "stuck" mode — process alive, coordinator dead — closed).
 5 tests (`test_wonder_gate.py`).
+
+**The `lib/rag/` consolidation (2026-07-16, second session — the author-ordered opener)**
+Every Claude API touchpoint concentrated into one library ("Cap's OCD", his words — and right):
+- **`lib/rag/registry.py`** — the instrument catalogue: one `RagSpec` (name, model, system prompt,
+  max_tokens, timeout, structured-output schema) per instrument — `RAG1_NORMALIZER`,
+  `RAG2_DECOMPILE`, `RAG3_JUDGE`, `BLOG_POLISH`. The ONE place to read every word the engine feeds
+  the cloud. Prompts moved VERBATIM (equality-asserted against the old constants before deletion);
+  cross-file couplings documented in the header (judge contract ↔ microscope digest; polish
+  contract ↔ blog draft serialization; decompile rules ↔ `decompiler_raw_op` labels).
+- **`lib/rag/client.py`** — ONE lazy `AsyncAnthropic` (`get_client`) + `rag_call(spec, user,
+  client=None)`: per-spec timeout (`with_options`), text-block extraction, schema-mode
+  `output_config`, and the graceful-by-contract failure mode every instrument was built on (log as
+  `[rag:<name>]`, return None, never raise). Plus `json_envelope` (the prompt-instructed `{...}`
+  extractor) and `rag_enabled` (key + kill-switch).
+- **Four call sites re-pointed**, instruments keeping their logic: `normalizer` (rag1),
+  `decompiler` (the borrowed-`_get_client` smell is dead), `microscope` judge (injected-client
+  test seam preserved), `blog` polish (raw-render fallback preserved). Future residents (rag2-out,
+  did-you-mean, multilingual) are born into it.
+6 tests (`test_rag.py`); two test references re-homed. Gate **345 / 1 xfailed**.

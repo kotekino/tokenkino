@@ -79,7 +79,8 @@ _GOOD = {"verdict": "mismatch", "confidence": 0.9, "severity": "high",
 def test_judge_returns_the_validated_verdict():
     out = asyncio.run(microscope.judge("s", "d", client=_FakeClient(text=json.dumps(_GOOD))))
     assert out["verdict"] == "mismatch" and out["category"] == "operator-flattening"
-    assert out["model"] == microscope._JUDGE_MODEL
+    from lib.rag import RAG3_JUDGE
+    assert out["model"] == RAG3_JUDGE.model
 
 
 def test_judge_clamps_confidence():

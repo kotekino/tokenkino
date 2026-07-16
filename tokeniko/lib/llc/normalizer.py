@@ -22,29 +22,13 @@
 # stands exactly as today (unknown leaves never become beliefs; eval:unknown already asks the
 # interlocutor "why"). The translator can only ever improve hearing, never replace it.
 # --------------------------------------------------------------
-import logging
-import os
 from typing import Optional
 
-logger = logging.getLogger(__name__)
-
-_NORMALIZER_MODEL = os.getenv("RAG1_MODEL", "claude-haiku-4-5")  # the best SMALL model (author's D4)
-_MAX_TOKENS = 300
-
-_client = None
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        import anthropic  # lazy: the module stays importable without the SDK
-        _client = anthropic.AsyncAnthropic(timeout=30.0)  # ANTHROPIC_API_KEY from env — never hardcoded
-    return _client
+from lib.rag import RAG1_NORMALIZER, rag_call, rag_enabled
 
 
 def normalizer_enabled() -> bool:
-    return os.getenv("RAG1_DISABLED", "").strip() not in ("1", "true", "yes") \
-        and bool(os.getenv("ANTHROPIC_API_KEY"))
+    return rag_enabled("RAG1_DISABLED")
 
 
 # ---- the STUMBLE DETECTOR (escalation-only, D1b) ---------------------------------------------------
@@ -117,32 +101,10 @@ def verifier_preserves(original_zip, polished_zip) -> tuple[bool, str]:
 
 
 # ---- the NORMALIZER call (rag1-in — surface only) --------------------------------------------------
-_SYSTEM = (
-    "You are a TRANSCRIPTION NORMALIZER for a reasoning engine. You tidy the SURFACE of a message "
-    "and never its meaning.\n"
-    "Allowed: fix obvious misspellings; split run-on text into short, complete, plain-English "
-    "sentences; expand tangled phrasing into its own plain sentences.\n"
-    "Forbidden: adding ANY content, opinion, or implication not present; replacing a word you do "
-    "not recognize (leave unknown words exactly as written); resolving ambiguity by guessing; "
-    "changing negations, quantifiers (all/some/no), or modal verbs (can/could/may/might) in any "
-    "way; answering or commenting.\n"
-    "Return ONLY the normalized text, nothing else."
-)
-
-
+# the system prompt + model live in the lib/rag registry (RAG1_NORMALIZER); rag_call is graceful by
+# contract (API down / auth / anything -> None, logged) — the raw parse stands.
 async def normalizer_polish(tokens: str) -> Optional[str]:
-    try:
-        client = _get_client()
-        resp = await client.messages.create(
-            model=_NORMALIZER_MODEL,
-            max_tokens=_MAX_TOKENS,
-            system=_SYSTEM,
-            messages=[{"role": "user", "content": tokens}],
-        )
-        text = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
-        if not text or text == tokens.strip():
-            return None
-        return text
-    except Exception as error:  # API down / auth / anything — fall through, never raise
-        logger.warning("[rag1] normalizer call failed (%r) — raw parse stands", error)
+    text = await rag_call(RAG1_NORMALIZER, tokens)
+    if not text or text == tokens.strip():
         return None
+    return text

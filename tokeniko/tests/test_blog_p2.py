@@ -259,7 +259,8 @@ def test_polish_valid_json_returns_polished_dict_and_true():
     # the call shape: strict schema-constrained JSON, no sampling params
     call = client.messages.calls[0]
     assert call["model"] == "claude-opus-4-8"
-    assert call["output_config"]["format"]["schema"] is blog._POLISH_SCHEMA
+    from lib.rag import BLOG_POLISH
+    assert call["output_config"]["format"]["schema"] is BLOG_POLISH.schema
     assert "temperature" not in call and "thinking" not in call
 
 

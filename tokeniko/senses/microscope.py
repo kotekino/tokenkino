@@ -22,7 +22,6 @@
 #      SENSES_RAG3_POLL (seconds between polls, default 60), RAG3_BATCH (items per poll, default 5).
 # --------------------------------------------------------------
 import asyncio
-import json
 import logging
 import os
 from typing import Optional
@@ -30,10 +29,9 @@ from typing import Optional
 from lib.core.io import get_tokeniko
 from lib.core.models import TKMemoryItemDoc, TKZipDebugDoc
 from lib.core.tkzip import TKZip, TKZipContent
+from lib.rag import RAG3_JUDGE, rag_call
 
 logger = logging.getLogger("tokeniko-senses")
-
-_JUDGE_MODEL = "claude-opus-4-8"
 
 # ---- the structural digest (pure) -------------------------------------------------------------
 # a deterministic, human/judge-readable rendering of the zip's SYMBOLIC content: per leaf, the
@@ -96,96 +94,9 @@ def digest_zip(zp: TKZip) -> str:
 
 
 # ---- the judge ---------------------------------------------------------------------------------
-# the CONTRACT mini-RAG: what each digest field MEANS, and which divergences are LEGITIMATE —
-# the judge flags real mismatches, not design choices.
-_JUDGE_SYSTEM = """You are a meticulous QA oracle for a neuro-symbolic NLP pipeline. You receive a
-SENTENCE (as heard, verbatim) and the structural DIGEST of what the pipeline compiled it into.
-Your ONLY question: does the structure say what the sentence says?
-
-The digest's contract:
-- Each clause line is one predication leaf. `senses` maps grammatical roles (subject / predicate /
-  direct / indirect0.. / *_mod0.. / predicate_nmod) to WordNet synset keys (e.g. coin.n.01).
-- `op` is the operator the leaf folds with into the statement (AND / OR / IMPLY / CONV / THAT...).
-  A conditional or complement clause MUST NOT appear as a bare AND assertion.
-- `quantifier` reads the subject's determiner: universal (all/every), negated_universal (NOT
-  all/NOT every — ¬∀, the negation scopes the quantifier and `negated` stays free for the
-  predicate; do NOT flag negated=False on a "not all" sentence as a missed negation), existential
-  (a/some ~ also 'indefinite'), negative (no/none), definite (the/this), generic (bare plural).
-- `negated=True` means the clause asserts NOT-P. `mood` is question/statement; `wh_role` is the
-  question's gap (subject/predicate/direct/location/time/manner/cause).
-- `modal=possibility` means a modal (can/could/may/might) scopes the clause: a ◇-claim, asserting
-  possibility rather than fact. MODALITY IS MEANING, not a tense/aspect nuance: a sentence whose
-  plain reading is modal ("a software CAN be a mind") but whose clause shows NO modal flag has
-  LOST the possibility — flag it as missed-modality (a real lead, not a legitimate divergence).
-- `contrast=True` marks an ADVERSATIVE join ("but"/"however"/"yet"…): the clause folds as a plain
-  co-asserted AND — which is CORRECT and faithful ("X but Y" asserts exactly X-and-Y; the contrast
-  is implicature, carried by this flag). Do NOT flag "but"→AND+contrast as a lost adversative or a
-  wrong operator; DO flag an adversative sentence whose second clause shows neither (the contrast
-  vanished) or one folded as an implication (NOT IMPLY) — the pre-2026-07-16 corruption.
-- `cause=reason` marks the because/since half of a FULL sentence, `cause=result` a so/therefore
-  conjunct: both fold as co-asserted AND — CORRECT and faithful ("A because B" is factive, the
-  speaker asserts A, B, and the link; the link rides this flag). Do NOT flag because→AND+cause as
-  a lost causal relation; DO flag a full causal sentence whose reason/result clause shows no
-  `cause` at all. A standalone FRAGMENT («because you think» alone) folding CONV is correct by
-  design — a relation half, not an assertion. "if" folding CONV is correct (non-factive).
-- `identities` binds a role to a named INDIVIDUAL's uid (name@channel:... for persons; a known
-  place is GLOBAL: name@place, e.g. japan@place). A named person/place should carry an identity;
-  a common noun should not. A place identity has no `senses` entry for its role BY DESIGN (a place
-  is an individual, not a class — its type/containment live in the places knowledge base).
-- `markers` carries the preposition/case lemma per marked role ("indirect0: in") — the RELATOR.
-  A locative/prepositional complement is faithfully carried when its role shows the identity (or
-  sense) plus the marker.
-- `unknown=True` = out-of-vocabulary clause (legitimate for gibberish); `reflexive=True` = an
-  identity claim (a = a).
-
-LEGITIMATE divergences you must NOT flag:
-- A leading/trailing address ("tokeniko, ...") is dropped by design (vocative strip).
-- Sense granularity: the dictionary may hold only a subset of WordNet senses, so the chosen sense
-  is the nearest AVAILABLE — flag it only when the chosen sense's MEANING contradicts the
-  sentence's plain reading (that is a real lead: a dictionary coverage gap).
-- Function words, articles, tense/aspect nuances and politeness carry no leaf of their own.
-- The zip is PERSPECTIVE-RESOLVED by design: a second-person pronoun ("you") spoken TO tokeniko
-  legitimately binds tokeniko's identity uid on its role, and a speaker's "I" binds the speaker's.
-  Never flag this identity binding — it is the identity-bridge working, not a misattribution.
-
-Judge honestly and conservatively: verdict "ok" when the structure faithfully carries the
-sentence's predications, operators, polarity, quantification, mood and named individuals;
-"mismatch" otherwise. Confidence is YOUR calibrated certainty in the verdict (0..1). On mismatch
-pick the single dominant category: wrong-sense | wrong-structure | missed-negation |
-missed-quantifier | missed-mood | missed-modality | dropped-content | operator-flattening |
-other. Severity: how
-badly a reasoning engine would be misled (low/medium/high). The note: ONE terse paragraph naming
-exactly what diverges — write it for the engineer who will turn it into a regression test."""
-
-# NB no null unions: the structured-output validator rejects enum values against a
-# ["string","null"] type array (live lesson, first sweep 2026-07-14) — sentinel "none"/"" strings
-# instead, mapped back to None client-side in judge().
-_JUDGE_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "verdict": {"type": "string", "enum": ["ok", "mismatch"]},
-        "confidence": {"type": "number"},
-        "severity": {"type": "string", "enum": ["low", "medium", "high", "none"]},
-        "category": {"type": "string", "enum": ["wrong-sense", "wrong-structure",
-                                                "missed-negation", "missed-quantifier",
-                                                "missed-mood", "missed-modality",
-                                                "dropped-content",
-                                                "operator-flattening", "other", "none"]},
-        "note": {"type": "string"},
-    },
-    "required": ["verdict", "confidence", "severity", "category", "note"],
-    "additionalProperties": False,
-}
-
-_client = None  # lazily-constructed module-level AsyncAnthropic (same pattern as the blog polish)
-
-
-def _get_client():
-    global _client
-    if _client is None:
-        import anthropic  # lazy: the module stays importable without the SDK
-        _client = anthropic.AsyncAnthropic(timeout=60.0)  # ANTHROPIC_API_KEY from env
-    return _client
+# the judge's CONTRACT mini-RAG (what each digest field MEANS + the legitimate divergences),
+# model and response schema live in the lib/rag registry (RAG3_JUDGE) — edit the contract THERE
+# when a digest field changes (same commit, per the registry's coupling note).
 
 
 # the GROUNDED GLOSSARY (2026-07-14, the thinker incident): the judge was hallucinating WordNet
@@ -221,21 +132,14 @@ async def judge(original: str, digest: str, client=None, glossary: str = "") -> 
     """One judged verdict for (sentence, digest), or None on ANY failure (logged, never raised).
 
     A None simply skips the item this pass — the microscope is diagnostics, never a blocker."""
+    user = f"SENTENCE:\n{original}\n\nDIGEST:\n{digest}"
+    if glossary:
+        user += ("\n\nGLOSSARY (the chosen senses' ACTUAL dictionary definitions — judge "
+                 f"sense fidelity against THESE, never your recall):\n{glossary}")
+    data = await rag_call(RAG3_JUDGE, user, client=client)
+    if data is None:
+        return None  # API/JSON failure — already logged as [rag:rag3-judge]
     try:
-        cl = client if client is not None else _get_client()
-        user = f"SENTENCE:\n{original}\n\nDIGEST:\n{digest}"
-        if glossary:
-            user += ("\n\nGLOSSARY (the chosen senses' ACTUAL dictionary definitions — judge "
-                     f"sense fidelity against THESE, never your recall):\n{glossary}")
-        response = await cl.messages.create(
-            model=_JUDGE_MODEL,
-            max_tokens=1024,
-            system=_JUDGE_SYSTEM,
-            messages=[{"role": "user", "content": user}],
-            output_config={"format": {"type": "json_schema", "schema": _JUDGE_SCHEMA}},
-        )
-        text = next(b.text for b in response.content if b.type == "text")
-        data = json.loads(text)
         if data["verdict"] not in ("ok", "mismatch"):
             raise ValueError(f"invalid verdict {data['verdict']!r}")
         confidence = max(0.0, min(1.0, float(data["confidence"])))
@@ -249,7 +153,7 @@ async def judge(original: str, digest: str, client=None, glossary: str = "") -> 
             "severity": severity,
             "category": category,
             "note": note,
-            "model": _JUDGE_MODEL,
+            "model": RAG3_JUDGE.model,
         }
     except Exception as error:
         logger.warning("[microscope] judge failed (%s: %s) — item skipped this pass",
@@ -298,7 +202,7 @@ async def microscope_task():
         return
     poll_s = float(os.getenv("SENSES_RAG3_POLL", "60"))
     batch = int(os.getenv("RAG3_BATCH", "5"))
-    logger.info("[microscope] 🔬 armed — poll=%ss batch=%s judge=%s", poll_s, batch, _JUDGE_MODEL)
+    logger.info("[microscope] 🔬 armed — poll=%ss batch=%s judge=%s", poll_s, batch, RAG3_JUDGE.model)
     while True:
         try:
             n = await microscope_pass(batch=batch)
