@@ -865,6 +865,12 @@ LANDED by probe — `compiler_subjectIsPossessed`→DEFINITE, the retreat arc's 
 - «are all minds animals?» → the subject "minds" dropped from senses, clause flagged unknown.
 *Action:* → third-harvest fix queue (item 5); the generic-locative carrier extends the places
 bridge to common-noun prepositional restrictions.
+*(→ CLOSED 2026-07-16 second session: subject-nmod restrictions → `subject_mod{i}` sense + case
+marker (the restrictive-modifier machinery extended; edge-mint protection was already in the
+gate); «are all minds animals?» was a STANZA misparse (nsubj=the bare DET "all", "minds" glued as
+compound) → the gated de-invert retry `_parser_invertedQuestionRetry` recovers the subject; the
+adn-tangle is rag1's design case (landed after this harvest) → detector-trigger regression locked.
+See `landed.md`; 10 tests in `test_dropped_content.py`.)*
 
 **M6 — quantifier scope: ¬∀ wide-scope shape + restrictive relative clauses (S2, ~2 leads).**
 - «not all minds are software» → encoded quantifier=universal + negated=True; the correct scope is

@@ -75,9 +75,11 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
 - ✅ **M4 — necessity modality □** — landed 2026-07-16 (must → `modal="necessity"` on the ◇
   machinery; "must not" = □+negated; the possessive-subject cousin was found ALREADY LANDED by
   probe — `compiler_subjectIsPossessed`→DEFINITE, the retreat arc's step-4 fix), see `landed.md`.
-- **M5 — dropped content** (S2/S3). Generic locatives ("in the water") + a predicate-nominal dropped
-  inside a typo tangle. Extends the places bridge to common-noun prepositional restrictions; the
-  extractor then consumes indirect roles + markers as chainer fuel.
+- ✅ **M5 — dropped content** — landed 2026-07-16 (subject-nmod restrictions carried as
+  `subject_mod{i}` + case marker, edge-mint protected; the inverted-question compound recovery;
+  the typo-tangle lead locked as a rag1 detector regression), see `landed.md`. *Left in its orbit:*
+  the extractor consuming indirect roles + markers as chainer fuel (the restricted-universal
+  residuals' companion, strengthening tail §3.3).
 - **Also in this queue** (second-harvest leads, not yet macro-grouped): **product/proper-noun NER**
   (Photoshop→adobe.n.01 the clay) · **passive agent inversion** («rain is caused by clouds» ≈ rain
   causes clouds — the voice gap inverting causality) · the **store→shop.n.01** singles lead ·

@@ -171,7 +171,7 @@ def compiler_recurseReferenceProperties(ref: TKEntityReference, statementIdx: in
     # get properties and sub properties recursively
     for p in ref.properties:
         map = TKLLEntityMapReference(inputStatementIdx=statementIdx, inputStatementId=statementId, inputEntityId=p.id)
-        propertyReferences.append(TKLLEntityProperty(id=compiler_getEntityIdByMap(map), dep=p.dep, properties=compiler_recurseReferenceProperties(p, statementIdx, statementId)))
+        propertyReferences.append(TKLLEntityProperty(id=compiler_getEntityIdByMap(map), dep=p.dep, marker=getattr(p, "marker", None), properties=compiler_recurseReferenceProperties(p, statementIdx, statementId)))
 
     return propertyReferences
 

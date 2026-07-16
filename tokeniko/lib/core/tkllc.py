@@ -60,6 +60,9 @@ class TKLLEntityReference(BaseModel):
 class TKLLEntityProperty(BaseModel):
     id: int
     dep: str
+    # the property's RELATOR (M5 2026-07-16): an nmod property's case preposition — carried through
+    # from TKFullProperty.marker so the zip can emit "subject_mod{i}: in" beside the mod sense.
+    marker: Optional[TKMarker] = None
     properties: list[TKLLEntityProperty] = Field(default_factory=list)
 
 #  property related the sentence by the talker point of view

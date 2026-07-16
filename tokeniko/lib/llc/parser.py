@@ -8,7 +8,7 @@ from spacy import displacy
 from spacy.tokens import Span, Token
 import spacy_stanza
 import numpy as np
-from lib.core.tk import EntityPayload, TKAux, TKClause, TKClauseType, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKStatement, TKStatements, TKWhRole
+from lib.core.tk import EntityPayload, TKAux, TKClause, TKClauseType, TKFullProperty, TKMarker, TKFullEntity, TKDictionary, TKGeneric, TKMetaEntity, TKName, TKNumber, TKOperator, TKPlace, TKPronoun, TKQuantifier, TKStatement, TKStatements, TKWhRole
 import re
 from lib.core.models import TKDictionaryDoc, TKPlaceDoc, TKMemoryStakeholdersDoc
 from lib.core.places import place_type_sense
@@ -20,7 +20,7 @@ from functools import cmp_to_key
 import textacy
 from word2number import w2n
 from lib.core.memory import MEMContext, MEMStakeholder
-from lib.llc.anchors import anchor_resolve, anchor_whType
+from lib.llc.anchors import anchor_resolve, anchor_whType, anchor_quantifier
 
 # --- INIZIO PATCH PYTORCH ---
 import torch
@@ -186,8 +186,18 @@ def parser_getFullProperty(token: Token) -> TKFullProperty:
     # get properties (for each token directly bound to the result)
     doc_properties = parser_getProperties(children)
 
+    # the property's RELATOR (M5 2026-07-16): an nmod property carries its case preposition
+    # («animals IN the water» — nmod water + case in). Mirrors the subordinate-marker capture; the
+    # zip emits it beside the mod sense ("subject_mod0: in") so the restriction stays readable.
+    tkMarker: TKMarker = None
+    if token.dep_ == "nmod":
+        case = next((s for s in children if s.dep_ == "case"), None)
+        if case is not None and case.has_vector:
+            tkMarker = TKMarker(dep=case.dep_, word=case.lemma_, vector=case.vector,
+                                parent_dep=token.dep_)
+
     # primary entity (from token)
-    primaryEntity: TKFullProperty = TKFullProperty(entity=tkMeaning, token=token.text, dep=token.dep_, properties=doc_properties)
+    primaryEntity: TKFullProperty = TKFullProperty(entity=tkMeaning, token=token.text, dep=token.dep_, marker=tkMarker, properties=doc_properties)
 
     return primaryEntity
 
@@ -1048,6 +1058,46 @@ def _parser_degenerateRetry(doc, text: str):
             return retry
     return doc
 
+# the INVERTED-QUESTION compound recovery (M5 2026-07-16). Stanza misparses an aux-fronted polar
+# question over a quantified bare plural — «are all minds animals?» reads nsubj=all (a bare
+# DETERMINER, a parse impossibility) with "minds" glued as a compound of the root noun — so the
+# subject vanished and the leaf compiled unknown (the brain answered IDK instead of engaging the
+# polar machinery). Gate on exactly that broken shape (question + NOUN root with a fronted cop +
+# DET-nsubj carrying a real quantifier lemma + a NOUN compound child, in fronted order), then
+# repair by the file's established pattern (rewrite + re-parse + verify, like the degenerate
+# retry — never in-place dep surgery): de-invert the copula («all minds are animals ?») and accept
+# the retry only if it recovers a real nominal subject. Known corner (accepted at design time):
+# the rare pronominal-"all" reading («are all fire trucks?») previously yielded an unknown leaf
+# anyway. The "?" is preserved, so the question mood survives the rewrite.
+def _parser_invertedQuestionRetry(doc, text: str):
+    if "?" not in text:
+        return doc
+    root = next((t for t in doc if t.dep_ == "root"), None)
+    if root is None or root.pos_ != "NOUN":
+        return doc
+    children = list(root.children)
+    cop = next((c for c in children if c.dep_ == "cop" and c.pos_ == "AUX"), None)
+    det_subj = next((c for c in children if c.dep_ == "nsubj" and c.pos_ == "DET"
+                     and anchor_quantifier(c.lemma_) != TKQuantifier.GENERIC), None)
+    compound = next((c for c in children if c.dep_ == "compound" and c.pos_ == "NOUN"), None)
+    if cop is None or det_subj is None or compound is None:
+        return doc
+    if not (cop.i < det_subj.i < compound.i < root.i):
+        return doc
+    parts = []
+    for t in doc:
+        if t.i == cop.i:
+            continue
+        if t.i == root.i:
+            parts.append(cop.text)
+        parts.append(t.text)
+    retry = nlp_stanza(" ".join(parts))
+    r2 = next((t for t in retry if t.dep_ == "root"), None)
+    if r2 is not None and any(c.dep_ == "nsubj" and c.pos_ in ("NOUN", "PROPN", "PRON")
+                              for c in r2.children):
+        return retry
+    return doc
+
 # --------------------------------------------------------------
 # MAIN entry point to parse an input text
 # --------------------------------------------------------------
@@ -1066,8 +1116,9 @@ def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, contex
     _talker =talker
     _tokeniko = tokeniko
 
-    # spacy parse (+ the verbless-NP do-support retry, above)
+    # spacy parse (+ the verbless-NP do-support retry and the inverted-question recovery, above)
     doc = _parser_degenerateRetry(nlp_stanza(tokens), tokens)
+    doc = _parser_invertedQuestionRetry(doc, tokens)
 
     # get all tokens
     tkStatements: TKStatements = parser_core(list(doc))

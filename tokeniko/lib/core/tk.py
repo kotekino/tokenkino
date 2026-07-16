@@ -358,9 +358,9 @@ class TKStatement(BaseModel):
         if reference:
             for p in properties:
                 
-                # cereate property reference
+                # cereate property reference (the marker rides through — M5 2026-07-16)
                 entity = self.create_entity(payload=p.entity)
-                e = TKPropertyReference(id=entity.id, dep=p.dep)
+                e = TKPropertyReference(id=entity.id, dep=p.dep, marker=p.marker)
                 reference.properties.append(e)
 
                 # recurse properties 
@@ -521,12 +521,17 @@ class TKFullProperty(BaseModel):
     token: Optional[str] = None
     entity: EntityPayload = Field(discriminator='entity_type')
     dep: str
-    properties: list[TKFullProperty] = Field(default_factory=list)    
+    # the property's RELATOR (M5 2026-07-16): an nmod property's case preposition («animals IN the
+    # water» — nmod water + case in). Without it the locative restriction reads as a bare noun mod.
+    marker: Optional[TKMarker] = Field(default=None)
+    properties: list[TKFullProperty] = Field(default_factory=list)
 
 # a reference to a property (and its properties)
 class TKPropertyReference(BaseModel):
     id: int
     dep: str
+    # the property's RELATOR (M5 2026-07-16) — mirrors TKFullProperty.marker through the reference
+    marker: Optional[TKMarker] = Field(default=None)
     properties: list[TKPropertyReference] = Field(default=[])
 
 # alias for statement

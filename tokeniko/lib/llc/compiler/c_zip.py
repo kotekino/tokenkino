@@ -244,25 +244,39 @@ def compiler_contentSenses(content: TKLLCContent) -> dict[str, str]:
                 if ps:
                     senses["predicate_nmod"] = ps
                     break
-    # restrictive modifiers (finding #5, Brain v1.1 2c). "all THINKING machines are minds" restricts
-    # the quantifier's scope to machines that think — dropping it silently widens the universal to
-    # ALL machines. The modifier arrives as dep=amod ("artificial body") or dep=compound ("thinking
-    # machines", stanza's noun-noun read); det/quantifier props are NOT restrictive.
+    # restrictive modifiers (finding #5, Brain v1.1 2c; nmod added M5 2026-07-16). "all THINKING
+    # machines are minds" restricts the quantifier's scope to machines that think — dropping it
+    # silently widens the universal to ALL machines. The modifier arrives as dep=amod ("artificial
+    # body"), dep=compound ("thinking machines", stanza's noun-noun read), or — SUBJECT side only —
+    # dep=nmod («animals IN THE WATER are mammals», the generic-locative restriction; its case
+    # preposition rides compiler_contentMarkers as "subject_mod{i}"). det/quantifier props are NOT
+    # restrictive; nmod:poss is the possessive/DEFINITE machinery, never a restrictor; the
+    # PREDICATE's nmod already feeds "predicate_nmod" (part_of) above, so it stays out here.
     #   SUBJECT   -> "subject_mod{i}"   — the rule extractor emits a CONDITIONED rule from these.
     #   PREDICATE -> "predicate_mod{i}" — a copular membership ("I am a THINKING machine") carries its
     #                class modifiers, so the chainer can test a conditioned rule's condition against
     #                the fact by EXACT sense match (the two sides compile identically).
     for role, ref in (("subject", content.subject), ("predicate", content.predicate)):
-        if ref is None:
-            continue
-        i = 0
-        for p in ref.properties:
-            if getattr(p, "dep", None) in ("amod", "compound"):
-                ps = compiler_propSense(p.id)
-                if ps:
-                    senses[f"{role}_mod{i}"] = ps
-                    i += 1
+        for i, p, ps in compiler_restrictiveMods(role, ref):
+            senses[f"{role}_mod{i}"] = ps
     return senses
+
+
+# the restrictive-modifier walk, SHARED by senses and markers so the "{role}_mod{i}" indices can
+# never drift apart: yields (i, property, sense) per resolvable restrictive prop of the role.
+_RESTRICTIVE_DEPS = {"subject": ("amod", "compound", "nmod"), "predicate": ("amod", "compound")}
+
+
+def compiler_restrictiveMods(role: str, ref):
+    if ref is None:
+        return
+    i = 0
+    for p in ref.properties:
+        if getattr(p, "dep", None) in _RESTRICTIVE_DEPS.get(role, ()):
+            ps = compiler_propSense(p.id)
+            if ps:
+                yield i, p, ps
+                i += 1
 
 # collect the per-role identity uids for a content into {role -> uid} (only entity-linked individuals),
 # mirroring compiler_contentSenses exactly but reading .uid off each role ref instead of the sense.
@@ -291,6 +305,14 @@ def compiler_contentMarkers(content: TKLLCContent) -> dict[str, str]:
         word = ref.marker.word if (ref is not None and ref.marker is not None) else None
         if word:
             markers[role] = word.lower()
+    # restrictive-mod RELATORS (M5 2026-07-16): an nmod restriction's case preposition, keyed to the
+    # SAME "{role}_mod{i}" its sense uses (compiler_restrictiveMods is the single index authority) —
+    # «animals in the water» reads subject_mod0=water.n.01 + markers subject_mod0=in.
+    for role, ref in (("subject", content.subject), ("predicate", content.predicate)):
+        for i, p, _ps in compiler_restrictiveMods(role, ref):
+            word = p.marker.word if getattr(p, "marker", None) is not None else None
+            if word:
+                markers[f"{role}_mod{i}"] = word.lower()
     return markers
 
 # calculate final vector for the content

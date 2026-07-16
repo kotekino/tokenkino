@@ -1056,3 +1056,33 @@ is a software» minting "all minds…") was found ALREADY LANDED by probe** — 
 subjectIsPossessed` → DEFINITE (the retreat arc's step-4 scope-widening fix); the roadmap
 parenthetical was stale, struck. 5 tests appended to `test_square_of_opposition.py` (the modality
 suite's home). Gate **350 / 1 xfailed**.
+
+**M5 — dropped content (2026-07-16, second session — the third harvest's fifth close)**
+Three leads, three mechanisms, probed before design:
+- **The generic-locative restriction** («some animals IN THE WATER are mammals»): the parser
+  already captured the subject's nmod as a property — only the compiler emission and the case
+  preposition were missing (verb-attached PPs carried fine as indirects; the S2 stake: dropping
+  the restriction silently widens «all animals in the water are fish» to «all animals are fish»).
+  Fixed by EXTENDING the landed restrictive-modifier machinery (Brain v1.1 2c) to the subject's
+  nmod: a `marker` field threads TKFullProperty → TKPropertyReference → TKLLEntityProperty (the
+  case child captured at parser_getFullProperty, mirroring the subordinate-marker site), and
+  `compiler_restrictiveMods` — ONE shared walk so senses and markers indices can never drift —
+  emits `subject_mod0=water.n.01` + markers `subject_mod0=in`. nmod:poss stays possessive/DEFINITE;
+  the predicate's nmod stays `predicate_nmod` (part_of). Protection was FREE: the extractor's
+  subject_mod gate already blocks the edge mint (probe-verified: zero edges from the restricted
+  universal). Full restrictor SEMANTICS deferred to the restricted-universal residuals (carrier
+  doctrine). Judge contract extended (subject_mod + marker = faithful carriage).
+- **The inverted-question compound recovery** («are all minds animals?»): stanza ITSELF misparses
+  the aux-fronted polar question over a quantified bare plural — nsubj="all" (a bare DETERMINER, a
+  parse impossibility) with "minds" glued as compound → subject vanished, leaf unknown, the brain
+  answered IDK. `_parser_invertedQuestionRetry`: gated on exactly the broken shape, repairs by the
+  file's established rewrite+re-parse+verify pattern (de-invert the copula; accept only if a real
+  nominal subject comes back; the "?" survives so the mood does). Accepted corner: the rare
+  pronominal-"all" reading previously yielded an unknown leaf anyway.
+- **The typo tangle** («a mammal ADN it feeds») was found ALREADY COVERED at the ears: the demoted
+  predicate nominal is an unsound leaf — exactly rag1's escalation trigger, and rag1 landed AFTER
+  the harvest specimen. Locked as a pure detector regression (the cloud repair untested by
+  design). Bonus finding while testing: «...and IT feeds milk» also escalates via the KNOWN
+  pronoun-subject-leaf gap (roadmap §2's escalate-and-always-reject lead) — a separate item,
+  deliberately not entangled.
+10 tests (`test_dropped_content.py`). Gate **360 / 1 xfailed**.

@@ -127,7 +127,11 @@ The digest's contract:
   is an individual, not a class — its type/containment live in the places knowledge base).
 - `markers` carries the preposition/case lemma per marked role ("indirect0: in") — the RELATOR.
   A locative/prepositional complement is faithfully carried when its role shows the identity (or
-  sense) plus the marker.
+  sense) plus the marker. A NOUN-attached restriction («animals IN THE WATER are mammals») is
+  faithfully carried as a subject_mod sense plus its marker under the SAME key ("subject_mod0:
+  water.n.01" + markers "subject_mod0: in") — a quantified sentence whose prepositional
+  restriction shows in NEITHER form has lost it (dropped-content, a real lead: the restriction
+  silently widens the quantifier).
 - `unknown=True` = out-of-vocabulary clause (legitimate for gibberish); `reflexive=True` = an
   identity claim (a = a).
 
