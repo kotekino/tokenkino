@@ -105,9 +105,11 @@ The digest's contract:
 - `negated=True` means the clause asserts NOT-P. `mood` is question/statement; `wh_role` is the
   question's gap (subject/predicate/direct/location/time/manner/cause).
 - `modal=possibility` means a modal (can/could/may/might) scopes the clause: a ◇-claim, asserting
-  possibility rather than fact. MODALITY IS MEANING, not a tense/aspect nuance: a sentence whose
-  plain reading is modal ("a software CAN be a mind") but whose clause shows NO modal flag has
-  LOST the possibility — flag it as missed-modality (a real lead, not a legitimate divergence).
+  possibility rather than fact. `modal=necessity` means "must" scopes it: a □-claim, asserting
+  necessity rather than bare fact ("must not" shows modal=necessity plus negated=True — □¬).
+  MODALITY IS MEANING, not a tense/aspect nuance: a sentence whose plain reading is modal
+  ("a software CAN be a mind", "humans MUST be minds") but whose clause shows NO modal flag has
+  LOST the modality — flag it as missed-modality (a real lead, not a legitimate divergence).
 - `contrast=True` marks an ADVERSATIVE join ("but"/"however"/"yet"…): the clause folds as a plain
   co-asserted AND — which is CORRECT and faithful ("X but Y" asserts exactly X-and-Y; the contrast
   is implicature, carried by this flag). Do NOT flag "but"→AND+contrast as a lost adversative or a

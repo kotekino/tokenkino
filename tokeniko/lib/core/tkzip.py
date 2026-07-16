@@ -45,11 +45,13 @@ class TKZipContent(BaseModel):
     # link itself is carried here, un-judged, as the conditional-rule extractor's future fuel.
     # Root-mark FRAGMENTS («because you think» alone) stay CONV/non-asserted (the L2 ruling).
     cause: Optional[str] = Field(default=None)
-    # modality (2026-07-14): "possibility" when a modal (can/could/may/might) scopes the clause.
-    # A ◇-claim is not a crisp assertion: the consistency kernel never treats it as P (◇P ∧ ◇¬P is
-    # consistent), the extractor never mints rules/facts/edges from it (the some→all leap's root),
-    # and the relational grounder abstains on it. None = plain assertion (all stored zips predate
-    # the field and default honestly to None).
+    # modality (2026-07-14; □ added M4 2026-07-16): "possibility" when a ◇ modal (can/could/may/
+    # might) scopes the clause, "necessity" for □ (must — «humans must be minds» claims necessity,
+    # not bare membership; "must not" = □ + negated). A modal claim is not a crisp assertion: the
+    # consistency kernel never treats it as P (◇P ∧ ◇¬P is consistent), the extractor never mints
+    # rules/facts/edges from it (the some→all leap's root — and □'s unflagged drop minted is_a
+    # fuel as if asserted fact), and the relational grounder abstains on it. None = plain
+    # assertion (stored zips predating the field default honestly to None).
     modal: Optional[str] = Field(default=None)
     # WSD-assigned WordNet synset key per populated role ("subject"/"predicate"/"direct"/"indirect0"…).
     # carried (out of band of the geometry) so the evaluator can reach the is_a relations graph for

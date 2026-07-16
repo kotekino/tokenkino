@@ -245,10 +245,15 @@ _TEMPORAL_PREP_DURATION = {"for", "during"}
 # NER entity labels treated as resolvable real places (looked up in the places knowledge base)
 _GEO_NER_LABELS = {"GPE", "LOC", "FAC"}
 
-# possibility modals (closed grammatical class -> EXACT, like the quantifier determiners): an aux
-# child with one of these lemmas scopes the clause as a ◇-claim ("can be" asserts possibility,
-# never membership). Necessity modals (must/shall) are a future, separate carrier.
+# modals (closed grammatical class -> EXACT, like the quantifier determiners): an aux child with
+# one of these lemmas scopes the clause as a modal claim — ◇ ("can be" asserts possibility, never
+# membership) or □ ("must be" asserts necessity, never bare membership — M4 2026-07-16; the maxim
+# «possibility is not necessity» has a dual: necessity is not bare assertion either). Deliberately
+# NOT necessity: shall/will (the future-tense reading owns them, parser_getTense), should/ought
+# (deontic obligation, weaker — deferred until a specimen demands them), have to/need to
+# (periphrastic, not aux — different parse shape).
 _MODAL_POSSIBILITY = {"can", "could", "may", "might"}
+_MODAL_NECESSITY = {"must"}
 
 # spacetime — SPACE axis
 # locative case markers -> spatial relation. for now only used to detect that a reference is a

@@ -72,10 +72,9 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
   **Part 2 remaining**: restrictive relative clauses inside the quantifier ("animals **living in
   the water** are fish") → merged with the restricted-universal residuals (§3.3) + the
   **adverbial-quantifier** family (always/sometimes/never → the quantifier field, second harvest).
-- **M4 — necessity modality □** (S2). «humans **must** be minds» — extend the landed ◇ carrier to □
-  (parser → TKAux → `TKZipContent.modal`; the kernel/extractor already gate on `modal`). *(Also the
-  extractor **possessive-subject gate** «MY mind is a software» — the dropped-possessive cousin of the
-  modal drop.)*
+- ✅ **M4 — necessity modality □** — landed 2026-07-16 (must → `modal="necessity"` on the ◇
+  machinery; "must not" = □+negated; the possessive-subject cousin was found ALREADY LANDED by
+  probe — `compiler_subjectIsPossessed`→DEFINITE, the retreat arc's step-4 fix), see `landed.md`.
 - **M5 — dropped content** (S2/S3). Generic locatives ("in the water") + a predicate-nominal dropped
   inside a typo tangle. Extends the places bridge to common-noun prepositional restrictions; the
   extractor then consumes indirect roles + markers as chainer fuel.

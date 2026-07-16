@@ -850,6 +850,11 @@ and humans **must** be minds» — the possibility modal (can→◇) is carried 
 gate), but the necessity modal (must→□) has no carrier; the clause reads as a bare assertion.
 *Action:* → third-harvest fix queue (item 4), extend the modality carrier from ◇ to □ (parser →
 TKAux → `TKZipContent.modal`; the kernel/extractor already gate on `modal`).
+*(→ CLOSED 2026-07-16 second session: `_MODAL_NECESSITY = {"must"}` → `modal="necessity"` on the
+◇ machinery; "must not" = □+negated; probe confirmed the unflagged leaf WOULD have minted
+`homo is_a mind`. The possessive-subject cousin (the 07-14 «my mind» lead above) was found ALREADY
+LANDED by probe — `compiler_subjectIsPossessed`→DEFINITE, the retreat arc's step-4 fix. See
+`landed.md`; 5 tests in `test_square_of_opposition.py`.)*
 
 **M5 — dropped content: generic locatives + predicate-nominal in a typo tangle (S2/S3, ~3 leads).**
 - «some animals **in the water** are mammals» → the locative modifier dropped (no `*_mod` role /

@@ -113,3 +113,46 @@ def test_modal_claim_abstains(compile_zip):
     from lib.core.evaluation_harness import evaluate_zip
     r = evaluate_zip(compile_zip("a software can be a mind"))["result"]
     assert r.status.value == "insufficient_knowledge"
+
+
+# ---- the necessity carrier □ (M4, 2026-07-16) — «possibility is not necessity», and necessity ----------
+# is not bare assertion either: unflagged, «humans must be minds» minted is_a fuel as if asserted fact.
+
+def test_necessity_flag_carried(compile_zip):
+    zp = compile_zip("humans must be minds")
+    leaves = _zip_leaves(zp.items)
+    assert any(getattr(l, "modal", None) == "necessity" for l in leaves)
+    assert not all(_leaf_is_crisp(l) for l in leaves)
+
+
+def test_must_not_is_necessity_plus_negated(compile_zip):
+    # □¬: the modal scopes, the polarity rides `negated` beside it
+    zp = compile_zip("software must not be minds")
+    leaves = _zip_leaves(zp.items)
+    assert any(getattr(l, "modal", None) == "necessity" and getattr(l, "negated", False)
+               for l in leaves)
+
+
+def test_possibility_is_not_necessity(compile_zip):
+    # the maxim, structurally: ◇ and □ are DISTINCT carrier values
+    can = _zip_leaves(compile_zip("a software can be a mind").items)
+    must = _zip_leaves(compile_zip("a software must be a mind").items)
+    assert any(getattr(l, "modal", None) == "possibility" for l in can)
+    assert any(getattr(l, "modal", None) == "necessity" for l in must)
+
+
+def test_must_be_mints_no_edge(compile_zip):
+    # the □ twin of the some→all root: «a human must be a mind» yields ZERO is_a edges
+    from types import SimpleNamespace
+    zp = compile_zip("a human must be a mind")
+    doc = SimpleNamespace(zip=zp, original="a human must be a mind", id="sq-test3")
+    edges, stats = extract_generic_isa_edges([doc], parents=lambda s: [])
+    assert edges == []
+    assert stats.get("modal_skip", 0) >= 1
+
+
+def test_necessity_claim_abstains(compile_zip):
+    # the grounder neither proves nor refutes a □-claim — honest INSUFFICIENT (consumer arc deferred)
+    from lib.core.evaluation_harness import evaluate_zip
+    r = evaluate_zip(compile_zip("a human must be a mind"))["result"]
+    assert r.status.value == "insufficient_knowledge"

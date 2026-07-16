@@ -1038,3 +1038,21 @@ Every Claude API touchpoint concentrated into one library ("Cap's OCD", his word
   test seam preserved), `blog` polish (raw-render fallback preserved). Future residents (rag2-out,
   did-you-mean, multilingual) are born into it.
 6 tests (`test_rag.py`); two test references re-homed. Gate **345 / 1 xfailed**.
+
+**M4 — necessity modality □ (2026-07-16, second session — the third harvest's fourth close)**
+«humans **must** be minds» read as a bare assertion: `_MODAL_POSSIBILITY` carried ◇ but must had
+no carrier — probe-confirmed the leaf passed EVERY extractor gate (generic + crisp + noun-noun
+copular) and would mint `homo is_a mind` as if asserted fact. The fix rides the landed ◇ machinery
+whole: `_MODAL_NECESSITY = {"must"}` (EXACT closed class; deliberately NOT shall/will — the
+future-tense reading owns them — nor should/ought — deontic, weaker, no specimen — nor have to/
+need to — periphrastic, not aux), the parser's modal scan maps the lemma → "possibility" |
+"necessity" into the SAME free-form `modal` field, and every consumer gate is truthiness-based so
+□ is automatically non-crisp: no is_a edge, no rule, kernel-excluded, grounder abstains. The
+author's maxim «possibility is not necessity» has a dual, now hardwired: necessity is not bare
+assertion either — □'s consumer arc (alethic □P→P, trust-gated) stays deferred per the carrier
+doctrine. "must not" = `modal=necessity` + `negated=True` (□¬). Judge contract extended (the
+registry's first edit under the coupling discipline). **The possessive-subject cousin («MY mind
+is a software» minting "all minds…") was found ALREADY LANDED by probe** — `compiler_
+subjectIsPossessed` → DEFINITE (the retreat arc's step-4 scope-widening fix); the roadmap
+parenthetical was stale, struck. 5 tests appended to `test_square_of_opposition.py` (the modality
+suite's home). Gate **350 / 1 xfailed**.
