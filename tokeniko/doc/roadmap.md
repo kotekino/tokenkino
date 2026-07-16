@@ -133,6 +133,11 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
    analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`.
 9. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns, inference-implied
    conflicts, the working-memory layer; differentia extraction wired at definition INGESTION.
+10. **KB-load big-O honesty** (left by the 2026-07-16 wondering-freeze fix): the harness KB load
+    pulls ALL definitions (~1.2 GB of all-gloss zips) and re-pulls on EVERY fingerprint bump — i.e.
+    after each materialized theorem — blocking the tick for its duration (it gates thinking too, not
+    just wondering). Delta-load, or trim the load to what the evaluator actually reads; pair with
+    watermark-gating kb_wonder's re-saturation (the noted future optimization in `thinking.py`).
 
 ### Pending follow-ons — tails left by the landed arcs (surface when their time comes) 🔭
 

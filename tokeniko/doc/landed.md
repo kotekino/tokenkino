@@ -998,3 +998,24 @@ Gate **334 / 1 xfailed** (no behavior change on any tested path).
 `transformers`/MarianMT load died with it (silent win: HF models no longer load in any process).
 `.env.template` added — the reviewed key inventory (all keys the code actually reads, with
 comments; secrets as placeholders).
+
+**The wondering-freeze fix (2026-07-16, second session — the brain wakes properly)**
+Restart symptom (the author's report): the brain ran one loop, landed on wondering, froze — Ctrl+C
+dead, restarts stacking unkillable processes. Diagnosis (py-spy denied → `sample` + `currentOp` +
+`explain`): **no index on `dictionary.sense`** — every sense lookup collscanned 197,580 rows / 7.9 GB
+(~5.4 s each), and `_kb_wonder_one` re-renders EVERY derivable conclusion each pass (one
+`_class_word` sense query per conclusion, before the held-skip can fire) → minutes of synchronous
+grind per idle tick, event loop blocked, signal handlers starved (why SIGTERM/Ctrl+C looked dead —
+three stacked brains thrashing the same collscans + clobbering the `brain_state` singleton). Fixes:
+- **`dictionary.sense` indexed** (`TKDictionaryDoc` `Indexed()` + built live): 5.4 s → **6.3 ms**
+  (850×). Also heals the api's WSD context fetch (`parser.py:283`) + zip-native assembly.
+- **`_class_word` in-process cache** (sense→word is process-stable) + the kb-wonder `held` load
+  projected to `original` only (was tens of MB of full zips per tick).
+- **Idle-confirmation gate** (the author's ruling): wondering starts only after
+  `BRAIN_WONDER_IDLE_CONFIRM_S` (default 60 s) without reactive work — he looks around before
+  daydreaming; fresh memory still polled every idle tick. Interruptibility falls out: a wonder unit
+  is now subsecond, so senses input preempts within ~a tick (the residual monolith — the ~1.2 GB
+  definitions KB reload per fingerprint bump — is the strengthening-tail item #10).
+- **Coordinator per-tick exception guard**: a phase raise logs + backs off instead of silently
+  killing the loop (the second "stuck" mode — process alive, coordinator dead — closed).
+5 tests (`test_wonder_gate.py`).

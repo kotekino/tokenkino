@@ -378,9 +378,23 @@ def _verb_3sg(base: str) -> str:
 # query the dictionary for every word mapped to this sense, drop the plurals (an "-s" word that has a
 # non-"-s" sibling), then PREFER the longest remaining singular (favours "human" over "homo"). cheap
 # single DB query; parser-free. falls back to the synset lemma surface if nothing is found.
+# IN-PROCESS CACHED: the sense->word mapping is stable for a process lifetime, and kb-wondering
+# re-renders every derivable conclusion each pass to test it against `held` — uncached, a converged
+# KB still paid one dictionary query per conclusion per tick (the 2026-07-16 wondering freeze).
+_class_word_cache: dict[str, str] = {}
+
+
 def _class_word(sense: str) -> str:
     if not sense:
         return ""
+    cached = _class_word_cache.get(sense)
+    if cached is None:
+        cached = _class_word_uncached(sense)
+        _class_word_cache[sense] = cached
+    return cached
+
+
+def _class_word_uncached(sense: str) -> str:
     docs = TKDictionaryDoc.find({"sense": sense}).to_list()
     words = [d.word for d in docs if getattr(d, "word", None)]
     if not words:

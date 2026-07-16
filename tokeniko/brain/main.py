@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import signal
 import sys
 import time
@@ -52,6 +53,11 @@ IDLE_INTERVAL = 5.0
 BUSY_YIELD = 0.05
 # Priorities keep/discard floor: an idea must clear this urge to survive (wish = 0.5)
 URGE_THRESHOLD = UrgeLevel.WISH.value
+# IDLE CONFIRMATION before wondering (author's ruling 2026-07-16): wondering starts only when the
+# quiet is CONFIRMED — no actions/priorities/reactive-thinking work for this many seconds. Between
+# two sentences of a live conversation he keeps polling fresh memory (cheap, every IDLE_INTERVAL)
+# instead of starting a daydream he'd have to finish first.
+WONDER_IDLE_CONFIRM = float(os.getenv("BRAIN_WONDER_IDLE_CONFIRM_S", "60"))
 
 
 # --------------------------------------------------------------
@@ -382,9 +388,11 @@ def priorities_phase() -> bool:
 # work, so the coordinator's brief-yield-vs-idle-sleep logic reads it like the old bool; the
 # distinction feeds the heartbeat's honest state: reactive think vs idle-time wonder — blog P3).
 # --------------------------------------------------------------
-def thinking_phase(brain_state: TKBrainStateDoc) -> Optional[str]:
+# `wonder_allowed` is the coordinator's idle-confirmation gate: the reactive pass (think_one) always
+# runs; wondering additionally requires the confirmed quiet (see WONDER_IDLE_CONFIRM).
+def thinking_phase(brain_state: TKBrainStateDoc, wonder_allowed: bool = True) -> Optional[str]:
     sub = ("think" if thinking.think_one(brain_state)
-           else "wonder" if thinking.wonder_one(brain_state)
+           else "wonder" if wonder_allowed and thinking.wonder_one(brain_state)
            else None)
     brain_state.last_thinking_at = int(time.time())
     brain_state.save()
@@ -401,29 +409,46 @@ async def coordinator(stop_event: asyncio.Event) -> None:
     logger.info("🧠 Coordinator started")
     bs = get_or_create_brain_state()
     tick = 0  # heartbeat cadence counter (blog P3) — monotone, one increment per loop iteration
+    # the idle-confirmation clock: last moment REACTIVE work (actions/priorities/think) happened.
+    # starts at "now" so a fresh wake never opens with a daydream (he looks around first).
+    last_busy = time.monotonic()
     try:
         while not stop_event.is_set():
             tick += 1
-            if actions_phase():
-                # Actions/Priorities work reports as "thinking" (blog P3 state mapping): deciding
-                # and acting on urges is still thought — "ingesting"/"refuting" would claim
-                # introspection the coordinator doesn't cheaply have.
-                heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
-                await asyncio.sleep(BUSY_YIELD)
-                continue
-            if priorities_phase():
-                heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
-                await asyncio.sleep(BUSY_YIELD)
-                continue
-            # Thinking ran: if it actually processed memory (and may have spawned ideas), yield
-            # briefly so the next tick promptly routes to Priorities; only true idle gets the long
-            # sleep (CPU throttle / good citizen).
-            sub = thinking_phase(bs)
-            # the honest state for the heartbeat: reactive think -> "thinking", idle-time
-            # re-examination -> "wondering", no work at all -> "idle".
-            state = "thinking" if sub == "think" else "wondering" if sub == "wonder" else "idle"
-            heartbeat.maybe_beat(tick, state, _tokeniko_uid)
-            await asyncio.sleep(BUSY_YIELD if sub else IDLE_INTERVAL)
+            # PER-TICK GUARD: an unhandled phase exception must never kill the coordinator silently —
+            # the process would stay alive with a dead loop (indistinguishable from a hang). Log the
+            # full traceback, back off one idle interval, keep living.
+            try:
+                if actions_phase():
+                    # Actions/Priorities work reports as "thinking" (blog P3 state mapping): deciding
+                    # and acting on urges is still thought — "ingesting"/"refuting" would claim
+                    # introspection the coordinator doesn't cheaply have.
+                    last_busy = time.monotonic()
+                    heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
+                    await asyncio.sleep(BUSY_YIELD)
+                    continue
+                if priorities_phase():
+                    last_busy = time.monotonic()
+                    heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
+                    await asyncio.sleep(BUSY_YIELD)
+                    continue
+                # Thinking ran: if it actually processed memory (and may have spawned ideas), yield
+                # briefly so the next tick promptly routes to Priorities; only true idle gets the long
+                # sleep (CPU throttle / good citizen). Wondering is additionally gated on CONFIRMED
+                # idle: only after WONDER_IDLE_CONFIRM seconds without reactive work (author's ruling
+                # 2026-07-16 — he starts wondering when he's reasonably sure nothing else needs him).
+                wonder_allowed = time.monotonic() - last_busy >= WONDER_IDLE_CONFIRM
+                sub = thinking_phase(bs, wonder_allowed)
+                if sub == "think":
+                    last_busy = time.monotonic()
+                # the honest state for the heartbeat: reactive think -> "thinking", idle-time
+                # re-examination -> "wondering", no work at all -> "idle".
+                state = "thinking" if sub == "think" else "wondering" if sub == "wonder" else "idle"
+                heartbeat.maybe_beat(tick, state, _tokeniko_uid)
+                await asyncio.sleep(BUSY_YIELD if sub else IDLE_INTERVAL)
+            except Exception:
+                logger.exception("[coordinator] tick %d failed — backing off one idle interval", tick)
+                await asyncio.sleep(IDLE_INTERVAL)
     except asyncio.CancelledError:
         logger.info("🧠 Coordinator interrupted...")
         raise

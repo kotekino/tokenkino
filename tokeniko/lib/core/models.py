@@ -22,7 +22,11 @@ class TKBaseDoc(TKBase, Document):
 # document for the dictionary
 class TKDictionaryDoc(TKDictionary, Document):
     word: Annotated[str, Indexed()]
-    
+    # sense lookups (WSD context fetch, zip-native assembly, conclusion rendering) are point queries
+    # by synset key — unindexed they collscan the whole ~200k-row / ~8GB collection (~5s each; froze
+    # the wondering tick, 2026-07-16).
+    sense: Annotated[str, Indexed()]
+
     class Settings:
         name = "dictionary"
 

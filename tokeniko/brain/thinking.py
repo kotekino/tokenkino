@@ -439,7 +439,15 @@ def _kb_wonder_one() -> bool:
     conclusions = evaluation_harness.kb_wonder()
     if not conclusions:
         return False
-    held = {t.original for t in TKTheoremDoc.find({"archived": False}).to_list()}
+    # `held` needs only the original strings — project them (a full .to_list() would pull every
+    # active theorem's zip, tens of MB per tick, for a set of strings).
+    held = {
+        row["original"]
+        for row in TKTheoremDoc.get_motor_collection().find(
+            {"archived": False}, {"original": 1, "_id": 0}
+        )
+        if row.get("original")
+    }
     n_held_skip = 0
     for c in conclusions:
         nl = evaluation_harness.render_conclusion(
