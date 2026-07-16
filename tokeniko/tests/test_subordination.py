@@ -33,20 +33,36 @@ def _no_fuel(zp, original):
     assert extract_rules([doc]) == []
 
 
+# the storm's actual safety property, NARROWED by the conditional-rule extractor (2026-07-16):
+# a subordinated shape must never yield UNCONDITIONAL fuel (leaves masquerading as standalone
+# universals — the storm's failure mode). A class-CONDITIONED rule is now the CORRECT product of
+# a when/if conditional (L1a: "when" IS a generic rule — consumed, not flattened).
+def _only_conditioned_fuel(zp, original):
+    doc = SimpleNamespace(zip=zp, original=original, id="sub-test")
+    rules = extract_rules([doc])
+    assert rules, "the taught conditional should now yield its rule"
+    for r in rules:
+        assert r.get("kind") == "property_conditioned" and r.get("cond_class"), \
+            f"unconditional fuel leaked: {r}"
+
+
 # ---- L1: the sequel sentence and its "when" family -------------------------------------------------
 
-def test_when_rule_folds_conditionally_and_yields_no_fuel(compile_zip):
+def test_when_rule_folds_conditionally_and_yields_no_unconditional_fuel(compile_zip):
     s = "when a person say false he is being wrong"
     zp = compile_zip(s)
     assert not _zip_is_asserted(zp.items)            # the gate SEES it now
     assert TKOperator.CONV in _leaf_ops(zp)          # the temporal fold is conditional
-    _no_fuel(zp, s)                                  # the storm class is closed
+    # the storm class stays closed (no leaf masquerades as a standalone universal) — but since the
+    # conditional-rule extractor (2026-07-16) the conditional itself IS consumed, as a
+    # class-conditioned rule (the L1a ruling honored: "when" is a generic rule).
+    _only_conditioned_fuel(zp, s)
 
 def test_when_postposed_also_folds(compile_zip):
     s = "a person is wrong when he says false"
     zp = compile_zip(s)
     assert not _zip_is_asserted(zp.items)
-    _no_fuel(zp, s)
+    _only_conditioned_fuel(zp, s)                    # the re-teach target, in when-form
 
 
 # ---- L2: root-mark fragments ------------------------------------------------------------------------

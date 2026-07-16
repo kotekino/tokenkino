@@ -452,6 +452,12 @@ def extract_rules(docs) -> list:
         pc = _extract_property_conditioned(doc.zip)
         if pc is not None:
             rules.append({**pc, "original": doc.original, "source_id": str(doc.id)})
+        # CLASS-CONDITIONED rule (the conditional-rule extractor, 2026-07-16): a taught CLASS
+        # conditional («a person is wrong if he says false») or a same-subject generic cause pair —
+        # the M2/M2-orbit fuel lines, finally consumed into usable chainer rules.
+        cc = _extract_class_conditioned(doc.zip)
+        if cc is not None:
+            rules.append({**cc, "original": doc.original, "source_id": str(doc.id)})
     return rules
 
 
@@ -488,6 +494,120 @@ def _extract_property_conditioned(statement) -> Optional[dict]:
         "concl_pred": concl_pred,
         "concl_obj": (getattr(consequent, "senses", None) or {}).get("direct"),
         "concl_negated": bool(getattr(consequent, "negated", False)),
+    }
+
+
+# ================================================================================================
+# CLASS-CONDITIONED rule (the conditional-rule extractor, 2026-07-16 — the M2-orbit fuel lines
+# consumed). Two taught shapes, ONE emitted rule kind (property_conditioned + a class restriction,
+# so the chainer's step 4 fires it with its existing machinery):
+#   IF/CONV      — «a person is wrong if he says false»: consequent leaf (AND) + antecedent leaf
+#                  (CONV, "he" already coreference-resolved to the class by the sense-bridge) +
+#                  any THAT complement leaves of the antecedent («says FALSE») as extra condition
+#                  conjuncts (`cond_extra`).
+#   CAUSE pair   — «a person errs because he rushes»: the M2 `cause` carrier as fuel — the
+#                  cause="reason" leaf is the condition, its co-asserted partner the conclusion
+#                  (cause="result" mirrors: the result leaf IS the conclusion).
+# The gates (each a real failure mode, probed 2026-07-16):
+#   - ANY identity anywhere -> an ANECDOTE («I sleep because I'm tired») — never generalized;
+#   - subjects must be the SAME class sense; an ABSENT consequent subject inherits the
+#     antecedent's (the fronted «if a person says false, he is wrong» loses its cataphoric "he" —
+#     conditionals share subjects by default); DIFFERENT subjects («clouds produce rain because
+#     water condenses») are a propositional causal link the chainer has no layer for — skipped;
+#   - class quantifiers only (indefinite/generic/universal); negated or modal condition leaves
+#     don't extract (the props table holds affirmative crisp properties only).
+# Emitted `strength` mirrors the per-leaf rules: universal quantifier = law, else defeasible
+# generic (trust-capped at _GENERIC_RULE_TRUST by the harness).
+# NB the «says false» rule extracts WELL-FORMED but waits for its trigger: a live «X says false»
+# instance mints no fact today (THAT-attitude zips are quoted thought, blocked by the assertedness
+# gate). Single-predicate conditionals («a person is wrong if he LIES») fire end-to-end. The
+# observation-fact seam (an eval:false verdict becoming a "said false" fact) is the D-phase
+# follow-on — roadmap, not here.
+# ================================================================================================
+_CLASS_COND_QUANTIFIERS = (TKQuantifier.INDEFINITE, TKQuantifier.GENERIC, TKQuantifier.UNIVERSAL)
+
+
+def _extract_class_conditioned(statement) -> Optional[dict]:
+    items = _zip_leaf_items(statement.items)
+    if len(items) < 2:
+        return None
+    leaves = [it.content for it in items]
+    # anecdote guard: any entity-linked individual anywhere -> never a rule
+    if any((getattr(lf, "identities", None) or {}) for lf in leaves):
+        return None
+    if any(not _leaf_is_crisp(lf) for lf in leaves):
+        return None  # a modal condition/conclusion never becomes a crisp rule
+    if any(getattr(lf, "dubitative", 0.5) >= 0.75 or getattr(lf, "wh_role", None) is not None
+           for lf in leaves):
+        return None  # questions are answered, not believed
+
+    # locate the antecedent: ONE CONV leaf (the if-half), or ONE cause-carrying leaf (M2 fuel)
+    conv_idx = [i for i, it in enumerate(items) if it.op == TKOperator.CONV]
+    cause_idx = [i for i, lf in enumerate(leaves) if getattr(lf, "cause", None) in ("reason", "result")]
+    if len(conv_idx) == 1 and not cause_idx:
+        idx = conv_idx[0]
+        if idx == 0:
+            return None
+        antecedent, consequent = leaves[idx], leaves[idx - 1]
+        # the antecedent's THAT complements («says FALSE») follow it in flat order; a THAT anywhere
+        # else is an attitude shape this extractor does not understand -> bail (conservative)
+        extra_leaves = []
+        for j, it in enumerate(items):
+            if it.op == TKOperator.THAT:
+                if j <= idx:
+                    return None
+                extra_leaves.append(it.content)
+        if len(items) != idx + 1 + len(extra_leaves):
+            return None  # trailing non-THAT structure -> an unrecognized compound
+    elif len(cause_idx) == 1 and not conv_idx and len(items) == 2:
+        if any(it.op != TKOperator.AND for it in items):
+            return None
+        if any(it.op == TKOperator.THAT for it in items):
+            return None
+        marked = leaves[cause_idx[0]]
+        other = leaves[1 - cause_idx[0]]
+        # reason-marked leaf IS the condition; result-marked leaf IS the conclusion
+        antecedent, consequent = ((marked, other) if marked.cause == "reason" else (other, marked))
+        extra_leaves = []
+    else:
+        return None
+
+    senses_a = getattr(antecedent, "senses", None) or {}
+    senses_c = getattr(consequent, "senses", None) or {}
+    subj_a, subj_c = senses_a.get("subject"), senses_c.get("subject")
+    if not subj_a:
+        return None  # a sense-less antecedent subject is _extract_property_conditioned's territory
+    if subj_c and subj_c != subj_a:
+        return None  # different subjects: a propositional causal link — no chainer layer for it
+    cond_class = subj_a
+    cond_pred, concl_pred = senses_a.get("predicate"), senses_c.get("predicate")
+    if not cond_pred or not concl_pred:
+        return None
+    if getattr(antecedent, "negated", False):
+        return None  # a negated condition can't match the affirmative props table
+    for q_leaf in (antecedent, consequent):
+        if getattr(q_leaf, "quantifier", None) not in _CLASS_COND_QUANTIFIERS:
+            return None
+    cond_extra = []
+    for lf in extra_leaves:
+        s = getattr(lf, "senses", None) or {}
+        if s.get("subject") not in (None, cond_class) or getattr(lf, "negated", False):
+            return None
+        if not s.get("predicate"):
+            return None
+        cond_extra.append((s["predicate"], s.get("direct")))
+    return {
+        "kind": "property_conditioned",
+        "cond_class": cond_class,
+        "cond_pred": cond_pred,
+        "cond_obj": senses_a.get("direct"),
+        "cond_extra": cond_extra,
+        "concl_pred": concl_pred,
+        "concl_obj": senses_c.get("direct"),
+        "concl_negated": bool(getattr(consequent, "negated", False)),
+        "strength": ("universal"
+                     if getattr(consequent, "quantifier", None) == TKQuantifier.UNIVERSAL
+                     else "generic"),
     }
 
 

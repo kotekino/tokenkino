@@ -63,10 +63,14 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
   are both plant senses and own-lemma — already correctly preferred by the prior; no flag needed.)*
 - ✅ **M2 — factive causality** — landed 2026-07-16 (because/so = AND + the `cause` carrier;
   CONSECUTIVE clause type; fragments/if/when unchanged; the second-harvest inference markers
-  so/therefore land WITH it), see `landed.md`. **Remaining from its orbit** (→ the conditional-rule
-  extractor follow-on): consume `cause` links + taught IMPLY/CONV into USABLE chainer rules
-  (re-teach «a person is wrong if he says false» after) · **nominal IMPLY** («action imply
-  ability» — non-clausal operands for `compiler_implicationOperands`).
+  so/therefore land WITH it), see `landed.md`.
+- ✅ **The conditional-rule extractor** — landed 2026-07-16 (class-conditioned rules from taught
+  IF/CONV + same-subject `cause` pairs; chainer step 4 gates `cond_class`/`cond_extra`; re-teach
+  «a person is wrong if he says false» when the daemons wake), see `landed.md`. **Remaining from
+  the M2 orbit**: **nominal IMPLY** («action imply ability» — non-clausal operands for
+  `compiler_implicationOperands`) · the **observation-fact seam** (an eval:false verdict becoming
+  a "said false" property fact, so the says-false rule can FIRE — the D-phase follow-on; today
+  only single-predicate conditionals fire end-to-end).
 - ✅ **M6 part 1 — ¬∀ first-class** — landed 2026-07-16 (`TKQuantifier.NEGATED_UNIVERSAL`; the
   extractor's O→E-rule hole closed; the retreat trigger regression-locked), see `landed.md`.
   **Part 2 remaining**: restrictive relative clauses inside the quantifier ("animals **living in

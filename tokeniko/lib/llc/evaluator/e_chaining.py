@@ -344,14 +344,38 @@ def evaluator_forwardChain(
                 concl_p, concl_o = r.get("concl_pred"), r.get("concl_obj")
                 if not cond_p or not concl_p or (concl_p, concl_o) in props:
                     continue
+                # CLASS restriction (the conditional-rule extractor, 2026-07-16): a class-conditioned
+                # rule («a PERSON is wrong if he says false») fires only on a subject whose closure
+                # holds the class — the restriction's provenance joins the conclusion's premises.
+                cond_class = r.get("cond_class")
+                class_prem: frozenset = frozenset()
+                if cond_class:
+                    if cond_class not in closure:
+                        continue
+                    class_prem = closure_premises.get(cond_class, frozenset())
                 base = next(((b, prem) for (p, o), (b, prem) in props.items()
                              if p == cond_p and (cond_o is None or o is None or o == cond_o)), None)
                 if base is None:
                     continue
+                # EXTRA condition conjuncts («says FALSE» = the THAT complements): every one must
+                # hold in the props table for the rule to fire (same object-strictness as the base).
+                extra_prem: frozenset = frozenset()
+                extras_ok = True
+                for (ep, eo) in (r.get("cond_extra") or []):
+                    hit = next((prem for (p, o), (b, prem) in props.items()
+                                if p == ep and (eo is None or o is None or o == eo)), None)
+                    if hit is None:
+                        extras_ok = False
+                        break
+                    extra_prem |= hit
+                if not extras_ok:
+                    continue
                 base_chain, base_prem = base
-                chain = base_chain + f" -> all that {cond_p} {concl_p} -> {subject_name} {concl_p}"
-                # the conclusion rests on the condition-property's premises PLUS this rule's axiom.
-                concl_prem = base_prem | _premise_of(r)
+                scope = f"a {cond_class} that {cond_p}" if cond_class else f"all that {cond_p}"
+                chain = base_chain + f" -> {scope} {concl_p} -> {subject_name} {concl_p}"
+                # the conclusion rests on the condition-property's premises PLUS this rule's axiom
+                # (+ the class restriction's and the extra conjuncts' provenance).
+                concl_prem = base_prem | _premise_of(r) | class_prem | extra_prem
                 derived.append({"predicate": concl_p, "object": concl_o,
                                 "negated": bool(r.get("concl_negated", False)),
                                 "chain": chain, "premises": concl_prem})

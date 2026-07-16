@@ -1114,3 +1114,35 @@ Probed all four before building — two had already healed, two needed real fixe
 8 tests (`test_second_harvest_strays.py`) + the live bit case in `test_wsd_selection.py`.
 **THE HARVEST QUEUE IS FULLY CONSUMED** (three harvests, six macro-cases, four strays — all
 closed). Gate **369 / 1 xfailed**.
+
+**The conditional-rule extractor (2026-07-16, second session — the M2-orbit fuel lines consumed)**
+Taught conditionals compiled correctly since the M2/storm arcs but extracted to NOTHING — the
+assertedness gate (rightly) stopped their leaves masquerading as assertions, and no extractor read
+the implication itself: «a person is wrong if he says false» was stored knowledge the chainer
+could never use. Now:
+- **`_extract_class_conditioned`** (kb_extract, beside the landed sense-less-subject
+  `_extract_property_conditioned`): recognizes the IF/CONV shape (consequent AND-leaf + CONV
+  antecedent — the probe showed "he" already coreference-resolved to the class by the
+  sense-bridge, with the «false» THAT complement as an extra leaf) AND the M2 `cause` fuel line
+  (a same-class-subject reason/result pair, defeasible). Emits the EXISTING rule kind
+  (property_conditioned) + two new fields: `cond_class` (the class restriction) and `cond_extra`
+  (the THAT conjuncts). Strength: universal quantifier = law, else generic (trust-capped 0.7).
+- **Gates, each a probed failure mode**: any identity = ANECDOTE («I sleep because I'm tired» —
+  never generalized); different subjects = a propositional causal link the chainer has no layer
+  for («clouds produce rain because water condenses» — skipped honestly); negated/modal
+  conditions never extract; the fronted variant's lost cataphoric "he" («if a person says false,
+  he is wrong») heals by subject inheritance — conditionals share subjects by default.
+- **Chainer step 4** extended in place: `cond_class` gated on the closure (its provenance joins
+  the premises), `cond_extra` conjuncts ALL matched against the props table (object-strict), the
+  chain narrates the class scope («a person.n.01 that lie.v.02 …»).
+- **The honest limitation, stated in code and roadmap**: «says false» extracts WELL-FORMED but
+  waits for the observation-fact seam (a THAT-attitude instance mints no fact — quoted thought);
+  single-predicate conditionals («a person is wrong if he LIES» + «John lies» → «John is wrong»)
+  fire END-TO-END today, premises carrying rule + membership + condition fact.
+- **Bonus, found by the full gate**: the "when" family extracts too — «a person is wrong WHEN he
+  says false» folds the same CONV shape, so the L1a ruling ("when" IS a generic rule) is finally
+  consumed, not just carried. The storm-era `test_subordination` when-tests NARROWED to the real
+  safety property (no UNCONDITIONAL fuel — a conditioned rule is now the correct product).
+Re-teach «a person is wrong if he says false» when the daemons wake — the axiom now yields its
+rule on the next KB load. 11 tests (`test_conditional_rules.py`) + the 2 narrowed. Gate
+**380 / 1 xfailed**.
