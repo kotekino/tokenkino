@@ -67,11 +67,11 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
   extractor follow-on): consume `cause` links + taught IMPLY/CONV into USABLE chainer rules
   (re-teach «a person is wrong if he says false» after) · **nominal IMPLY** («action imply
   ability» — non-clausal operands for `compiler_implicationOperands`).
-- **M6 — quantifier scope** (S2). The ¬∀ compiled shape conflates ∀¬ with NOT(∀) (the square-of-
-  opposition kernel reads it right at eval time; the *representation* is wrong) + restrictive relative
-  clauses ("animals **living in the water** are fish"). Pairs with restricted-universal residuals
-  (§3.3) + the **adverbial-quantifier** family (always/sometimes/never → the quantifier field, from
-  the second harvest).
+- ✅ **M6 part 1 — ¬∀ first-class** — landed 2026-07-16 (`TKQuantifier.NEGATED_UNIVERSAL`; the
+  extractor's O→E-rule hole closed; the retreat trigger regression-locked), see `landed.md`.
+  **Part 2 remaining**: restrictive relative clauses inside the quantifier ("animals **living in
+  the water** are fish") → merged with the restricted-universal residuals (§3.3) + the
+  **adverbial-quantifier** family (always/sometimes/never → the quantifier field, second harvest).
 - **M4 — necessity modality □** (S2). «humans **must** be minds» — extend the landed ◇ carrier to □
   (parser → TKAux → `TKZipContent.modal`; the kernel/extractor already gate on `modal`). *(Also the
   extractor **possessive-subject gate** «MY mind is a software» — the dropped-possessive cousin of the

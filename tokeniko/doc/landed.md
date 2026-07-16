@@ -961,3 +961,17 @@ human» inside a because-sentence could never be learned. The author's approved 
   renders `AND[cause:…]` so the voice can say "because"/"so".
 10 regression tests (`test_causal.py`) + the subordination expectation moved with the design.
 Gate **326 / 1 xfailed**.
+
+**M6 (part 1) — ¬∀ first-class: TKQuantifier.NEGATED_UNIVERSAL (2026-07-16)**
+«NOT ALL S are P» (¬∀, "not" advmod on the SUBJECT beside the universal det) and «all S are NOT P»
+(∀¬, "not" on the predicate) both compiled universal+negated=True — the O corner conflated with
+surface ∀¬, and the extractor could mint an E-strength «all S NOT P» rule from an O claim (a live
+hole, now closed: NEGATED_UNIVERSAL is in none of the extractor's admitted sets — an O claim
+asserts only an exception's existence). The compiler splits negation by attachment
+(`compiler_subjectNegation` / `compiler_predicateNegation`); `negated` stays free for true
+predicate polarity. Consumers: the square kernel (¬∀→O, ¬∀¬→I; the UNIVERSAL weak-reading stands
+for old zips), all three grounding net_flip sites, the correction detector (BOTH arrivals — the
+live retreat's trigger shape survives, regression-locked), conclusion_key (a bool O-discriminator
+slot — deliberately coarse, dedup continuity with stored theorems), microscope digest + judge
+contract. Part 2 (restrictive relative clauses inside the quantifier) → the strengthening tail's
+restricted-universal item. 8 tests (`test_quantifier_scope.py`). Gate **334 / 1 xfailed**.

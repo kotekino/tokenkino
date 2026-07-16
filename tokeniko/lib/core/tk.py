@@ -152,6 +152,12 @@ class TKOperator(str, Enum):
 # (only NEGATIVE flips; the others are truth-inert there).
 class TKQuantifier(str, Enum):
     UNIVERSAL = "universal"
+    # ¬∀ — «NOT ALL/NOT EVERY S are P» (M6 2026-07-16): the O corner as a first-class value. The
+    # negation scopes the QUANTIFIER (syntax: "not" advmod on the SUBJECT beside the universal
+    # determiner), so `negated` stays free for true predicate polarity — «not all X are Y» no
+    # longer conflates with «all X are not Y» (∀¬), and the extractor can never mint an E-strength
+    # rule from an O claim. Never generalizes to a rule/edge; grounds with flip (subsumes→FALSE).
+    NEGATED_UNIVERSAL = "negated_universal"
     EXISTENTIAL = "existential"
     INDEFINITE = "indefinite"
     NEGATIVE = "negative"

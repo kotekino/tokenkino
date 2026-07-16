@@ -107,8 +107,10 @@ The digest's contract:
   direct / indirect0.. / *_mod0.. / predicate_nmod) to WordNet synset keys (e.g. coin.n.01).
 - `op` is the operator the leaf folds with into the statement (AND / OR / IMPLY / CONV / THAT...).
   A conditional or complement clause MUST NOT appear as a bare AND assertion.
-- `quantifier` reads the subject's determiner: universal (all/every), existential (a/some ~ also
-  'indefinite'), negative (no/none), definite (the/this), generic (bare plural).
+- `quantifier` reads the subject's determiner: universal (all/every), negated_universal (NOT
+  all/NOT every — ¬∀, the negation scopes the quantifier and `negated` stays free for the
+  predicate; do NOT flag negated=False on a "not all" sentence as a missed negation), existential
+  (a/some ~ also 'indefinite'), negative (no/none), definite (the/this), generic (bare plural).
 - `negated=True` means the clause asserts NOT-P. `mood` is question/statement; `wh_role` is the
   question's gap (subject/predicate/direct/location/time/manner/cause).
 - `modal=possibility` means a modal (can/could/may/might) scopes the clause: a ◇-claim, asserting

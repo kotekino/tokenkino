@@ -79,6 +79,9 @@ def _corner(c: TKZipContent) -> str:
     neg = bool(getattr(c, "negated", False))
     if q == TKQuantifier.UNIVERSAL:
         return _CORNER_O if neg else _CORNER_A     # negated universal -> the weaker O reading
+    if q == TKQuantifier.NEGATED_UNIVERSAL:
+        # ¬∀ first-class (M6): «not all S are P» = O; «not all S are not-P» = ¬(∀¬) = ∃ = I
+        return _CORNER_I if neg else _CORNER_O
     if q == TKQuantifier.NEGATIVE:
         return _CORNER_I if neg else _CORNER_E     # ¬(no S is P) = some S is P
     if q in (TKQuantifier.EXISTENTIAL, TKQuantifier.INDEFINITE):

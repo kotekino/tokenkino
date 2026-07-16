@@ -211,7 +211,11 @@ def correction_target(zip_obj: TKZip) -> Optional[dict]:
             continue  # a ◇-claim asserts nothing — it corrects nothing (Pillar 3)
         quantifier = getattr(leaf, "quantifier", TKQuantifier.GENERIC)
         negated = bool(getattr(leaf, "negated", False))
-        is_o = quantifier == TKQuantifier.UNIVERSAL and negated
+        # the O corner arrives two ways: the legacy UNIVERSAL+negated reading (old stored zips /
+        # ∀¬ surface shapes) and the first-class NEGATED_UNIVERSAL (M6: «not all S are P» with the
+        # negation on the quantifier slot, negated=False)
+        is_o = (quantifier == TKQuantifier.UNIVERSAL and negated) or \
+               (quantifier == TKQuantifier.NEGATED_UNIVERSAL and not negated)
         is_e = quantifier == TKQuantifier.NEGATIVE and not negated
         if not (is_o or is_e):
             continue
@@ -469,8 +473,14 @@ def conclusion_key(statement) -> tuple:
         senses = getattr(leaf, "senses", None) or {}
         identities = getattr(leaf, "identities", None) or {}
         subject = identities.get("subject") or senses.get("subject")
+        # the ¬∀ discriminator joins the key (M6): with NEGATED_UNIVERSAL first-class, «not all S
+        # are P» carries negated=False — without this slot it would collide with «all S are P».
+        # Deliberately a BOOL, not the full quantifier value: widening the key by quantifier would
+        # break dedup continuity with every stored theorem (generic-vs-indefinite re-derivation
+        # churn); only the O corner needs the distinction.
         leaves.append((subject, senses.get("predicate"), senses.get("direct"),
-                       bool(getattr(leaf, "negated", False))))
+                       bool(getattr(leaf, "negated", False)),
+                       getattr(leaf, "quantifier", None) == TKQuantifier.NEGATED_UNIVERSAL))
     # sort key: stringify every slot — `x or ""` left the negated bool as True (bool<str TypeError
     # when two leaves tie on senses and differ only in negation, e.g. «clouds can produce rain but
     # not every cloud produces rain»). The KEY tuples are unchanged; only the ordering is normalized.

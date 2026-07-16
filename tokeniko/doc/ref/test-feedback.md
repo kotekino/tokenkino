@@ -869,6 +869,12 @@ bridge to common-noun prepositional restrictions.
   inside the universal quantifier; it does not.
 *Action:* → third-harvest fix queue (item 6); pairs with the **restricted-universal residuals**
 (strengthening tail) and audits the ¬∀ compiled shape against the square-of-opposition reading.
+*(→ part 1 CLOSED 2026-07-16 same-day: `TKQuantifier.NEGATED_UNIVERSAL` — the negation-attachment
+split (subject side = quantifier scope, predicate side = polarity); bonus hole closed: the
+extractor could mint an E-strength «all S NOT P» rule from an O claim. Kernel/grounding/correction-
+detector/conclusion_key all taught; the live retreat's trigger shape regression-locked. Part 2
+(restrictive relatives) merged into the strengthening tail's restricted-universal item. See
+`landed.md`; 8 tests in `test_quantifier_scope.py`.)*
 
 **What held (the keep-set, live).** The evening play read like a mind in a good conversation:
 honest IDKs, taught beliefs learned, trust moves, background wondering in native TKZip, and the

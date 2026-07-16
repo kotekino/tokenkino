@@ -124,9 +124,16 @@ def compiler_propertyIsNegationNonQuantifier(prop: TKLLEntityProperty) -> bool:
 # attaches to the negated noun (object) as det -- so we scan EVERY role, not just the predicate.
 # the subject's NEGATIVE-quantifier determiner ("no cat ...") is reclassified to the quantifier and
 # excluded here to avoid a double flip (quantifier=NEGATIVE already flips the relational verdict).
-def compiler_contentIsNegated(content: TKLLCContent) -> bool:
-    if content.subject and any(compiler_propertyIsNegationNonQuantifier(p) for p in content.subject.properties):
-        return True
+# negation attached to the SUBJECT side («NOT ALL minds are software» — stanza hangs the "not"
+# advmod on the subject noun beside the universal determiner). With a universal quantifier this is
+# quantifier-scope negation (¬∀, the O corner → NEGATED_UNIVERSAL), NOT predicate polarity (M6).
+def compiler_subjectNegation(content: TKLLCContent) -> bool:
+    return bool(content.subject) and any(
+        compiler_propertyIsNegationNonQuantifier(p) for p in content.subject.properties)
+
+# negation on the NON-subject roles (predicate/direct/indirects) + the negative-quantifier-token
+# subject ("nobody runs") — true clause polarity, whatever the quantifier.
+def compiler_predicateNegation(content: TKLLCContent) -> bool:
     other_roles = [content.predicate, content.direct, *content.indirects]
     for role in other_roles:
         if role and any(compiler_propertyIsNegation(p) for p in role.properties):
@@ -139,6 +146,9 @@ def compiler_contentIsNegated(content: TKLLCContent) -> bool:
     if content.subject and compiler_entityToken(content.subject.id) in _NEGATIVE_QUANTIFIERS:
         return True
     return False
+
+def compiler_contentIsNegated(content: TKLLCContent) -> bool:
+    return compiler_subjectNegation(content) or compiler_predicateNegation(content)
 
 def compiler_getEntityIdByMap(map: TKLLEntityMapReference) -> int | None:
     for entity_map in _entities:
@@ -508,6 +518,15 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # det was already
     # excluded from `negated` above (reclassified here) to avoid a double flip in the grounding.
     mainContent.quantifier = compiler_contentQuantifier(mainContent)
+
+    # ¬∀ scope split (M6 2026-07-16): «NOT ALL S are P» carries the negation on the SUBJECT side
+    # (advmod on the subject noun, beside the universal det) — that negation scopes the QUANTIFIER,
+    # not the predicate. Reclassify to NEGATED_UNIVERSAL (the O corner, first-class) and recompute
+    # `negated` from the non-subject roles only, so «not all X are Y» (¬∀, negated=False) no longer
+    # conflates with «all X are not Y» (∀¬, negated=True).
+    if mainContent.quantifier == TKQuantifier.UNIVERSAL and compiler_subjectNegation(mainContent):
+        mainContent.quantifier = TKQuantifier.NEGATED_UNIVERSAL
+        mainContent.negated = compiler_predicateNegation(mainContent) or compiler_isNegativeComparison(mainContent)
 
     # reflexive identity (a=a is necessarily true, a≠a necessarily false) — hardwired logic; the
     # evaluator pins these instead of grounding them. polarity stays in `negated`.

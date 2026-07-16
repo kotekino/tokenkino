@@ -79,7 +79,7 @@ def test_verb_object_native_truthful_where_roundtrip_splits(compile_zip):
     # LOSES the direct object — the exact corruption class this arc kills (stored theorems carry
     # the pin-stuttered form). Native carries the derivation's truth: one leaf, object intact.
     native = assemble_conclusion_zip("cat.n.01", "feel.v.01", "curiosity.n.01", subject_kind="class")
-    assert conclusion_key(native) == (("cat.n.01", "feel.v.01", "curiosity.n.01", False),)
+    assert conclusion_key(native) == (("cat.n.01", "feel.v.01", "curiosity.n.01", False, False),)
     compiled = compile_zip("a cat feels curiosity")
     compiled_leaves = _zip_leaves(compiled.items)
     if len(compiled_leaves) != 1:  # the split — documented, not required (a parser fix may heal it)
@@ -143,7 +143,7 @@ def test_materialize_native_entrance_and_dedup(_io):
     try:
         t1 = svc.materialize("a whale sings", prov, structure=structure)
         assert t1.original == "a whale sings" and t1.raw is None
-        assert conclusion_key(t1.zip) == (("whale.n.02", "sing.v.01", None, False),)
+        assert conclusion_key(t1.zip) == (("whale.n.02", "sing.v.01", None, False, False),)
         # idempotent: the same STRUCTURE converges onto the held theorem, whatever the wording
         t2 = svc.materialize("whales do sing", prov, structure=structure)
         assert t2.id == t1.id

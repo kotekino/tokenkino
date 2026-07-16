@@ -229,7 +229,9 @@ def _ground_partof(content: TKZipContent,
 
     quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
     negated = bool(getattr(content, "negated", False))
-    net_flip = (quantifier == TKQuantifier.NEGATIVE) != negated  # XOR
+    net_flip = (quantifier in (TKQuantifier.NEGATIVE, TKQuantifier.NEGATED_UNIVERSAL)) != negated  # XOR
+    # NEGATED_UNIVERSAL (M6): «not all S are P» flips exactly like the old universal+negated
+    # reading (subsumes -> FALSE, disjoint -> TRUE); the negation moved to the quantifier slot.
     truth = (1.0 - base) if net_flip else base
     chain += f" | quantifier={quantifier.value} negated={negated}"
     if net_flip:
@@ -275,7 +277,9 @@ def _ground_place_containment(content: TKZipContent,
     base = _TAXO_TRUE if contained else _TAXO_FALSE
     quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
     negated = bool(getattr(content, "negated", False))
-    net_flip = (quantifier == TKQuantifier.NEGATIVE) != negated  # XOR
+    net_flip = (quantifier in (TKQuantifier.NEGATIVE, TKQuantifier.NEGATED_UNIVERSAL)) != negated  # XOR
+    # NEGATED_UNIVERSAL (M6): «not all S are P» flips exactly like the old universal+negated
+    # reading (subsumes -> FALSE, disjoint -> TRUE); the negation moved to the quantifier slot.
     truth = (1.0 - base) if net_flip else base
     chain += f" | quantifier={quantifier.value} negated={negated}"
     if net_flip:
@@ -363,7 +367,9 @@ def _ground_relationally(content: TKZipContent, relations: Callable[[str], list[
     # combine the base verdict with the quantifier + predicate negation (single net flip).
     quantifier = getattr(content, "quantifier", TKQuantifier.GENERIC)
     negated = bool(getattr(content, "negated", False))
-    net_flip = (quantifier == TKQuantifier.NEGATIVE) != negated  # XOR
+    net_flip = (quantifier in (TKQuantifier.NEGATIVE, TKQuantifier.NEGATED_UNIVERSAL)) != negated  # XOR
+    # NEGATED_UNIVERSAL (M6): «not all S are P» flips exactly like the old universal+negated
+    # reading (subsumes -> FALSE, disjoint -> TRUE); the negation moved to the quantifier slot.
     truth = (1.0 - base) if net_flip else base
     chain += f" | quantifier={quantifier.value} negated={negated}"
     if net_flip:
