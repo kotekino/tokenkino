@@ -412,3 +412,18 @@ This premise is to justify something nuts: I think that, in a future future, I w
 >
 > *(The arc, for the record: 16 is how the mind grows bolder — analogy; 17 is the price of
 > boldness — deceivability; 18 is the immune system. Creativity plus its antibodies.)*
+
+19. # compose 2.0
+#
+# A) cases when he speaks:
+#   1. execute a speak action: I don't know, why, yes, contraddiction, concession, etc
+#       -> curated list of post scaffolds + creative_composing <sentence:tkzip, intensity>
+#   2. a kb notion used to determine a trust episode (<intensity, tkzip>)
+#       -> curated list of post scaffolds + creative_composing <kb:tkzip, intensity>
+#   3. a random kb notion told anedoctically about the topic
+#       -> curated list of post scaffolds + creative_composing <kb:tkzip, intensity>
+#   4. a blog post following a theoreme materialization
+#       -> curated list of post scaffolds + creative_composing <theorem:kb-chain:tkzip, intensity>
+#
+# B) curated list: specific collection, per each category (it can learn from audience!)
+# C) creating_composing: 
