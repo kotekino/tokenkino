@@ -9,12 +9,11 @@ from lib.llc.parser import parser, parser_diagram, parser_init
 from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individual
 from lib.core.models import TKMemoryItemDoc
 from lib.core.evaluation_harness import zip_senses
-from lib.llc.preparser import preparser_init, preparser_prepare, preparser_translate, preparser_typos
 from lib.llc.normalizer import detector_stumbles, normalizer_enabled, normalizer_polish, verifier_preserves
 
 logger_api = logging.getLogger("tokeniko-api")
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
-from lib.llc.decompiler import decompiler_decompile, decompiler_init, decompiler_raw
+from lib.llc.decompiler import decompiler_decompile, decompiler_raw
 from lib.core.tk import TKStatements
 from lib.core.tkllc import TKLLC
 from lib.core.memory import MEMChannels, MEMProvenance
@@ -60,10 +59,10 @@ async def lifespan(app: FastAPI):
     app.state.memory_service = MemoryService()
     app.state.evaluation_service = EvaluationService(tokeniko, ai_client)
 
-    # init preparser
+    # init the pipeline (LOCAL-RETIRED 2026-07-16, the author's ruling: the Ollama preparser and
+    # decompiler inits are gone — no model pulls, no loading. The machinery stays in lib/llc as
+    # unreferenced code; the ears are rag1 (Claude) and the decompile surface is Claude too.)
     parser_init()
-    await preparser_init(ai_client)
-    await decompiler_init(ai_client)
 
     yield  #where fastapi runs
 
@@ -350,8 +349,8 @@ async def evaluate(payload: EvaluateIn):
 # UTILS endpoints (debugging; may be removed later)
 # ------------------------
 @app.get("/api/v1/utils/dict")
-async def search(token: str, prepare: int = 0, opposite: int = 0):
-    preparsedTokens = await preparser_prepare(token) if prepare == 1 else token
+async def search(token: str, opposite: int = 0):
+    preparsedTokens = token
     if opposite == 0:
         doc = utils_searchSimilarTokens(preparsedTokens) 
     else:
@@ -364,24 +363,9 @@ async def search(token: str):
     result = compiler_zipGetBaseMarker(token)
     return result
 
-@app.get("/api/v1/utils/polish")
-async def polish(tokens: str):
-    res = await preparser_typos(tokens)
-    return res
-
-@app.get("/api/v1/utils/prepare")
-async def prepare(tokens: str):
-    res = await preparser_prepare(tokens)
-    return res
-
-@app.get("/api/v1/utils/translate")
-async def prepare(tokens: str):
-    res = await preparser_translate(tokens)
-    return res
-
 @app.get("/api/v1/utils/render", response_class=HTMLResponse)
-async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit"), prepare: int = 0):
-    preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
+async def render(tokens: str = Query(..., min_length=3, description="Sentence to submit")):
+    preparsedTokens = tokens
     res = parser_diagram(preparsedTokens)
     return res
 
@@ -403,7 +387,7 @@ def _collect_individuals(statements) -> list:
     return found
 
 @app.get("/api/v1/input")
-async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, prepare: int = 0, talker: str = "unknown",
+async def process(tokens: str = Query(..., min_length=3, description="Sentence to submit"), output: int = 0, talker: str = "unknown",
                   talker_name: Optional[str] = None, channel: str = MEMChannels.API.value,
                   metadata: Optional[str] = None, directedness: float = 1.0):
     try:
@@ -420,8 +404,9 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # get talker entity from memory, or create it if not exists
         talkerEntity = get_stakeholder(talker, channel=channel_enum, display_name=talker_name)
 
-        # pipeline pre (if prepare), recursive, flat, raw, output (if output)
-        preparsedTokens = await preparser_prepare(tokens) if prepare == 1 else tokens
+        # pipeline: recursive, flat, raw, output (if output). The old prepare= Ollama pre-pass is
+        # RETIRED (2026-07-16) — rag1 below is the only pre-input tidying, and only on a stumble.
+        preparsedTokens = tokens
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
         flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)

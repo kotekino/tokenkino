@@ -1,8 +1,8 @@
 # --------------------------------------------------------------
 # senses/outbound.py — the OUTBOUND actions executor (#4 D3b). The carrier half of the brain→senses
-# reply seam: the brain DECIDES (mints an Action with channel=discord, a target, and a raw decision
-# text in the payload); senses CARRIES + DECOMPILES (turns the raw text into fluent English via
-# `decompiler_decompile` — the channel-appropriate NLG — and delivers it to the socket).
+# reply seam: the brain DECIDES (mints an Action with channel=discord, a target, and the composed
+# text in the payload); senses CARRIES (delivers the composed template text verbatim to the socket
+# — compose.py emits English; the real voice arrives with rag2-out + the nuance layer, hunch 7).
 #
 # OWNERSHIP (no cross-process race, no new status): the brain's `actions_phase` consumes only
 # channel=INTERNAL; this executor consumes only channel=discord. Disjoint filters over the SAME queue.
@@ -10,7 +10,7 @@
 # DRY-RUN by default (`SENSES_DELIVER_DRYRUN`!=0): resolve + decompile + LOG the would-send, mark DONE,
 # touch no socket — so the whole seam is verifiable without Discord credentials / risking live spam.
 # Flip to live (and pass a real `sender`) once the inbound listener + a connected DiscordClient land.
-# pipeline-light: imports the decompiler (Ollama only, no spaCy) + the Destination model — never the parser.
+# pipeline-light: imports only the Destination model — never the parser, no LLM on this path.
 # --------------------------------------------------------------
 import asyncio
 import json
@@ -20,7 +20,6 @@ from typing import Awaitable, Callable, Optional
 
 from lib.core.models import TKActionDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc
 from lib.core.memory import ActionStatus, MEMChannels
-from lib.llc.decompiler import decompiler_decompile
 from lib.discord.models import Destination
 
 logger = logging.getLogger("tokeniko-brain")
@@ -74,12 +73,6 @@ def _dryrun() -> bool:
     return os.getenv("SENSES_DELIVER_DRYRUN", "1") != "0"        # default: dry-run (no live send)
 
 
-# FOR NOW tokeniko speaks his RAW symbolic rendering (author's call, 2026-07-09): no Ollama polish on
-# the way out — the creation/nuance layer (how he phrases himself) is a later chapter. Set
-# SENSES_OUTBOUND_POLISH=1 to re-enable the decompiler polish.
-def _polish() -> bool:
-    return os.getenv("SENSES_OUTBOUND_POLISH", "0") != "0"
-
 # the senders the executor can be handed (None in dry-run). channel adapter -> (Destination, text) -> id.
 Sender = Callable[[Destination, str], Awaitable[str]]
 
@@ -110,25 +103,6 @@ def _resolve_destination(target_uid: Optional[str], payload: dict) -> Optional[D
         return None
 
 
-# raw decision text -> fluent English (the decompile step that lives in senses, per-channel NLG). Ollama;
-# falls back to the raw text on failure so the polish step never blocks delivery. NOTE: decompiler_decompile
-# returns a {model: translation} dict (it runs two models) — take the first non-empty translation.
-async def _to_english(raw: str) -> str:
-    raw = (raw or "").strip()
-    if not raw:
-        return ""
-    try:
-        result = await decompiler_decompile(raw)
-        if isinstance(result, dict):
-            english = next((v.strip() for v in result.values() if isinstance(v, str) and v.strip()), "")
-        else:
-            english = (result or "").strip()
-        return english or raw
-    except Exception as error:
-        logger.warning("[outbound] decompile failed (%s) — sending raw", error)
-        return raw
-
-
 # deliver ONE pending discord action (oldest-first). grab (PENDING->PROCESSING) before any await so a
 # crash mid-delivery doesn't leave it re-grabbable as PENDING. Returns True iff it handled one.
 async def deliver_one(sender: Optional[Sender] = None) -> bool:
@@ -148,7 +122,10 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
 
     payload = action.payload or {}
     raw = (payload.get("raw") or "").strip()
-    english = await _to_english(raw) if _polish() else raw
+    # composed text goes out verbatim (2026-07-16, the author's call): compose.py emits template
+    # ENGLISH — the old optional Ollama re-polish was English-to-English heat, retired with the
+    # local models. SENSES_OUTBOUND_POLISH is gone; rag2-out will own the voice.
+    english = raw
     dest = _resolve_destination(action.targetId, payload)
 
     if dest is None or not english:

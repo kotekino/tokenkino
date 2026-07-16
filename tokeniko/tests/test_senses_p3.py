@@ -31,7 +31,7 @@ def discord_action(_io):
 def test_deliver_ships_raw_to_forwarded_destination(_io, discord_action, monkeypatch):
     import senses.outbound as outbound
     monkeypatch.setenv("SENSES_DELIVER_DRYRUN", "0")   # flags are read lazily (the go-live lesson)
-    monkeypatch.setenv("SENSES_OUTBOUND_POLISH", "0")
+    # (SENSES_OUTBOUND_POLISH retired 2026-07-16 — composed text ships verbatim, no polish path)
     sent = []
 
     async def sender(dest, content):

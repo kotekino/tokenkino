@@ -9,7 +9,6 @@ import signal
 import sys
 from dotenv import load_dotenv
 from lib.core.io import init_io
-from lib.llc.decompiler import decompiler_init
 from senses.inbound import handle_discord_message
 from senses.outbound import outbound_executor_task
 from senses.blog_outbound import blog_outbound_task
@@ -65,7 +64,6 @@ async def main():
     # 1. Init — senses needs Mongo (the action queue) + Ollama (the decompiler, raw -> fluent English).
     #    No spaCy/Stanza pipeline: the brain compiled the input; senses only DECOMPILES the reply.
     db, db_memory, ai_client = init_io()
-    await decompiler_init(ai_client)
 
     # 2. Graceful Shutdown
     loop = asyncio.get_running_loop()

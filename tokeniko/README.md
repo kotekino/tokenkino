@@ -18,7 +18,7 @@ fuzzy-logic vector fusion (NumPy).
    * **LLC Recursive:** A syntax tree (AST) that faithfully maps the grammatical relationships and logical dependencies between clauses using formal operators (AND, OR, NOT, IMPLY, CONV, THAT, …).
 4. **Fuzzy Fusion Engine (Sub-Symbolic Phase):** It uses linear algebra (via NumPy) to calculate the true "meaning" of the entire sentence. It applies scalar multipliers for adverbs (e.g., "very" = 1.5), uses vectorized fuzzy logic operators (Min, Max, negations, and Gödel implications) to handle complex conditions without exceeding the **[-1, 1]** range, and stabilizes the root entity with a soft normalization (`tanh`).
 5. **Compilation into the `TKZip` Format:** It encapsulates the mathematical outcome into a strictly typed, fixed-size format. The logical roles of the sentence (subject, predicate, direct object) are transformed into final tensors of exactly **3237 dimensions** (300 logical markers + 2925 semantic space + 12 spacetime).
-6. **Decompilation (round-trip):** The LLC can be rendered back to a raw symbolic string and, optionally, polished into natural language (via Ollama) — used for debugging and verifying that meaning survived the trip.
+6. **Decompilation (round-trip):** The LLC can be rendered back to a raw symbolic string and, optionally, polished into natural language (via Claude Haiku) — used for debugging and verifying that meaning survived the trip.
 7. **Evaluation / Reasoning Phase:** A compiled statement is not just stored — it can be reasoned about. The **evaluator** (`lib/llc/evaluator/`) measures a statement against the knowledge base: it **grounds** each flat clause to a truth in **[0, 1]** against the *definitions*, **folds those clause truths through the operator tree** (fuzzy logic — `A1 IMPLY (A2 AND A3)` becomes `IMPLY(T1, AND(T2, T3))`), runs an **intra-statement consistency check** (a self-contradiction → `inconsistent`), and geometrically matches the whole statement against the active **axioms/theorems** — producing an `EvaluatorResult` whose `status` is `resolved`, `insufficient_knowledge`, or `inconsistent`. It also **grounds and refutes against the `relations` taxonomy graph** (the WordNet is_a network): "a cat is a mammal" is confirmed true and "a cat is a plant" is derived false, each carrying a premise chain that explains the verdict. Logic itself is hardwired, not learned: a reflexive identity is pinned (`a = a` → true, `a ≠ a` → false), and the verb `imply`/`entail` compiles to a real `IMPLY` operator rather than to ordinary predication.
 
 ---
@@ -151,16 +151,13 @@ detected by the intra-statement consistency kernel (`evaluator_classifyForm` in
 |---|---|---|
 | `GET` | `/api/v1/utils/dict?token=` | look up similar tokens in the dictionary |
 | `GET` | `/api/v1/utils/markers?token=` | base marker vector for a token |
-| `GET` | `/api/v1/utils/polish?tokens=` | typo correction only |
-| `GET` | `/api/v1/utils/prepare?tokens=` | full preparse (typos + language detection + translation) |
-| `GET` | `/api/v1/utils/translate?tokens=` | translate to English |
-| `GET` | `/api/v1/utils/render?tokens=&prepare=` | HTML dependency diagram of the parse |
+| `GET` | `/api/v1/utils/render?tokens=` | HTML dependency diagram of the parse |
 
 ### Compiler
 
 | Method | Path | Purpose |
 |---|---|---|
-| `GET` | `/api/v1/input?tokens=&output=&prepare=&talker=` | run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item |
+| `GET` | `/api/v1/input?tokens=&output=&talker=` | run the full pipeline; returns LLC flat + recursive + raw (+ polished if `output=1`) and stores a memory item |
 | `GET` | `/api/v1/output?tokens=` | polish a raw LLC string into natural language |
 
 ## Running locally
@@ -198,7 +195,8 @@ to the public API during its brain cycles — *transmissions* when its actions l
 hardware / brain-cycle stats pushed periodically to drive the Mind Monitor. It is a **one-way publish**:
 the public surface enriches the public Atlas and is never bound to the embodied local db.
 
-Runtime dependencies: **MongoDB** (`MONGO_URI`), **Ollama** (`OLLAMA_HOST`, models
-auto-pulled on startup), and the **spaCy + Stanza** English models (`en_core_web_lg`,
-run on Apple-Silicon `mps`). Configuration is read from `.env`. See `CLAUDE.md` for the
-full dependency and architecture notes.
+Runtime dependencies: **MongoDB** (`MONGO_URI`), an **Anthropic API key**
+(`ANTHROPIC_API_KEY` — the rag1 ears + the decompile surface, both Claude Haiku; local
+Ollama was retired 2026-07-16), and the **spaCy + Stanza** English models
+(`en_core_web_lg`, run on Apple-Silicon `mps`). Configuration is read from `.env`. See
+`CLAUDE.md` for the full dependency and architecture notes.

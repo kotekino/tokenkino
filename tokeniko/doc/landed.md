@@ -975,3 +975,21 @@ live retreat's trigger shape survives, regression-locked), conclusion_key (a boo
 slot — deliberately coarse, dedup continuity with stored theorems), microscope digest + judge
 contract. Part 2 (restrictive relative clauses inside the quantifier) → the strengthening tail's
 restricted-universal item. 8 tests (`test_quantifier_scope.py`). Gate **334 / 1 xfailed**.
+
+**The local-models retirement (2026-07-16, the day's last act — D4 completed)**
+The author's closing ruling: the Ollama machinery stays in code, unreferenced — nothing initializes,
+pulls, or calls local models anymore. What the audit found and changed:
+- **Preparser** (`prepare=1` pipe): was dead but still INITIALIZED at api startup (model pulls for a
+  feature nothing invoked since rag1). Init + the utils/polish|prepare|translate endpoints + every
+  `prepare=` branch removed; `preparser.py` stays as machinery.
+- **Decompile surface** (`decompiler_decompile`: /output, /input?output=1): swapped to **Claude
+  Haiku** (the author's (b) — same model tier as the ears; graceful no-key fall-through to the raw
+  render). The old two-model Ollama path preserved as `_decompiler_decompile_ollama`, unreferenced.
+- **The channel voice** (the author's sharp catch): compose.py emits TEMPLATE ENGLISH — the optional
+  outbound re-polish was English-to-English heat (two local calls per reply, drift risk, no benefit)
+  and was env-gated off since go-live anyway. `_to_english`/`SENSES_OUTBOUND_POLISH` removed; the
+  composed text ships verbatim; rag2-out + hunch 7 own the future voice.
+- `senses` no longer runs `decompiler_init`; `init_io`'s Ollama handle stays as an inert legacy
+  parameter (lazy construct, zero network, nothing calls it — removing it is signature churn for
+  no cost). CLAUDE.md + README reconciled (Ollama out of runtime deps; ANTHROPIC_API_KEY in).
+Gate **334 / 1 xfailed** (no behavior change on any tested path).
