@@ -86,6 +86,12 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
 
 ### 2. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 
+- **`lib/rag/` consolidation** (author-ordered 2026-07-16, the opener): concentrate the Claude API
+  plumbing — ONE lazy client getter + a `rag_call` helper (timeouts, json-envelope, graceful None)
+  + the prompts/model registry — and re-point the four call sites (`normalizer` rag1, `decompiler`
+  decompile — currently borrowing normalizer's private `_get_client`, a known smell — `microscope`
+  judge, `blog_outbound` polish). Instruments keep their logic; only plumbing moves. Future
+  residents (rag2-out, did-you-mean, multilingual) are born into it.
 - the **"did you mean:…?" ask** with the tidied reading carried in the payload (D2b refined) — the near one.
 - **rag2-out** — the voice-side verifier: polished outbound English must recompile to the zip being
   spoken (consensus-with-the-compiler on the way out, mirroring the inbound gate).
