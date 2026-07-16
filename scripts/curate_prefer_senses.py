@@ -36,6 +36,12 @@ BATCH = [
     ("whale",      "n", "whale.n.02"),       # the cetacean (belt-and-braces; fix A already selects it)
     ("gill",       "n", "gill.n.04"),        # the respiratory organ (curated in via add batch 2)
     ("channel",    "n", "channel.n.05"),     # the communication channel (curated in via add batch 2)
+    # batch 2 (the second-harvest strays, 2026-07-16 second session):
+    ("bit",        "n", "bit.n.06"),         # the information unit («a coin stores bits» read the
+                                             # fragment bit.n.02 context-less; Lesk still reaches
+                                             # the fragment when the text supports it — «a bit of
+                                             # cake». is_a unit_of_measurement.n.01 already in the
+                                             # graph, so the definition grounds TRUE)
 ]
 
 

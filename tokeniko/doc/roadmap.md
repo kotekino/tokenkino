@@ -80,10 +80,12 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
   the typo-tangle lead locked as a rag1 detector regression), see `landed.md`. *Left in its orbit:*
   the extractor consuming indirect roles + markers as chainer fuel (the restricted-universal
   residuals' companion, strengthening tail §3.3).
-- **Also in this queue** (second-harvest leads, not yet macro-grouped): **product/proper-noun NER**
-  (Photoshop→adobe.n.01 the clay) · **passive agent inversion** («rain is caused by clouds» ≈ rain
-  causes clouds — the voice gap inverting causality) · the **store→shop.n.01** singles lead ·
-  **bit.n.03** curate + its is_a edge.
+- ✅ **The second-harvest strays** — landed 2026-07-16 (passive-voice normalization to the active
+  frame; the title-case OOV guard — no more Photoshop→clay, mid-sentence mints the individual;
+  store→shop.n.01 found already healed by the degenerate retry, locked; bit→bit.n.06 preferred
+  APPLIED — the is_a edge was already in the graph), see `landed.md`.
+  **THE HARVEST QUEUE IS FULLY CONSUMED** — every macro-case and stray from all three harvests is
+  closed; what remains of §1 lives in the M2-orbit follow-ons below.
 
 ### 2. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 

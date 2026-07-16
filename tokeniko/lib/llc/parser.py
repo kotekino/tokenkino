@@ -548,16 +548,21 @@ def parser_getPropertyMeaning(token: Token, pos: list[str]) -> EntityPayload:
     doc_result: TKDictionary = None
     if len(pos) > 0 and token.pos_ != "NUM" and token.pos_ != 'PROPN' and token.pos_ != 'PRON':
         # search in dictionary
-        for p in pos:           
+        for p in pos:
             doc_result = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
             if doc_result: break
-                
+
+        # TITLE-CASE OOV guard (strays 2026-07-16, mirrors parser_getMeaning): a capitalized OOV
+        # property token is almost surely a proper noun the tagger missed — never nearest-match it
+        # into a common-noun class (the Photoshop→adobe fabrication); it stays generic/unknown.
+        title_case_oov = doc_result is None and token.text[:1].isupper()
+
         # semantic fallback — only for tokens that actually carry a vector, and only accepting a
         # candidate whose cosine similarity clears _WSD_FALLBACK_MIN_SIMILARITY. an OOV/gibberish
         # token has no real vector (its query vector is all-zeros / unrelated), so force-matching it
         # to the nearest dictionary lemma is a hallucination -> leave doc_result None -> TKGeneric.
         for p in pos:
-            if not doc_result:
+            if not doc_result and not title_case_oov:
                 newDoc = nlp.tokenizer(token.lemma_)
                 if newDoc and len(list(newDoc)) > 0 and newDoc[0].has_vector:
                     query_vector = np.asarray([newDoc[0].vector])
@@ -648,6 +653,17 @@ def parser_getMeaning(token: Token, pos: list[str]) -> EntityPayload:
         if candidates:
             doc_result = parser_disambiguateSense(token, candidates)
 
+        # TITLE-CASE OOV guard (strays 2026-07-16): «Photoshop» (stanza-tagged NOUN, NER-empty)
+        # has no dictionary row, and the cross-word vector fallback below fabricated a common-noun
+        # reading out of distributional neighborhood (adobe.n.01 THE CLAY — "Photoshop is Adobe
+        # software, not clay", the judge's finest line). A title-case token missing from the
+        # dictionary is almost surely a proper noun the tagger missed: never nearest-match it into
+        # a class — resolve it down the NAME path instead (known place / known individual / the
+        # NER-gated mint); an unrecognized one stays an honest unknown (the ask reflex is the
+        # right reaction to a new product name, not a clay reading).
+        if doc_result is None and token.text[:1].isupper():
+            return (parser_getPlace(token) or parser_getKnownIndividual(token, _talker)
+                    or parser_getIndividual(token, _talker) or TKName(name=token.lemma_))
 
         # semantic fallback — only for tokens that actually carry a vector, and only accepting a
         # candidate whose cosine similarity clears _WSD_FALLBACK_MIN_SIMILARITY. an OOV/gibberish
@@ -932,8 +948,23 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # ------------------------------
     tkSubject = None
     subjectToken = next((s for s in children if (s.dep_ == "nsubj" or s.dep_ == "nsubj:pass")), None)
-    if subjectToken: tkSubject = parser_getFullEntity(subjectToken, quotes)
-    else: 
+
+    # PASSIVE-VOICE NORMALIZATION (strays 2026-07-16): «rain is caused by clouds» compiled
+    # subject=rain indirect=clouds — the zip read "rain causes clouds", INVERTING causality (the
+    # parked voice-detection gap, live in the second harvest). The zip is meaning, not surface:
+    # when the clause is passive (nsubj:pass) AND carries an explicit by-agent (obl:agent),
+    # normalize to the ACTIVE frame — agent -> subject, patient -> direct; the agent's "by" case
+    # is voice scaffold, not a relator, and vanishes with the swap. An AGENT-LESS passive
+    # («rain is caused») keeps the patient-as-subject shape: no agent, nothing to invert.
+    agentToken = None
+    if subjectToken is not None and subjectToken.dep_ == "nsubj:pass":
+        agentToken = next((s for s in children if s.dep_ == "obl:agent"), None)
+    if agentToken is not None:
+        children.remove(agentToken)   # consumed as the subject — must not double as an indirect
+        tkSubject = parser_getFullEntity(agentToken, quotes)
+        tkSubject.marker = None       # drop the "by" scaffold
+    elif subjectToken: tkSubject = parser_getFullEntity(subjectToken, quotes)
+    else:
         subjectToken = next((s for s in children if (s.dep_ == "csubj")), None)
         if subjectToken: tkSubject = parser_parseSubordinate(subjectToken, quotes)
 
@@ -942,6 +973,8 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
     # ------------------------------
     tkDirect = None
     directToken = next((s for s in children if s.dep_ == "obj"), None)
+    if directToken is None and agentToken is not None:
+        directToken = subjectToken    # the passive PATIENT lands where the active object would
     if directToken: tkDirect = parser_getFullEntity(directToken, quotes)
 
     # ------------------------------

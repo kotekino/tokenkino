@@ -1086,3 +1086,31 @@ Three leads, three mechanisms, probed before design:
   pronoun-subject-leaf gap (roadmap §2's escalate-and-always-reject lead) — a separate item,
   deliberately not entangled.
 10 tests (`test_dropped_content.py`). Gate **360 / 1 xfailed**.
+
+**The second-harvest strays (2026-07-16, second session — the harvest queue's last item)**
+Probed all four before building — two had already healed, two needed real fixes:
+- **Passive-voice normalization** (the live causality inversion): «rain is caused by clouds»
+  compiled subject=rain indirect=clouds ≈ "rain causes clouds". The zip is meaning, not surface:
+  a passive clause (nsubj:pass) with an explicit by-agent (obl:agent) normalizes to the ACTIVE
+  frame — agent → subject, patient → direct, the "by" scaffold dropped (probe: passive and active
+  now compile IDENTICAL roles). Agent-less passives keep patient-as-subject (nothing to invert);
+  a named agent carries its identity into the subject («the cake was eaten by Mari»).
+- **The title-case OOV guard** (the Photoshop→adobe.n.01 fabrication — "Photoshop is Adobe
+  software, not clay", the judge's finest line): stanza's NER missed it entirely (tagged NOUN,
+  NER-empty) so the cross-word vector fallback nearest-matched it into the CLAY. A title-case
+  token with no dictionary row never enters the cross-word fallback: parser_getMeaning routes it
+  down the NAME path (known place / known individual / the NER-gated mint — mid-sentence stanza
+  NER fires and «the author uses Photoshop» mints photoshop@internal as an INDIVIDUAL, the
+  identity-bridge's design intent) or leaves an honest unknown (the ask reflex is the right
+  reaction to a new product name); parser_getPropertyMeaning mirrors with a skip (properties stay
+  generic). A capitalized dictionary word never reaches the guard (direct hit first).
+- **store→shop.n.01** («a coin stores bits» — stanza reads an all-NOUN compound pile): found
+  ALREADY HEALED by the 07-14 degenerate retry (does-support rewrite → store.v.01) — locked as a
+  regression.
+- **bit→bit.n.06 preferred** (curation batch 2, author-applied): context-less "bits" read the
+  n.02 FRAGMENT; the plain reading in tokeniko's world is the information unit. The is_a edge
+  (bit.n.06 → unit_of_measurement.n.01) was ALREADY in the graph, so «a bit is a unit of
+  information» grounds — the roadmap's "edge" half needed nothing.
+8 tests (`test_second_harvest_strays.py`) + the live bit case in `test_wsd_selection.py`.
+**THE HARVEST QUEUE IS FULLY CONSUMED** (three harvests, six macro-cases, four strays — all
+closed). Gate **369 / 1 xfailed**.

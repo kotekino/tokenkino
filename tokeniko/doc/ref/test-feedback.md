@@ -718,6 +718,14 @@ implication hook needs clausal operands); the embedded «whether» question (kno
 «not every cloud produces rain» = quantifier-universal + negated + op-tangle (the ¬∀ scope shape
 — input for the square-of-opposition design). Both maxims compiled CLEAN — but arrived after
 the kernel bug had already docked hellen below the teaching bar: the bug blocked the cure.
+*(→ second-harvest strays CLOSED 2026-07-16 second session: PASSIVE AGENT INVERSION = the
+active-frame normalization (agent→subject, patient→direct — passive now compiles identical to
+its active); Photoshop→adobe.n.01 = the title-case OOV guard (no cross-word fallback for
+capitalized OOV — name path or honest unknown; mid-sentence the NER mint makes it an INDIVIDUAL);
+store→shop.n.01 found already healed by the degenerate retry, regression-locked; bit→bit.n.06
+preferred applied (its is_a edge was already in the graph). The «so» conclusions landed with M2;
+calculator/seed leads with M3; ¬∀ with M6. See `landed.md`; 8 tests in
+`test_second_harvest_strays.py`. THE HARVEST QUEUE IS FULLY CONSUMED.)*
 
 ## 2026-07-15 — THE RETREAT, LIVE (belief-revision v1's first performance; the correction that landed)
 

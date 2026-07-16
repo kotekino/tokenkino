@@ -128,3 +128,12 @@ def test_live_preferred_fish_residual(compile_zip, _io):
         compile_zip("this imply that fish, mammals and other kind of animals can live in water")
     )
     assert "pisces.n.02" not in senses
+
+
+def test_live_preferred_bit(compile_zip, _io):
+    # batch 2 (the second-harvest strays): context-less "bits" read bit.n.02 the FRAGMENT; the
+    # plain reading in tokeniko's world is the information unit — and bit.n.06 is_a
+    # unit_of_measurement.n.01 is already in the graph, so the definition grounds
+    if not _flag_live("bit", "n", "bit.n.06"):
+        pytest.skip("curate_prefer_senses --apply not run yet (operator-gated)")
+    assert "bit.n.06" in _all_senses(compile_zip("a coin stores bits"))
