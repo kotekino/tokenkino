@@ -826,7 +826,16 @@ on everyday words — and these reach the blog. The shopping list:
   inhabit).
 *Action:* → third-harvest fix queue (item 3), the batch-2 curation + a selection review (many are
 frequency-prior defaults on a bare copular, the copular-circularity family's cousin). Highest
-public-optics priority.
+public-optics priority. *(→ CLOSED 2026-07-16 same-day, REDRAWN by live probes — mostly NOT
+curation: (A) the dominant root was CENTROID SELF-POISONING — `_wsd_mostFrequentVector`'s bare
+`find_one` has no order guarantee and returned giant.n.04 for "whale", so a repeated lemma pushed
+every centroid onto the person senses and "fish" cascaded to pisces; fixed with the most-frequent
+discipline + same-lemma context exclusion, clearing 7/8 specimens alone. (B) squid/calculator are
+WordNet-frequency-order casualties → the curated `preferred` flag, a new rung in the ladder
+between Lesk and the centroid (the centroid was confident-wrong in every documented episode —
+pisces the FISH SIGN at 0.755 above the actual fish). (C) gill.n.04 (homed under "branchia" only)
++ channel.n.05 were the true coverage gaps. Both curation scripts applied by the author. See
+`landed.md`; 9 tests in `test_wsd_selection.py`; retrace 13/13.)*
 
 **M4 — necessity modality dropped (S2, 1 lead, known family extension).** «software can be minds
 and humans **must** be minds» — the possibility modal (can→◇) is carried correctly (the landed

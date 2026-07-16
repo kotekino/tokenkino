@@ -26,10 +26,17 @@ class TKBase(BaseModel):
 class TKDictionary(BaseModel):
     entity_type: Literal["dictionary"] = Field(default="dictionary")
     word: str
-    pos: str = Field(pattern="^[avrns]$") 
+    pos: str = Field(pattern="^[avrns]$")
     sense: str
     definition: str
     vector: list[float] = Field(default_factory=list, min_length=2925, max_length=2925)
+    # curated default sense for this (word,pos) — the crew's ruling on the word's PLAIN reading
+    # (M3 2026-07-16: WordNet's frequency order puts squid=food, calculator=person first). The WSD
+    # ladder consults it AFTER Lesk (textual evidence still wins) and BEFORE the centroid (curated
+    # human data outranks sparse-vector co-occurrence guessing — the centroid was confident-wrong
+    # in every documented episode: dog.n.03 0.83, giant.n.04 0.807, pisces.n.02 0.755). At most
+    # one row per (word,pos) carries it; set via scripts/curate_prefer_senses.py --apply.
+    preferred: bool = Field(default=False)
 
 # a proper name. a bare name (no NER-type centroid match) carries name only; an entity-linked
 # individual additionally carries its NER label, a context-scoped identity uid, and the 2925 type

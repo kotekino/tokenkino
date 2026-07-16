@@ -397,12 +397,21 @@ def _wsd_mostFrequent(token: Token, candidates: list[TKDictionaryDoc]) -> TKDict
     pool = own or candidates
     return min(pool, key=lambda c: _wsd_senseNumber(c.sense or ""))
 
-# the most-frequent (first) dictionary sense vector for a token, or None
+# the MOST-FREQUENT dictionary sense vector for a token, or None. The selection must follow the
+# same discipline as _wsd_mostFrequent (own-lemma preferred, smallest sense number): a bare
+# find_one has NO order guarantee, and the arbitrary row it returned poisoned every centroid the
+# word appeared in (M3 2026-07-16: find_one("whale") returned giant.n.04 — the PERSON vector — so
+# in «a whale … a whale …» the other whale token pushed the centroid onto the person senses,
+# 0.807 for giant.n.04, and even "fish" then resolved to pisces.n.02, the astrology PERSON).
 def _wsd_mostFrequentVector(token: Token) -> np.ndarray | None:
     for p in TKPosMapper.get_wn_pos(token.pos_):
-        d = TKDictionaryDoc.find_one({"word": token.lemma_, "pos": p}).run()
-        if d and d.vector:
-            return np.asarray(d.vector, dtype=np.float32)
+        cands = TKDictionaryDoc.find({"word": token.lemma_, "pos": p}).to_list()
+        cands = [c for c in cands if c.vector]
+        if cands:
+            # a curated preferred row is the word's plain reading — context vectors use it too
+            best = next((c for c in cands if getattr(c, "preferred", False)), None) \
+                or _wsd_mostFrequent(token, cands)
+            return np.asarray(best.vector, dtype=np.float32)
     return None
 
 # per-Doc cache (computed once) of {token.i: most-frequent sense vector} for content tokens
@@ -443,10 +452,14 @@ def _wsd_copularPartners(token: Token) -> set[int]:
 
 
 # context centroid = mean of the OTHER content tokens' most-frequent vectors (None if no context);
-# the token's copular partner is NOT context (the circularity guard above).
+# the token's copular partner is NOT context (the circularity guard above), and neither is another
+# token of the SAME LEMMA (M3: a repeated word is self-evidence, not independent context — it can
+# only vote the word toward its own most-frequent sense, drowning the real context).
 def _wsd_centroid(token: Token) -> np.ndarray | None:
     vecs = _wsd_contextVectors(token.doc)
+    lemma = token.lemma_.lower()
     excluded = _wsd_copularPartners(token) | {token.i}
+    excluded |= {t.i for t in token.doc if t.lemma_.lower() == lemma}
     others = [v for i, v in vecs.items() if i not in excluded]
     return np.mean(others, axis=0) if others else None
 
@@ -478,6 +491,14 @@ def parser_disambiguateSense(token: Token, candidates: list[TKDictionaryDoc]) ->
     leaders = [c for s, c in leskScored if s == maxLesk]
     if maxLesk > 0 and len(leaders) == 1:
         return leaders[0]
+
+    # CURATED PREFERRED (M3): the crew's ruling on the word's plain reading, consulted AFTER Lesk
+    # (real textual evidence still wins) and BEFORE the centroid (curated human data outranks the
+    # sparse-vector co-occurrence guess — geometry proposes, curation disposes; the centroid ranked
+    # pisces.n.02 the FISH SIGN above the actual fish at 0.755). At most one row per (word,pos).
+    curated = next((c for c in candidates if getattr(c, "preferred", False)), None)
+    if curated is not None:
+        return curated
 
     # CONFIDENT CENTROID: lean on the context centroid only when it is decisive (rich contexts the
     # gloss overlap misses). Restrict to the tied Lesk leaders when there IS a positive overlap signal,

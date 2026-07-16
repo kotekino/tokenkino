@@ -30,7 +30,10 @@ load_dotenv(os.path.join(os.path.dirname(__file__), "..", "tokeniko", ".env"))
 
 # ---- the curation batch: (word, canonical synset key) -------------------------------------------
 BATCH = [
-    ("bit", "bit.n.06"),   # the information unit (from binary + digit) — the coin incident
+    ("bit", "bit.n.06"),       # the information unit (from binary + digit) — the coin incident
+    # batch 2 (M3, the third harvest 2026-07-16): true coverage gaps
+    ("gill", "gill.n.04"),     # respiratory organ of aquatic animals — «a fish breathes with gills»
+    ("channel", "channel.n.05"),  # a means of communication or access — the Discord channel
 ]
 
 nltk.download("wordnet", quiet=True)
@@ -123,10 +126,16 @@ def main():
     print(f"base anchors: {len(base_words)} | mode: {'APPLY' if apply else 'DRY RUN'}\n")
 
     for word, sense_key in BATCH:
-        existing = coll.find_one({"sense": sense_key})
+        # per-WORD existence: a synset stored under its primary lemma only (gill.n.04 lives under
+        # word=branchia) is invisible to a lookup by the curated word — the row must exist for
+        # THIS word so `find({"word": ...})` reaches it (M3: the WSD candidate pool is per-word).
+        existing = coll.find_one({"word": word, "sense": sense_key})
         if existing is not None:
-            print(f"SKIP {sense_key}: already in the dictionary (word={existing['word']})")
+            print(f"SKIP {sense_key}: already in the dictionary for word={word}")
             continue
+        elsewhere = coll.find_one({"sense": sense_key})
+        if elsewhere is not None:
+            print(f"NOTE {sense_key}: exists under word={elsewhere['word']} — adding a row for word={word}")
         syn = wn.synset(sense_key)
         target_gloss = calculate_synset_glossary(syn)
         vector = [get_semantic_value(word, syn, bw, target_gloss, calculate_base_glossary(bw))

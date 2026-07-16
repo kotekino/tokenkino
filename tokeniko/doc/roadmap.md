@@ -57,12 +57,10 @@ scatters. Ordered by severity × public-optics. Each is a LEAD until live-confir
 - ✅ **M1 — "but" contrastive → NOT IMPLY** — landed 2026-07-16 ("but" = AND + the `contrast`
   carrier flag; the old fold sent every true "X but Y" to 0), see `landed.md`. The contrast-as-
   default-expectation consumer is in the follow-ons below.
-- **M3 — WSD curation batch 2: animals & common nouns** (S2, PUBLIC-FACING). whale→giant.n.04,
-  **fish→pisces.n.02 (the astrology sign)**, squid→the food sense, gills→the capacity unit,
-  calculator→the person, being→"state of existing", channel→electrical, form→word-form, live.v.02.
-  These reach the blog. `scripts/curate_add_senses.py` batch + a frequency-prior selection review
-  (the copular-circularity family's cousin). *(Folds in the second-harvest curation: calculator
-  machine, seed plant.)*
+- ✅ **M3 — WSD curation batch 2: animals & common nouns** — landed + APPLIED 2026-07-16 (the
+  centroid self-poisoning root fix + the curated `preferred` rung in the WSD ladder + the
+  gill/channel coverage adds; retrace 13/13), see `landed.md`. *(The seed plant sense: seed.n.01/02
+  are both plant senses and own-lemma — already correctly preferred by the prior; no flag needed.)*
 - **M2 — causal "because" residual** (S1). Still folds AND/CONV instead of a reason operator (the
   07-14 subordination fix carried temporal "when", not causal "because"). Pairs with the
   **conditional-rule extractor** — a proper causal/IMPLY carrier is the shared prerequisite (a taught

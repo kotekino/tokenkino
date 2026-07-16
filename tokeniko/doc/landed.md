@@ -913,3 +913,28 @@ never asserted content. The fix is the modality pattern again: carrier flag, not
   default-expectation fuel («X but Y» hints a background generic "X normally ¬Y").
 7 regression tests (`test_contrast.py`): the M1 six-pack's shapes + and/or no-regression + the
 anchor guards. Gate **307 / 1 xfailed**.
+
+**M3 — WSD selection fixes + curation batch 2 (2026-07-16, the third harvest's sense misses)**
+The public-facing cluster (whale→giant.n.04 the PERSON, fish→pisces.n.02 the ASTROLOGY SIGN,
+squid→the food, calculator→the person…) diagnosed by live probes: selection bugs + two coverage
+gaps — every target sense except gill/channel was already in the dictionary.
+- **A — the centroid self-poisoning (the dominant root):** `_wsd_mostFrequentVector` fetched
+  context vectors with a bare `find_one` (NO order guarantee) — for "whale" it returned
+  giant.n.04, so a repeated lemma pushed every centroid onto the person senses (giant 0.807) and
+  even "fish" then resolved to pisces. Fixed: most-frequent discipline in the context fetch +
+  same-lemma tokens excluded from a token's centroid (self-evidence is not context). Cleared 7/8
+  harvest specimens alone; the copular-circularity keep-set intact.
+- **B — the curated `preferred` flag (data, KB-homed):** WordNet's frequency order contradicts
+  the plain conversational reading for several everyday words (squid.n.01=food,
+  calculator.n.01=person). The WSD ladder is now **Lesk → curated preferred → confident centroid
+  → WordNet order** — textual evidence wins; curated human data outranks the sparse-vector
+  co-occurrence guess (confident-wrong in every documented episode: dog.n.03 0.83, giant 0.807,
+  pisces 0.755 — pisces is the FISH SIGN, its vector shares the water/fish bases).
+  `scripts/curate_prefer_senses.py` (idempotent, --apply gated); the author's batch: squid.n.02 ·
+  calculator.n.02 · organism.n.01 (being) · kind.n.01 (form) · populate.v.01 (live) · fish.n.01
+  (pins the pisces centroid residual) · whale.n.02 · gill.n.04 · channel.n.05. Applied 2026-07-16.
+- **C — coverage:** `curate_add_senses.py` batch 2 — gill.n.04 (respiratory organ; existed only
+  under its primary lemma "branchia", invisible to a word=gill lookup — the existence check is
+  now per-word) + channel.n.05 (the communication channel). Applied 2026-07-16.
+9 regression tests (`test_wsd_selection.py`): the poisoning regression, the ladder unit tests
+(Lesk-beats-preferred included), the live-flag cases. Retrace 13/13. Gate **316 / 1 xfailed**.
