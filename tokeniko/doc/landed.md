@@ -1286,3 +1286,28 @@ existed — nothing invented:
 +7 tests (hedge table, confidence formulas incl. the logic-never-hedges invariant, band gating,
 never-mute, the Zadeh slot end-to-end, plan payload assembly, the answer-path fallback). Gate
 **438 / 1 xfailed**.
+
+**Compose 2.0 slice 3 — rag2-out (2026-07-17: the exit gate; the voice can gain fluency, never lose meaning)**
+The roadmap's waiting voice-side verifier, finally owning its object — the mirror of rag1-in on
+the way out:
+- **`RAG2_OUT`** (lib/rag registry, Haiku): one fluency pass over a composed reply; forbidden to
+  add/drop content, flip negations/quantifiers/modals, or change a hedge's degree. Kill-switch
+  `RAG2_OUT_DISABLED`.
+- **`POST /api/v1/voice/verify {raw, polished}`** — the API owns the pipeline (the one-compile-
+  seam doctrine, same as /input), so the consensus runs there: compile both (talker=tokeniko —
+  his own speech), hold the polish to the preservation contract. Pure, stores nothing.
+- **`verifier_voice`** (normalizer.py, the symmetric home): the POLISHABILITY gate in front
+  (a raw with any unsound leaf — fragments, «why is that?» — is unverifiable and ships as its
+  curated template text) + `verifier_preserves` + ONE outbound-only tightening the tests forced:
+  the +2 balloon allowance exists for inbound tangle-splitting, which has NO outbound analogue —
+  a fluency pass must never ADD an assertion (leaf count strict). Documented conservative edge:
+  «do not agree»→«disagree» is REJECTED (the sense key changes) — fail-safe, the raw ships.
+- **`senses/outbound._voice_out`**: length pre-gate (no Haiku spent on «yes») → polish → verify
+  via the API → ship polished IFF verified; API down / rag down / rejected / disabled → the raw
+  ships verbatim. Never mute, never unverified.
+- Scope honesty: the blog's consensus-over-the-polisher got the endpoint as its building block
+  and stays a named tail item (per-post verification = its own design).
+12 tests (`test_voice_out.py`: the contract on real compiled pairs — contraction accepted,
+flipped negation / dropped content / invention / lexical substitution rejected, the fragment
+gate; the senses gating — every failure path ships raw, the pre-gate spends nothing, the
+kill-switch). Gate **450 / 1 xfailed**.

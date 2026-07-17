@@ -142,6 +142,28 @@ def verifier_preserves(original_zip, polished_zip) -> tuple[bool, str]:
     return True, "verified"
 
 
+# ---- the OUTBOUND voice verifier (rag2-out — compose 2.0 slice 3) -----------------------------------
+# The inbound verifier's mirror, with the POLISHABILITY gate in front: only what the compiler can
+# FULLY hear can be re-voiced — a raw with any unsound leaf (fragments, «why is that?», bare «yes»)
+# is unverifiable and must ship as its curated template text (already clean English). A fully-sound
+# raw then holds the polish to the SAME preservation contract as rag1-in (every leaf survives,
+# flags intact, no invention): the voice can gain fluency, never lose meaning.
+def verifier_voice(raw_zip, polished_zip) -> tuple[bool, str]:
+    from lib.core.kb_extract import _zip_leaves
+    raw_leaves = _zip_leaves(raw_zip.items) if raw_zip is not None else []
+    if not raw_leaves or any(not _leaf_sound(l) for l in raw_leaves):
+        return False, "raw not verifiable (unsound/fragment) — ship the curated raw"
+    ok, note = verifier_preserves(raw_zip, polished_zip)
+    if not ok:
+        return ok, note
+    # STRICTER than inbound: the +2 balloon allowance exists for tangle-splitting, which has no
+    # outbound analogue — a fluency pass over an already-sound raw must never ADD an assertion.
+    pol_leaves = _zip_leaves(polished_zip.items) if polished_zip is not None else []
+    if len(pol_leaves) != len(raw_leaves):
+        return False, f"polish changes the assertion count ({len(raw_leaves)} -> {len(pol_leaves)})"
+    return True, "verified"
+
+
 # ---- the NORMALIZER call (rag1-in — surface only) --------------------------------------------------
 # the system prompt + model live in the lib/rag registry (RAG1_NORMALIZER); rag_call is graceful by
 # contract (API down / auth / anything -> None, logged) — the raw parse stands.

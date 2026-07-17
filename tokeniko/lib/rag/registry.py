@@ -82,6 +82,31 @@ RAG2_DECOMPILE = RagSpec(
 )
 
 
+# ---- rag2-out — the OUTBOUND voice polish (senses/outbound.py; compose 2.0 slice 3) -----------------
+# The mirror of rag1-in: one fluency pass over a composed reply, accepted ONLY if the zip-verifier
+# proves the polish still compiles to the same meaning (POST /api/v1/voice/verify — consensus-with-
+# the-compiler on the way out). Whatever fails anywhere, the raw ships verbatim: the voice can gain
+# fluency, never lose meaning. Kill-switch: RAG2_OUT_DISABLED.
+RAG2_OUT = RagSpec(
+    name="rag2-out",
+    model=os.getenv("RAG2_MODEL", "claude-haiku-4-5"),  # the best SMALL model (author's D4)
+    system=(
+        "You are the VOICE POLISHER for a reasoning engine. You receive ONE reply the engine "
+        "composed from templates; you re-voice it as a single fluent, natural English reply.\n"
+        "Allowed: smoother wording, natural contractions, better connective flow.\n"
+        "Forbidden: adding ANY content, opinion, hedge, or implication not present; dropping any "
+        "part of the message; changing negations, quantifiers (all/some/no), modal verbs "
+        "(can/must/may), or the degree of any hedge word (slightly/passably); changing what is "
+        "asserted about whom.\n"
+        "Keep it as short as the original or shorter. If the reply is already natural, return it "
+        "unchanged.\n"
+        "Return ONLY the polished reply text — no quotes, no explanations."
+    ),
+    max_tokens=200,
+    timeout=30.0,
+)
+
+
 # ---- rag3 — the microscope judge (senses/microscope.py) --------------------------------------------
 # The CONTRACT mini-RAG: what each digest field MEANS, and which divergences are LEGITIMATE —
 # the judge flags real mismatches, not design choices. Opus on everything (author's economics:

@@ -144,6 +144,11 @@ class MemorySummary(BaseModel):  # listing view (no big zip)
 class EvaluateIn(BaseModel):
     tokens: str  # sentence to compile and evaluate against tokeniko's knowledge
 
+# ------------------------------ voice verify (rag2-out; stores nothing) ------------------------------
+class VoiceVerifyIn(BaseModel):
+    raw: str        # the composed reply as decided (the meaning being spoken)
+    polished: str   # the candidate re-voicing to hold against it
+
 # ------------------------------ domain-error -> HTTP mapping ------------------------------
 # run a service action, translating its (invalid-id, not-found) domain errors to 400/404
 def _or_http(action, invalid_exc, not_found_exc, name: str):

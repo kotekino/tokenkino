@@ -9,7 +9,7 @@ from lib.llc.parser import parser, parser_diagram, parser_init
 from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individual
 from lib.core.models import TKMemoryItemDoc
 from lib.core.evaluation_harness import zip_senses
-from lib.llc.normalizer import detector_stumbles, detector_unrepairable, normalizer_enabled, normalizer_polish, verifier_preserves
+from lib.llc.normalizer import detector_stumbles, detector_unrepairable, normalizer_enabled, normalizer_polish, verifier_preserves, verifier_voice
 
 logger_api = logging.getLogger("tokeniko-api")
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
@@ -25,6 +25,7 @@ from api.schemas import (
     DefinitionIn, DefinitionPatch, DefinitionReplace, DefinitionSummary, definition_or_http,
     TheoremIn, TheoremPatch, TheoremReplace, TheoremMaterializeIn, TheoremSummary, theorem_or_http,
     EvaluateIn,
+    VoiceVerifyIn,
     StakeholderSummary, stakeholder_or_http,
     MemoryIn, MemorySummary, memory_or_http,
     create_or_http,
@@ -342,6 +343,24 @@ async def evaluate(payload: EvaluateIn):
     try:
         result = app.state.evaluation_service.evaluate(payload.tokens)
         return {"status": "complete", "data": result}
+    except Exception as error:
+        return {"status": "failed", "data": repr(error)}
+
+# the OUTBOUND voice gate (rag2-out, compose 2.0 slice 3): does the polished reply still compile
+# to the meaning of the raw one? The API owns the pipeline (the one-compile-seam doctrine — same
+# as /input), so the consensus runs here; `senses` makes the cloud call and asks. PURE — stores
+# nothing; the polishability gate (a raw with unsound leaves is unverifiable) lives inside
+# verifier_voice. Compiles with talker=tokeniko: the raw is HIS OWN speech.
+@app.post("/api/v1/voice/verify")
+async def voice_verify(payload: VoiceVerifyIn):
+    try:
+        me = app.state.tokeniko
+        raw_zip = compiler_compile(copy.deepcopy(
+            parser(payload.raw, me, me, app.state.ai_client)))[1]
+        polished_zip = compiler_compile(copy.deepcopy(
+            parser(payload.polished, me, me, app.state.ai_client)))[1]
+        ok, note = verifier_voice(raw_zip, polished_zip)
+        return {"status": "complete", "data": {"ok": ok, "note": note}}
     except Exception as error:
         return {"status": "failed", "data": repr(error)}
 

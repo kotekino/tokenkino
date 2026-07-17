@@ -79,10 +79,9 @@ intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-h
    (→ `landed.md`; seed `--apply` = the author's hand, then restart the brain).
 2. ✅ **Intensity** — landed 2026-07-17 (→ `landed.md`; seed `--apply` for the 4 banded variants
    = the author's hand, then restart the brain).
-3. **rag2-out** — the voice-side verifier (moved here from the translator section — compose gives
-   it its object): polished outbound English must recompile to the bound scaffold zip
-   (consensus-with-the-compiler on the way out, mirroring the inbound gate). The blog's
-   consensus-over-the-polisher folds in here.
+3. ✅ **rag2-out** — landed 2026-07-17 (→ `landed.md`). *The blog's consensus-over-the-polisher
+   moved to the tail below (the endpoint is its building block; per-post verification is its own
+   design).*
 4. **Case 4 + case 2**: the blog templates re-homed onto scaffolds (the chain stays dynamic data);
    the trust episode gains its voice (today mute).
 5. **The context ring → the anecdote** (case 3): a per-channel RAM ring buffer
@@ -101,6 +100,9 @@ Tail (in-arc, later):
   (weighted — live since slice 1).
 - **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
   with the slot masked; design after the store exists.
+- **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
+  (`/voice/verify` is the building block); per-post (multi-sentence) verification needs its own
+  design: chunking + partial acceptance.
 
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 

@@ -8,11 +8,12 @@ from lib.rag.registry import (
     BLOG_POLISH,
     RAG1_NORMALIZER,
     RAG2_DECOMPILE,
+    RAG2_OUT,
     RAG3_JUDGE,
     RagSpec,
 )
 
 __all__ = [
     "get_client", "json_envelope", "rag_call", "rag_enabled",
-    "RagSpec", "RAG1_NORMALIZER", "RAG2_DECOMPILE", "RAG3_JUDGE", "BLOG_POLISH",
+    "RagSpec", "RAG1_NORMALIZER", "RAG2_DECOMPILE", "RAG2_OUT", "RAG3_JUDGE", "BLOG_POLISH",
 ]

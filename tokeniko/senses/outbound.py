@@ -1,8 +1,10 @@
 # --------------------------------------------------------------
 # senses/outbound.py — the OUTBOUND actions executor (#4 D3b). The carrier half of the brain→senses
 # reply seam: the brain DECIDES (mints an Action with channel=discord, a target, and the composed
-# text in the payload); senses CARRIES (delivers the composed template text verbatim to the socket
-# — compose.py emits English; the real voice arrives with rag2-out + the nuance layer, hunch 7).
+# text in the payload); senses CARRIES it to the socket — through the rag2-out voice gate (compose
+# 2.0 slice 3): a long-enough composed reply gets ONE Haiku fluency pass, shipped ONLY if the
+# API's zip-verifier proves the polish still compiles to the raw's meaning (consensus-with-the-
+# compiler on the way out, mirroring rag1-in). ANY failure anywhere ships the raw verbatim.
 #
 # OWNERSHIP (no cross-process race, no new status): the brain's `actions_phase` consumes only
 # channel=INTERNAL; this executor consumes only channel=discord. Disjoint filters over the SAME queue.
@@ -10,19 +12,64 @@
 # DRY-RUN by default (`SENSES_DELIVER_DRYRUN`!=0): resolve + decompile + LOG the would-send, mark DONE,
 # touch no socket — so the whole seam is verifiable without Discord credentials / risking live spam.
 # Flip to live (and pass a real `sender`) once the inbound listener + a connected DiscordClient land.
-# pipeline-light: imports only the Destination model — never the parser, no LLM on this path.
+# pipeline-light: never imports the parser (the verify consensus runs at the API — the one-compile
+# seam); the ONLY cloud call is the rag2-out polish, gated + graceful (RAG2_OUT_DISABLED kills it).
 # --------------------------------------------------------------
 import asyncio
 import json
 import logging
 import os
+import urllib.request
 from typing import Awaitable, Callable, Optional
 
 from lib.core.models import TKActionDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc
 from lib.core.memory import ActionStatus, MEMChannels
 from lib.discord.models import Destination
+from lib.rag import RAG2_OUT, rag_call, rag_enabled
 
 logger = logging.getLogger("tokeniko-brain")
+
+_API_BASE = os.getenv("BRAIN_API_BASE", "http://localhost:8000")  # same seam as inbound
+_VERIFY_TIMEOUT = float(os.getenv("SENSES_VOICE_VERIFY_TIMEOUT", "120"))  # two compiles; patient
+# below this length a reply is template-curated and fragment-shaped ("yes", "why is that?") —
+# unpolishable by the verifier's own gate, so the Haiku call is never spent on it.
+_POLISH_MIN_CHARS = int(os.getenv("SENSES_VOICE_POLISH_MIN_CHARS", "25"))
+
+
+# ---- the rag2-out voice gate (compose 2.0 slice 3) ---------------------------------------------------
+# ask the API whether the polish still compiles to the raw's meaning. Graceful None on any trouble
+# (API down / malformed reply) — the caller ships the raw.
+def _verify_voice(raw: str, polished: str) -> Optional[dict]:
+    body = json.dumps({"raw": raw, "polished": polished}).encode("utf-8")
+    req = urllib.request.Request(
+        f"{_API_BASE.rstrip('/')}/api/v1/voice/verify", data=body, method="POST",
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=_VERIFY_TIMEOUT) as resp:
+            out = json.loads(resp.read().decode("utf-8"))
+        return out.get("data") if out.get("status") == "complete" else None
+    except Exception as error:
+        logger.warning("[outbound] voice verify unreachable (%s) — raw ships", error)
+        return None
+
+
+# polish + verify one composed reply; returns the text to ship (the polish ONLY when the compiler
+# consensus holds — every other path is the raw, verbatim). Never raises.
+async def _voice_out(raw: str) -> str:
+    if not rag_enabled("RAG2_OUT_DISABLED") or len(raw) < _POLISH_MIN_CHARS:
+        return raw
+    polished = await rag_call(RAG2_OUT, raw)
+    polished = (polished or "").strip()
+    if not polished or polished == raw:
+        return raw
+    verdict = await asyncio.to_thread(_verify_voice, raw, polished)
+    if verdict and verdict.get("ok"):
+        logger.info("[outbound] rag2-out verified: %r -> %r", raw, polished)
+        return polished
+    logger.info("[outbound] rag2-out REJECTED (%s) — raw ships: %r",
+                (verdict or {}).get("note", "unverifiable"), raw)
+    return raw
 
 # tokeniko's own stakeholder id (the sourceId of his recorded speech), resolved lazily once.
 _self_id: Optional[str] = None
@@ -122,10 +169,9 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
 
     payload = action.payload or {}
     raw = (payload.get("raw") or "").strip()
-    # composed text goes out verbatim (2026-07-16, the author's call): compose.py emits template
-    # ENGLISH — the old optional Ollama re-polish was English-to-English heat, retired with the
-    # local models. SENSES_OUTBOUND_POLISH is gone; rag2-out will own the voice.
-    english = raw
+    # the rag2-out voice gate (compose 2.0 slice 3): one verified fluency pass, or the raw
+    # verbatim — the voice can gain fluency, never lose meaning.
+    english = await _voice_out(raw) if raw else raw
     dest = _resolve_destination(action.targetId, payload)
 
     if dest is None or not english:
