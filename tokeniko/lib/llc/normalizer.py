@@ -59,6 +59,48 @@ def detector_stumbles(zip_obj) -> bool:
     return any(not _leaf_sound(l) for l in leaves)
 
 
+# ---- the UNREPAIRABLE classifier (2026-07-17, basket item 4) ----------------------------------------
+# an unsound leaf whose subject is an unresolved third-person PRONOUN («…and IT feeds milk», «he
+# sleeps») is not a SURFACE problem: the words are already clean English, the gap is COREFERENCE
+# (parked work) — no spelling/segmentation tidy can supply the referent, so the polish recompiles
+# to the same pronoun leaf and the zip-verifier rejects it EVERY time (a burned Haiku call per
+# encounter). When every unsound leaf is pronoun-caused, skip the escalation. Strict on purpose:
+# a MIXED stumble (a pronoun leaf beside a typo leaf) still escalates — the typo may be repaired.
+# I/you are deliberately absent: the identity bridge resolves them (their emptiness would be a
+# different bug, worth the escalation's visibility). EXACT closed-class, per the anchor doctrine.
+_UNRESOLVED_PRONOUNS = {"it", "he", "she", "they", "them"}
+
+
+def _llc_leaves(llc) -> list:
+    out: list = []
+    def walk(items):
+        for it in items:
+            c = it.content
+            if isinstance(c, list):
+                walk(c)
+            else:
+                out.append(c)
+    walk(llc.items if llc is not None else [])
+    return out
+
+
+def detector_unrepairable(llc, zip_obj) -> bool:
+    from lib.core.kb_extract import _zip_leaves
+    zip_leaves = _zip_leaves(zip_obj.items) if zip_obj is not None else []
+    llc_leaves = _llc_leaves(llc)
+    if not zip_leaves or len(zip_leaves) != len(llc_leaves):
+        return False  # unexpected shape — stay conservative, escalate as today
+    tokens = {e.id: e.token for e in llc.entities}
+    unsound = [(z, l) for z, l in zip(zip_leaves, llc_leaves) if not _leaf_sound(z)]
+    if not unsound:
+        return False
+    for _, l in unsound:
+        subject = getattr(l, "subject", None)
+        if subject is None or tokens.get(subject.id, "").lower() not in _UNRESOLVED_PRONOUNS:
+            return False
+    return True
+
+
 # ---- the ZIP-VERIFIER (rag2-in — meaning preservation, structurally) -------------------------------
 # accept the polish iff:
 #   - every SOUND leaf of the original survives in the polished zip: same (subject, predicate,

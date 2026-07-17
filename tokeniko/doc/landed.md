@@ -1217,3 +1217,17 @@ the ladder's three corners collapsed into INDEFINITE (and "never" into plain neg
   family (modal ◇/□, possessive, adverbial-quantifier) is now fully consumed.
 8 tests (`test_adverbial_quantifiers.py`: the ladder, the ∀¬ control, bare-plural upgrade,
 plain-adverb/intensifier inertness, object-carrying law). Gate **404 / 1 xfailed**.
+
+**Pronoun-subject leaves classify as unrepairable (2026-07-17 — basket item 4: the burned Haiku call)**
+A pronoun-subject leaf («a whale is a mammal and IT feeds milk», «he sleeps») stumbled the
+detector, escalated to Haiku, and the polish — clean English in, clean English out, same
+unresolved pronoun — was rejected by the zip-verifier EVERY time: a burned cloud call per
+encounter, forever. The gap is COREFERENCE (parked work), not surface. Now
+`detector_unrepairable(llc, zip)` (normalizer): when EVERY unsound leaf's LLC subject reference
+is an unresolved third-person pronoun (EXACT closed-class {it, he, she, they, them}; I/you
+deliberately absent — the identity bridge resolves them, their emptiness would be a different
+bug worth the visibility), the escalation is SKIPPED (logged). Strict on purpose: a MIXED
+stumble (typo leaf beside the pronoun leaf) still escalates — the typo keeps its Haiku chance.
+Probed: the whale specimen + «he sleeps» + «it is important» gate; «the wrld is bg» (typos)
+still escalates; «I value logic» resolves and never stumbles. 4 tests (in
+`test_translator.py`). Gate **408 / 1 xfailed**.

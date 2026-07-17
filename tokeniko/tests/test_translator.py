@@ -103,3 +103,53 @@ def test_leaf_sound_signatures(compile_zip):
     assert _leaf_sound(sound) is True
     unknown = _zip_leaves(compile_zip("a wug is a blicket").items)[0]
     assert _leaf_sound(unknown) is False
+
+
+# ---- the UNREPAIRABLE classifier (2026-07-17, basket item 4: pronoun-subject leaves) ----------------
+# a pronoun-subject leaf is a COREFERENCE gap, not a surface one — the polish recompiles to the
+# same leaf and the verifier rejects it every time. detector_unrepairable skips the escalation
+# (saves the Haiku call); mixed stumbles (a typo beside the pronoun) still escalate.
+
+@pytest.fixture(scope="session")
+def compile_both(_io):
+    import copy
+    tok, ai = _io
+    from lib.llc.parser import parser
+    from lib.llc.compiler import compiler_compile
+
+    def _c(sentence):
+        rec = parser(sentence, tok, tok, ai)
+        return compiler_compile(copy.deepcopy(rec))  # (TKLLC, TKZip)
+
+    return _c
+
+
+def test_pronoun_subject_leaf_is_unrepairable(compile_both):
+    from lib.llc.normalizer import detector_unrepairable
+    for s in ("a whale is a mammal and it feeds milk", "he sleeps", "it is important"):
+        llc, zp = compile_both(s)
+        assert detector_stumbles(zp) is True                    # it IS a stumble…
+        assert detector_unrepairable(llc, zp) is True, s        # …but not a repairable one
+
+
+def test_typo_stumble_still_escalates(compile_both):
+    # a surface stumble (typos) must keep its Haiku chance — subject token is not a pronoun
+    from lib.llc.normalizer import detector_unrepairable
+    llc, zp = compile_both("the wrld is bg")
+    assert detector_stumbles(zp) is True
+    assert detector_unrepairable(llc, zp) is False
+
+
+def test_sound_sentence_is_not_unrepairable(compile_both):
+    # no unsound leaves at all -> False (the unrepairable gate only ever narrows escalation)
+    from lib.llc.normalizer import detector_unrepairable
+    llc, zp = compile_both("a cat is a mammal")
+    assert detector_unrepairable(llc, zp) is False
+
+
+def test_resolved_first_person_never_trips_the_gate(compile_both):
+    # «I value logic» resolves through the identity bridge — sound, no stumble, no gate
+    from lib.llc.normalizer import detector_unrepairable
+    llc, zp = compile_both("I value logic")
+    assert detector_stumbles(zp) is False
+    assert detector_unrepairable(llc, zp) is False

@@ -9,7 +9,7 @@ from lib.llc.parser import parser, parser_diagram, parser_init
 from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individual
 from lib.core.models import TKMemoryItemDoc
 from lib.core.evaluation_harness import zip_senses
-from lib.llc.normalizer import detector_stumbles, normalizer_enabled, normalizer_polish, verifier_preserves
+from lib.llc.normalizer import detector_stumbles, detector_unrepairable, normalizer_enabled, normalizer_polish, verifier_preserves
 
 logger_api = logging.getLogger("tokeniko-api")
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
@@ -419,7 +419,14 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # as before (unknown leaves never become beliefs; eval:unknown already asks).
         normalized_text: Optional[str] = None
         if normalizer_enabled() and flatResult and detector_stumbles(flatResult[1]):
-            polished = await normalizer_polish(tokens)
+            # unrepairable-by-tidying (pronoun-subject leaves = a COREFERENCE gap, not a surface
+            # one): the polish would recompile to the same leaf and be rejected — skip the call.
+            if detector_unrepairable(flatResult[0], flatResult[1]):
+                logger_api.info("[rag1] stumble UNREPAIRABLE for «%s» (pronoun-subject leaf) — "
+                                "escalation skipped", tokens[:60])
+                polished = None
+            else:
+                polished = await normalizer_polish(tokens)
             if polished:
                 rec2 = parser(polished, talkerEntity, app.state.tokeniko, app.state.ai_client)
                 flat2: tuple[TKLLC, TKZip] = compiler_compile(copy.deepcopy(rec2))
