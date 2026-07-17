@@ -694,7 +694,11 @@ the directedness gate.
 **F4 — adverbial quantification is invisible (noted, not punished this time).** The Cap's
 ladder «a mind ALWAYS thinks. a software SOMETIMES thinks. a calculator NEVER thinks» compiles
 with the adverbs as modifiers at best — the quantifier field reads determiners only. Third
-member of the dropped-word family (modal, possessive, adverbial-quantifier).
+member of the dropped-word family (modal, possessive, adverbial-quantifier). *(→ CLOSED
+2026-07-17 (basket item 3, the dropped-word family's last member): always/sometimes/never land
+the clause on its square corner (∀/∃/E) via the EXACT `anchor_adverbialQuantifier`; an explicit
+det quantifier wins (∀¬ preserved); "never"-as-quantifier reclassified out of polarity; the
+«most softwares think» ∃-inflation in the fuel path cured. `test_adverbial_quantifiers.py`.)*
 
 **Fix order (evidence-backed, supersedes the candidates list):** (1) the square of opposition
 in the kernel + (2) modality gates (kernel + extractor) — the logic-is-sacred pair; (3) the

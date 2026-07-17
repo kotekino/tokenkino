@@ -7,8 +7,8 @@ import copy
 
 from lib.core.tk import TKClauseType, TKEntity, TKEntityReference, TKMarker, TKOperator, TKQuantifier, TKStatement, TKStatements
 from lib.core.tkllc import LLCItemPayload, TKLLAttitude, TKLLEntityMapReference, TKLLCContent, TKLLCItem, TKLLEntityProperty, TKLLEntityReference, TKLLProperties
-from lib.llc.constants import _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _QUANTIFIER_NEGATIVE, _REFLEXIVE_PRONOUNS
-from lib.llc.anchors import anchor_resolve, anchor_comparison_polarity, anchor_quantifier
+from lib.llc.constants import _ADV_QUANTIFIER_NEGATIVE, _IMPLICATION_VERBS, _NEGATION_MARKERS, _NEGATIVE_QUANTIFIERS, _QUANTIFIER_NEGATIVE, _REFLEXIVE_PRONOUNS
+from lib.llc.anchors import anchor_resolve, anchor_comparison_polarity, anchor_quantifier, anchor_adverbialQuantifier
 
 from .c_state import _entities
 from .c_entities import compiler_predicateLemma
@@ -149,6 +149,40 @@ def compiler_predicateNegation(content: TKLLCContent) -> bool:
 
 def compiler_contentIsNegated(content: TKLLCContent) -> bool:
     return compiler_subjectNegation(content) or compiler_predicateNegation(content)
+
+# the first ADVERBIAL quantifier among the predicate's advmod properties («a mind ALWAYS thinks»),
+# or None — a non-quantifying adverb leaves the clause untouched (anchor default is None, EXACT).
+def compiler_adverbialQuantifier(content: TKLLCContent) -> TKQuantifier | None:
+    if not content.predicate:
+        return None
+    for p in content.predicate.properties:
+        if p.dep == "advmod":
+            q = anchor_adverbialQuantifier(compiler_entityToken(p.id))
+            if q is not None:
+                return q
+    return None
+
+# negation-property check EXCLUDING the adverbial-negative tokens: when "never" is consumed as the
+# NEGATIVE quantifier (the det-"no" rule's adverbial mirror) it is no longer clause polarity —
+# counting it here too would double-flip the truth.
+def compiler_propertyIsNegationNonAdverbial(prop: TKLLEntityProperty) -> bool:
+    tok = compiler_entityToken(prop.id)
+    if tok in _ADV_QUANTIFIER_NEGATIVE:
+        return False
+    if tok in _NEGATION_MARKERS:
+        return True
+    return any(compiler_propertyIsNegationNonAdverbial(p) for p in prop.properties)
+
+# clause polarity recomputed with the adverbial-negative reclassified away (mirrors
+# compiler_predicateNegation minus the "never" count; the negative-quantifier-subject branch kept).
+def compiler_predicateNegationNonAdverbial(content: TKLLCContent) -> bool:
+    other_roles = [content.predicate, content.direct, *content.indirects]
+    for role in other_roles:
+        if role and any(compiler_propertyIsNegationNonAdverbial(p) for p in role.properties):
+            return True
+    if content.subject and compiler_entityToken(content.subject.id) in _NEGATIVE_QUANTIFIERS:
+        return True
+    return False
 
 def compiler_getEntityIdByMap(map: TKLLEntityMapReference) -> int | None:
     for entity_map in _entities:
@@ -557,6 +591,22 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     if mainContent.quantifier == TKQuantifier.UNIVERSAL and compiler_subjectNegation(mainContent):
         mainContent.quantifier = TKQuantifier.NEGATED_UNIVERSAL
         mainContent.negated = compiler_predicateNegation(mainContent) or compiler_isNegativeComparison(mainContent)
+
+    # ADVERBIAL QUANTIFICATION (2026-07-17, the Socratic ladder F4): always/sometimes/never
+    # quantify a GENERIC sentence over its instances — «a mind always thinks» = ∀ (A corner),
+    # «a software sometimes thinks» = ∃ (I — no more «most softwares think» fuel inflation),
+    # «a calculator never thinks» = E. Only an INDEFINITE/GENERIC subject accepts the upgrade:
+    # an explicit determiner quantifier WINS («all calculators never think» stays ∀¬ — "never"
+    # remains plain negation there). When "never" becomes the NEGATIVE quantifier the clause
+    # polarity is recomputed WITHOUT it (the det-"no" reclassification's adverbial mirror).
+    if mainContent.quantifier in (TKQuantifier.INDEFINITE, TKQuantifier.GENERIC):
+        adv_q = compiler_adverbialQuantifier(mainContent)
+        if adv_q is not None:
+            mainContent.quantifier = adv_q
+            if adv_q == TKQuantifier.NEGATIVE:
+                mainContent.negated = (compiler_subjectNegation(mainContent)
+                                       or compiler_predicateNegationNonAdverbial(mainContent)
+                                       or compiler_isNegativeComparison(mainContent))
 
     # reflexive identity (a=a is necessarily true, a≠a necessarily false) — hardwired logic; the
     # evaluator pins these instead of grounding them. polarity stays in `negated`.

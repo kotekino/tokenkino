@@ -1196,3 +1196,24 @@ property-conditioned UNIVERSAL bar) — nominal-IMPLY-as-chainer-fuel was a deli
 regression-locked («a thing exists implies a thing is real» — the «machine thinks implies…»
 Stanza mis-root stays the documented pre-existing limitation). 7 tests
 (`test_nominal_imply.py`). Gate **396 / 1 xfailed**.
+
+**Adverbial quantifiers (2026-07-17 — basket item 3: the Cap's ladder lands on the square)**
+The Socratic dialogue's F4: «a mind ALWAYS thinks / a software SOMETIMES thinks / a calculator
+NEVER thinks» compiled with the adverbs inert — the quantifier field read determiners only, so
+the ladder's three corners collapsed into INDEFINITE (and "never" into plain negation). Now:
+- **`anchor_adverbialQuantifier`** (EXACT, closed-class — the anchor doctrine's function-word
+  rule): always→UNIVERSAL, sometimes/occasionally→EXISTENTIAL, never→NEGATIVE,
+  usually/often/normally/generally/typically→GENERIC; default None (a non-quantifying adverb
+  NEVER overwrites — unlike the det anchor's GENERIC default). rarely/seldom deliberately absent
+  (mostly-not has no clean corner).
+- **The compiler pass** (after the ¬∀ reclassification): only an INDEFINITE/GENERIC subject
+  accepts the upgrade — an explicit determiner quantifier WINS («all calculators never think»
+  stays ∀¬, "never" = plain negation there). "never"-as-quantifier is RECLASSIFIED out of clause
+  polarity (the det-"no" rule's adverbial mirror — `compiler_predicateNegationNonAdverbial`, no
+  double flip): «a calculator never thinks» = NEGATIVE + negated=False, the E corner.
+- **Fuel consequences, each probed**: «always» mints a LAW-strength rule (was generic);
+  «sometimes» mints NOTHING (was «most softwares think» — the some→all leap's cousin living in
+  the fuel path, cured); «never» mints the negative rule (E-corner fuel). The dropped-word
+  family (modal ◇/□, possessive, adverbial-quantifier) is now fully consumed.
+8 tests (`test_adverbial_quantifiers.py`: the ladder, the ∀¬ control, bare-plural upgrade,
+plain-adverb/intensifier inertness, object-carrying law). Gate **404 / 1 xfailed**.

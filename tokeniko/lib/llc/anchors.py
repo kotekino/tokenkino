@@ -48,6 +48,10 @@ from lib.llc.constants import (
     _QUANTIFIER_EXISTENTIAL,
     _QUANTIFIER_INDEFINITE,
     _QUANTIFIER_NEGATIVE,
+    _ADV_QUANTIFIER_UNIVERSAL,
+    _ADV_QUANTIFIER_EXISTENTIAL,
+    _ADV_QUANTIFIER_NEGATIVE,
+    _ADV_QUANTIFIER_GENERIC,
     _QUANTIFIER_DEFINITE,
     _WH_SUBJECT,
     _WH_PREDICATE,
@@ -510,6 +514,25 @@ _QUANTIFIER_TABLE: dict[str, TKQuantifier] = {
 def anchor_quantifier(lemma: str) -> TKQuantifier:
     key = (lemma or "").strip().lower()
     return _QUANTIFIER_TABLE.get(key, TKQuantifier.GENERIC)
+
+
+# ------------------------------------------------------------------------------------------------
+# ADVERBIAL quantifier (2026-07-17, the Socratic ladder F4): always/sometimes/never quantify a
+# generic sentence over its instances. EXACT only (closed-class). Unlike anchor_quantifier the
+# default is None, NOT GENERIC — a non-quantifying adverb ("quickly", "rarely") must leave the
+# clause's quantifier untouched, never overwrite it with the default.
+# ------------------------------------------------------------------------------------------------
+_ADV_QUANTIFIER_TABLE: dict[str, TKQuantifier] = {
+    **{w: TKQuantifier.UNIVERSAL for w in _ADV_QUANTIFIER_UNIVERSAL},
+    **{w: TKQuantifier.EXISTENTIAL for w in _ADV_QUANTIFIER_EXISTENTIAL},
+    **{w: TKQuantifier.NEGATIVE for w in _ADV_QUANTIFIER_NEGATIVE},
+    **{w: TKQuantifier.GENERIC for w in _ADV_QUANTIFIER_GENERIC},
+}
+
+
+def anchor_adverbialQuantifier(lemma: str) -> Optional[TKQuantifier]:
+    key = (lemma or "").strip().lower()
+    return _ADV_QUANTIFIER_TABLE.get(key)
 
 
 # ------------------------------------------------------------------------------------------------

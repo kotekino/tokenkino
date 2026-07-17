@@ -147,6 +147,19 @@ _QUANTIFIER_INDEFINITE = {"a", "an"}
 _QUANTIFIER_NEGATIVE = {"no", "none", "neither", "nothing", "nobody"}
 _QUANTIFIER_DEFINITE = {"the", "this", "that", "these", "those"}
 
+# ADVERBIAL quantifiers (2026-07-17, the Socratic ladder F4): closed-class adverbs that quantify a
+# GENERIC sentence over its instances — «a mind ALWAYS thinks» = ∀ (the A corner), «a software
+# SOMETIMES thinks» = ∃ (I), «a calculator NEVER thinks» = E. EXACT match only (closed-class, like
+# the determiner sets above). They upgrade ONLY an INDEFINITE/GENERIC subject — an explicit
+# determiner quantifier wins («ALL calculators NEVER think» stays ∀¬: "never" = plain negation
+# there). NB "never" is ALSO in _NEGATION_MARKERS; when consumed as the NEGATIVE quantifier it is
+# RECLASSIFIED (the det-"no" rule's adverbial mirror) so it does not double-flip the truth.
+# rarely/seldom deliberately absent (mostly-not has no clean corner — untouched, honest).
+_ADV_QUANTIFIER_UNIVERSAL = {"always"}
+_ADV_QUANTIFIER_EXISTENTIAL = {"sometimes", "occasionally"}
+_ADV_QUANTIFIER_NEGATIVE = {"never"}
+_ADV_QUANTIFIER_GENERIC = {"usually", "often", "normally", "generally", "typically"}
+
 # wh-words (interrogative pronouns/adverbs/determiners) -> the GAP ROLE = the variable X a wh-question
 # asks tokeniko to solve for. EXACT only (closed-class function words; the parser also confirms the
 # token via PronType=Int). who/whom/which/whose -> SUBJECT, what -> PREDICATE (copular complement),

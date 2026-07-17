@@ -64,7 +64,7 @@ The harvests' surviving threads + one cheap translator item, each small and seam
 
 - ✅ **The observation-fact seam** — landed 2026-07-17 (→ `landed.md`).
 - ✅ **Nominal IMPLY** — landed 2026-07-17 (→ `landed.md`).
-- **Adverbial-quantifier family** (always/sometimes/never → the quantifier field; second harvest).
+- ✅ **Adverbial-quantifier family** — landed 2026-07-17 (→ `landed.md`).
 - **Pronoun-subject leaves** classify as unrepairable (today they escalate-and-always-reject,
   burning a Haiku call) — the cheap fix; pairs with the parked coreference work.
 - **Indirect roles + markers as chainer fuel** (M5's orbit) — pairs with the restricted-universal
