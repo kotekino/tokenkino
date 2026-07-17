@@ -123,3 +123,115 @@ def test_internal_tokens_route_to_none():
     for token in (TokenikoAction.IGNORE.value, TokenikoAction.GUESS.value,
                   TokenikoAction.POST.value, TokenikoAction.RETREAT.value):
         assert _route(token, None, None) is None
+
+
+# ---- slice 2: the intensity tuple (2026-07-17 — confidence gates the shelf, arousal the register) ----
+
+def test_hedge_table_reversed_anchors():
+    from brain.compose import hedge_for
+    assert hedge_for(0.3) == "slightly"       # the 0.3 anchor, inverted
+    assert hedge_for(0.55) == "passably"      # the 0.5 anchor, inverted
+    assert hedge_for(0.9) is None             # sure enough to speak plain
+    assert hedge_for(1.0) is None
+    assert hedge_for(None) is None            # no signal -> no hedge
+
+
+def test_verdict_confidence_formulas():
+    from types import SimpleNamespace
+    from brain.thinking import verdict_confidence
+    # logic never hedges: INCONSISTENT is always 1.0, whatever the premises
+    r = SimpleNamespace(truth=0.5, premises=["p1"])
+    assert verdict_confidence(EvalToken.INCONSISTENT.value, r) == 1.0
+    # FALSE: extremity × premise trust (premise-less -> trust 1.0)
+    r = SimpleNamespace(truth=0.05, premises=[])
+    assert verdict_confidence(EvalToken.FALSE.value, r) == pytest.approx(0.95)
+    # TRUE mirrors
+    r = SimpleNamespace(truth=0.9, premises=[])
+    assert verdict_confidence(EvalToken.TRUE.value, r) == pytest.approx(0.9)
+    # question-like reflexes carry no hedgeable content
+    r = SimpleNamespace(truth=0.5, premises=[])
+    assert verdict_confidence(EvalToken.UNKNOWN.value, r) is None
+    assert verdict_confidence(None, r) is None
+
+
+@pytest.fixture()
+def banded_shelf(_io):
+    from lib.core.models import TKScaffoldDoc
+    rows = [
+        TKScaffoldDoc(category="speakup_false", template="no, that is not true",
+                      intensity_band=[0.6, 1.0]),
+        TKScaffoldDoc(category="speakup_false", template="hmm, that does not seem right to me",
+                      intensity_band=[0.0, 0.6]),
+    ]
+    for r in rows:
+        r.insert()
+    yield
+    for r in rows:
+        r.delete()
+
+
+def test_confidence_band_gates_the_shelf(banded_shelf):
+    rng = random.Random(7)
+    high = {creative_compose("speakup_false", intensity={"confidence": 0.95}, rng=rng)
+            for _ in range(20)}
+    assert high == {"no, that is not true"}                       # the plain register only
+    low = {creative_compose("speakup_false", intensity={"confidence": 0.3}, rng=rng)
+           for _ in range(20)}
+    assert low == {"hmm, that does not seem right to me"}          # the soft register only
+
+
+def test_over_narrow_banding_never_mutes(banded_shelf, _io):
+    from lib.core.models import TKScaffoldDoc
+    # arousal band nothing satisfies -> the band-shelf empties -> the FULL shelf speaks anyway
+    row = TKScaffoldDoc(category="ask_more", template="tell me everything",
+                        arousal_band=[0.99, 1.0])
+    row.insert()
+    try:
+        text = creative_compose("ask_more", intensity={"confidence": 0.5, "arousal": 0.1},
+                                rng=random.Random(3))
+        assert text == "tell me everything"    # never-mute: fallback to the whole shelf
+    finally:
+        row.delete()
+
+
+def test_hedge_slot_binds_the_adverb(_io):
+    from lib.core.models import TKScaffoldDoc
+    row = TKScaffoldDoc(category="speakup_disagree", template="I {hedge} disagree",
+                        slots=["hedge"], intensity_band=[0.0, 0.7], weight=50.0)
+    row.insert()
+    try:
+        text = creative_compose("speakup_disagree", intensity={"confidence": 0.3},
+                                rng=random.Random(5))
+        assert text == "I slightly disagree"   # the Zadeh slot: table word, template grammar
+        # at high confidence the hedge key is absent -> the slotted row is unreachable
+        plain = creative_compose("speakup_disagree", intensity={"confidence": 0.95},
+                                 rng=random.Random(5))
+        assert plain == "I do not agree"
+    finally:
+        row.delete()
+
+
+def test_plan_action_carries_the_tuple(_io):
+    from types import SimpleNamespace
+    from brain.behavior import plan_action
+    idea = SimpleNamespace(
+        action_token=TokenikoAction.WHY.value, trigger=EvalToken.UNKNOWN.value,
+        urge=0.6, source=None, answer=None, material=None, target=None, confidence=0.42,
+    )
+    plan = plan_action(idea, "tokeniko-uid")
+    intensity = plan["payload"]["intensity"]
+    assert intensity["confidence"] == 0.42
+    assert intensity["arousal"] == pytest.approx(0.6)   # no source -> arousal = raw urge
+
+
+def test_answer_confidence_covers_the_question_path(_io):
+    from types import SimpleNamespace
+    from brain.behavior import plan_action
+    idea = SimpleNamespace(
+        action_token=TokenikoAction.ANSWER.value, trigger=EvalToken.QUESTION.value,
+        urge=0.9, source=None, material=None, target="asker", confidence=None,
+        answer={"kind": AnswerKind.POLAR.value, "verdict": AnswerVerdict.YES.value,
+                "confidence": 0.87, "reason": ""},
+    )
+    plan = plan_action(idea, "tokeniko-uid")
+    assert plan["payload"]["intensity"]["confidence"] == 0.87   # the answer dict fills the gap

@@ -83,6 +83,22 @@ def status_to_token(result: EvaluatorResult) -> Optional[str]:
     return None
 
 
+# the CONTENT's epistemic confidence for the verdict (compose 2.0 slice 2) — computed HERE, the
+# decision site, where truth + premises are in hand. INCONSISTENT = 1.0 (logic-certain: logic is
+# sacred, logic never hedges). TRUE/FALSE = truth EXTREMITY scaled by the premises' trust — a
+# refutation through a 0.6-trust taught rule pushes back softer than one through 1.0 axioms.
+# UNKNOWN/None = no hedgeable content (the reflex asks, it does not assert).
+def verdict_confidence(token: Optional[str], result: EvaluatorResult) -> Optional[float]:
+    if token == EvalToken.INCONSISTENT.value:
+        return 1.0
+    trust = evaluation_harness._conclusion_trust(result.premises) if result.premises else 1.0
+    if token == EvalToken.TRUE.value:
+        return max(0.0, min(1.0, result.truth * trust))
+    if token == EvalToken.FALSE.value:
+        return max(0.0, min(1.0, (1.0 - result.truth) * trust))
+    return None
+
+
 # the D1b novelty split. A RESOLVED-true input's `derivation` may carry several provenance strings;
 # only a FORWARD-CHAINED materialization is theorem-worthy:
 #   "chain: ..."   — a UNIVERSAL rule fired down the is_a taxonomy to derive a NEW property
@@ -859,7 +875,8 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                     item.original, because_of.original, str(because_of.id),
                 )
             else:
-                ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id))
+                ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id),
+                                                 confidence=verdict_confidence(token, result))
                 logger.info(
                     "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
                     str(item.id),

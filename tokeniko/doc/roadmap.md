@@ -77,10 +77,8 @@ intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-h
 
 1. ✅ **`MEMScaffold` store + seed + `creative_compose` on speak actions** — landed 2026-07-17
    (→ `landed.md`; seed `--apply` = the author's hand, then restart the brain).
-2. **Intensity** = a 2-tuple (confidence, arousal) computed at the decision sites from existing
-   signals (truth degree / derivation tier / premise trust; urge / novelty / self-relevance),
-   carried in the Action payload; confidence picks the hedge (Zadeh — the advmod anchor table run
-   backwards), arousal the register.
+2. ✅ **Intensity** — landed 2026-07-17 (→ `landed.md`; seed `--apply` for the 4 banded variants
+   = the author's hand, then restart the brain).
 3. **rag2-out** — the voice-side verifier (moved here from the translator section — compose gives
    it its object): polished outbound English must recompile to the bound scaffold zip
    (consensus-with-the-compiler on the way out, mirroring the inbound gate). The blog's

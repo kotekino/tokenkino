@@ -29,7 +29,8 @@ load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "toke
 
 from lib.core.io import init_io, get_tokeniko
 
-# the starter voice: (category, template, slots, weight, comment).
+# the starter voice: (category, template, slots, weight, comment) — optionally extended with a
+# 6th element, the CONFIDENCE band [lo, hi] (slice 2: default [0,1] = fits any confidence).
 SCAFFOLDS = [
     # answers (tokeniko:answer — the verdict speaks)
     ("answer_yes",              "yes",                                        [], 1.0, "polar YES"),
@@ -56,15 +57,24 @@ SCAFFOLDS = [
     ("concede_weakened",          "you are right — what remains true is that {weakened}", ["weakened"], 1.0, "subaltern survives"),
     ("concede_retract_weakened",  "you are right — I no longer hold that {retracted} — what remains true is that {weakened}",
                                   ["retracted", "weakened"], 1.0, "full retreat narration"),
+    # slice 2 — the first BANDED variants (intensity shades the voice; the great seeding fills the
+    # shelves properly). Low-confidence registers for the assertive categories + the {hedge}
+    # exemplar (the Zadeh slot: the table supplies the adverb, the template owns the grammar).
+    ("speakup_false",   "hmm, that does not seem right to me",  [], 1.0, "soft register", [0.0, 0.6]),
+    ("answer_yes",      "probably yes",                          [], 1.0, "hedged register", [0.0, 0.93]),
+    ("answer_no",       "probably not",                          [], 1.0, "hedged register", [0.0, 0.93]),
+    ("speakup_disagree", "I {hedge} disagree",           ["hedge"], 1.0, "the Zadeh exemplar", [0.0, 0.7]),
 ]
 
-_PLACEHOLDER = "something"  # neutral slot filler for the compile pass (the wh-gap inverted)
+_PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)
+_SLOT_PLACEHOLDERS = {"hedge": "slightly"}  # a hedge slot binds an ADVERB — fill with one
 
 
 def compile_template(template: str, slots: list, tok, ai):
     from lib.llc.parser import parser
     from lib.llc.compiler import compiler_compile
-    text = template.format(**{s: _PLACEHOLDER for s in slots}) if slots else template
+    text = (template.format(**{s: _SLOT_PLACEHOLDERS.get(s, _PLACEHOLDER) for s in slots})
+            if slots else template)
     try:
         rec = parser(text, tok, tok, ai)
         return compiler_compile(copy.deepcopy(rec))[1]
@@ -85,16 +95,18 @@ def main() -> int:
         parser_init()  # zips are compiled only on the real run (dry-run stays instant)
 
     created = skipped = 0
-    for category, template, slots, weight, comment in SCAFFOLDS:
+    for row in SCAFFOLDS:
+        category, template, slots, weight, comment = row[:5]
+        band = list(row[5]) if len(row) > 5 else [0.0, 1.0]
         exists = TKScaffoldDoc.find_one({"category": category, "template": template}).run()
         if exists is not None:
             skipped += 1
             continue
-        print(f"[{category}] w={weight} «{template}»  — {comment}")
+        print(f"[{category}] w={weight} band={band} «{template}»  — {comment}")
         if apply:
             zp = compile_template(template, slots, tok, ai)
             TKScaffoldDoc(category=category, template=template, slots=slots,
-                          zip=zp, weight=weight, provenance="seed").insert()
+                          zip=zp, weight=weight, intensity_band=band, provenance="seed").insert()
         created += 1
     print(f"\n{'inserted' if apply else 'would insert'} {created}, skipped {skipped} (existing)")
     if not apply:

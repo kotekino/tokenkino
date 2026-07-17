@@ -49,23 +49,60 @@ _FALLBACK: dict[str, str] = {
 }
 
 
+# the Zadeh hedge (slice 2): the advmod fuzzy anchors read BACKWARDS — inbound the compiler maps
+# "slightly"→0.3 / "passably"→0.5 as degree scalars; outbound a mid/low confidence maps back to
+# the anchor word. Only templates DESIGNED for it consume the hedge (the {hedge} slot: «I {hedge}
+# disagree») — the table supplies the word, the template owns the grammar, so a hedge can never
+# produce broken English. High confidence -> None: the hedge key is absent from the data and
+# hedge-slotted scaffolds become unreachable (plain speech). Logic-certain content (1.0) is
+# upstream's business: logic never hedges.
+def hedge_for(confidence: Optional[float]) -> Optional[str]:
+    if confidence is None:
+        return None
+    if confidence < 0.45:
+        return "slightly"    # the 0.3 anchor, inverted
+    if confidence < 0.7:
+        return "passably"    # the 0.5 anchor, inverted
+    return None              # sure enough to speak plain
+
+
+def _in_band(band, value: Optional[float]) -> bool:
+    if value is None or not band:
+        return True          # no signal / no band -> the gate stays open
+    lo, hi = band[0], band[1]
+    return lo <= value <= hi
+
+
 # pick one scaffold from the category's shelf and bind the data. The shelf = enabled rows of the
 # category whose slots the data can satisfy (subset gate — a scaffold demanding {retracted} is
-# unreachable without it); the pick is weighted-random (`rng` injectable for deterministic tests);
-# the bind is str.format on named keys — VERBATIM, the fence. Any store trouble -> the fallback.
+# unreachable without it) AND whose intensity/arousal bands contain the tuple (slice 2: intensity
+# joins category as the retrieval double key). An emptied band-shelf falls back to the slot-shelf
+# — banding SHADES the voice, never mutes it. The pick is weighted-random (`rng` injectable); the
+# bind is str.format on named keys — VERBATIM, the fence. Any store trouble -> the fallback.
 def creative_compose(category: str, data: Optional[dict] = None,
-                     rng: Optional[random.Random] = None) -> str:
+                     rng: Optional[random.Random] = None,
+                     intensity: Optional[dict] = None) -> str:
     data = {k: str(v) for k, v in (data or {}).items()}
+    confidence = (intensity or {}).get("confidence")
+    arousal = (intensity or {}).get("arousal")
+    hedge = hedge_for(confidence)
+    if hedge is not None:
+        data.setdefault("hedge", hedge)  # available to {hedge}-designed templates only
     template = _FALLBACK.get(category, "")
     try:
         from lib.core.models import TKScaffoldDoc
         shelf = [s for s in TKScaffoldDoc.find({"category": category, "enabled": True}).to_list()
                  if set(s.slots or []) <= set(data)]
-        if shelf:
+        banded = [s for s in shelf
+                  if _in_band(getattr(s, "intensity_band", None), confidence)
+                  and _in_band(getattr(s, "arousal_band", None), arousal)]
+        pool = banded or shelf  # never-mute: an over-narrow banding falls back to the whole shelf
+        if pool:
             picker = rng if rng is not None else random
-            chosen = picker.choices(shelf, weights=[max(s.weight, 0.0) or 0.0 for s in shelf])[0]
+            chosen = picker.choices(pool, weights=[max(s.weight, 0.0) or 0.0 for s in pool])[0]
             template = chosen.template
-            logger.debug("[compose] %s -> scaffold %s «%s»", category, str(chosen.id), template)
+            logger.debug("[compose] %s (c=%s a=%s) -> scaffold %s «%s»",
+                         category, confidence, arousal, str(chosen.id), template)
     except Exception as error:  # the voice must never crash the brain — fall back, log, speak
         logger.warning("[compose] scaffold store unavailable for %s (%s) — fallback", category, error)
     try:
@@ -137,11 +174,13 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
 
 # compose the RAW decision text for an outward action — the seam plan_action calls. `answer` is
 # the AnswerResult dict (tokeniko:answer / tokeniko:concede); `trigger` is the eval:* token that
-# fired the reflex. Returns the composed string, or "" when there is nothing to say.
+# fired the reflex; `intensity` is the (confidence, arousal) tuple assembled by the plan (slice 2
+# — gates the shelf + feeds the hedge). Returns the composed string, or "" when there is nothing
+# to say.
 def compose_raw(action_token: str, trigger: Optional[str] = None, answer: Optional[dict] = None,
-                rng: Optional[random.Random] = None) -> str:
+                rng: Optional[random.Random] = None, intensity: Optional[dict] = None) -> str:
     routed = _route(action_token, trigger, answer)
     if routed is None:
         return ""
     category, data = routed
-    return creative_compose(category, data, rng=rng)
+    return creative_compose(category, data, rng=rng, intensity=intensity)

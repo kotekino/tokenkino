@@ -1257,3 +1257,32 @@ Hunch 19's first brick: `compose_raw`'s hardwired strings re-homed as data. The 
 23 tests (`test_compose_scaffolds.py`: 17-shape router parity on an EMPTY store, weighted-random
 superposition + enabled-only, the verbatim fence, the slot gate, fallback paths). Gate
 **431 / 1 xfailed**.
+
+**Compose 2.0 slice 2 — intensity (2026-07-17: the voice gains shades)**
+The (confidence, arousal) tuple, computed at the decision sites from signals that already
+existed — nothing invented:
+- **Confidence** = the content's epistemic certainty: `verdict_confidence` (brain/thinking) —
+  INCONSISTENT = 1.0 always (**logic never hedges**); TRUE/FALSE = truth EXTREMITY × premise
+  trust (a refutation through a 0.6-trust taught rule pushes back softer than one through 1.0
+  axioms); UNKNOWN/why/ask = None (a question has no hedgeable content). The question path rides
+  the AnswerResult's own `confidence` (already computed); the concession rides the corrector's
+  trust-gated certainty (`corrector_trust` at the CORRECTION_DONE spawn).
+- **Arousal** = `effective_urge(idea, src)` — urge × directedness, the signal the design
+  predicted, already computed at plan time.
+- **The plumbing**: `MEMIdea.confidence` (decision-site computed, spawn-carried) →
+  `plan_action` assembles `payload["intensity"] = {confidence, arousal}` (auditable on every
+  stored Action; the native-zip channel reads it raw) → `compose_raw`/`creative_compose`.
+- **Retrieval**: `intensity_band` (confidence) + the new `arousal_band` gate the shelf jointly
+  with category — the double key complete. The 19 live rows need NO migration (defaults fill on
+  read). **Never-mute**: an emptied band-shelf falls back to the whole shelf — banding shades
+  the voice, never silences it.
+- **Hedges, both mechanisms**: (A) band-gated whole-sentence variants (4 seeded: soft
+  speakup_false [0,0.6], probably-yes/not [0,0.93], the exemplar); (B) the `{hedge}` slot — the
+  advmod fuzzy anchors read BACKWARDS (confidence <0.45 → "slightly" (the 0.3 anchor), <0.7 →
+  "passably" (0.5), else plain — the table supplies the adverb, the template owns the grammar,
+  so a hedge can never produce broken English; at high confidence the hedge key is absent and
+  hedge-slotted rows are unreachable). «I {hedge} disagree» at confidence 0.3 → «I slightly
+  disagree».
++7 tests (hedge table, confidence formulas incl. the logic-never-hedges invariant, band gating,
+never-mute, the Zadeh slot end-to-end, plan payload assembly, the answer-path fallback). Gate
+**438 / 1 xfailed**.

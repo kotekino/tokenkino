@@ -275,6 +275,11 @@ class MEMIdea(BaseModel):
     feasibility: Optional[float] = None         # set later by Priorities (can-it-be-done)
     source: Optional[str] = None                # provenance: the memory/theorem/axiom id that spawned it
     answer: Optional[dict] = None               # for eval:question — the computed AnswerResult (verdict/value/confidence/reason)
+    # slice 2 (compose 2.0): the CONTENT's epistemic confidence, computed at the decision site
+    # (truth extremity × premise trust; 1.0 = logic-certain — logic never hedges). None = the
+    # reflex has no hedgeable content (why/ask/conflict). The plan pairs it with arousal
+    # (= effective urge) into the Action payload's intensity tuple.
+    confidence: Optional[float] = None
     material: Optional[dict] = None             # for life:* — the life-event context the post composer will need (theorem id / soul + episode), analogous to `answer` for questions
     target: Optional[str] = None                # a DIRECTED reflex's recipient (e.g. tokeniko:answer → the asker's stakeholder id)
     status: IdeaStatus = Field(default=IdeaStatus.PENDING)
@@ -321,9 +326,12 @@ class MEMScaffold(BaseModel):
     # wh-machinery's "sentence with a hole" pointed the other way). None when the fragment honestly
     # does not compile ("?"). Consumers: equivalence-learning + the rag2-out verifier (slices 3+).
     zip: Optional[TKZip] = None
-    # the (confidence, arousal) band this scaffold suits — stored now, CONSUMED in slice 2
-    # (intensity joins category as a retrieval gate); [0,1] = fits any intensity.
+    # the intensity bands this scaffold suits (slice 2: intensity joins category as a retrieval
+    # gate). intensity_band = the CONFIDENCE band (how sure the content is — picks the hedge
+    # register); arousal_band = the AROUSAL band (how much it matters — picks the expansiveness).
+    # [0,1] = fits any; an emptied shelf falls back to the full shelf (banding shades, never mutes).
     intensity_band: list[float] = Field(default=[0.0, 1.0], min_length=2, max_length=2)
+    arousal_band: list[float] = Field(default=[0.0, 1.0], min_length=2, max_length=2)
     weight: float = Field(default=1.0)               # selection weight within the category's shelf
     provenance: str = Field(default="seed")          # "seed" | "taught:<uid>" (the learning tail)
     trusted: float = Field(default=1.0)              # curated = full trust; learned rows arrive lower

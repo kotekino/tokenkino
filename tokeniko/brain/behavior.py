@@ -85,7 +85,8 @@ def behavior_for(trigger: str) -> list[TKBehaviorRuleDoc]:
 # noteworthy the event is shapes the urge AT SPAWN and the act threshold does the rest in Priorities.
 def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
                     answer: Optional[dict] = None, target: Optional[str] = None,
-                    material: Optional[dict] = None, urge_scale: float = 1.0) -> list[TKIdeaDoc]:
+                    material: Optional[dict] = None, urge_scale: float = 1.0,
+                    confidence: Optional[float] = None) -> list[TKIdeaDoc]:
     ideas: list[TKIdeaDoc] = []
     for rule in behavior_for(trigger):
         # IDEMPOTENCY (the obsessive-thinking guard): never two ideas for the same
@@ -106,6 +107,7 @@ def spawn_ideas_for(trigger: str, payload=None, source: Optional[str] = None,
             answer=answer,
             material=material,
             target=target,
+            confidence=confidence,  # slice 2: the content's epistemic confidence (decision-site computed)
         )
         idea.insert()
         ideas.append(idea)
@@ -207,7 +209,16 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
     if idea.material is not None:
         payload["material"] = idea.material  # life:* — the post composer's fuel (theorem / encounter context)
-    raw = compose.compose_raw(token, idea.trigger, idea.answer)
+    # the INTENSITY tuple (compose 2.0 slice 2): confidence = the content's epistemic certainty
+    # (decision-site computed on the idea; the answer dict's own confidence covers the question
+    # path); arousal = the effective urge (urge × directedness — how much this matters to him
+    # NOW). Gates the scaffold shelf + feeds the hedge; auditable on the stored Action.
+    confidence = idea.confidence
+    if confidence is None and idea.answer is not None:
+        confidence = idea.answer.get("confidence")
+    intensity = {"confidence": confidence, "arousal": effective_urge(idea, src)}
+    payload["intensity"] = intensity
+    raw = compose.compose_raw(token, idea.trigger, idea.answer, intensity=intensity)
     if raw:
         payload["raw"] = raw             # the decision text -> senses decompiles -> fluent English
         # (compose_raw returns "" for post — that's fine: raw is OPTIONAL here, the post composer

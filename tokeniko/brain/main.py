@@ -250,6 +250,10 @@ def _execute_retreat(action: TKActionDoc) -> None:
             "corrector": ct.get("corrector"),
         },
         target=ct.get("corrector"),
+        # slice 2: the concession's confidence = the corrector's trust-gated certainty (the
+        # retreat only ran because it cleared the belief's own trust — he concedes as surely
+        # as he was corrected).
+        confidence=ct.get("corrector_trust"),
     )
     logger.info(
         "[actions] RETREAT complete: %d doc(s) archived, %d dependent theorem(s) cascaded, "
