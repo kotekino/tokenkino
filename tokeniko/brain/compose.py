@@ -81,6 +81,10 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
         return "ask_more", {}
     if action_token == TokenikoAction.WHY.value:
         return "why", {}
+    if action_token == TokenikoAction.MENTION.value:
+        # the anecdote (slice 5): the notion rides VERBATIM (the fence) in the side-note register.
+        notion = (answer or {}).get("notion")
+        return ("anecdote", {"notion": notion}) if notion else None
     if action_token == TokenikoAction.CONCEDE.value:
         return _route_concede(answer or {})
     return None  # post / internal reflexes have no Discord-reply text here

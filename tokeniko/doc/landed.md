@@ -1336,3 +1336,35 @@ Case 4 and case 2, on one refactor:
   voice-in-memory principle, whole).
 +5 tests (blog fallback census, shelf-spoken lead, the belief route, end-to-end with the slot
 gate, premise resolution). Gate **455 / 1 xfailed**.
+
+**Compose 2.0 slice 5 — the context ring + the anecdote (2026-07-17: the first UNPROMPTED speech; THE ARC'S FIVE SLICES COMPLETE)**
+Case 3, the crown — and deliberately hunch 20's first brick (the working-memory seed, the SA
+social column):
+- **`brain/context.py` — the short-term context ring**: per-channel RAM deque of
+  `(speaker_uid, zip, original, ts, mine)`, capped (30 rows / 30 min, env-tunable). A CACHE,
+  never a source of truth: fed live by thinking, lazily WARMED from the memory-timeseries tail
+  on first touch (bounded query), rebuilt free on restart (`reset()` IS a restart — the test
+  seam). Others' rows → the TOPIC CENTROID (mean 2925-semantic of recent channel talk; his own
+  speech follows the topic, never defines it); RAM state → the social throttles. Found + fixed
+  in the battery: the naive-UTC epoch trap (Mongo returns naive datetimes; `.timestamp()` read
+  them as JST −9h and the eviction swept every warmed row — the `_epoch_utc` guard mirrored).
+- **The association scan**: in-memory cosine over cached per-doc KB centroids (axioms + theorems,
+  TTL-cached) — the honest big-O at today's KB scale (laptop-ceiling ruling; `$vectorSearch`
+  becomes right when the KB grows). Gates, each a social cost: the CONSERVATIVE floor
+  (`ANECDOTE_FLOOR`=0.6 — a wrong side-note costs more than silence), per-channel COOLDOWN
+  (30 min), NOVELTY (a notion told in this channel recently never repeats; armed only when the
+  idea actually spawned).
+- **The trigger discipline** (`thinking._try_anecdote`): only QUIET verdicts (TRUE =
+  silence-is-consent, or no strong conclusion — every other verdict already speaks or revises),
+  only the AMBIENT directedness band [0.5, 0.9) — addressed talk is answered, someone else's
+  thread keeps the polite eavesdropper silent. `eval:association` → `tokeniko:mention`
+  (SEND_MESSAGE, threads under the stirring message); the urge scales with proximity
+  ((1+p)/2 — how close it is IS how much it itches) and the trigger joins the SELF-RELEVANT
+  floor (the push comes from within; without it, ambient×urge could never clear the act bar and
+  case 3 would be stillborn). Behavior rule seeded @ 0.75 (floor-grade p=0.6 → 0.54 speaks).
+- **The mouth**: router category `anecdote`, the notion VERBATIM (the fence), the side-note
+  register seeded («that reminds me — {notion}», «funny — I know something about that: …», «by
+  the way, …») so a near-miss reads charming, not broken.
+9 tests (`test_context_ring.py`: cap/evict, warm-from-timeseries, others-only centroid, floor,
+cooldown+novelty, the ambient band, spawn-gated arming, router+fence, dispatch census). Gate
+**464 / 1 xfailed**. Env knobs documented in `.env.template`.

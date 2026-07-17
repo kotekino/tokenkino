@@ -57,6 +57,9 @@ _DISPATCH = {
     # (idea.target), spawned by the retreat HANDLER so it can state what was actually retracted.
     TokenikoAction.RETREAT.value: ActionType.REVISE_BELIEF,
     TokenikoAction.CONCEDE.value: ActionType.SEND_MESSAGE,
+    # the anecdote (compose 2.0 slice 5): an on-topic KB notion offered as a side-note into the
+    # channel — outward, threads under the message that stirred the association.
+    TokenikoAction.MENTION.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
@@ -132,6 +135,11 @@ _SELF_RELEVANT_TRIGGERS = {
     EvalToken.CONFLICT.value,
     EvalToken.CORRECTION.value,
     EvalToken.CORRECTION_DONE.value,
+    # the anecdote (slice 5): the association's push comes from WITHIN — his own thought itching
+    # to be shared, not the speaker's address. Without the floor, ambient talk (0.6) could never
+    # clear the act threshold and case 3 would be stillborn; below ambient the scale stands (the
+    # polite eavesdropper does not interject into someone else's thread).
+    EvalToken.ASSOCIATION.value,
 }
 _ADDRESSED_FLOOR = 0.9   # senses/inbound.grade_directedness: addressed
 _AMBIENT_GRADE = 0.6     # senses/inbound.grade_directedness: ambient

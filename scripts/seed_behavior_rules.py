@@ -60,6 +60,13 @@ RULES = [
     #   life:encounter @ 0.7 — flat sig 0.9: 0.7x0.9 = 0.63 >= 0.5 -> a fold move always posts.
     (LifeEventKind.THEOREM.value,   TokenikoAction.POST.value, 0.65, "a new postable theorem — share it on the blog"),
     (LifeEventKind.ENCOUNTER.value, TokenikoAction.POST.value, 0.7,  "an opinion about someone moved — note the encounter"),
+    # the anecdote (compose 2.0 slice 5, case 3): an on-topic association offered as a side-note.
+    # CALIBRATION — the idea's urge = 0.75 x (1+proximity)/2 (thinking scales by how close it is),
+    # then the self-relevant directedness floor (0.9, the push comes from within) at Priorities:
+    # floor-grade p=0.6 -> 0.75x0.80x0.9 = 0.54 >= 0.5 speaks; a perfect hit p=1.0 -> 0.675.
+    # The social throttles (conservative floor, per-channel cooldown, novelty) live in
+    # brain/context.py — this urge is only the personality's APPETITE for side-notes.
+    (EvalToken.ASSOCIATION.value, TokenikoAction.MENTION.value, 0.75, "an on-topic association — offer it as a side-note"),
 ]
 
 

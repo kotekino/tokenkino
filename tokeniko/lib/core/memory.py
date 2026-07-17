@@ -240,6 +240,10 @@ class EvalToken(str, Enum):
     # sufficiently-trusted corrector defeats a LEARNED generalization — retreat, don't refute-back.
     CORRECTION = "eval:correction"            # a valid correction detected -> tokeniko:retreat (INTERNAL)
     CORRECTION_DONE = "eval:correction-done"  # the retreat EXECUTED (spawned by the handler) -> tokeniko:concede (the directed acknowledgment)
+    # compose 2.0 slice 5 (case 3, the anecdote): a QUIET channel moment whose topic sits close to
+    # a KB notion — the ideas-association urge. Spawned by thinking's context-ring scan, never by a
+    # verdict: the push comes from WITHIN (his own thought), not from being addressed.
+    ASSOCIATION = "eval:association"
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):
@@ -263,6 +267,9 @@ class TokenikoAction(str, Enum):
     # truthfully state what was retracted — sequential by construction, never a collapse-sibling.
     RETREAT = "tokeniko:retreat"
     CONCEDE = "tokeniko:concede"
+    # compose 2.0 slice 5: offer an on-topic KB notion as a pure creative side-note (the anecdote —
+    # eval:association's reflex; spoken in the side-note register so a near-miss reads charming).
+    MENTION = "tokeniko:mention"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a

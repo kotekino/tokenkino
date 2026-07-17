@@ -16,6 +16,7 @@
 # --------------------------------------------------------------
 import json
 import logging
+import os
 import random
 import time
 from datetime import datetime, timedelta, timezone
@@ -39,7 +40,7 @@ from lib.core.models import (
     TKTheoremDoc,
 )
 from lib.core.zip_native import assemble_reportative_zip
-from brain import api_client, behavior
+from brain import api_client, behavior, context
 
 logger = logging.getLogger("tokeniko-brain")
 
@@ -81,6 +82,36 @@ def status_to_token(result: EvaluatorResult) -> Optional[str]:
         if result.truth < FALSE_CEIL:
             return EvalToken.FALSE.value
     return None
+
+
+# THE ANECDOTE (compose 2.0 slice 5, case 3): on a QUIET channel moment (the item drew no outward
+# reflex) whose directedness sits in the AMBIENT band — channel talk not addressed to him, but not
+# someone else's thread (the polite eavesdropper stays quiet below) — try the ideas-association:
+# the context ring's topic centroid against the KB (context.find_association, floor + cooldown +
+# novelty inside). The urge scales with PROXIMITY — how close it is IS how much it itches —
+# mapped (1+p)/2 so a floor-grade association can still clear the act threshold under the
+# self-relevant directedness floor (the push comes from within, not from being addressed).
+_ANECDOTE_D_LO = float(os.getenv("ANECDOTE_DIRECTEDNESS_LO", "0.5"))
+_ANECDOTE_D_HI = float(os.getenv("ANECDOTE_DIRECTEDNESS_HI", "0.9"))
+
+
+def _try_anecdote(item) -> None:
+    d = getattr(item, "directedness", None)
+    if d is None or not (_ANECDOTE_D_LO <= d < _ANECDOTE_D_HI):
+        return
+    key = context.channel_key(item)
+    assoc = context.find_association(key)
+    if assoc is None:
+        return
+    ideas = behavior.spawn_ideas_for(
+        EvalToken.ASSOCIATION.value, payload=item.zip, source=str(item.id),
+        answer=assoc, target=item.sourceId,
+        urge_scale=(1.0 + assoc["proximity"]) / 2.0,
+    )
+    if ideas:
+        context.record_anecdote(key, assoc["notion_id"])
+        logger.info("[thinking] ASSOCIATION «%s» (p=%.2f) on channel %s -> side-note idea",
+                    assoc["notion"], assoc["proximity"], key)
 
 
 # B1 (compose 2.0 slice 4): the refuting BELIEF behind a FALSE verdict — the first premise that
@@ -846,6 +877,13 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         key=lambda c: c.timestamp,
     )
 
+    # the SHORT-TERM CONTEXT ring (compose 2.0 slice 5): every processed item is channel talk —
+    # feed it (a derivable RAM cache; the anecdote's topic centroid + hunch 20's social column).
+    try:
+        context.context_add(item)
+    except Exception as error:
+        logger.warning("[thinking] context ring feed failed (%s) — continuing", error)
+
     # --------------------------------------------------------------
     # QUESTION vs ASSERTION (#4 D, questions P3): a question is ANSWERED, not believed. answer_zip
     # returns None for a declarative (a cheap mood check BEFORE any KB load), so the assertion path
@@ -947,6 +985,13 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                 result.status.value,
                 result.truth,
             )
+
+        # THE ANECDOTE (slice 5, case 3): only on the QUIET verdicts — a TRUE (silence-is-consent)
+        # or no strong conclusion. Every other verdict already speaks (speakup/why/clarify) or
+        # revises; a question is answered above. The gates (ambient band, floor, cooldown,
+        # novelty) live in _try_anecdote/context.
+        if not corrected and token in (None, EvalToken.TRUE.value):
+            _try_anecdote(item)
 
         # ----------------------------------------------------------
         # CROSS-ITEM CONSISTENCY (#4 D): cross-check this ASSERTION against the SAME speaker's recent

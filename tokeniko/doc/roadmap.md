@@ -84,12 +84,9 @@ intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-h
    design).*
 4. ✅ **Case 4 + case 2** — landed 2026-07-17 (→ `landed.md`; B1 ruling: the KB notion enriches
    the speakup. Seed `--apply` for the 15 new rows = the author's hand).
-5. **The context ring → the anecdote** (case 3): a per-channel RAM ring buffer
-   `(speaker_uid, zip, timestamp, mine)` — a CACHE derivable from the memory timeseries, rebuilt on
-   restart, never a source of truth; own rows = novelty check, others' = topic centroid. Then the
-   association urge at Priorities: low-directedness channel talk → `$vectorSearch` the KB near the
-   centroid → above a CONSERVATIVE proximity floor + arousal throttle + novelty check, speak it in
-   a side-note register. Seeds §4.9's working-memory layer.
+5. ✅ **The context ring → the anecdote** — landed 2026-07-17 (→ `landed.md`; seed `--apply`
+   ×2 — scaffolds + behavior rule — = the author's hand, then restart the brain).
+   **THE FIVE SLICES ARE COMPLETE — the compose 2.0 core is LANDED; the tail below remains.**
 
 Tail (in-arc, later):
 - **The action-space survey + the great seeding** (author's 2026-07-17 ruling, deliberately in

@@ -39,6 +39,7 @@ _FALLBACK: dict[str, str] = {
     "concede_weakened": "you are right — what remains true is that {weakened}",
     "concede_retract_weakened": ("you are right — I no longer hold that {retracted} — "
                                  "what remains true is that {weakened}"),
+    "anecdote": "that reminds me — {notion}",
     # the blog voice (senses/blog.py — slice 4 re-home; these ARE the pre-scaffold templates)
     "blog_lead_teaching": "I was taught something new: «{original}».",
     "blog_lead_wondering": "While wondering over what I know, I derived: «{original}».",

@@ -82,6 +82,11 @@ SCAFFOLDS = [
     ("blog_encounter_logic_violation", "Today {epithet} said something that cannot be true in any world — it breaks logic itself. I trust them a little less now.", ["epithet"], 1.0, "blog encounter"),
     ("blog_encounter_self_inconsistency", "Today {epithet} said two things that cannot both be true. I trust them a little less now.", ["epithet"], 1.0, "blog encounter"),
     ("blog_trust_band",     "To me, they are now {band}.",                          ["band"], 1.0, "blog encounter"),
+    # slice 5 — the anecdote shelf (case 3, the side-note register: a near-miss must read
+    # charming, not broken).
+    ("anecdote", "that reminds me — {notion}",                        ["notion"], 1.0, "the trunk"),
+    ("anecdote", "funny — I know something about that: {notion}",     ["notion"], 0.7, "side-note variant"),
+    ("anecdote", "by the way, {notion}",                              ["notion"], 0.7, "side-note variant"),
     ("answer_yes",      "probably yes",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("answer_no",       "probably not",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("speakup_disagree", "I {hedge} disagree",           ["hedge"], 1.0, "the Zadeh exemplar", [0.0, 0.7]),
