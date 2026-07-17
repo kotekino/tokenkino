@@ -91,9 +91,15 @@ sleeps** — the sleep phase (hunch 20's fourth phase) gains its second duty: me
 AND belief hygiene, exactly the biological pairing. And its public voice (author's ruling, same
 night): **the untangler's report is how he tells the blog he had a DREAM** — «while I slept, I
 untangled something: I no longer believe X, and here is why». Details tbd at the design session.
-*Also his: the stale-premise recompile (`scripts/recompile.py` — «my mind is a software»
-pre-possessive-gate, «not all minds are software» pre-M6) + the biography ruling on the
-already-materialized conflict theorems.*
+*The stale-premise recompile: ✅ DONE 2026-07-17 evening (axioms + theorems --apply, 281/282;
+15 storm-era `archivedAt` datetime→int rows normalized first — `scripts/fix_archivedat_types.py`).
+The one survivor exposed the **csubj gap** — ✅ FIXED same night, two heads: the dep-label
+boundary (`_clause_type_of`: an unknown UD label folds honestly to OTHER instead of crashing
+validation) + the None-flat-reference guards on the role-coordinate sites (a clausal subject
+resolves to None by the documented graceful skip; the dereference didn't know). «living in
+Japan…» compiles end-to-end; re-run `recompile.py --apply --collection theorems` for the last
+row (his hand). Remaining his: the biography ruling on the already-materialized conflict
+theorems.*
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
 

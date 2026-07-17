@@ -158,3 +158,22 @@ def test_clean_chain_still_decides():
                               negated=False, quantifier=TKQuantifier.GENERIC)
     out = evaluator_chainGround(content, clean, _PARENTS, [_MEMBER])
     assert out is not None and out[0] > 0.8            # corroborated: kotekino seeks
+
+
+# ---- the csubj gap (found by the recompile, same evening) ----------------------------------------------
+
+def test_unknown_dep_folds_to_other():
+    # fast-lane unit: the dep-label boundary — a member name passes, anything unknown folds OTHER
+    from lib.core.tk import TKClauseType, TKMarker
+    from lib.llc.compiler.c_statements import compiler_parseMarker, _clause_type_of
+    assert _clause_type_of("ccomp") == TKClauseType.CCOMP
+    assert _clause_type_of("csubj") == TKClauseType.OTHER
+    assert _clause_type_of("some-future-ud-label") == TKClauseType.OTHER
+    m = TKMarker(dep="mark", word="", vector=[], parent_dep="csubj")
+    assert compiler_parseMarker(m) == TKClauseType.OTHER
+
+
+def test_clausal_subject_sentence_compiles(compile_zip):
+    # the recompile's one survivor: «living in Japan…» must compile under the current pipeline
+    zp = compile_zip("living in Japan is equal to residing in Japan")
+    assert zp is not None

@@ -232,12 +232,24 @@ def compiler_evaluateReference(ref: TKEntityReference, statementIdx: int, statem
     return TKLLEntityReference(id=eid, dep=ref.dep, marker=marker, properties=properties, aux=aux)
 
 # parse marker: it must take in account the CONTEXT of the marker (todo)
+# the dep-label -> TKClauseType boundary (the csubj gap, 2026-07-17 evening): the fallback used
+# to return the RAW dep string — known deps (ccomp/xcomp/acl/advcl/parataxis) coincidentally name
+# enum members, but a clausal subject («LIVING IN JAPAN is equal to residing in Japan», stanza
+# dep csubj) does not, and the string crashed TKLLCContent validation. Any dep that names a
+# member passes; anything else folds honestly to OTHER — every future unknown UD label included.
+def _clause_type_of(dep: str) -> TKClauseType:
+    try:
+        return TKClauseType(dep)
+    except ValueError:
+        return TKClauseType.OTHER
+
+
 def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
 
     # if no lemma, return other
     if not marker or not marker.word:
         if marker and marker.parent_dep:
-            return marker.parent_dep
+            return _clause_type_of(marker.parent_dep)
         else:
             return TKClauseType.OTHER
 
@@ -247,7 +259,8 @@ def compiler_parseMarker(marker: TKMarker) -> TKClauseType:
         return subType
 
     # 2. dep-label fallback (only when the anchors return the OTHER default)
-    if marker.parent_dep: return marker.parent_dep
+    if marker.parent_dep:
+        return _clause_type_of(marker.parent_dep)
 
     # 3. fallback
     return TKClauseType.OTHER
@@ -630,24 +643,30 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
             suppressMatrixLeaf = True
         else:
             result.extend(compiler_evaluateSubordinates(statement.predicate.subordinates, statement.entities, statementIdx, statementId, matrixVerb))
-        newMain = compiler_evaluateCoordinates(statement.predicate.conjuncts, mainContent, predicate.id, statement.entities, statementIdx, statementId)
-        if newMain != None: mainContent = newMain
+        if predicate is not None:  # a None flat ref (unmappable role) has no anchor for coordinates
+            newMain = compiler_evaluateCoordinates(statement.predicate.conjuncts, mainContent, predicate.id, statement.entities, statementIdx, statementId)
+            if newMain != None: mainContent = newMain
 
     # ---------------------------------------------
     # subject (manage statements)
     # ---------------------------------------------
     if statement.subject:
         result.extend(compiler_evaluateSubordinates(statement.subject.subordinates, statement.entities, statementIdx, statementId))
-        newMain = compiler_evaluateCoordinates(statement.subject.conjuncts, mainContent, subject.id, statement.entities, statementIdx, statementId)
-        if newMain != None: mainContent = newMain
+        # a CLAUSAL subject («living in Japan is equal to…») resolves to a None flat reference —
+        # the documented graceful skip in compiler_evaluateReference; guard the dereference (the
+        # csubj gap's second head, found by the 2026-07-17 recompile).
+        if subject is not None:
+            newMain = compiler_evaluateCoordinates(statement.subject.conjuncts, mainContent, subject.id, statement.entities, statementIdx, statementId)
+            if newMain != None: mainContent = newMain
 
     # ---------------------------------------------
     # direct (manage statements)
     # ---------------------------------------------
     if statement.direct:
         result.extend(compiler_evaluateSubordinates(statement.direct.subordinates, statement.entities, statementIdx, statementId))
-        newMain = compiler_evaluateCoordinates(statement.direct.conjuncts, mainContent, direct.id, statement.entities, statementIdx, statementId)
-        if newMain != None: mainContent = newMain
+        if direct is not None:  # same guard as subject (e.g. a clausal object)
+            newMain = compiler_evaluateCoordinates(statement.direct.conjuncts, mainContent, direct.id, statement.entities, statementIdx, statementId)
+            if newMain != None: mainContent = newMain
 
     # ---------------------------------------------
     # indirects (manage statements)
