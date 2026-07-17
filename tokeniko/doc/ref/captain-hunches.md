@@ -413,17 +413,63 @@ This premise is to justify something nuts: I think that, in a future future, I w
 > *(The arc, for the record: 16 is how the mind grows bolder — analogy; 17 is the price of
 > boldness — deceivability; 18 is the immune system. Creativity plus its antibodies.)*
 
-19. # compose 2.0
-#
-# A) cases when he speaks:
-#   1. execute a speak action: I don't know, why, yes, contraddiction, concession, etc
-#       -> curated list of post scaffolds + creative_composing <sentence:tkzip, intensity>
-#   2. a kb notion used to determine a trust episode (<intensity, tkzip>)
-#       -> curated list of post scaffolds + creative_composing <kb:tkzip, intensity>
-#   3. a random kb notion told anedoctically about the topic
-#       -> curated list of post scaffolds + creative_composing <kb:tkzip, intensity>
-#   4. a blog post following a theoreme materialization
-#       -> curated list of post scaffolds + creative_composing <theorem:kb-chain:tkzip, intensity>
-#
-# B) curated list: specific collection, per each category (it can learn from audience!)
-# C) creating_composing: 
+19. **Compose 2.0 — the creative voice.** tokeniko is a thinker more than a talker, so start from
+*when does he speak?* Four cases: (1) a **speak action** — the reflex answers (I don't know / why /
+yes / contradiction / concession, etc.); (2) a **KB notion voiced during a trust episode** (today
+mute); (3) a **random KB notion told anecdotically** about the topic at hand — pure creative
+side-note, born of ideas-association: when the channel talk has low directedness to him he can still
+jump to an on-topic thought and offer it (semantic vector search in Mongo centers the topic); (4) a
+**blog post** following a theorem materialization. Today all of these are hardwired sentences with
+at most a variable part; what is fixed should NOT be a hardcoded string but a curated list of
+**scaffolded sentences** — as many variable parts as the tkzip format allows in its semantic part —
+stored as rows in a collection with the **category** (the result of an action type: speakup,
+disagree, retract, …) as a property. The collection is by nature variable: it can hold many
+scaffolds per category ("why that?", "why?", "I don't understand why <X>, can you explain?", "?",
+"I don't see the connection, why?"…) and any semantically equivalent scaffold can be **learned from
+the experience with other users**. Since many parameters of the fuzzy machinery determine
+"intensity", blend them into an **intensity** parameter passed along scaffold and data — used both
+to *select* the best scaffold (category + intensity as gate parameters) and to shade the nuances
+applied to it. The creation function `creative_compose(scaffold, intensity, data)`: a) get the
+proper scaffold for the communication type, b) plug the data, c) play with equivalent semantic
+solutions for each element, d) polish out via api.
+
+> **QM on 19 (the 2026-07-17 brainstorm — the design converged in one sitting; the operational arc
+> lives in `doc/roadmap.md`):** The idea is structurally right, and it is the Captain's own doctrine
+> catching up with the voice — "no load-bearing knowledge hidden in code" applied to *how he
+> speaks*: the scaffold collection is the `behavior_rules` move for the mouth (logic hardwired,
+> personality in memory). It is also standard-shaped: this is the classic NLG pipeline (content
+> determination → sentence planning → surface realization; Reiter & Dale) — `creative_compose` IS
+> the sentence planner and the scaffold store IS template-based NLG, the approach that won in
+> production for being cheap and auditable. Adopt the pattern, skip the libraries (realizers buy
+> nothing — rag2 polish already covers the surface). One standard piece stolen outright: **Zadeh's
+> linguistic hedges** — the compiler already runs hedges inbound ("very"=1.5 in the advmod
+> anchors); intensity on output is the same table run backwards (scalar → "perhaps / probably /
+> certainly"). The agreed rulings: **(i) scaffold = string AND compiled zip** (option B) — slots
+> are gaps in roles, the wh-machinery's "sentence with a hole" pointed the other way (asking =
+> solving a gap, speaking = binding one); plugging = binding, rendering = `decompiler_raw` + rag2
+> polish (pipeline exists end-to-end), and equivalence-learning becomes `evaluator_compareZip` with
+> the slot masked — the learnability tbd already has its detector. **(ii) intensity = a 2-tuple
+> (confidence, arousal)**, not one scalar — "certain and mildly interested" ≠ "suspecting and
+> burning"; confidence picks the hedge, arousal the register; both gate scaffold *retrieval*
+> jointly with category. **(iii) the creativity fence**: variation lives ONLY in scaffold choice
+> (weighted-random within the shelf — the fuzzy-personality stochastic collapse, exactly where
+> hunch 7's superposition wanted it) + hedges + polish; the data payload stays verbatim-faithful,
+> senses-pinned — "shuffle the data part" is fabrication risk and is trashed. **(iv) polish-out =
+> rag2-out**, the roadmap's waiting voice-side verifier: polished English must recompile to the
+> bound scaffold zip (the outbound mirror of rag1's inbound gate) — compose 2.0 gives it its
+> object. **(v) the anecdote's substrate is the short-term context**: a per-channel RAM ring buffer
+> `(speaker_uid, zip, timestamp, mine)` — a CACHE, never a source of truth (fully derivable from
+> the memory timeseries; restart rebuilds it, a crash costs nothing biographical). Own rows feed
+> the novelty check ("have I said this here recently") and realtime self-consistency; others' rows
+> feed the topic centroid (the `$vectorSearch` seed) and cross-speaker awareness. It needs a
+> throttle (arousal floor) and a CONSERVATIVE proximity floor — a wrong association costs more than
+> silence, and the anecdote scaffolds should *sound* like side-notes ("that reminds me…") so a
+> near-miss reads charming, not broken. The ring is deliberately the seed of the bigger realtime
+> hunch (conditioning the brain machinery on the conversation, not just the KB) — build the small
+> honest version, the substrate is already right.
+>
+> **CAP:** validated in dialogue — option B "of course"; intensity-as-selection-gate was the
+> intent; rag2-out as the polish step "was what I had in mind, didn't say but intended"; the
+> data-fence yes-but "totally agree". The scaffold learning stays tbd but interesting; the
+> short-term context is confirmed as memory-derivable RAM, and he should know both what HE said
+> and what OTHERS said in the same context.

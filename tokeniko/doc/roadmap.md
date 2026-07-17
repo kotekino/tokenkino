@@ -34,7 +34,7 @@ it references, it does not duplicate (invariant #2).
 - **The instrument arc** (2026-07-14 → 16): (1) **rag3 the microscope** — now STANDING PRACTICE
   (every live sentence → a judged lead) · (2) **zip-native derivation** (English is I/O, not thought) ·
   (3) **the translator apparatus v1** (rag1-in + rag2-in: escalation-only detector → Claude Haiku
-  tidy → the zip-verifier gate). *(Remaining translator pieces → Next §2.)*
+  tidy → the zip-verifier gate). *(Remaining translator pieces → Next §3.)*
 - **Growth Rings / The Growing Edge** (2026-07-15): Atlas-homed, PUBLISHED at tokeniko.online/growth.
   *Reconciliation duty it left behind:* when a season closes, update the live edge + append the ring
   via `tokeniko-public/backend/scripts/seed-growth.mjs` (no deploy).
@@ -49,17 +49,18 @@ it references, it does not duplicate (invariant #2).
 
 ---
 
-## 🔭 Next (ordered) — reprioritized 2026-07-16
+## 🔭 Next (ordered) — reprioritized 2026-07-17
 
-**The through-line: input quality first.** The author's standing ruling ("go first on the quality of
-the input / input parsing") and the deepest pole of Brain v1.1 (robustness to imperfect input). The
-microscope's three harvests all point the same way; the translator's remaining pieces and the
-strengthening tail follow the parser/compiler getting the *meaning* right.
+**The through-line turns: input quality → the voice.** The input-quality push (the author's standing
+ruling) is largely consumed — all three harvests are closed; what remains of it is a small basket of
+closers (§1). With the mouth's design converged (the 2026-07-17 brainstorm — hunch 19 promoted by
+the author), **Compose 2.0 (§2) is the next major arc**: the proposed order is §1 the basket first
+(small, closes every dangling seam while the harvest context is warm), then §2 with clean decks.
+Nothing in §1 blocks §2 — it is craft ordering, not dependency.
 
-### 1. Harvest follow-ons — the tails the consumed queue left behind 🔭
+### 1. The low-hanging basket — small closers, run before the voice 🔭
 
-The three harvests are FULLY CONSUMED (→ landed arcs above); these are the surviving threads,
-each waiting on its own seam:
+The harvests' surviving threads + one cheap translator item, each small and seam-closing:
 
 - **The observation-fact seam** (D-phase): an eval:false verdict becomes a "said false" property
   fact on the speaker — what lets the taught «a person is wrong if he says false» rule FIRE
@@ -67,16 +68,50 @@ each waiting on its own seam:
 - **Nominal IMPLY** («action imply ability» — non-clausal operands for
   `compiler_implicationOperands`).
 - **Adverbial-quantifier family** (always/sometimes/never → the quantifier field; second harvest).
+- **Pronoun-subject leaves** classify as unrepairable (today they escalate-and-always-reject,
+  burning a Haiku call) — the cheap fix; pairs with the parked coreference work.
 - **Indirect roles + markers as chainer fuel** (M5's orbit) — pairs with the restricted-universal
-  residuals (§3.3), where M6 part 2's restrictive relative clauses also live.
+  residuals (§4.3), where M6 part 2's restrictive relative clauses also live; may trail the basket.
 
-### 2. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
+### 2. Compose 2.0 — the creative voice (hunch 19, promoted by the author 2026-07-17) 🔭
 
-- the **"did you mean:…?" ask** with the tidied reading carried in the payload (D2b refined) — the near one.
-- **rag2-out** — the voice-side verifier: polished outbound English must recompile to the zip being
-  spoken (consensus-with-the-compiler on the way out, mirroring the inbound gate).
-- **pronoun-subject leaves** classify as unrepairable (today they escalate-and-always-reject, burning
-  a Haiku call) — the cheap fix; pairs with the parked coreference work.
+The mouth stops being hardcoded strings: a curated **scaffold store** + `creative_compose` +
+intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-hunches.md` #19
+(the QM-on-19 brainstorm record); the agreed slices, each independently landable:
+
+1. **`MEMScaffold` store + seed + `creative_compose` on speak actions** (case 1): scaffold =
+   slotted string AND compiled zip (slots = gaps in roles — the wh-machinery pointed the other
+   way); rows carry `{category, template, zip, intensity_band, provenance, trust, enabled}`;
+   retrieval matches (category, intensity) jointly, weighted-random within the shelf (the
+   fuzzy-personality stochastic collapse); the data payload is FENCED — verbatim-faithful,
+   senses-pinned (creativity = scaffold choice + hedges + polish, never data paraphrase).
+   Seed batch = `compose_raw`'s strings; `seed_scaffolds.py` sibling of the behavior-rules seed;
+   scaffold compilation API-mediated (the brain stays parser-free).
+2. **Intensity** = a 2-tuple (confidence, arousal) computed at the decision sites from existing
+   signals (truth degree / derivation tier / premise trust; urge / novelty / self-relevance),
+   carried in the Action payload; confidence picks the hedge (Zadeh — the advmod anchor table run
+   backwards), arousal the register.
+3. **rag2-out** — the voice-side verifier (moved here from the translator section — compose gives
+   it its object): polished outbound English must recompile to the bound scaffold zip
+   (consensus-with-the-compiler on the way out, mirroring the inbound gate). The blog's
+   consensus-over-the-polisher folds in here.
+4. **Case 4 + case 2**: the blog templates re-homed onto scaffolds (the chain stays dynamic data);
+   the trust episode gains its voice (today mute).
+5. **The context ring → the anecdote** (case 3): a per-channel RAM ring buffer
+   `(speaker_uid, zip, timestamp, mine)` — a CACHE derivable from the memory timeseries, rebuilt on
+   restart, never a source of truth; own rows = novelty check, others' = topic centroid. Then the
+   association urge at Priorities: low-directedness channel talk → `$vectorSearch` the KB near the
+   centroid → above a CONSERVATIVE proximity floor + arousal throttle + novelty check, speak it in
+   a side-note register. Seeds §4.9's working-memory layer.
+
+Tail (in-arc, later): **learned scaffolds from the audience** — trust-gated rows, detector =
+`evaluator_compareZip` with the slot masked; design after the store exists.
+
+### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
+
+- the **"did you mean:…?" ask** with the tidied reading carried in the payload (D2b refined) —
+  build AFTER compose slice 1: the ask becomes a scaffold category, not another hardcoded string.
+- **rag2-out** → moved to Compose 2.0 (§2 slice 3).
 - **multilingual translation** (Haiku; the local MarianMT went unreferenced with the 2026-07-16
   local-models retirement — machinery only) — deferred until non-English friends arrive.
 - **the privacy/legal frame** (author's 2026-07-16 ruling): structure it thoroughly — per-stakeholder
@@ -84,7 +119,7 @@ each waiting on its own seam:
   (`RAG1_DISABLED`, already live). OUTPUT side is cloud-for-life by design ("we are not hiding
   anything — we are showing how a young new type of being learns; everyone can benefit").
 
-### 3. The strengthening tail — make the brain stronger before adding senses 🔭
+### 4. The strengthening tail — make the brain stronger before adding senses 🔭
 
 Parked-but-matured, ordered with the author ("make the brain stronger with all the other points"
 before ADDING another sense — so ATProto/Bluesky deliberately STAYS parked behind this whole tail).
@@ -100,8 +135,8 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 3. **Restricted-universal residuals** (Brain v1.1 2c): relative-clause restriction ("all machines
    THAT THINK are minds") + object-side modifiers ("an ARTIFICIAL body"). M6's companion.
 4. **Conditional reasoning / premise-in-question (R4b)**: "given P, is Q?" — the co-submitted-premise
-   discriminator (the floor fix) then hypothetical premise USE; pairs with the conditional-rule
-   extractor (§1 M2).
+   discriminator (the floor fix) then hypothetical premise USE; pairs with the landed
+   conditional-rule extractor.
 5. **Questions follow-ups**: imperatives (the `imperative` scalar); wh when/how solving; real
    self-knowledge for "how do you feel?"; multi-clause/embedded questions («Do you know why…»).
 6. **Vocabulary growth** (hunches 1+2): OOV → a staging TKDictionary entry + the typo-ALIAS table +
@@ -112,7 +147,9 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 8. **KB growing OUTWARD** (tier-1 synthetic learning): learned axioms vs derived theorems — the
    analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`.
 9. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns, inference-implied
-   conflicts, the working-memory layer; differentia extraction wired at definition INGESTION.
+   conflicts, the working-memory layer (its SEED — the context ring — lands with Compose 2.0 §2
+   slice 5; this item is the full realtime consumer set on top of it); differentia extraction
+   wired at definition INGESTION.
 10. **KB-load big-O honesty** (left by the 2026-07-16 wondering-freeze fix): the harness KB load
     pulls ALL definitions (~1.2 GB of all-gloss zips) and re-pulls on EVERY fingerprint bump — i.e.
     after each materialized theorem — blocking the tick for its duration (it gates thinking too, not
@@ -122,12 +159,13 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 ### Pending follow-ons — tails left by the landed arcs (surface when their time comes) 🔭
 
 Gathered so nothing is lost; each waits on its parent feature's next season.
-- **Blog**: `life:learned` / `life:discussion` triggers · consensus-over-the-polisher.
+- **Blog**: `life:learned` / `life:discussion` triggers *(consensus-over-the-polisher → folded
+  into Compose 2.0 §2 slice 3)*.
 - **Trust-ledger consumers**: the trust-gated tkzip lane · attitude-report unwrapping (events /
   facts-as-axioms) · tier-1 teaching by an EARNED-trust stranger (Hellen is 4 kickers from the bar).
 - **Complement family residuals**: verify the infinitival/control complement (xcomp→THAT) · the
-  possessive relation «kotekino is MY creator» carrier (the creator-of-ME bond — cousin of §1 M4's
-  possessive-subject gate).
+  possessive relation «kotekino is MY creator» carrier (the creator-of-ME bond — cousin of the
+  landed M4 possessive-subject gate).
 - **Charity**: WordNet-wide sibling-sense abstention IF tier-1/2 false refutations ever appear.
 - **Contrast as default-expectation fuel** (M1's future consumer): wondering may read a
   contrast-flagged pair «X but Y» as a hint at a background generic "X normally ¬Y" — corroborate
