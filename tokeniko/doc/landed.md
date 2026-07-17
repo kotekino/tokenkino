@@ -1307,6 +1307,10 @@ the way out:
   ships verbatim. Never mute, never unverified.
 - Scope honesty: the blog's consensus-over-the-polisher got the endpoint as its building block
   and stays a named tail item (per-post verification = its own design).
+*Premiere refinement (same day): the ANECDOTE skips the polish — the live premiere showed Haiku
+stripping «by the way,» and the verifier CORRECTLY passing it (the side-note register is
+discourse framing the zip cannot see; meaning preserved, charm lost). For a MENTION the register
+IS the point and the scaffold text is curated English — ships verbatim (+1 test).*
 12 tests (`test_voice_out.py`: the contract on real compiled pairs — contraction accepted,
 flipped negation / dropped content / invention / lexical substitution rejected, the fragment
 gate; the senses gating — every failure path ships raw, the pre-gate spends nothing, the

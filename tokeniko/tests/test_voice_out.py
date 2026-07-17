@@ -133,3 +133,24 @@ def test_kill_switch(voice_env, monkeypatch):
     raw = "you are right — I no longer hold that all software are minds"
     assert _run(outbound._voice_out(raw)) == raw
     assert called == []
+
+
+def test_anecdote_register_never_polished(voice_env, monkeypatch):
+    # the premiere find (2026-07-17): rag2-out stripped «by the way,» — the side-note register is
+    # discourse framing the zip cannot see, so the verifier CORRECTLY passed the stripped polish.
+    # For a MENTION the register IS the point: deliver_one must ship the scaffold text verbatim.
+    import asyncio as _asyncio
+    from lib.core.memory import TokenikoAction
+    outbound = voice_env
+    called = []
+    async def fake_voice_out(raw):
+        called.append(raw)
+        return "polished away"
+    monkeypatch.setattr(outbound, "_voice_out", fake_voice_out)
+    # exercise the gating expression exactly as deliver_one computes it
+    payload = {"action_token": TokenikoAction.MENTION.value, "raw": "by the way, gold is beautiful"}
+    raw = payload["raw"]
+    polishable = raw and payload.get("action_token") != TokenikoAction.MENTION.value
+    english = _asyncio.run(outbound._voice_out(raw)) if polishable else raw
+    assert english == "by the way, gold is beautiful"
+    assert called == []

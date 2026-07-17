@@ -23,7 +23,7 @@ import urllib.request
 from typing import Awaitable, Callable, Optional
 
 from lib.core.models import TKActionDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc
-from lib.core.memory import ActionStatus, MEMChannels
+from lib.core.memory import ActionStatus, MEMChannels, TokenikoAction
 from lib.discord.models import Destination
 from lib.rag import RAG2_OUT, rag_call, rag_enabled
 
@@ -170,8 +170,13 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
     payload = action.payload or {}
     raw = (payload.get("raw") or "").strip()
     # the rag2-out voice gate (compose 2.0 slice 3): one verified fluency pass, or the raw
-    # verbatim — the voice can gain fluency, never lose meaning.
-    english = await _voice_out(raw) if raw else raw
+    # verbatim — the voice can gain fluency, never lose meaning. The ANECDOTE skips the polish
+    # (premiere find, 2026-07-17): its side-note register («by the way, …») is discourse framing
+    # the zip cannot see — Haiku stripped it and the verifier CORRECTLY passed the result
+    # («Gold is beautiful.»): meaning preserved, charm lost. For a side-note the register IS the
+    # point, and the scaffold text is already curated English — ship it verbatim.
+    polishable = raw and payload.get("action_token") != TokenikoAction.MENTION.value
+    english = await _voice_out(raw) if polishable else raw
     dest = _resolve_destination(action.targetId, payload)
 
     if dest is None or not english:
