@@ -1180,3 +1180,19 @@ extracted well-formed but could never fire — a live «X says false» instance 
   sibling follow-on (author's ruling: taught-for-now).
 9 tests (`test_observation_facts.py`: shape units, native-vs-compiled equivalence, chainer
 end-to-end with the observation in the premises, brain-trigger units). Gate **389 / 1 xfailed**.
+
+**Nominal IMPLY (2026-07-17 — basket item 2: the Cap's curtain stops folding flat)**
+«action imply ability» (the Socratic dialogue's maxim) folded bare AND — the implication
+invisible to the gate and the reasoning layer. `compiler_implicationOperands` now consumes the
+NOMINAL shape too: an implication verb with NO clausal complements takes the matrix's own
+subject/direct CLASS nouns as operands, each a predicate-only operand leaf (the
+copular-predication precedent) → the fold yields IMPLY(T_action, T_ability) and the assertedness
+gate SEES the compound. Conservative fallbacks, each probed: a NEGATED implication keeps today's
+single-leaf compile (¬(A→B) has no per-leaf home in the operator tree — an honest open thread);
+an unresolved-name or individual operand never fabricates an IMPLY; a lone/many ccomp still
+falls back. Extraction stays SHUT by construction (GENERIC operands never satisfy the
+property-conditioned UNIVERSAL bar) — nominal-IMPLY-as-chainer-fuel was a deliberate non-goal.
+«rain implies clouds» (the old docstring's fallback example) is now consumed; the clausal hook
+regression-locked («a thing exists implies a thing is real» — the «machine thinks implies…»
+Stanza mis-root stays the documented pre-existing limitation). 7 tests
+(`test_nominal_imply.py`). Gate **396 / 1 xfailed**.

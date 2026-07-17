@@ -63,8 +63,7 @@ Nothing in §1 blocks §2 — it is craft ordering, not dependency.
 The harvests' surviving threads + one cheap translator item, each small and seam-closing:
 
 - ✅ **The observation-fact seam** — landed 2026-07-17 (→ `landed.md`).
-- **Nominal IMPLY** («action imply ability» — non-clausal operands for
-  `compiler_implicationOperands`).
+- ✅ **Nominal IMPLY** — landed 2026-07-17 (→ `landed.md`).
 - **Adverbial-quantifier family** (always/sometimes/never → the quantifier field; second harvest).
 - **Pronoun-subject leaves** classify as unrepairable (today they escalate-and-always-reject,
   burning a Haiku call) — the cheap fix; pairs with the parked coreference work.

@@ -725,7 +725,10 @@ capitalized OOV — name path or honest unknown; mid-sentence the NER mint makes
 store→shop.n.01 found already healed by the degenerate retry, regression-locked; bit→bit.n.06
 preferred applied (its is_a edge was already in the graph). The «so» conclusions landed with M2;
 calculator/seed leads with M3; ¬∀ with M6. See `landed.md`; 8 tests in
-`test_second_harvest_strays.py`. THE HARVEST QUEUE IS FULLY CONSUMED.)*
+`test_second_harvest_strays.py`. THE HARVEST QUEUE IS FULLY CONSUMED. Nominal IMPLY — the one
+lead that outlived the queue as a roadmap tail — CLOSED 2026-07-17 (basket item 2): «action
+imply ability» now compiles IMPLY(action, ability) via predicate-only operand leaves; the
+negated half of the curtain stays single-leaf (¬(A→B) representation = open thread).)*
 
 ## 2026-07-15 — THE RETREAT, LIVE (belief-revision v1's first performance; the correction that landed)
 

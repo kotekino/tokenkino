@@ -424,37 +424,67 @@ def compiler_evaluateCoordinates(conjuncts: list[TKEntityReference], mainContent
 
     return result
 
-# logical-implication operands: for "X implies/entails Y" where X and Y are CLAUSES, build the two
-# clause items combined under IMPLY(antecedent, consequent). returns the two TKLLCItem (antecedent
-# seeding the list with op=AND, consequent carrying op=IMPLY so the fold yields IMPLY(T_X, T_Y)), or
-# None when this is not the clausal-implication case (no implication verb, or not exactly two clausal
-# CCOMP complements — e.g. the nominal "rain implies clouds", which falls back to the normal path).
-def compiler_implicationOperands(statement: TKStatement, matrixVerb: str, statementIdx: int, statementId: tuple[int, ...]) -> list[TKLLCItem] | None:
+# logical-implication operands: for "X implies/entails Y", build the two operand items combined
+# under IMPLY(antecedent, consequent) — CLAUSAL X/Y (two CCOMP complements, each compiling to one
+# item) or NOMINAL X/Y (no clausal complements: the matrix's subject/direct class nouns, each a
+# predicate-only operand leaf — «action implies ability», «rain implies clouds»). returns the two
+# TKLLCItem (antecedent seeding the list with op=AND, consequent carrying op=IMPLY so the fold
+# yields IMPLY(T_X, T_Y)), or None when neither shape applies (no implication verb; a lone/many
+# ccomp; a NEGATED, individual-operand, or senseless-operand nominal — those fall back).
+def compiler_implicationOperands(statement: TKStatement, matrixVerb: str, statementIdx: int, statementId: tuple[int, ...], negated: bool = False) -> list[TKLLCItem] | None:
     if (matrixVerb or "").lower() not in _IMPLICATION_VERBS or not statement.predicate:
         return None
 
     # the clausal (CCOMP) complements of the matrix verb, in document order
     ccompRefs = [r for r in statement.predicate.subordinates if compiler_parseMarker(r.marker) == TKClauseType.CCOMP]
-    if len(ccompRefs) != 2:
+    if len(ccompRefs) == 2:
+        items: list[TKLLCItem] = []
+        for ref in ccompRefs:
+            subordinate = next(i for i in statement.entities if ref.id == i.id)
+            items.extend(compiler_evaluateSubordinate(ref, subordinate.payload, statementIdx, statementId, matrixVerb))
+
+        # the two clauses must compile to exactly one item each for a clean IMPLY(antecedent, consequent)
+        if len(items) != 2:
+            return None
+
+        antecedent, consequent = items[0], items[1]
+        # they are logical operands of IMPLY, not doxastic THAT-complements: clear the attitude and make
+        # the antecedent seed the fold (op=AND) and the consequent carry op=IMPLY.
+        antecedent.attitude = None
+        antecedent.op = TKOperator.AND
+        consequent.attitude = None
+        consequent.op = TKOperator.IMPLY
+        return items
+    if ccompRefs:
+        return None  # one/many clausal complements — not an implication shape we understand
+
+    # NOMINAL implication (2026-07-17, basket item 2 — the Cap's curtain «action imply ability»
+    # folded bare AND, the implication invisible): with NO clausal complements, the matrix's own
+    # SUBJECT and DIRECT class nouns are the operands. Each becomes a PREDICATE-only operand leaf
+    # (the predicative-complement precedent: a noun in the predicate role is the copular
+    # predication shape) so the fold yields IMPLY(T_action, T_ability) and the assertedness gate
+    # SEES the compound (no leaf masquerades as a standalone assertion — extraction stays shut:
+    # GENERIC operands never satisfy _extract_property_conditioned's UNIVERSAL bar).
+    # Conservative gates: a NEGATED implication falls back to the normal path (¬(A→B) has no
+    # per-leaf home in the operator tree — today's single-leaf compile stays); only CLASS nouns
+    # generalize (an individual/senseless operand falls back).
+    if negated or not statement.subject or not statement.direct:
         return None
-
-    items: list[TKLLCItem] = []
-    for ref in ccompRefs:
-        subordinate = next(i for i in statement.entities if ref.id == i.id)
-        items.extend(compiler_evaluateSubordinate(ref, subordinate.payload, statementIdx, statementId, matrixVerb))
-
-    # the two clauses must compile to exactly one item each for a clean IMPLY(antecedent, consequent)
-    if len(items) != 2:
-        return None
-
-    antecedent, consequent = items[0], items[1]
-    # they are logical operands of IMPLY, not doxastic THAT-complements: clear the attitude and make
-    # the antecedent seed the fold (op=AND) and the consequent carry op=IMPLY.
-    antecedent.attitude = None
-    antecedent.op = TKOperator.AND
-    consequent.attitude = None
-    consequent.op = TKOperator.IMPLY
-    return items
+    operands: list = []
+    for role_ref in (statement.subject, statement.direct):
+        ref = compiler_evaluateReference(role_ref, statementIdx, statementId)
+        if ref is None:
+            return None
+        entity = next((e for e in _entities if e.entity.id == ref.id), None)
+        if entity is None or not entity.entity.sense or entity.entity.uid:
+            return None
+        operands.append(ref)
+    return [
+        TKLLCItem(op=TKOperator.AND, content=TKLLCContent(
+            clause_type=TKClauseType.CCOMP, properties=TKLLProperties(), predicate=operands[0])),
+        TKLLCItem(op=TKOperator.IMPLY, content=TKLLCContent(
+            clause_type=TKClauseType.CCOMP, properties=TKLLProperties(), predicate=operands[1])),
+    ]
 
 # is the SUBJECT of a content SENSE-LESS? — an indefinite pronoun like everything/everyone/everybody
 # carries NO resolved dictionary WSD sense, whereas a class noun ("cat" in "all cats that bark") does.
@@ -535,16 +565,16 @@ def compiler_evaluateStatement(statement: TKStatement, statementIdx: int = 1, st
     # ---------------------------------------------
     # predicate (manage statements)
     # ---------------------------------------------
-    # logical-implication matrix verb ("X implies/entails Y"): when the predicate is one of the
-    # implication verbs and it embeds exactly two clausal (CCOMP) complements, the two clauses are
-    # the antecedent and consequent of a real IMPLY — not doxastic THAT-complements. emit them as
-    # IMPLY(antecedent, consequent) and DROP the "implies" predication leaf. otherwise fall back to
-    # the normal subordinate path (so the nominal case "rain implies clouds" is untouched).
+    # logical-implication matrix verb ("X implies/entails Y"): clausal (two CCOMP complements) or
+    # nominal (subject/direct class nouns) operands compile to a real IMPLY(antecedent, consequent)
+    # — not doxastic THAT-complements — and the "implies" predication leaf is DROPPED. anything
+    # else (negated/individual/senseless nominal, lone ccomp) falls back to the normal path.
     suppressMatrixLeaf = False
     if statement.predicate:
         # the embedding verb classifies the attitude of any ccomp hanging off the predicate
         matrixVerb = compiler_predicateLemma(statement)
-        implyItems = compiler_implicationOperands(statement, matrixVerb, statementIdx, statementId)
+        implyItems = compiler_implicationOperands(statement, matrixVerb, statementIdx, statementId,
+                                                  negated=mainContent.negated)
         if implyItems is not None:
             result.extend(implyItems)
             suppressMatrixLeaf = True
