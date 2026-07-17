@@ -75,14 +75,8 @@ The mouth stops being hardcoded strings: a curated **scaffold store** + `creativ
 intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-hunches.md` #19
 (the QM-on-19 brainstorm record); the agreed slices, each independently landable:
 
-1. **`MEMScaffold` store + seed + `creative_compose` on speak actions** (case 1): scaffold =
-   slotted string AND compiled zip (slots = gaps in roles — the wh-machinery pointed the other
-   way); rows carry `{category, template, zip, intensity_band, provenance, trust, enabled}`;
-   retrieval matches (category, intensity) jointly, weighted-random within the shelf (the
-   fuzzy-personality stochastic collapse); the data payload is FENCED — verbatim-faithful,
-   senses-pinned (creativity = scaffold choice + hedges + polish, never data paraphrase).
-   Seed batch = `compose_raw`'s strings; `seed_scaffolds.py` sibling of the behavior-rules seed;
-   scaffold compilation API-mediated (the brain stays parser-free).
+1. ✅ **`MEMScaffold` store + seed + `creative_compose` on speak actions** — landed 2026-07-17
+   (→ `landed.md`; seed `--apply` = the author's hand, then restart the brain).
 2. **Intensity** = a 2-tuple (confidence, arousal) computed at the decision sites from existing
    signals (truth degree / derivation tier / premise trust; urge / novelty / self-relevance),
    carried in the Action payload; confidence picks the hedge (Zadeh — the advmod anchor table run
@@ -100,8 +94,15 @@ intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-h
    centroid → above a CONSERVATIVE proximity floor + arousal throttle + novelty check, speak it in
    a side-note register. Seeds §4.9's working-memory layer.
 
-Tail (in-arc, later): **learned scaffolds from the audience** — trust-gated rows, detector =
-`evaluator_compareZip` with the slot masked; design after the store exists.
+Tail (in-arc, later):
+- **The action-space survey + the great seeding** (author's 2026-07-17 ruling, deliberately in
+  THIS order): (1) survey the action space FIRST — other reaction kinds, refinement/granularity
+  of the existing ones; (2) base scaffolds for the new actions; (3) THEN seed MANY more scaffolds
+  per action (the slice-1 batch = starters, good to begin). Selection stays the double key
+  (category + intensity); between scaffolds sharing the same double key the choice is RANDOM
+  (weighted — live since slice 1).
+- **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
+  with the slot masked; design after the store exists.
 
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 

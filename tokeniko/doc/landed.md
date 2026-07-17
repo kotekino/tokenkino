@@ -1231,3 +1231,29 @@ stumble (typo leaf beside the pronoun leaf) still escalates — the typo keeps i
 Probed: the whale specimen + «he sleeps» + «it is important» gate; «the wrld is bg» (typos)
 still escalates; «I value logic» resolves and never stumbles. 4 tests (in
 `test_translator.py`). Gate **408 / 1 xfailed**.
+
+**Compose 2.0 slice 1 — the scaffold store (2026-07-17: the voice moves from code to memory)**
+Hunch 19's first brick: `compose_raw`'s hardwired strings re-homed as data. The pieces:
+- **`MEMScaffold` → `TKScaffoldDoc`** (`scaffolds` collection, category-indexed, registered in
+  init_io): `{category, template, slots, zip, intensity_band, weight, provenance, trusted,
+  enabled}`. The zip is compiled at SEED time (slots filled with a neutral placeholder — the
+  wh-gap pointed the other way); None when the fragment honestly doesn't compile.
+  `intensity_band` stored now, consumed in slice 2.
+- **The two-layer split on the design's fault line** (`brain/compose.py` rewritten):
+  `compose_raw` = the DETERMINISTIC router (decision → category + data; the concede if-chain
+  became four total-template categories: plain/retract/weakened/retract_weakened) →
+  `creative_compose` = the STOCHASTIC shelf pick (weighted-random, injectable rng — the
+  fuzzy-personality superposition collapse) + VERBATIM data binding (the creativity fence).
+  Slot-subset gate: a scaffold demanding data the payload lacks is unreachable, never an error.
+- **Graceful by fallback**: the legacy strings live on as `_FALLBACK` — an unseeded/unreachable
+  store speaks byte-identically to yesterday; the voice never crashes the brain (any store
+  trouble → log + fallback).
+- **The seed** (`scripts/seed_scaffolds.py`, --apply gated, idempotent by (category, template)):
+  the 15-string legacy trunk at weight 1.0 + the author's own hunch-19 why-variants («why?»,
+  «why that?», «I don't see the connection, why?», «?» at 0.3) — the first shelf with real
+  superposition. («I don't understand why {X}…» waits for the why-path to carry topic data.)
+  The author's standing ruling recorded: live behavioral drift is NOT a concern while the
+  roadmap breathes — "we can start concerning when we have the roadmap empty".
+23 tests (`test_compose_scaffolds.py`: 17-shape router parity on an EMPTY store, weighted-random
+superposition + enabled-only, the verbatim fence, the slot gate, fallback paths). Gate
+**431 / 1 xfailed**.

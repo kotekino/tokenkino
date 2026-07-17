@@ -304,6 +304,32 @@ class MEMBehaviorRule(BaseModel):
     order: int = Field(default=0)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
 
+
+# a VOICE scaffold (compose 2.0 slice 1, 2026-07-17 — hunch 19 promoted): one way of saying one
+# communicative act. What is fixed in the voice is DATA, not hardwired strings — the scaffold
+# collection is the behavior_rules move applied to how he speaks (logic hardwired, personality in
+# memory). The router (brain/compose.compose_raw) picks the CATEGORY deterministically from the
+# decision; the choice WITHIN a category's shelf is weighted-random — the fuzzy-personality
+# stochastic collapse, exactly where the superposition design wanted it. The data payload binds
+# into the slots VERBATIM (the creativity fence: variation lives in scaffold choice + hedges +
+# polish, never in paraphrasing the data).
+class MEMScaffold(BaseModel):
+    category: str                     # the communicative act ("why", "answer_yes", "concede_retract", …)
+    template: str                     # the surface form; named slots in braces ("I no longer hold that {retracted}")
+    slots: list[str] = Field(default_factory=list)   # the slot names the template binds (subset-gated at pick time)
+    # the compiled zip of the template (slots filled with a neutral placeholder at seed time — the
+    # wh-machinery's "sentence with a hole" pointed the other way). None when the fragment honestly
+    # does not compile ("?"). Consumers: equivalence-learning + the rag2-out verifier (slices 3+).
+    zip: Optional[TKZip] = None
+    # the (confidence, arousal) band this scaffold suits — stored now, CONSUMED in slice 2
+    # (intensity joins category as a retrieval gate); [0,1] = fits any intensity.
+    intensity_band: list[float] = Field(default=[0.0, 1.0], min_length=2, max_length=2)
+    weight: float = Field(default=1.0)               # selection weight within the category's shelf
+    provenance: str = Field(default="seed")          # "seed" | "taught:<uid>" (the learning tail)
+    trusted: float = Field(default=1.0)              # curated = full trust; learned rows arrive lower
+    enabled: bool = Field(default=True)
+    createdAt: int = Field(default_factory=lambda: int(time.time()))
+
 # the BRAIN_STATE singleton — cognitive continuity across process restarts: the per-speaker memory
 # cursors + the wondering window, so tokeniko resumes its cycles without gaps (one continuous self).
 class BrainState(BaseModel):

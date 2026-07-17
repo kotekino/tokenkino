@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMTrustEpisode, MEMZipDebug, BrainState
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMScaffold, MEMTrustEpisode, MEMZipDebug, BrainState
 
 _VECTOR_INDEX = "vector_index"
 
@@ -183,6 +183,14 @@ class TKBehaviorRuleDoc(MEMBehaviorRule, Document):
     trigger: Annotated[str, Indexed()] = ""   # non-unique index (multi-rule per trigger)
     class Settings:
         name = "behavior_rules"
+
+
+# scaffolds: the voice's curated sentence shapes (compose 2.0 slice 1) — the behavior_rules move
+# applied to HOW he speaks. Seeded by scripts/seed_scaffolds.py; learned rows are the arc's tail.
+class TKScaffoldDoc(MEMScaffold, Document):
+    category: Annotated[str, Indexed()] = ""  # non-unique index (many scaffolds per category = the shelf)
+    class Settings:
+        name = "scaffolds"
 
 # trust_episodes: the trust ledger's permanent trail (senses D) — the SOURCE OF TRUTH the
 # stakeholder's folded `trust` scalar is recomputed from (lib/core/trust.fold_trust). Append-only
