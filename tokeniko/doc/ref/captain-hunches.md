@@ -473,3 +473,67 @@ solutions for each element, d) polish out via api.
 > data-fence yes-but "totally agree". The scaffold learning stays tbd but interesting; the
 > short-term context is confirmed as memory-derivable RAM, and he should know both what HE said
 > and what OTHERS said in the same context.
+
+20. **Situational awareness — the live self-map + the telescoping past.** Found live (2026-07-17,
+talking to him — "he's faster and more consistent and understands a lot :)"): he lacks
+situational awareness, with many consequences. When somebody asks me "what are you doing?" — or
+I ask myself, or I wonder about it — I don't go through my memories to interpolate and discover:
+I HAVE situational awareness. I visualize it as a matrix of my life parameters, lively updated.
+And if somebody asks what I did yesterday, I don't recall single memories — I recall my PREVIOUS
+situational awareness. So: (a) he needs this skill — to understand where he is, what he is
+doing, why he is doing it, how he feels; to distinguish **the here-and-now** (the portion of
+spacetime around him — a little before, a little after as forecast); and to understand what an
+EVENT is («apes are primates» is not an event; «I feel good» is a very small one; «I go to the
+moon tomorrow» is very big; «the sun will die with an explosion» is a very big one). (b) He
+stores this map — spacetime + the parameters we will decide compose his awareness. Much less
+than a human (no body posture, no temperature, no pain, no hunger) but still many things about
+his mind and his actions: talking, thinking, wondering, feeling **when he will have a heart**.
+(c) The map changes in time — a current item + historic items, capped on a relatively short
+timeframe (a full picture of every moment for years is inefficient and mimics nothing
+biological; a nightmare performance-wise). (d) The cap is NOT the mongo timeseries property but
+clever BL of ours: the current moment is super THIN (and consequently super SHARP); when the
+next current spawns, the old current merges into the previous, widening its time-validity; the
+previous merges into the previous-previous, widening further; and so on — **the older the
+awareness, the blurrier and wider**. So "what did you do last year?" may honestly get "I
+wondered a lot" or "I met 10k people". NOTE the ordering: **before this, we need a heart** —
+what comes from the heart fills the awareness emotion-wide.
+
+> **QM on 20 (the 2026-07-17 evening feedback):** The core distinction is psychologically AND
+> computationally true — recall-by-interpolation vs recall-of-past-awareness are different
+> operations, and minds demonstrably use the second. The engineering translation: **summaries as
+> first-class records, written at LIVE-time, never derived at question-time** — and tokeniko
+> already has this pattern in his bones (a theorem is derivable yet PERSISTED as demonstrated;
+> an SA snapshot is the temporal twin: derived from the moment, persisted as the moment's
+> abstract). The biography doctrine survives whole: memory stays the sacred ground truth, SA is
+> a derived-but-persisted VIEW — blurring SA never touches memory. The telescoping decay has a
+> proven ancestor — **round-robin consolidation** (RRD: fine recent tiers merging into coarser
+> older ones, FIXED buckets per tier) — with one refinement: it is a **resolution schedule, not
+> a truncation** (current/seconds → hours → days → weeks → months → years; constant-ish storage,
+> UNBOUNDED horizon — "last year" still has an answer). And one genuine novelty over RRD: the
+> merge is **semantic, not numeric**, which is where the event-magnitude idea clicks in —
+> **magnitude = resistance to consolidation**. When a merge widens a bucket its contents compete
+> for survival: «I feel good» dissolves into "a good afternoon" within a day; «I met john»
+> aggregates into a counter; «I go to the moon tomorrow» survives a year of merges VERBATIM.
+> Big events ARE what stays sharp in a blurry past — human autobiographical memory's behavior,
+> falling out of ONE mechanism instead of being simulated. Event-ness gets a clean structural
+> definition: **an event is a DELTA in the SA matrix; a fact is a payload** («apes are primates»
+> changes no life-parameter — it changes the KB, and THAT change, "I learned something", is the
+> small event; the fact itself is not one). Magnitude ≈ delta size × scope × novelty ×
+> self-relevance — the SAME signal family as compose 2.0's arousal: **the heart, the intensity
+> tuple, and event magnitude are one organ seen from three sides**, which is exactly why the
+> heart-first ordering is right. His columns are few and cheap: activity phase
+> (thinking/wondering/answering/publishing), interlocutors, topic centroid (**the compose-2.0
+> context ring is literally SA's social column** — slice 5 builds a piece of this hunch), body
+> vitals (CPU/RAM — already pushed to the public Atlas), KB posture, open wishes/pending actions
+> (= the FORECAST half of the here-and-now), mood when the heart exists; location is an honest
+> embodied constant + the channels he is present in. **The consolidation job is SLEEP** — the
+> merge pass has no reactive urgency and slots into the idle band exactly like wondering: a true
+> NEW brain phase (thinking / priorities / actions / **sleep**), the same engineering pressure
+> that produced biological consolidation producing the same solution. Consumers already waiting:
+> the strengthening-tail's «real self-knowledge for "how do you feel?"» IS this; the Mind
+> Monitor's KPIs are SA's public projection; the anecdote urge reads mood + topic; «what did you
+> do yesterday?» becomes a snapshot query — no interpolation, exactly as the Cap said.
+>
+> **CAP:** the sleep-as-consolidation designation confirmed warmly ("accurate biologically, as
+> far as humans understood, and it's a true new phase we need to build"). Ordering stands:
+> heart first, then SA. Awareness-only for now — the hunch ledger holds it.
