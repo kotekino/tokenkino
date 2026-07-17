@@ -18,7 +18,7 @@ from lib.core.tk import TKStatement
 from lib.core.tkllc import TKLLC
 from lib.core.tkzip import TKZip
 from lib.core.evaluation_harness import conclusion_key, revoke_dependents, _zip_leaves
-from lib.core.zip_native import assemble_conclusion_zip
+from lib.core.zip_native import assemble_conclusion_zip, assemble_reportative_zip
 from api.services.validation import assert_no_contradiction
 
 
@@ -132,10 +132,19 @@ class TheoremService:
         # two entrances — the write-path invariant is untouched.
         fields: dict
         if structure and structure.get("subject") and structure.get("predicate"):
-            native = assemble_conclusion_zip(
-                structure["subject"], structure["predicate"], structure.get("object"),
-                bool(structure.get("negated", False)), subject_kind=structure.get("subject_kind"),
-            )
+            # REPORTATIVE shape (the observation-fact seam): a `complement` predicate turns the
+            # structure into the two-leaf «<individual> said <predicative>» native assembly.
+            if structure.get("complement"):
+                native = assemble_reportative_zip(
+                    structure["subject"], structure["predicate"],
+                    structure["complement"].get("predicate"),
+                    attitude_verb=structure["complement"].get("attitude_verb", "say"),
+                )
+            else:
+                native = assemble_conclusion_zip(
+                    structure["subject"], structure["predicate"], structure.get("object"),
+                    bool(structure.get("negated", False)), subject_kind=structure.get("subject_kind"),
+                )
             if native is None:
                 raise UngroundableConclusionError(
                     f"native assembly refused (ungroundable role): {structure}")

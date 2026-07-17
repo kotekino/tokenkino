@@ -518,11 +518,10 @@ def _extract_property_conditioned(statement) -> Optional[dict]:
 #     don't extract (the props table holds affirmative crisp properties only).
 # Emitted `strength` mirrors the per-leaf rules: universal quantifier = law, else defeasible
 # generic (trust-capped at _GENERIC_RULE_TRUST by the harness).
-# NB the «says false» rule extracts WELL-FORMED but waits for its trigger: a live «X says false»
-# instance mints no fact today (THAT-attitude zips are quoted thought, blocked by the assertedness
-# gate). Single-predicate conditionals («a person is wrong if he LIES») fire end-to-end. The
-# observation-fact seam (an eval:false verdict becoming a "said false" fact) is the D-phase
-# follow-on — roadmap, not here.
+# NB the «says false» rule's trigger LANDED 2026-07-17 (the observation-fact seam): an eval:false
+# verdict mints a «<speaker> said false» theorem (brain/thinking.record_observation, zip-native
+# reportative assembly) whose predicative-reportative shape _reportative_facts below reads into
+# chainer fuel — the rule fires end-to-end once the speaker's person-membership is known (taught).
 # ================================================================================================
 _CLASS_COND_QUANTIFIERS = (TKQuantifier.INDEFINITE, TKQuantifier.GENERIC, TKQuantifier.UNIVERSAL)
 
@@ -611,6 +610,73 @@ def _extract_class_conditioned(statement) -> Optional[dict]:
     }
 
 
+# ================================================================================================
+# THE OBSERVATION-FACT SEAM (2026-07-17) — the ONE narrow relaxation of the storm gate.
+# «Salmon said false» compiles (probed) to a matrix leaf (uid, state.v.01) + a THAT complement
+# leaf that INHERITS the matrix identity and carries only its predicate sense (false.a.01) — a
+# PREDICATIVE complement, machine-distinguishable from quoted thought («says that snow is green»:
+# the complement has its OWN subject sense and no inherited identity). For exactly that shape,
+# the matrix leaf + each complement mint PROPERTY facts on the speaker — the fact-side mirror of
+# _extract_class_conditioned's cond_extra flattening (the approximation lives symmetrically in
+# both extraction layers; the STORED doc stays honest: «Salmon said false», never «Salmon is
+# false»). Everything else — quoted propositions, non-reportative attitudes (believe/think:
+# factivity — a belief report asserts the believing, and no taught believe-rule consumes it yet),
+# any negated/modal/question leaf — stays fully storm-blocked. Returns None when the shape is
+# not recognized.
+# ================================================================================================
+def _reportative_facts(doc) -> Optional[list]:
+    items = _zip_leaf_items(doc.zip.items)
+    if len(items) < 2:
+        return None
+    matrix = [it for it in items if it.op == TKOperator.AND and getattr(it, "attitude", None) is None]
+    thats = [it for it in items if it.op == TKOperator.THAT]
+    if len(matrix) != 1 or not thats or len(matrix) + len(thats) != len(items):
+        return None  # anything beyond ONE matrix + its THAT complements is not this shape
+    m = matrix[0].content
+    m_ids = getattr(m, "identities", None) or {}
+    m_senses = getattr(m, "senses", None) or {}
+    subject_uid, m_pred = m_ids.get("subject"), m_senses.get("predicate")
+    if not subject_uid or not m_pred:
+        return None  # only an entity-linked matrix subject observes anything
+    leaves = [m] + [it.content for it in thats]
+    if any(not _leaf_is_crisp(lf) or getattr(lf, "negated", False)
+           or getattr(lf, "quantifier", None) == TKQuantifier.UNIVERSAL
+           or getattr(lf, "dubitative", 0.5) >= 0.75
+           or getattr(lf, "wh_role", None) is not None
+           for lf in leaves):
+        return None
+    facts = [{
+        "subject_uid": subject_uid,
+        "predicate": m_pred,
+        "object": m_senses.get("direct"),
+        "negated": False,
+        "original": doc.original,
+        "kind": "property",
+        "source_id": str(doc.id),
+    }]
+    for it in thats:
+        att = getattr(it, "attitude", None)
+        if att is None or getattr(att, "klass", None) != "reportative":
+            return None  # a non-reportative attitude is quoted thought — the whole doc stays blocked
+        c = it.content
+        c_senses = getattr(c, "senses", None) or {}
+        c_ids = getattr(c, "identities", None) or {}
+        if c_senses.get("subject") is not None or c_ids.get("subject") != subject_uid:
+            return None  # an own-subject complement is a QUOTED proposition, never a subject property
+        if not c_senses.get("predicate"):
+            return None
+        facts.append({
+            "subject_uid": subject_uid,
+            "predicate": c_senses["predicate"],
+            "object": c_senses.get("direct"),
+            "negated": False,
+            "original": doc.original,
+            "kind": "property",
+            "source_id": str(doc.id),
+        })
+    return facts
+
+
 # extract individual FACTS from the active axioms/theorems for the forward-chainer + the individual-
 # fact grounder. an individual leaf has an entity-linked subject (identities['subject']) and is NOT
 # universal (universals are RULES, not facts). two fact kinds, both returned in ONE list:
@@ -626,7 +692,10 @@ def extract_facts(docs) -> list:
         if doc.zip is None:
             continue
         if not _zip_is_asserted(doc.zip.items):
-            continue  # THE STORM gate: a leaf under IMPLY/OR/attitude is not an asserted fact
+            # THE STORM gate: a leaf under IMPLY/OR/attitude is not an asserted fact — with ONE
+            # narrow reading (the observation-fact seam): the predicative-reportative shape.
+            facts.extend(_reportative_facts(doc) or [])
+            continue
         for leaf in _zip_leaves(doc.zip.items):
             if not _leaf_is_crisp(leaf):
                 continue  # ◇-claim: possibility never becomes a fact

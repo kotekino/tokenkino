@@ -38,6 +38,7 @@ from lib.core.models import (
     TKMemoryStakeholdersDoc,
     TKTheoremDoc,
 )
+from lib.core.zip_native import assemble_reportative_zip
 from brain import api_client, behavior
 
 logger = logging.getLogger("tokeniko-brain")
@@ -246,6 +247,54 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
     if postable:
         _spawn_life_theorem(str(theorem.id), norm, derived_by,
                             result.premises, chain, _is_personal(item.zip, norm))
+    return True
+
+
+# --------------------------------------------------------------
+# THE OBSERVATION-FACT SEAM (2026-07-17): an eval:false verdict IS an observation — the speaker
+# said something false. Mint it silently as a tier-2 theorem «<name> said false» via the
+# parser-free zip-native reportative assembly (lib/core/zip_native.py): matrix (uid, state.v.01)
+# + THAT complement (uid, false.a.01) — the SAME senses the taught «a person is wrong if he says
+# false» rule extracts (aligned by construction, probed 2026-07-17) — so extract_facts'
+# predicative-reportative branch feeds the chainer and the taught rule can FIRE on the next KB
+# load. LOCAL write (the materialize_theorem precedent): the observation must not depend on the
+# api process (the brain's only hard dependency stays MongoDB). Trust: "X said s" is
+# eyewitness-certain (the memory item IS the evidence), "s is false" is only as strong as the
+# refutation -> min = the refutation's conclusion trust; a premise-less FALSE (nothing to price
+# it with) honestly skips. Idempotent by `original` — one "has said false" per speaker suffices;
+# repeat offenses are the trust ledger's business, not the KB's.
+# --------------------------------------------------------------
+_OBS_SAY_SENSE = "state.v.01"    # what «said» compiles to — rule and mint sides share the pipeline
+_OBS_FALSE_SENSE = "false.a.01"  # what «false» compiles to
+
+
+def record_observation(item: TKMemoryItemDoc, result: EvaluatorResult) -> bool:
+    speaker = trust.resolve_canonical(item.sourceId)
+    if speaker is None or speaker.isMe or not speaker.uid:
+        return False  # self-falsehoods are belief-revision territory, never observations
+    if not result.premises:
+        return False  # an unpriceable refutation grounds no observation
+    original = f"{speaker.name} said false"
+    if TKTheoremDoc.find_one({"original": original, "archived": False}).run() is not None:
+        return False  # already observed (a re-mint under a rename is harmless — same uid inside)
+    native = assemble_reportative_zip(speaker.uid, _OBS_SAY_SENSE, _OBS_FALSE_SENSE)
+    if native is None:
+        logger.warning("[thinking] observation unassemblable (uid=%s) — skipped", speaker.uid)
+        return False
+    chain = f"observation: «{item.original}» refuted -> {original}"
+    theorem = TKTheoremDoc(
+        original=original,
+        zip=native,
+        sourceId=str(get_tokeniko().id),  # tier-2: tokeniko observed it himself
+        channel=MEMChannels.INTERNAL,
+        archived=False,                   # ACTIVE -> joins reasoning on the next KB load
+        trusted=evaluation_harness._conclusion_trust(result.premises),
+        provenance=MEMProvenance(premises=list(result.premises) + [f"observed:{item.id}"],
+                                 chain=chain, derived_by="observation"),
+        postable=not _is_dm(item),        # provenance gate (blog P1): DM evidence never public
+    )
+    theorem.save()
+    logger.info("[thinking] OBSERVATION «%s» <- %s", original, chain)
     return True
 
 
@@ -828,6 +877,11 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             # itself teachable).
             if token == EvalToken.UNKNOWN.value:
                 materialize_taught(item)
+            # THE OBSERVATION-FACT SEAM: a refuted assertion is itself knowledge — the speaker
+            # said false (silent, like all learning; the DISAGREEMENT echo below prices the
+            # trust side; an accepted CORRECTION never reaches here — no offense in revision).
+            if token == EvalToken.FALSE.value:
+                record_observation(item, result)
 
             # D P2: the verdict's LEDGER ECHO — spawn the trust:* trigger beside the eval reflex
             # (its own namespace: no collapse-collision, so he can push back AND distrust). The

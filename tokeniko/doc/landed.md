@@ -1146,3 +1146,37 @@ could never use. Now:
 Re-teach «a person is wrong if he says false» when the daemons wake — the axiom now yields its
 rule on the next KB load. 11 tests (`test_conditional_rules.py`) + the 2 narrowed. Gate
 **380 / 1 xfailed**.
+
+**The observation-fact seam (2026-07-17 — basket item 1: the taught «says false» rule finally fires)**
+The conditional-rule extractor left one honest limitation: «a person is wrong if he says false»
+extracted well-formed but could never fire — a live «X says false» instance minted no fact
+(THAT-attitude zips are quoted thought, storm-blocked). The seam closes it end-to-end:
+- **The mint** (`brain/thinking.record_observation`): an eval:false verdict IS an observation —
+  the speaker said something false. Minted SILENTLY (the materialize_theorem precedent) as a
+  tier-2 theorem «<name> said false», LOCAL write (parser-free; the brain's only hard dependency
+  stays MongoDB). Trust = the refutation's conclusion trust ("X said s" is eyewitness-certain,
+  "s is false" only as strong as the refutation; premise-less FALSE honestly skips). Premises =
+  the refutation's + `observed:<memory_id>` (the memory item IS the evidence). Idempotent by
+  `original` — repeat offenses are the trust ledger's business. Self-speech never observes
+  (belief-revision territory); an accepted correction never reaches the mint (no offense in
+  revision). DM evidence stays `postable=False`.
+- **The second native shape** (`zip_native.assemble_reportative_zip`): matrix leaf (uid,
+  state.v.01) + THAT complement (uid, false.a.01), mirroring the compiled render of «Salmon says
+  false» exactly (probed: the compiler folds a subject-less predicative complement onto the
+  matrix subject's identity) — equivalence test asserts `conclusion_key` + per-leaf parity with
+  the parser's output. Sense alignment with the taught rule is BY CONSTRUCTION (both sides
+  compile «says»→state.v.01, «false»→false.a.01). Threaded through the API materialize too
+  (`structure.complement` → the same assembler; the seam has two entrances like materialize
+  itself).
+- **The ONE narrow storm-gate relaxation** (`kb_extract._reportative_facts`): a doc whose only
+  non-AND items are THAT leaves with NO own subject sense + the matrix-inherited identity +
+  attitude klass `reportative` mints matrix + complement PROPERTY facts on the speaker — the
+  fact-side mirror of `cond_extra`'s flattening (the approximation lives symmetrically in both
+  extraction layers; the STORED doc stays honest: «Salmon said false», never «Salmon is false»).
+  Quoted propositions («says that snow is green»: own subject sense), non-reportative attitudes
+  (believe/think — factivity), negated/modal/question leaves: all stay fully storm-blocked.
+- **The honest gap, kept**: the rule also needs the speaker's person-MEMBERSHIP in the closure —
+  taught for now («Salmon is a person»); NER-typed membership as observation noted as a possible
+  sibling follow-on (author's ruling: taught-for-now).
+9 tests (`test_observation_facts.py`: shape units, native-vs-compiled equivalence, chainer
+end-to-end with the observation in the premises, brain-trigger units). Gate **389 / 1 xfailed**.

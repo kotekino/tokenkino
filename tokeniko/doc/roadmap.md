@@ -62,9 +62,7 @@ Nothing in §1 blocks §2 — it is craft ordering, not dependency.
 
 The harvests' surviving threads + one cheap translator item, each small and seam-closing:
 
-- **The observation-fact seam** (D-phase): an eval:false verdict becomes a "said false" property
-  fact on the speaker — what lets the taught «a person is wrong if he says false» rule FIRE
-  (it extracts well-formed today; only single-predicate conditionals fire end-to-end).
+- ✅ **The observation-fact seam** — landed 2026-07-17 (→ `landed.md`).
 - **Nominal IMPLY** («action imply ability» — non-clausal operands for
   `compiler_implicationOperands`).
 - **Adverbial-quantifier family** (always/sometimes/never → the quantifier field; second harvest).

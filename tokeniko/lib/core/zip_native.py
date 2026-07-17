@@ -31,7 +31,8 @@ from typing import Optional
 
 from lib.core.constants import _ME_UID
 from lib.core.models import TKDictionaryDoc, TKMemoryStakeholdersDoc
-from lib.core.tk import TKQuantifier
+from lib.core.tk import TKOperator, TKQuantifier
+from lib.core.tkllc import TKLLAttitude
 from lib.core.tkzip import TKZip, TKZipContent, TKZipItem
 
 logger = logging.getLogger("tokeniko-brain")
@@ -146,3 +147,53 @@ def assemble_conclusion_zip(subject: str, predicate: str, object: Optional[str] 
     # the compiler wraps statement leaves in a LIST of items under the root (even a single
     # clause) — match the stored shape exactly so downstream consumers see one geometry.
     return TKZip(map=[0.0] * 8, items=TKZipItem(content=[TKZipItem(content=content)]))
+
+
+# --------------------------------------------------------------
+# assemble a REPORTATIVE observation into a TKZip (the observation-fact seam, 2026-07-17): the
+# second canonical native shape — «<individual> said <predicative>» («Salmon said false»). The
+# compiled render of that sentence (probed 2026-07-17) is a TWO-leaf tree:
+#   matrix leaf   op=AND   att=None                              senses={predicate: matrix_pred}
+#   complement    op=THAT  att=(verb="say", klass="reportative") senses={predicate: complement_pred}
+# with BOTH leaves carrying the speaker's identity (the compiler folds a subject-less predicative
+# complement onto the matrix subject) and GENERIC quantifiers (bare individual subject). This
+# assembler rebuilds exactly that — the uid arrives canonical from the caller (item.sourceId), so
+# there is no name-resolution risk; the senses are first-class inputs (the observation vocabulary
+# is a fixed cognitive act: "said" = state.v.01, "false" = false.a.01 — the same senses the taught
+# «…if he says false» rule extracts, aligned by construction).
+# NB the assembled zip is deliberately NOT `_zip_is_asserted` (the THAT leaf) — extract_facts owns
+# the one narrow reading of this shape (matrix + predicative complements as subject properties).
+# --------------------------------------------------------------
+def assemble_reportative_zip(subject_uid: str, matrix_pred: str, complement_pred: str,
+                             attitude_verb: str = "say") -> Optional[TKZip]:
+    if not subject_uid or "@" not in subject_uid or not matrix_pred or not complement_pred:
+        return None
+    subj_sem = _semantic_block(subject_uid)
+    if subj_sem is None:
+        subj_sem = [0.0] * _SEMANTIC_DIMS  # honest zeros for a centroid-less individual (as above)
+    matrix_sem = _semantic_block(matrix_pred)
+    compl_sem = _semantic_block(complement_pred)
+    if matrix_sem is None or compl_sem is None:
+        logger.info("[zip_native] ungroundable reportative (matrix=%s complement=%s) — no assembly",
+                    matrix_pred, complement_pred)
+        return None
+
+    def _leaf(pred_sense: str, pred_sem: list[float]) -> TKZipContent:
+        return TKZipContent(
+            negated=False,
+            quantifier=TKQuantifier.GENERIC,   # bare individual subject, per the compiled render
+            senses={"predicate": pred_sense},
+            identities={"subject": subject_uid},
+            subject=_role_tensor(subj_sem),
+            predicate=_role_tensor(pred_sem),
+            direct=_role_tensor(None),
+            indirects=[],
+        )
+
+    matrix = TKZipItem(content=_leaf(matrix_pred, matrix_sem))
+    complement = TKZipItem(
+        op=TKOperator.THAT,
+        attitude=TKLLAttitude(verb=attitude_verb, klass="reportative", confidence=0.5),
+        content=_leaf(complement_pred, compl_sem),
+    )
+    return TKZip(map=[0.0] * 8, items=TKZipItem(content=[matrix, complement]))
