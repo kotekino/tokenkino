@@ -86,6 +86,7 @@ def test_verb_object_native_truthful_where_roundtrip_splits(compile_zip):
         assert conclusion_key(compiled) != conclusion_key(native)
 
 
+@pytest.mark.pipeline  # touches Mongo without the _io fixture
 def test_stutter_key_collapses_to_native():
     # the stored round-trip stutter (same leaf twice, from pin-over-split) must dedup-match the
     # honest native single leaf — conclusion_key set-collapses identical leaves (dedup continuity
@@ -116,6 +117,7 @@ def test_evaluator_verdicts_identical(compile_zip, _io):
 
 # ---- honesty gates --------------------------------------------------------------------------------
 
+@pytest.mark.pipeline  # touches Mongo without the _io fixture
 def test_unknown_sense_refused():
     assert assemble_conclusion_zip("wug.n.01", "mammal.n.01", subject_kind="class") is None
     assert assemble_conclusion_zip("cat.n.01", "blicket.v.01", subject_kind="class") is None

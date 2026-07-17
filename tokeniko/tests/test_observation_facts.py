@@ -48,6 +48,7 @@ def test_doxastic_attitude_stays_blocked(compile_zip):
     assert extract_facts([_doc(zp, "Salmon believes false")]) == []
 
 
+@pytest.mark.pipeline  # assemble_reportative_zip reads the dictionary (Mongo without _io)
 def test_negated_matrix_stays_blocked():
     zp = assemble_reportative_zip("liar@test:obs", _SAY, _FALSE)
     zp.items.content[0].content.negated = True      # «did not say» — never an observation

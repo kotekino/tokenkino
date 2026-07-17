@@ -389,6 +389,12 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
     leaves = evaluation_harness._zip_leaves(item.zip.items)
     if not leaves or any(getattr(leaf, "unknown", False) for leaf in leaves):
         return False  # unknown vocabulary never becomes knowledge
+    # a HEADLESS leaf (no subject sense, no subject identity — an ambient unresolved «you», a
+    # fragment) asserts nothing about anyone: never knowledge (the coreference gate's belt,
+    # 2026-07-18 — the mammal incident's taught «so I am a mammal» came through here).
+    if any(not ((getattr(l, "senses", None) or {}).get("subject")
+                or (getattr(l, "identities", None) or {}).get("subject")) for l in leaves):
+        return False
     soul = trust.resolve_canonical(item.sourceId)
     if soul is None or soul.isMe:
         return False

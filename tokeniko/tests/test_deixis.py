@@ -66,8 +66,11 @@ _ORIGINALS = [f"{_TEACHER_NAME} is my creator", "I am kind"]
 
 
 def _zip():
+    # minimal VALID lesson leaf (the headless-teaching belt, 2026-07-18: a subject-less stand-in
+    # is no longer teachable — like any real taught assertion, the fixture carries a subject).
     return TKZip(map=[0.0] * 8, items=TKZipItem(content=TKZipContent(
-        subject=None, predicate=None, direct=None)))
+        subject=None, predicate=None, direct=None,
+        senses={"subject": "wisdom.n.01", "predicate": "begin.v.01"})))
 
 
 def _mk_teacher(_io, trust=0.95):

@@ -15,8 +15,12 @@ _TEACHER = "p3-hellen@discord:7"
 
 
 def _zip(unknown=False):
+    # a minimal VALID lesson leaf: the headless-teaching belt (the mammal incident, 2026-07-18)
+    # refuses a leaf with no subject at all — a stand-in zip must now carry one, like any real
+    # taught assertion does (the trust mechanics under test here are unaffected).
     return TKZip(map=[0.0] * 8, items=TKZipItem(content=TKZipContent(
-        subject=None, predicate=None, direct=None, unknown=unknown)))
+        subject=None, predicate=None, direct=None, unknown=unknown,
+        senses={"subject": "wisdom.n.01", "predicate": "begin.v.01"})))
 
 
 def _mk_teacher(_io, trust=0.95, imprint=False):

@@ -802,11 +802,22 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
     seen_conclusions: set = set()
     n_1prem = 0    # dropped by the novelty gate (single-rule restatement)
     n_dup = 0      # dropped by semantic dedup
+    n_conflict = 0  # dropped by the derivation mirror (a self-contradicted chain)
     n_total_derived = 0
     for subject, uid, sense, kind in seeds:
         derived, _ = evaluator_forwardChain(sense, uid, rules, parents, facts, edge_source=edge_source)
         n_total_derived += len(derived)
         for d in derived:
+            # THE DERIVATION MIRROR (2026-07-18, the not-an-animal theorem): a conclusion whose
+            # own chain also supports its opposite is proof the PREMISES are inconsistent, never a
+            # truth — logic is sacred, it must not materialize. Logged LOUDLY: it is a lead that
+            # some premise is wrong (the premise-retreat consumer is D-phase work).
+            if d.get("conflict"):
+                n_conflict += 1
+                logger.warning("[kb_wonder] DERIVATION CONFLICT on %s: %s — not materialized "
+                               "(a premise is wrong; premises=%s)",
+                               subject, d["chain"], sorted(d.get("premises", [])))
+                continue
             premises = d.get("premises", [])
             if len(premises) < _NOVELTY_MIN_PREMISES:
                 n_1prem += 1
@@ -839,8 +850,8 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
     if _WONDER_VERBOSE:
         logger.info(
             "[kb_wonder] done: %d NEW conclusions | %d derivations across %d seeds "
-            "| dropped(1-premise=%d, dup=%d)",
-            len(out), n_total_derived, len(seeds), n_1prem, n_dup,
+            "| dropped(1-premise=%d, dup=%d, CONFLICT=%d)",
+            len(out), n_total_derived, len(seeds), n_1prem, n_dup, n_conflict,
         )
     return out
 

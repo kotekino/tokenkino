@@ -384,6 +384,25 @@ def evaluator_forwardChain(
             if not changed:
                 break
 
+    # ---- THE DERIVATION MIRROR (2026-07-18, the not-an-animal theorem) --------------------------
+    # a forward-chain that derives BOTH X and ¬X — or a NEGATED conclusion whose predicate the
+    # closure itself holds as a class («kotekino is an animal» climbed the is_a chain while
+    # «kotekino is not an animal» fired off a rule) — has proven its premises inconsistent, not a
+    # truth. Such conclusions are STAMPED conflict=True: consumers (kb_wonder's materialization,
+    # chainGround's grounding) must SKIP them — logic is sacred, a contradiction never becomes a
+    # theorem and never decides a truth; it is a lead that some premise is wrong (the deeper
+    # premise-retreat consumer is D-phase work, roadmap).
+    polarity: dict[tuple, set] = {}
+    for d in derived:
+        polarity.setdefault((d["predicate"], d.get("object")), set()).add(bool(d.get("negated", False)))
+    for d in derived:
+        key = (d["predicate"], d.get("object"))
+        both_polarities = len(polarity.get(key, set())) == 2
+        vs_closure = bool(d.get("negated", False)) and d.get("object") is None and d["predicate"] in closure
+        if both_polarities or vs_closure:
+            d["conflict"] = True
+            d["chain"] += "  [CONFLICT: the same derivation also supports the opposite]"
+
     # surface premises as a sorted list per conclusion (frozensets are an internal accumulation detail).
     for d in derived:
         d["premises"] = sorted(d.get("premises", frozenset()))
@@ -434,6 +453,8 @@ def evaluator_chainGround(
 
         if match is None:
             return None  # chaining doesn't decide -> fall through
+        if match.get("conflict"):
+            return None  # the derivation mirror: a self-contradicted chain decides NOTHING (abstain)
 
         premises = match.get("premises", [])
         if match["negated"] == negated:

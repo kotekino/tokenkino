@@ -27,6 +27,17 @@ from dotenv import load_dotenv
 load_dotenv("/Users/renzosala/Develop/personal/tokeniko/tokeniko/.env")
 
 
+# THE TWO LANES (2026-07-18, author's ruling — save the console time): any test that touches the
+# `_io` fixture chain (spaCy/Stanza load + the Mongo sandbox) is auto-marked `pipeline`. The FAST
+# lane (`task test-fast` = `-m "not pipeline"`) is the pure-logic remainder — extractors, routers,
+# chainer units, verifiers on synthetic zips — and runs in seconds: iterate on it. The FULL gate
+# (`task test`) stays sacred before every commit; coverage is never shrunk, only tiered.
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if "_io" in getattr(item, "fixturenames", ()):
+            item.add_marker(pytest.mark.pipeline)
+
+
 # the gate runs against a SANDBOX MIND: the shared KB database (dictionary/relations bedrock —
 # read-only for tests) + a dedicated "<memory>_test" memory database. tokeniko's LIVING memory DB
 # (his DNA imprint, axioms/theorems) is never read NOR written by the gate — the imprint is personal

@@ -66,6 +66,26 @@ tail (§1 — the author-ordered action-survey → great-seeding sequence), the 
 analysis carrying the premiere's two grounding leads (§2), the translator remainder (§3), the
 strengthening tail (§4).
 
+### 0. THE REDUCTIO ACTION — urgent (author's 2026-07-18 ruling: "we can't test too much with
+### that poison available") 🔭
+
+Born live from the not-an-animal theorem (the mammal incident's second head): the derivation
+mirror now RECOGNIZES an absurd conclusion (a∧¬a in one chain — never materialized, never
+decides), but recognition is only half the r.a.a. — **a reductio deserves its own ACTION**. When
+his premises jointly produce an absurd, the epistemically honest move is to bring the
+contradiction back to the people who gave him the premises: *«I just discovered that {a} or {b}
+must be false — if both are true I conclude {absurd}. Which is the false assumption?»* — the
+DERIVATIONAL cousin of clarify (same question, aimed at his own KB instead of a speaker). The
+shape: the mirror's conflict stamp spawns `eval:absurdity` (conclusion + premise set rendered to
+stored sentences — the `_refuting_belief` pattern generalized) → new `tokeniko:reduct` action
+(outward, scaffold category, self-relevant trigger). Open design points: WHERE to ask (premises
+may span teachers/channels); the resolution consumer (the answer retires a premise via the
+retreat machinery); the constructive direction (assume ¬p, derive absurd ⇒ p PROVEN — proof by
+contradiction as a wondering mode; shares machinery with §4 R4b). Deserves a whole session.
+*Also his: the stale-premise recompile (`scripts/recompile.py` — «my mind is a software»
+pre-possessive-gate, «not all minds are software» pre-M6) + the biography ruling on the
+already-materialized conflict theorems.*
+
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
 
 - **The action-space survey + the great seeding** (author's 2026-07-17 ruling, deliberately in

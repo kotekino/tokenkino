@@ -41,6 +41,15 @@ _context: MEMContext = None
 _ollamaClient: OllamaClient = None
 _talker: MEMStakeholder = None
 _tokeniko: MEMStakeholder = None
+_addressed: bool = True   # the coreference gate: is THIS utterance addressed to tokeniko?
+
+
+# the LISTENER meta entity («you»'s referent): tokeniko when the utterance is addressed to him;
+# an uid-less STUB otherwise (ambient/other-thread talk — the addressee is unknowable, so «you»
+# must resolve to no identity: the leaf stays honestly unsound, mints nothing, teaches nothing).
+def _listener_meta() -> TKMetaEntity:
+    who = _tokeniko if _addressed else MEMStakeholder(name="you", uid="")
+    return TKMetaEntity(who=who, isListening=True, isTalking=False)
 
 # tokens (and their subtrees) to EXCLUDE while gathering subordinates. used ONLY by the
 # universal-relcl re-root (parser_parseSentence): when "everything that thinks exists" is mangled by
@@ -914,7 +923,7 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
 
         tkMain = TKStatement()
         tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=False, isTalking=True))
-        tkMain.create_entity(payload=TKMetaEntity(who=_tokeniko, isListening=True, isTalking=False))
+        tkMain.create_entity(payload=_listener_meta())
         tkMain.clause_type = clause_type
         # ROOT-mark capture (the storm-sequel fix): a fragment utterance that IS a subordinate
         # («because you think») carries its subordinating "mark" on the root — stash it on the
@@ -995,7 +1004,7 @@ def parser_parseSentence(root: Token, tokens: list[Token], clause_type: TKClause
         tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=True, isTalking=False))
     else:
         tkMain.create_entity(payload=TKMetaEntity(who=_talker, isListening=False, isTalking=True))
-        tkMain.create_entity(payload=TKMetaEntity(who=_tokeniko, isListening=True, isTalking=False))
+        tkMain.create_entity(payload=_listener_meta())
         
     tkMain.clause_type = clause_type
     # ROOT-mark capture (the storm-sequel fix): a fragment utterance that IS a subordinate
@@ -1134,8 +1143,8 @@ def _parser_invertedQuestionRetry(doc, text: str):
 # --------------------------------------------------------------
 # MAIN entry point to parse an input text
 # --------------------------------------------------------------
-def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None) -> TKStatements:
-    global _context, _ollamaClient, _talker, _tokeniko
+def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, context: MEMContext = None, ollamaClient: OllamaClient = None, addressed: bool = True) -> TKStatements:
+    global _context, _ollamaClient, _talker, _tokeniko, _addressed
 
     # prepare input
     tokens = util_removeSpace(tokens)
@@ -1148,6 +1157,14 @@ def parser(tokens: str, talker: MEMStakeholder, tokeniko: MEMStakeholder, contex
     # determine stakeholders
     _talker =talker
     _tokeniko = tokeniko
+    # the COREFERENCE GATE (2026-07-18, the mammal incident): «you» binds to tokeniko ONLY when
+    # the utterance is ADDRESSED to him (DM/mention/reply — the caller derives it from the
+    # directedness grade). In ambient channel talk between humans («so you are a mammal», the
+    # author to a friend, d=0.15) the addressee is UNKNOWABLE: the listener meta becomes an
+    # uid-less stub, so «you» stays an unresolved reference — no identity, no fact, no teaching
+    # (the taught «so I am a mammal» + the wrongly-derived «I am not a reptile» were this bug).
+    # Default True: DMs, direct API calls, seeds and tests keep the old behavior unchanged.
+    _addressed = addressed
 
     # spacy parse (+ the verbless-NP do-support retry and the inverted-question recovery, above)
     doc = _parser_degenerateRetry(nlp_stanza(tokens), tokens)

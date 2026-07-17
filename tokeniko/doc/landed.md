@@ -1372,3 +1372,28 @@ social column):
 9 tests (`test_context_ring.py`: cap/evict, warm-from-timeseries, others-only centroid, floor,
 cooldown+novelty, the ambient band, spawn-gated arming, router+fence, dispatch census). Gate
 **464 / 1 xfailed**. Env knobs documented in `.env.template`.
+
+**The mammal incident — the coreference gate + the derivation mirror (2026-07-18, found LIVE twice in one evening)**
+The author invited a friend to the channel; two context-blindness bugs surfaced in an hour:
+- **The coreference gate**: «you» resolved to tokeniko UNCONDITIONALLY — the author's «so you are
+  a mammal», aimed at his friend at directedness 0.15 (the grading was RIGHT), taught «so I am a
+  mammal» and derived «I am not a reptile» (true, for the wrong reason). Now `parser(...,
+  addressed=)` (default True — DMs/API/seeds unchanged; /input derives it from the directedness
+  it already receives, ≥0.9): unaddressed «you» binds to an uid-less stub — no identity, no
+  fabricated sense, an honestly unsound leaf ("you" joined `_UNRESOLVED_PRONOUNS`: no Haiku burn).
+  Belt: `materialize_taught` refuses HEADLESS leaves (no subject sense/identity) — three test
+  fixtures narrowed to carry a minimal valid subject (the belt caught them correctly).
+- **The derivation mirror**: the chainer derived «kotekino is an animal» (the is_a climb) AND
+  «kotekino is not an animal» (through the STALE «a mind is a software» premise — pre-possessive-
+  gate zip — and the pre-M6 «not all minds are software» ∀-collapse) in ONE closure, materialized
+  and PUBLISHED the contradiction (the polish even saw it: "they pull me to the opposite of where
+  I began"). Now the chainer stamps `conflict=True` on both-polarity derivations and on a negated
+  conclusion whose predicate the closure itself holds; `kb_wonder` never materializes them (loud
+  premise-naming log — a reductio is EVIDENCE a premise is wrong); `chainGround` abstains (a
+  broken chain decides nothing). The reductio ACTION (ask the premise-givers which assumption is
+  false) = roadmap §0, the author's urgent next; the stale-premise recompile = his hand.
+- **The two lanes** (author's ruling, same evening): tests auto-marked `pipeline` by `_io` fixture
+  use; `task test-fast` = the pure-logic lane (143 tests, ~4s) for iteration; the FULL gate stays
+  sacred before every commit. Coverage never shrunk, only tiered.
+9 tests (`test_coreference_gate.py`: the mammal replay end-to-end, the incident distilled into
+the chainer's real vocabulary, clean chains still decide). Gate **474 / 1 xfailed**.

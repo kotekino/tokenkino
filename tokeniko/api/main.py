@@ -426,7 +426,11 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # pipeline: recursive, flat, raw, output (if output). The old prepare= Ollama pre-pass is
         # RETIRED (2026-07-16) — rag1 below is the only pre-input tidying, and only on a stumble.
         preparsedTokens = tokens
-        recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client)
+        # the COREFERENCE GATE (the mammal incident, 2026-07-18): «you»→tokeniko only when the
+        # utterance is actually ADDRESSED to him (DM/mention/reply-to-him ≥ 0.9); in ambient or
+        # someone-else's-thread talk the addressee is unknowable and «you» stays unresolved.
+        addressed = directedness >= 0.9
+        recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client, addressed=addressed)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
         flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)
 
@@ -447,7 +451,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
             else:
                 polished = await normalizer_polish(tokens)
             if polished:
-                rec2 = parser(polished, talkerEntity, app.state.tokeniko, app.state.ai_client)
+                rec2 = parser(polished, talkerEntity, app.state.tokeniko, app.state.ai_client, addressed=addressed)
                 flat2: tuple[TKLLC, TKZip] = compiler_compile(copy.deepcopy(rec2))
                 ok, note = verifier_preserves(flatResult[1], flat2[1]) if flat2 else (False, "no compile")
                 if ok:

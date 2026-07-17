@@ -35,12 +35,18 @@ dev = ["pytest"]
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+markers = [
+    "pipeline: needs the spaCy/Stanza pipeline or the Mongo sandbox (auto-marked in conftest by fixture use)",
+]
 
 [tool.taskipy.tasks]
 api = "uvicorn api.main:app --reload"
 brain = "python -m brain.main"
 senses = "python -m senses.main"
 test = "pytest"
+# the FAST lane (2026-07-18, author's ruling): pure-logic tests only — no model load, no Mongo,
+# runs in seconds. Iterate on this; the FULL gate (`task test`) stays sacred before every commit.
+test-fast = "pytest -m 'not pipeline'"
 
 
 [tool.setuptools.packages.find]

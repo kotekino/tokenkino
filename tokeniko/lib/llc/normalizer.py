@@ -66,9 +66,12 @@ def detector_stumbles(zip_obj) -> bool:
 # to the same pronoun leaf and the zip-verifier rejects it EVERY time (a burned Haiku call per
 # encounter). When every unsound leaf is pronoun-caused, skip the escalation. Strict on purpose:
 # a MIXED stumble (a pronoun leaf beside a typo leaf) still escalates — the typo may be repaired.
-# I/you are deliberately absent: the identity bridge resolves them (their emptiness would be a
-# different bug, worth the escalation's visibility). EXACT closed-class, per the anchor doctrine.
-_UNRESOLVED_PRONOUNS = {"it", "he", "she", "they", "them"}
+# I is deliberately absent: the identity bridge always resolves it to the talker (its emptiness
+# would be a different bug, worth the escalation's visibility). "you" joined 2026-07-18 (the
+# coreference gate): an ADDRESSED «you» resolves to tokeniko and never reaches this set (the
+# leaf is sound); only the ambient unresolved «you» — a coreference gap no surface tidy can
+# repair — lands here. EXACT closed-class, per the anchor doctrine.
+_UNRESOLVED_PRONOUNS = {"it", "he", "she", "they", "them", "you"}
 
 
 def _llc_leaves(llc) -> list:
