@@ -1311,3 +1311,28 @@ the way out:
 flipped negation / dropped content / invention / lexical substitution rejected, the fragment
 gate; the senses gating — every failure path ships raw, the pre-gate spends nothing, the
 kill-switch). Gate **450 / 1 xfailed**.
+
+**Compose 2.0 slice 4 — the blog re-home + the belief-grounded speakup (2026-07-17)**
+Case 4 and case 2, on one refactor:
+- **The voice reader moved to the shared library** (`lib/core/voice.py`): the blog is a `senses`
+  consumer and a daemon never imports another daemon's module — `creative_compose`/`hedge_for`/
+  `_FALLBACK` now live in lib; `brain/compose.py` keeps the ROUTER (routing is the brain's
+  decision; how a category speaks is shared voice) and re-exports for compatibility.
+- **Case 4 — the blog re-homed**: `_THEOREM_LEADS`/`_ENCOUNTER_LINES` + every fixed connective
+  («How I know: {line}», «This rests on…», «To me, they are now {band}») became shelf categories
+  (blog_lead_* / blog_encounter_* / blog_proof_* / blog_multi_hop / blog_trust_band) spoken
+  through `creative_compose` — trunk strings preserved verbatim as fallback (the existing blog
+  suites pass untouched = the parity proof), scrub ORDER unchanged (data cleaned before binding;
+  the encounter guard re-cleans after), intensity rides in with arousal = the post's
+  significance. The blog can vary the moment variants are seeded; today it posts identically.
+- **Case 2 — B1 (author's ruling): the KB notion enriches the speakup.** `_refuting_belief`
+  (thinking.py) resolves the FALSE verdict's first doc-id premise to its stored original
+  (graph/rule keys skipped honestly); it rides the idea's answer dict; the router binds it as
+  {belief}; the seeded high-band variant speaks it: «no, that is not true — **I hold that a
+  calculator never thinks**». No belief resolved -> the slot gate keeps the row unreachable and
+  the plain speakup speaks, unchanged. No new action, no double-speaking — the grounding belief
+  finally shows itself in conversation.
+- Seed: +15 rows (the belief variant band [0.75,1] w=1.5 + the 14-row blog trunk — the
+  voice-in-memory principle, whole).
++5 tests (blog fallback census, shelf-spoken lead, the belief route, end-to-end with the slot
+gate, premise resolution). Gate **455 / 1 xfailed**.

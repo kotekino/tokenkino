@@ -32,6 +32,7 @@ from typing import Callable, Optional
 
 from pydantic import BaseModel, Field
 
+from lib.core.voice import creative_compose
 from lib.rag import BLOG_POLISH, rag_call
 
 logger = logging.getLogger("tokeniko-brain")
@@ -201,26 +202,20 @@ _KIND_BY_DERIVATION: dict[str, str] = {
     "thinking": "argument",
 }
 
-# theorem lead line by derivation kind — his honest account of HOW the truth arrived.
-_THEOREM_LEADS: dict[str, str] = {
-    "teaching": "I was taught something new: «{original}».",
-    "wondering": "While wondering over what I know, I derived: «{original}».",
-    "thinking": "Thinking about what I was told, I concluded: «{original}».",
-}
+# the blog voice speaks through the SHARED scaffold shelf since compose 2.0 slice 4
+# (lib/core/voice.creative_compose): categories below, trunk strings preserved verbatim as the
+# fallback — an unseeded store posts byte-identically. The internal ledger `note` is STILL never
+# copied verbatim (it may carry names); only shelf templates speak, and the scrub order is
+# unchanged (data cleaned BEFORE binding; the encounter guard re-cleans after).
+_LEAD_CATEGORIES = {"teaching": "blog_lead_teaching", "wondering": "blog_lead_wondering",
+                    "thinking": "blog_lead_thinking"}
 
-# encounter fact line by episode kind — honest about the direction AND the why. The internal
-# ledger `note` is NEVER copied verbatim (it may carry names); only these templates speak.
-_ENCOUNTER_LINES: dict[str, str] = {
-    "trust:kicker": ("Today {epithet} answered my question with a reason that held up against "
-                     "everything I know. I trust them a little more now."),
-    "trust:agreement": ("Today {epithet} told me something I already knew to be true. "
-                        "Small confirmations add up; I trust them a little more now."),
-    "trust:disagreement": ("Today {epithet} contradicted something I believe. "
-                           "One of us is wrong; for now, I trust them a little less."),
-    "trust:logic-violation": ("Today {epithet} said something that cannot be true in any world — "
-                              "it breaks logic itself. I trust them a little less now."),
-    "trust:self-inconsistency": ("Today {epithet} said two things that cannot both be true. "
-                                 "I trust them a little less now."),
+_ENCOUNTER_CATEGORIES: dict[str, str] = {
+    "trust:kicker": "blog_encounter_kicker",
+    "trust:agreement": "blog_encounter_agreement",
+    "trust:disagreement": "blog_encounter_disagreement",
+    "trust:logic-violation": "blog_encounter_logic_violation",
+    "trust:self-inconsistency": "blog_encounter_self_inconsistency",
 }
 
 
@@ -233,20 +228,22 @@ def _compose_theorem(material: dict, souls: list, soul_reader, premise_reader, n
     # slug: the theorem id when it exists, else a stable content hash — same material, same slug.
     slug = f"theorem-{theorem_id}" if theorem_id else _sha_slug("theorem", original)
 
+    # intensity for the shelf (slice 4): the post's significance IS its arousal — already computed.
+    intensity = {"confidence": None, "arousal": float(material.get("significance") or 0.0)}
     facts: list[str] = []
-    lead_tpl = _THEOREM_LEADS.get(derived_by, _THEOREM_LEADS["thinking"])
+    lead_cat = _LEAD_CATEGORIES.get(derived_by, "blog_lead_thinking")
     clean_original = _clean(original, souls)
     if clean_original is not None:
-        facts.append(lead_tpl.format(original=clean_original))
+        facts.append(creative_compose(lead_cat, {"original": clean_original}, intensity=intensity))
     chain = [c for c in (material.get("chain") or []) if isinstance(c, str) and c.strip()]
     if _is_multi_hop(chain):
-        facts.append("It took more than one step of reasoning to get there.")
+        facts.append(creative_compose("blog_multi_hop", {}, intensity=intensity))
 
     proof: list[str] = []
     for c in chain:
         line = _clean(c.strip(), souls)
         if line is not None:
-            proof.append(f"How I know: {line}")
+            proof.append(creative_compose("blog_proof_chain", {"line": line}, intensity=intensity))
     for pid in (material.get("premises") or []):
         pid = str(pid).strip()
         if not pid:
@@ -255,7 +252,8 @@ def _compose_theorem(material: dict, souls: list, soul_reader, premise_reader, n
             # the teaching provenance premise — render the TEACHER as an epithet, never the uid.
             soul = soul_reader(pid[len("taught:"):])
             epithet = epithet_for(soul) if soul is not None else "someone"
-            proof.append(f"This rests on: a truth taught to me by {epithet}.")
+            proof.append(creative_compose("blog_proof_taught", {"epithet": epithet},
+                                          intensity=intensity))
             continue
         if _OBJECTID_RE.match(pid):
             resolved = None
@@ -263,17 +261,16 @@ def _compose_theorem(material: dict, souls: list, soul_reader, premise_reader, n
                 resolved = premise_reader(pid)
             except Exception as error:
                 logger.warning("[blog] premise %s resolution failed (%s)", pid, error)
-            if resolved:
-                line = _clean(str(resolved), souls)
-                proof.append(f"This rests on: «{line}»." if line is not None
-                             else "This rests on: a truth I already held.")
-            else:
-                proof.append("This rests on: a truth I already held.")
+            line = _clean(str(resolved), souls) if resolved else None
+            proof.append(creative_compose("blog_proof_premise", {"line": line},
+                                          intensity=intensity) if line is not None
+                         else creative_compose("blog_proof_held", {}, intensity=intensity))
             continue
         # a plain-text premise (axiom original / graph-edge key) — scrubbed, verbatim.
         line = _clean(pid, souls)
         if line is not None:
-            proof.append(f"This rests on: «{line}».")
+            proof.append(creative_compose("blog_proof_premise", {"line": line},
+                                          intensity=intensity))
 
     if not facts:
         raise ValueError("theorem material produced no publishable fact line")
@@ -285,7 +282,7 @@ def _compose_theorem(material: dict, souls: list, soul_reader, premise_reader, n
 def _compose_encounter(material: dict, souls: list, soul_reader, now) -> PostDraft:
     soul_uid = (material.get("soul_uid") or "").strip()
     episode = (material.get("episode") or "").strip()
-    if not soul_uid or episode not in _ENCOUNTER_LINES:
+    if not soul_uid or episode not in _ENCOUNTER_CATEGORIES:
         raise ValueError(f"encounter material malformed (soul_uid={soul_uid!r}, episode={episode!r})")
     note = material.get("note") or ""
     trust_after = float(material.get("trust_after") if material.get("trust_after") is not None else 0.5)
@@ -295,8 +292,8 @@ def _compose_encounter(material: dict, souls: list, soul_reader, now) -> PostDra
     soul = soul_reader(soul_uid)
     epithet = epithet_for(soul) if soul is not None else _band(trust_after)
     facts = [
-        _ENCOUNTER_LINES[episode].format(epithet=epithet),
-        f"To me, they are now {_band(trust_after)}.",
+        creative_compose(_ENCOUNTER_CATEGORIES[episode], {"epithet": epithet}),
+        creative_compose("blog_trust_band", {"band": _band(trust_after)}),
     ]
     # belt-and-suspenders: the templates only carry the epithet, but scrub+guard them anyway —
     # a soul named like a template word must still never leak.

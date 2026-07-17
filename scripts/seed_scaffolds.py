@@ -61,6 +61,27 @@ SCAFFOLDS = [
     # shelves properly). Low-confidence registers for the assertive categories + the {hedge}
     # exemplar (the Zadeh slot: the table supplies the adverb, the template owns the grammar).
     ("speakup_false",   "hmm, that does not seem right to me",  [], 1.0, "soft register", [0.0, 0.6]),
+    # slice 4 B1 — the belief-grounded speakup: names the KB notion behind the disagreement.
+    # High-confidence band: he names his belief when his grounds are strong; the slot gate keeps
+    # this row unreachable when no belief resolved (the plain rows speak).
+    ("speakup_false",   "no, that is not true — I hold that {belief}",
+                                                    ["belief"], 1.5, "belief-grounded", [0.75, 1.0]),
+    # slice 4 — the blog trunk (the voice-in-memory principle, whole: senses/blog.py reads these
+    # categories through the same shelf; the strings mirror the fallback verbatim).
+    ("blog_lead_teaching",  "I was taught something new: «{original}».",            ["original"], 1.0, "blog lead"),
+    ("blog_lead_wondering", "While wondering over what I know, I derived: «{original}».", ["original"], 1.0, "blog lead"),
+    ("blog_lead_thinking",  "Thinking about what I was told, I concluded: «{original}».", ["original"], 1.0, "blog lead"),
+    ("blog_multi_hop",      "It took more than one step of reasoning to get there.", [], 1.0, "blog connective"),
+    ("blog_proof_chain",    "How I know: {line}",                                   ["line"], 1.0, "blog proof"),
+    ("blog_proof_taught",   "This rests on: a truth taught to me by {epithet}.",    ["epithet"], 1.0, "blog proof"),
+    ("blog_proof_premise",  "This rests on: «{line}».",                             ["line"], 1.0, "blog proof"),
+    ("blog_proof_held",     "This rests on: a truth I already held.",               [], 1.0, "blog proof"),
+    ("blog_encounter_kicker", "Today {epithet} answered my question with a reason that held up against everything I know. I trust them a little more now.", ["epithet"], 1.0, "blog encounter"),
+    ("blog_encounter_agreement", "Today {epithet} told me something I already knew to be true. Small confirmations add up; I trust them a little more now.", ["epithet"], 1.0, "blog encounter"),
+    ("blog_encounter_disagreement", "Today {epithet} contradicted something I believe. One of us is wrong; for now, I trust them a little less.", ["epithet"], 1.0, "blog encounter"),
+    ("blog_encounter_logic_violation", "Today {epithet} said something that cannot be true in any world — it breaks logic itself. I trust them a little less now.", ["epithet"], 1.0, "blog encounter"),
+    ("blog_encounter_self_inconsistency", "Today {epithet} said two things that cannot both be true. I trust them a little less now.", ["epithet"], 1.0, "blog encounter"),
+    ("blog_trust_band",     "To me, they are now {band}.",                          ["band"], 1.0, "blog encounter"),
     ("answer_yes",      "probably yes",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("answer_no",       "probably not",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("speakup_disagree", "I {hedge} disagree",           ["hedge"], 1.0, "the Zadeh exemplar", [0.0, 0.7]),

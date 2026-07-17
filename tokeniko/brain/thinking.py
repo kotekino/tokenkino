@@ -83,6 +83,26 @@ def status_to_token(result: EvaluatorResult) -> Optional[str]:
     return None
 
 
+# B1 (compose 2.0 slice 4): the refuting BELIEF behind a FALSE verdict — the first premise that
+# resolves to a stored KB sentence (axiom or theorem original). Edge keys ("subj|is_a|obj") and
+# rule keys are graph internals, not sentences — skipped honestly; nothing resolvable -> None and
+# the plain speakup speaks (the slot gate keeps belief-naming scaffolds unreachable).
+def _refuting_belief(premises) -> Optional[str]:
+    for pid in (premises or []):
+        pid = str(pid).strip()
+        if not pid or "|" in pid or ":" in pid:
+            continue  # a graph/rule/provenance key, not a doc id
+        try:
+            oid = ObjectId(pid)
+        except Exception:
+            continue
+        for doc_cls in (TKAxiomDoc, TKTheoremDoc):
+            doc = doc_cls.get(oid).run()  # Bunnet: .run() executes
+            if doc is not None and (doc.original or "").strip():
+                return doc.original.strip()
+    return None
+
+
 # the CONTENT's epistemic confidence for the verdict (compose 2.0 slice 2) — computed HERE, the
 # decision site, where truth + premises are in hand. INCONSISTENT = 1.0 (logic-certain: logic is
 # sacred, logic never hedges). TRUE/FALSE = truth EXTREMITY scaled by the premises' trust — a
@@ -875,8 +895,14 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                     item.original, because_of.original, str(because_of.id),
                 )
             else:
+                # B1 (slice 4): a FALSE verdict carries the refuting belief so the speakup can
+                # NAME it («…— I hold that a calculator never thinks»); resolves to None ->
+                # the plain speakup speaks, unchanged.
+                belief = (_refuting_belief(result.premises)
+                          if token == EvalToken.FALSE.value else None)
                 ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id),
-                                                 confidence=verdict_confidence(token, result))
+                                                 confidence=verdict_confidence(token, result),
+                                                 answer={"belief": belief} if belief else None)
                 logger.info(
                     "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
                     str(item.id),

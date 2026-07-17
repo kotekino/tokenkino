@@ -82,8 +82,8 @@ intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-h
 3. ✅ **rag2-out** — landed 2026-07-17 (→ `landed.md`). *The blog's consensus-over-the-polisher
    moved to the tail below (the endpoint is its building block; per-post verification is its own
    design).*
-4. **Case 4 + case 2**: the blog templates re-homed onto scaffolds (the chain stays dynamic data);
-   the trust episode gains its voice (today mute).
+4. ✅ **Case 4 + case 2** — landed 2026-07-17 (→ `landed.md`; B1 ruling: the KB notion enriches
+   the speakup. Seed `--apply` for the 15 new rows = the author's hand).
 5. **The context ring → the anecdote** (case 3): a per-channel RAM ring buffer
    `(speaker_uid, zip, timestamp, mine)` — a CACHE derivable from the memory timeseries, rebuilt on
    restart, never a source of truth; own rows = novelty check, others' = topic centroid. Then the

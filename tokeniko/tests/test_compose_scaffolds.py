@@ -235,3 +235,75 @@ def test_answer_confidence_covers_the_question_path(_io):
     )
     plan = plan_action(idea, "tokeniko-uid")
     assert plan["payload"]["intensity"]["confidence"] == 0.87   # the answer dict fills the gap
+
+
+# ---- slice 4: the blog re-home + B1, the belief-grounded speakup --------------------------------------
+
+def test_blog_categories_have_fallbacks():
+    # the blog's whole pre-scaffold voice survives as fallback — an unseeded store posts
+    # byte-identically (the parity itself is asserted by the existing blog suites)
+    for cat in ("blog_lead_teaching", "blog_lead_wondering", "blog_lead_thinking",
+                "blog_multi_hop", "blog_proof_chain", "blog_proof_taught", "blog_proof_premise",
+                "blog_proof_held", "blog_encounter_kicker", "blog_encounter_agreement",
+                "blog_encounter_disagreement", "blog_encounter_logic_violation",
+                "blog_encounter_self_inconsistency", "blog_trust_band"):
+        assert cat in _FALLBACK, cat
+
+
+def test_blog_lead_speaks_through_the_shelf(_io):
+    from lib.core.models import TKScaffoldDoc
+    row = TKScaffoldDoc(category="blog_lead_wondering",
+                        template="My wondering bore fruit: «{original}».",
+                        slots=["original"], weight=100.0)
+    row.insert()
+    try:
+        text = creative_compose("blog_lead_wondering", {"original": "I exist"},
+                                rng=random.Random(2))
+        assert text == "My wondering bore fruit: «I exist»."
+    finally:
+        row.delete()
+
+
+def test_speakup_false_routes_the_belief():
+    # B1: the answer dict's belief reaches the data; without it the route stays plain
+    cat, data = _route(TokenikoAction.SPEAKUP.value, EvalToken.FALSE.value,
+                       {"belief": "a calculator never thinks"})
+    assert cat == "speakup_false" and data == {"belief": "a calculator never thinks"}
+    cat, data = _route(TokenikoAction.SPEAKUP.value, EvalToken.FALSE.value, None)
+    assert cat == "speakup_false" and data == {}
+
+
+def test_belief_grounded_speakup_end_to_end(_io):
+    from lib.core.models import TKScaffoldDoc
+    row = TKScaffoldDoc(category="speakup_false",
+                        template="no, that is not true — I hold that {belief}",
+                        slots=["belief"], weight=100.0, intensity_band=[0.75, 1.0])
+    row.insert()
+    try:
+        # high confidence + a resolved belief -> the belief-naming scaffold speaks
+        text = compose_raw(TokenikoAction.SPEAKUP.value, EvalToken.FALSE.value,
+                           {"belief": "a calculator never thinks"},
+                           rng=random.Random(3), intensity={"confidence": 0.9})
+        assert text == "no, that is not true — I hold that a calculator never thinks"
+        # no belief -> the slot gate keeps the row unreachable; the plain speakup speaks
+        plain = compose_raw(TokenikoAction.SPEAKUP.value, EvalToken.FALSE.value, None,
+                            rng=random.Random(3), intensity={"confidence": 0.9})
+        assert plain == "no, that is not true"
+    finally:
+        row.delete()
+
+
+def test_refuting_belief_resolution(_io):
+    from lib.core.models import TKAxiomDoc
+    from brain.thinking import _refuting_belief
+    ax = TKAxiomDoc(original="a calculator never thinks", sourceId="test", targetId="test")
+    ax.insert()
+    try:
+        # a doc-id premise resolves to its original; graph/rule keys are skipped honestly
+        assert _refuting_belief([str(ax.id)]) == "a calculator never thinks"
+        assert _refuting_belief(["calculator.n.02|is_a|machine.n.01", str(ax.id)]) \
+            == "a calculator never thinks"
+        assert _refuting_belief(["a|b|c", "taught:someone"]) is None
+        assert _refuting_belief([]) is None
+    finally:
+        ax.delete()
