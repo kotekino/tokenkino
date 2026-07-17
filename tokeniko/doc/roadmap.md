@@ -82,6 +82,13 @@ stored sentences — the `_refuting_belief` pattern generalized) → new `tokeni
 may span teachers/channels); the resolution consumer (the answer retires a premise via the
 retreat machinery); the constructive direction (assume ¬p, derive absurd ⇒ p PROVEN — proof by
 contradiction as a wondering mode; shares machinery with §4 R4b). Deserves a whole session.
+**Part 2 — THE UNTANGLER (author's addition, same evening)**: never fix the poisoned KB by hand —
+a clever pass that deliberately SATURATES the whole KB (every seed through the mirror), collects
+every conflict + its premise set, and archives/retreats the premises convicted by reductio
+through the belief-revision machinery (provenance-cascaded, biography preserved — retreat, never
+mongo-edit). Ships first as a script; designed from day one as **a tool HE can run when he
+sleeps** — the sleep phase (hunch 20's fourth phase) gains its second duty: memory consolidation
+AND belief hygiene, exactly the biological pairing. Details tbd at the design session.
 *Also his: the stale-premise recompile (`scripts/recompile.py` — «my mind is a software»
 pre-possessive-gate, «not all minds are software» pre-M6) + the biography ruling on the
 already-materialized conflict theorems.*
