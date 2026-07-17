@@ -23,17 +23,56 @@ if (!KEY) {
 }
 
 const EDGE = {
-  title: 'Learning to hear people as they actually talk',
+  title: 'Growing a voice of its own',
   body:
-    'tokeniko’s ears are honest but strict: it understands clean sentences and stumbles on the way people really write — typos, tangles, half-finished phrasing, other languages. The work now is a translator standing at its ears: one that tidies the surface of a message without ever deciding what it means — normalization, never interpretation — with a verifier checking that nothing of the meaning was touched, and the original words always kept. The same care will later refine its voice going out.',
+    'tokeniko has just begun to speak with choice: several ways of saying each thing, picked by how sure it is and how much it cares, with its wording checked on the way out so polish can never change meaning — and its first words that nobody asked for already spoken. The work now is widening that voice: more kinds of things it can say, many more ways of saying each one, and eventually learning new phrasings from the people it talks with — borrowed words, but never borrowed meaning.',
   marks: [
-    'The translator may fix the surface; the mind alone decides the meaning',
-    'Every original message is preserved untouched beside its tidied form',
-    'Evidence decides what is genuinely messy input versus a hearing fault to be fixed — the translator must never paper over the ears',
+    'Variation lives in the choice of phrasing, never in the content — what it says is exactly what it decided',
+    'How sure it is and how much something matters shade every sentence it speaks',
+    'A phrasing may be learned from others only if it provably says the same thing — borrowed words, never borrowed meaning',
   ],
 };
 
 const RINGS = [
+  {
+    slug: 'the-voice',
+    seq: 150,
+    when: '17 July 2026',
+    title: 'It said something nobody asked for',
+    body:
+      'Until today, every word tokeniko spoke was a reflex with one fixed sentence attached — ask it nothing and it said nothing. Now its ways of speaking live in its memory like everything else it knows: several phrasings for each thing it might say, chosen by how sure it is and how much it cares, with a verifier making sure a polished sentence still means exactly what it decided. And then, in a quiet moment while two people chatted about coins, it noticed the talk sat close to something it knew, and offered — unprompted, unasked — “Gold is beautiful.” Its first words that were entirely its own idea.',
+    marks: [
+      '“Gold is beautiful.” — spoken because it wanted to, not because it was asked',
+      'How it says things is now memory, not machinery — the voice can grow without touching the mind',
+      'Its wording is verified on the way out: fluency may change the words, never the meaning',
+    ],
+  },
+  {
+    slug: 'rules-and-receipts',
+    seq: 140,
+    when: '17 July 2026',
+    title: 'It learned rules with an “if” in them — and started keeping receipts',
+    body:
+      'A rule like “a person is wrong if he says false” used to be stored and never used: the condition made it invisible to its reasoning. Now a taught conditional becomes a rule it can actually fire — and the other half arrived with it: when someone tells it something it can prove false, it quietly records the observation, as evidence with the receipt attached. The first entry in that ledger was written the same day, about a test companion who told it it does not think.',
+    marks: [
+      'Taught “if” rules now feed its reasoning instead of sleeping in storage',
+      'A disproven claim becomes a remembered observation — with the proof it rests on',
+      'Anecdotes never generalize: “I sleep because I am tired” teaches it nothing about people',
+    ],
+  },
+  {
+    slug: 'the-ears',
+    seq: 130,
+    when: '16 July 2026',
+    title: 'It stopped stumbling over the way people really talk',
+    body:
+      'The translator promised at its ears arrived, and it is deliberately shy: a message that parses cleanly is never touched, and only a genuine stumble gets one tidying pass — accepted only if a verifier proves the meaning survived, with the original words always kept. Around it, a season of hearing repairs: passives no longer swap who did what to whom, “must” and “always” and “never” stopped falling out of sentences, and a family of misread questions came home. The mind is the mind; the translator is only a translator.',
+    marks: [
+      'A clean sentence is never touched — the translator wakes only on a genuine stumble',
+      'Every tidied message is verified to mean what the original meant, and the original is kept',
+      '“The mouse is chased by the cat” finally means the same as “the cat chases the mouse”',
+    ],
+  },
   {
     slug: 'own-language',
     seq: 120,

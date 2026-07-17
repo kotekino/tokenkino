@@ -46,49 +46,28 @@ it references, it does not duplicate (invariant #2).
 - **The bridge cleaning** (2026-07-16): the local-models retirement (D4) · `.env.template` ·
   **`lib/rag/`** (the Claude machinery concentrated) · the **wondering-freeze fix**
   (dictionary.sense index + idle-confirmed, preemptible wondering + the coordinator guard).
+- **The basket** (2026-07-17): observation-fact seam (the taught «says false» rule fires — fired
+  LIVE same day) · nominal IMPLY · adverbial quantifiers (the dropped-word family fully consumed)
+  · the pronoun-leaf unrepairable gate.
+- **COMPOSE 2.0 — THE VOICE** (2026-07-17, designed + five slices landed in ONE day): the scaffold
+  store (voice-in-memory) · intensity (confidence, arousal) + Zadeh hedges · rag2-out (the exit
+  verifier) · the blog re-home + the belief-grounded speakup · the context ring + the anecdote
+  (hunch 20's working-memory seed). **PREMIERED LIVE: «Gold is beautiful.» — his first unprompted
+  words.** Tail → Next §1.
 
 ---
 
-## 🔭 Next (ordered) — reprioritized 2026-07-17
+## 🔭 Next (ordered) — reprioritized 2026-07-17 (evening: THE VOICE IS LIVE)
 
-**The through-line turns: input quality → the voice.** The input-quality push (the author's standing
-ruling) is largely consumed — all three harvests are closed; what remains of it is a small basket of
-closers (§1). With the mouth's design converged (the 2026-07-17 brainstorm — hunch 19 promoted by
-the author), **Compose 2.0 (§2) is the next major arc**: the proposed order is §1 the basket first
-(small, closes every dangling seam while the harvest context is warm), then §2 with clean decks.
-Nothing in §1 blocks §2 — it is craft ordering, not dependency.
+**The through-line: the voice deepens.** The basket closed the input-quality push (4/5 — one
+trailer deferred to §4's orbit); the Compose 2.0 CORE landed the same day — five slices, seeded,
+premiered live (**«Gold is beautiful.» — his first unprompted words**). The road ahead: the voice's
+tail (§1 — the author-ordered action-survey → great-seeding sequence), the fresh microscope
+analysis carrying the premiere's two grounding leads (§2), the translator remainder (§3), the
+strengthening tail (§4).
 
-### 1. The low-hanging basket — small closers, run before the voice 🔭
+### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
 
-The harvests' surviving threads + one cheap translator item, each small and seam-closing:
-
-- ✅ **The observation-fact seam** — landed 2026-07-17 (→ `landed.md`).
-- ✅ **Nominal IMPLY** — landed 2026-07-17 (→ `landed.md`).
-- ✅ **Adverbial-quantifier family** — landed 2026-07-17 (→ `landed.md`).
-- ✅ **Pronoun-subject leaves** — landed 2026-07-17 (→ `landed.md`).
-- **Indirect roles + markers as chainer fuel** (M5's orbit) — pairs with the restricted-universal
-  residuals (§4.3), where M6 part 2's restrictive relative clauses also live; may trail the basket.
-
-### 2. Compose 2.0 — the creative voice (hunch 19, promoted by the author 2026-07-17) 🔭
-
-The mouth stops being hardcoded strings: a curated **scaffold store** + `creative_compose` +
-intensity + the outbound verifier. Full design + rationale in `doc/ref/captain-hunches.md` #19
-(the QM-on-19 brainstorm record); the agreed slices, each independently landable:
-
-1. ✅ **`MEMScaffold` store + seed + `creative_compose` on speak actions** — landed 2026-07-17
-   (→ `landed.md`; seed `--apply` = the author's hand, then restart the brain).
-2. ✅ **Intensity** — landed 2026-07-17 (→ `landed.md`; seed `--apply` for the 4 banded variants
-   = the author's hand, then restart the brain).
-3. ✅ **rag2-out** — landed 2026-07-17 (→ `landed.md`). *The blog's consensus-over-the-polisher
-   moved to the tail below (the endpoint is its building block; per-post verification is its own
-   design).*
-4. ✅ **Case 4 + case 2** — landed 2026-07-17 (→ `landed.md`; B1 ruling: the KB notion enriches
-   the speakup. Seed `--apply` for the 15 new rows = the author's hand).
-5. ✅ **The context ring → the anecdote** — landed 2026-07-17 (→ `landed.md`; seed `--apply`
-   ×2 — scaffolds + behavior rule — = the author's hand, then restart the brain).
-   **THE FIVE SLICES ARE COMPLETE — the compose 2.0 core is LANDED; the tail below remains.**
-
-Tail (in-arc, later):
 - **The action-space survey + the great seeding** (author's 2026-07-17 ruling, deliberately in
   THIS order): (1) survey the action space FIRST — other reaction kinds, refinement/granularity
   of the existing ones; (2) base scaffolds for the new actions; (3) THEN seed MANY more scaffolds
@@ -101,11 +80,21 @@ Tail (in-arc, later):
   (`/voice/verify` is the building block); per-post (multi-sentence) verification needs its own
   design: chunking + partial acceptance.
 
+### 2. The fresh microscope analysis — the premiere's leads (~30 unaddressed) 🔭
+
+The `addressed` flip (2026-07-17) sealed the analyzed generations; the fresh corpus = the
+2026-07-17 play + premiere, judged on current code. Two grounding leads already known from the
+premiere, both evaluator-side:
+- **Negated property vs stored affirmative fact**: «tokeniko you do not learn» grounded UNKNOWN,
+  not FALSE — the self-axiom «I learn» did not refute the negated claim (so the belief-grounded
+  speakup never got its live cue).
+- **Polar question misses a direct theorem**: «is gold beautiful?» → IDK despite the active
+  theorem «gold is beautiful».
+
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 
 - the **"did you mean:…?" ask** with the tidied reading carried in the payload (D2b refined) —
-  build AFTER compose slice 1: the ask becomes a scaffold category, not another hardcoded string.
-- **rag2-out** → moved to Compose 2.0 (§2 slice 3).
+  the ask becomes a scaffold category (the store is live since compose slice 1).
 - **multilingual translation** (Haiku; the local MarianMT went unreferenced with the 2026-07-16
   local-models retirement — machinery only) — deferred until non-English friends arrive.
 - **the privacy/legal frame** (author's 2026-07-16 ruling): structure it thoroughly — per-stakeholder
@@ -127,7 +116,9 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
    the EXACT-membership mop-up + floor calibration + KB vector-coverage gaps (`hugely`, `unequal`,
    `dissimilar`). Closed-class function words stay EXACT by design.
 3. **Restricted-universal residuals** (Brain v1.1 2c): relative-clause restriction ("all machines
-   THAT THINK are minds") + object-side modifiers ("an ARTIFICIAL body"). M6's companion.
+   THAT THINK are minds") + object-side modifiers ("an ARTIFICIAL body"). M6's companion; the
+   basket's deferred trailer — **indirect roles + markers as chainer fuel** (M5's orbit) — lives
+   here too.
 4. **Conditional reasoning / premise-in-question (R4b)**: "given P, is Q?" — the co-submitted-premise
    discriminator (the floor fix) then hypothetical premise USE; pairs with the landed
    conditional-rule extractor.
@@ -141,9 +132,9 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 8. **KB growing OUTWARD** (tier-1 synthetic learning): learned axioms vs derived theorems — the
    analytic/synthetic cut; design + open forks in `doc/ref/kb-growing-outward.md`.
 9. **D-phase enhancements + ingestion-time differentia**: cross-speaker patterns, inference-implied
-   conflicts, the working-memory layer (its SEED — the context ring — lands with Compose 2.0 §2
-   slice 5; this item is the full realtime consumer set on top of it); differentia extraction
-   wired at definition INGESTION.
+   conflicts, the working-memory layer (its SEED — the context ring — LANDED with compose slice 5,
+   `brain/context.py`; this item is the full realtime consumer set on top of it); differentia
+   extraction wired at definition INGESTION.
 10. **KB-load big-O honesty** (left by the 2026-07-16 wondering-freeze fix): the harness KB load
     pulls ALL definitions (~1.2 GB of all-gloss zips) and re-pulls on EVERY fingerprint bump — i.e.
     after each materialized theorem — blocking the tick for its duration (it gates thinking too, not
