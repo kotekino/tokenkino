@@ -405,9 +405,15 @@ def priorities_phase() -> bool:
 # `wonder_allowed` is the coordinator's idle-confirmation gate: the reactive pass (think_one) always
 # runs; wondering additionally requires the confirmed quiet (see WONDER_IDLE_CONFIRM).
 def thinking_phase(brain_state: TKBrainStateDoc, wonder_allowed: bool = True) -> Optional[str]:
-    sub = ("think" if thinking.think_one(brain_state)
-           else "wonder" if wonder_allowed and thinking.wonder_one(brain_state)
-           else None)
+    if thinking.think_one(brain_state):
+        sub = "think"
+    else:
+        # the FRUITFULNESS distinction (sleep phase): wonder_one reports "derived" (new knowledge
+        # — resets the sleep clock) vs "checked" (an idle re-examination that found nothing new —
+        # the mind running dry; the drift driver's random batches land here, or he could never
+        # fall asleep). Both map to the "wondering" heartbeat state — only the clock differs.
+        w = thinking.wonder_one(brain_state) if wonder_allowed else False
+        sub = "wonder" if w == "derived" else ("wonder-idle" if w else None)
     brain_state.last_thinking_at = int(time.time())
     brain_state.save()
     return sub
@@ -525,7 +531,9 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                 if sub == "think":
                     asleep_at = _wake(bs, asleep_at, "someone spoke")
                     last_busy = time.monotonic()
-                if sub:
+                if sub in ("think", "wonder"):
+                    # only FRUITFUL work resets the sleep clock — an idle re-check ("wonder-idle",
+                    # the drift driver finding nothing new) lets the drowsiness accumulate.
                     last_fruitful = time.monotonic()
                 # the SLEEP transitions (only in true idle): quiet wondering past SLEEP_AFTER ->
                 # he falls asleep wondering (the author's design — and his own habit); SLEEP_MAX
@@ -543,8 +551,10 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     asleep_at = _wake(bs, asleep_at, "rested")
                     last_fruitful = time.monotonic()
                 # the honest state for the heartbeat: reactive think -> "thinking", idle-time
-                # re-examination -> "wondering", asleep -> "sleeping", no work at all -> "idle".
-                state = ("thinking" if sub == "think" else "wondering" if sub == "wonder"
+                # re-examination -> "wondering" (fruitful or not), asleep -> "sleeping",
+                # no work at all -> "idle".
+                state = ("thinking" if sub == "think"
+                         else "wondering" if sub in ("wonder", "wonder-idle")
                          else "sleeping" if asleep_at is not None else "idle")
                 heartbeat.maybe_beat(tick, state, _tokeniko_uid)
                 await asyncio.sleep(BUSY_YIELD if sub

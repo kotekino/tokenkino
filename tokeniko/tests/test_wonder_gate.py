@@ -32,9 +32,19 @@ def test_wonder_denied_while_idle_unconfirmed(_io, brain_state, monkeypatch):
 def test_wonder_granted_on_confirmed_idle(_io, brain_state, monkeypatch):
     from brain import main as brain_main
     monkeypatch.setattr("brain.thinking.think_one", lambda bs: False)
-    monkeypatch.setattr("brain.thinking.wonder_one", lambda bs: True)
+    monkeypatch.setattr("brain.thinking.wonder_one", lambda bs: "derived")
 
     assert brain_main.thinking_phase(brain_state, wonder_allowed=True) == "wonder"
+
+
+def test_fruitless_wonder_reports_idle_kind(_io, brain_state, monkeypatch):
+    # the sleep phase's fruitfulness distinction: a drift re-check that learned nothing NEW
+    # ("checked") maps to "wonder-idle" — a unit of work that does NOT reset the sleep clock.
+    from brain import main as brain_main
+    monkeypatch.setattr("brain.thinking.think_one", lambda bs: False)
+    monkeypatch.setattr("brain.thinking.wonder_one", lambda bs: "checked")
+
+    assert brain_main.thinking_phase(brain_state, wonder_allowed=True) == "wonder-idle"
 
 
 def test_reactive_think_outranks_wondering(_io, brain_state, monkeypatch):

@@ -873,11 +873,16 @@ def _kb_wonder_one() -> bool:
     return False  # every derivable conclusion already held -> KB-wondering is quiet
 
 
-def wonder_one(brain_state: TKBrainStateDoc) -> bool:
+# Returns the tick's FRUITFULNESS (the sleep phase reads it): "derived" = new knowledge entered
+# the KB (resets the sleep clock); "checked" = a re-examination that found nothing new (a unit of
+# work, but the mind is running dry — without this distinction the drift driver's random batches
+# would count as fruit forever and he could never fall asleep); False = nothing to do at all.
+# Both strings are truthy, so every boolean caller keeps its old behavior.
+def wonder_one(brain_state: TKBrainStateDoc):
     # 0. KB-WONDERING FIRST — derive what the KB implies and materialize ONE new theorem (the cogito's
     #    autonomous birth). When it has nothing new (converged), fall through to memory-wondering below.
     if _kb_wonder_one():
-        return True
+        return "derived"
 
     # 1. FIRST-RUN GUARD. Anchor the associative watermark at "now" so the entire seeded KB is not
     #    one giant delta on first wonder (mirrors think_one's wake_at first-run guard). No work yet.
@@ -964,23 +969,23 @@ def wonder_one(brain_state: TKBrainStateDoc) -> bool:
     try:
         oid = ObjectId(item_id)
     except Exception:
-        return True  # stale/garbage id — consumed
+        return "checked"  # stale/garbage id — consumed, nothing learned
     item = TKMemoryItemDoc.get(oid).run()  # Bunnet: .run() executes the query
     if item is None or item.zip is None:
-        return True  # gone / no zip — consumed
+        return "checked"  # gone / no zip — consumed, nothing learned
 
     # SKIP questions — answered, not believed (wondering learns only assertions).
     leaves = evaluation_harness._zip_leaves(item.zip.items)
     if any(getattr(leaf, "dubitative", 0.5) >= 0.999 for leaf in leaves):
-        return True
+        return "checked"
 
     out = evaluate_zip(item.zip)  # fingerprint-cached KB load
     result: EvaluatorResult = out["result"]
     tok = status_to_token(result)
     logger.info("[wondering] memory-item «%s» -> %s (truth=%.2f)", item.original, tok, result.truth)
-    if tok == EvalToken.TRUE.value:
-        materialize_theorem(result, item, derived_by="wondering")  # SILENT: knowledge only, no idea/action
-    return True
+    if tok == EvalToken.TRUE.value and materialize_theorem(result, item, derived_by="wondering"):
+        return "derived"  # SILENT learning: a NEW theorem entered the KB — fruit
+    return "checked"
 
 
 # process ONE memory item (a bounded work-unit for the coordinator). PER-USER-GROUPED scan (#1):
