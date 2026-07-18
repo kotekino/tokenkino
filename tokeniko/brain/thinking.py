@@ -325,8 +325,13 @@ DREAM_SIGNIFICANCE = 0.9
 
 def spawn_dream(report: dict) -> bool:
     import hashlib
-    retracted = [{"original": c["original"], "absurd": c["absurd"]}
-                 for c in report.get("convicted", []) if c.get("postable", True)]
+    retracted, seen = [], set()
+    for c in report.get("convicted", []):
+        # one premise may convict several absurdities (the same stale belief poisons many
+        # subjects) — it is still ONE belief let go: dream it once, first absurd as the why.
+        if c.get("postable", True) and c["original"] not in seen:
+            seen.add(c["original"])
+            retracted.append({"original": c["original"], "absurd": c["absurd"]})
     if not retracted:
         return False
     seed = "|".join(r["original"] for r in retracted)

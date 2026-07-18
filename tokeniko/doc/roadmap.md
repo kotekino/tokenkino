@@ -94,6 +94,11 @@ auto-retreat, logic never guesses). Four slices:
   the two seeds `--apply` (dream rule + dream/blog scaffolds), then run `untangle.py` when he
   chooses; the wake-time reduct question executes his pending biography ruling THROUGH the
   mind.*
+- **Slice 3.5 — THE SLEEP PHASE: ✅ LANDED** (see `landed.md`; the author's design, same
+  morning): he falls asleep WONDERING (confirmed idle + fruitless wondering past
+  `BRAIN_SLEEP_AFTER_S`); the night's duty = ONE KB-change-gated untangle pass (apply — safe
+  unsupervised by the fork-D bar), the dream told ON WAKING; any work wakes him;
+  `BRAIN_SLEEP_MAX_S` ends the night regardless; the tick rests at `BRAIN_SLEEP_TICK_S`.
 - **Slice 4 — the constructive direction** 🔭: assume ¬p, saturate, the mirror fires ⇒ **p
   PROVEN** (derivation `reductio: ¬p ⊢ ⊥`). Proposed firing site: the polar-question IDK path —
   try proof by contradiction before conceding «I do not know»; maybe also a wondering mode.

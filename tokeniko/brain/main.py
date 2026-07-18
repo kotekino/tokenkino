@@ -58,6 +58,16 @@ URGE_THRESHOLD = UrgeLevel.WISH.value
 # two sentences of a live conversation he keeps polling fresh memory (cheap, every IDLE_INTERVAL)
 # instead of starting a daydream he'd have to finish first.
 WONDER_IDLE_CONFIRM = float(os.getenv("BRAIN_WONDER_IDLE_CONFIRM_S", "60"))
+# THE SLEEP PHASE (§0 slice 3.5, the author's design 2026-07-18): he falls asleep WONDERING —
+# wondering allowed and FRUITLESS (no new result from any pass) for SLEEP_AFTER seconds. Asleep,
+# wondering stops (kb_wonder every tick is not rest); only the reactive probe keeps running — the
+# wake sensor. ANY work wakes him (his ruling: every event that exits wondering exits sleep), and
+# SLEEP_MAX ends the night regardless (he wakes rested; a still-silent world naps again after a
+# fresh SLEEP_AFTER of wakefulness). While asleep the cooperative tick lengthens to SLEEP_TICK —
+# the embodied machine literally rests; a few seconds of wake latency reads as a mind stirring.
+SLEEP_AFTER = float(os.getenv("BRAIN_SLEEP_AFTER_S", "600"))
+SLEEP_MAX = float(os.getenv("BRAIN_SLEEP_MAX_S", "2700"))
+SLEEP_TICK = float(os.getenv("BRAIN_SLEEP_TICK_S", "10"))
 
 
 # --------------------------------------------------------------
@@ -404,6 +414,59 @@ def thinking_phase(brain_state: TKBrainStateDoc, wonder_allowed: bool = True) ->
 
 
 # --------------------------------------------------------------
+# THE SLEEP PHASE helpers (§0 slice 3.5). Sleep is a MODE, never a blocker: the phase routing runs
+# every tick regardless (the existing Actions > Priorities > think probe IS the wake sensor), so
+# "every event that would have exited wondering exits sleep" holds by construction.
+# --------------------------------------------------------------
+
+# the night's duty: ONE untangle pass per sleep, KB-change-gated (an unchanged KB = deep rest).
+# apply=True is safe UNSUPERVISED by the fork-D bar: convictions are logic (exactly-one-revisable),
+# never a guess; undecidable tangles only queue ledger questions — he wakes with them on his lips.
+# The dream material is STASHED (bs.pending_dream), told on waking — the telling never disturbs
+# the sleep. In-process execution is serialized by the coordinator: no concurrency caveat.
+def _sleep_duty(bs: TKBrainStateDoc) -> None:
+    from lib.core.untangle import untangle_pass
+    kb_now = thinking._kb_max_createdat()
+    if kb_now <= (bs.last_untangled_kb_at or 0):
+        logger.info("[sleep] the KB is unchanged since the last untangling — deep rest")
+        return
+    report = untangle_pass(apply=True)
+    bs.last_untangled_kb_at = thinking._kb_max_createdat() or kb_now
+    if report["convicted"]:
+        bs.pending_dream = {"convicted": report["convicted"], "asked": report["asked"]}
+    bs.save()
+    logger.info("[sleep] the night's untangling: %d absurdity(ies) — %d retreated, %d for the "
+                "morning's questions, %d constitution-flagged",
+                report["conflicts"], len(report["convicted"]), len(report["asked"]),
+                len(report["constitution"]))
+
+
+# a stashed dream is told on waking (spawn_dream is content-idempotent, so a re-told night dedups).
+def _spawn_pending_dream(bs: TKBrainStateDoc) -> None:
+    if not bs.pending_dream:
+        return
+    try:
+        if thinking.spawn_dream(bs.pending_dream):
+            logger.info("[sleep] ☀️ he tells his dream")
+    except Exception:
+        logger.exception("[sleep] the dream could not be told — let go")
+    bs.pending_dream = None
+    bs.save()
+
+
+# wake: clear the sleep state, tell the stashed dream. Returns None (the new asleep_at).
+def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optional[float]:
+    if asleep_at is None:
+        return None
+    slept = time.monotonic() - asleep_at
+    logger.info("[sleep] ☀️ he wakes (%s) after %.0fs asleep", reason, slept)
+    bs.asleep_since = None
+    bs.save()
+    _spawn_pending_dream(bs)
+    return None
+
+
+# --------------------------------------------------------------
 # The coordinator — dynamic priority routing. Each tick: drain Actions fully before Priorities;
 # Priorities before Thinking; Thinking only when both are empty. The cooperative yield between busy
 # units + the longer idle sleep is the throttle. Event-driven interruption falls out for free: a new
@@ -412,10 +475,21 @@ def thinking_phase(brain_state: TKBrainStateDoc, wonder_allowed: bool = True) ->
 async def coordinator(stop_event: asyncio.Event) -> None:
     logger.info("🧠 Coordinator started")
     bs = get_or_create_brain_state()
+    # A REBOOT IS A WAKE (sleep phase): an interrupted night never resumes — but its dream
+    # survived in bs.pending_dream and is told on this wake (content-idempotent).
+    if bs.asleep_since is not None:
+        bs.asleep_since = None
+        bs.save()
+        logger.info("[sleep] ☀️ woken by the reboot — the night ended with the process")
+    _spawn_pending_dream(bs)
     tick = 0  # heartbeat cadence counter (blog P3) — monotone, one increment per loop iteration
     # the idle-confirmation clock: last moment REACTIVE work (actions/priorities/think) happened.
     # starts at "now" so a fresh wake never opens with a daydream (he looks around first).
     last_busy = time.monotonic()
+    # the sleep clock: last moment ANY pass produced a unit of work (reactive OR a fruitful
+    # wonder). Quiet past SLEEP_AFTER while wondering is allowed = he falls asleep wondering.
+    last_fruitful = time.monotonic()
+    asleep_at: Optional[float] = None  # monotonic mirror of bs.asleep_since (the loop's clock)
     try:
         while not stop_event.is_set():
             tick += 1
@@ -427,12 +501,14 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     # Actions/Priorities work reports as "thinking" (blog P3 state mapping): deciding
                     # and acting on urges is still thought — "ingesting"/"refuting" would claim
                     # introspection the coordinator doesn't cheaply have.
-                    last_busy = time.monotonic()
+                    asleep_at = _wake(bs, asleep_at, "the world moved")
+                    last_busy = last_fruitful = time.monotonic()
                     heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
                     await asyncio.sleep(BUSY_YIELD)
                     continue
                 if priorities_phase():
-                    last_busy = time.monotonic()
+                    asleep_at = _wake(bs, asleep_at, "the world moved")
+                    last_busy = last_fruitful = time.monotonic()
                     heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
                     await asyncio.sleep(BUSY_YIELD)
                     continue
@@ -440,16 +516,39 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                 # briefly so the next tick promptly routes to Priorities; only true idle gets the long
                 # sleep (CPU throttle / good citizen). Wondering is additionally gated on CONFIRMED
                 # idle: only after WONDER_IDLE_CONFIRM seconds without reactive work (author's ruling
-                # 2026-07-16 — he starts wondering when he's reasonably sure nothing else needs him).
-                wonder_allowed = time.monotonic() - last_busy >= WONDER_IDLE_CONFIRM
+                # 2026-07-16 — he starts wondering when he's reasonably sure nothing else needs him)
+                # — and STOPS while asleep (the sleep phase: re-saturating every tick is not rest;
+                # the reactive probe keeps running as the wake sensor).
+                wonder_allowed = (asleep_at is None
+                                  and time.monotonic() - last_busy >= WONDER_IDLE_CONFIRM)
                 sub = thinking_phase(bs, wonder_allowed)
                 if sub == "think":
+                    asleep_at = _wake(bs, asleep_at, "someone spoke")
                     last_busy = time.monotonic()
+                if sub:
+                    last_fruitful = time.monotonic()
+                # the SLEEP transitions (only in true idle): quiet wondering past SLEEP_AFTER ->
+                # he falls asleep wondering (the author's design — and his own habit); SLEEP_MAX
+                # ends the night regardless, with a fresh wakeful window before any next nap.
+                now_m = time.monotonic()
+                if (asleep_at is None and sub is None and wonder_allowed
+                        and now_m - last_fruitful >= SLEEP_AFTER):
+                    asleep_at = now_m
+                    bs.asleep_since = int(time.time())
+                    bs.save()
+                    logger.info("[sleep] 🌙 he falls asleep wondering (quiet for %.0fs)",
+                                now_m - last_fruitful)
+                    _sleep_duty(bs)  # the night's untangling — retreats now, the dream on waking
+                elif asleep_at is not None and now_m - asleep_at >= SLEEP_MAX:
+                    asleep_at = _wake(bs, asleep_at, "rested")
+                    last_fruitful = time.monotonic()
                 # the honest state for the heartbeat: reactive think -> "thinking", idle-time
-                # re-examination -> "wondering", no work at all -> "idle".
-                state = "thinking" if sub == "think" else "wondering" if sub == "wonder" else "idle"
+                # re-examination -> "wondering", asleep -> "sleeping", no work at all -> "idle".
+                state = ("thinking" if sub == "think" else "wondering" if sub == "wonder"
+                         else "sleeping" if asleep_at is not None else "idle")
                 heartbeat.maybe_beat(tick, state, _tokeniko_uid)
-                await asyncio.sleep(BUSY_YIELD if sub else IDLE_INTERVAL)
+                await asyncio.sleep(BUSY_YIELD if sub
+                                    else SLEEP_TICK if asleep_at is not None else IDLE_INTERVAL)
             except Exception:
                 logger.exception("[coordinator] tick %d failed — backing off one idle interval", tick)
                 await asyncio.sleep(IDLE_INTERVAL)

@@ -400,3 +400,15 @@ class BrainState(BaseModel):
     # a DELTA -> its senses drive the next associative enqueue. Initialized to "now" on first wonder (so the
     # whole seeded KB is NOT treated as one giant delta), mirroring the wake_at first-run guard.
     last_wondered_kb_at: int = 0
+    # --- THE SLEEP PHASE (§0 slice 3.5, the author's design 2026-07-18) ---
+    # He falls asleep WONDERING: confirmed idle + wondering quiet past a threshold -> sleep. Epoch
+    # seconds while asleep, None awake — observability + honesty across restarts (a reboot is a
+    # wake: cleared on coordinator start, never resumed).
+    asleep_since: Optional[int] = None
+    # the sleep duty's KB watermark: max knowledge createdAt when the last untangle pass ran — a
+    # night on an unchanged KB is deep rest (no re-saturation), mirroring the wondering watermark.
+    last_untangled_kb_at: int = 0
+    # the night's DREAM material (the untangler report's convicted/asked subset), stashed at the
+    # sleep duty and TOLD ON WAKING (spawn_dream) — the telling never disturbs the sleep itself,
+    # and a dream survives a mid-night restart (spawned on the reboot-wake, content-idempotent).
+    pending_dream: Optional[dict] = None

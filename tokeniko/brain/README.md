@@ -9,6 +9,17 @@ The three cognitive phases (in priority order — Actions > Priorities > Thinkin
 2. **Priorities Evaluation**
 3. **Thinking**
 
+Plus **Sleep** (§0 slice 3.5, 2026-07-18) — not a fourth *phase* in the routing but a MODE the
+idle decays into: confirmed idle + FRUITLESS wondering past `BRAIN_SLEEP_AFTER_S` and he *falls
+asleep wondering* (the author's design). The routing keeps running every tick — the reactive
+probe IS the wake sensor, so anything that would have exited wondering exits sleep by
+construction; `BRAIN_SLEEP_MAX_S` ends the night regardless, and the cooperative tick lengthens
+to `BRAIN_SLEEP_TICK_S` (the embodied machine rests). The night's duty: ONE KB-change-gated
+**untangler** pass (`lib/core/untangle.py`, apply — safe unsupervised by the fork-D conviction
+bar), its dream stashed in `brain_state.pending_dream` and told ON WAKING (`life:dream` → the
+blog). Sleep state lives in `brain_state.asleep_since`; a reboot is a wake (the stashed dream
+survives).
+
 > **Cognition vs orchestration.** This document describes the *orchestration* — the loops, the
 > queues, the scheduling. The *cognition* inside Thinking and Priorities (how a `TKZip` is
 > reasoned over, how an idea is scored) is the **reasoning engine** (see `doc/roadmap.md` /

@@ -1496,3 +1496,29 @@ KB-wide reductio as sleep-phase belief hygiene — the author's addition, shippe
 8 tests (`test_untangler.py`: the bar's partition, the dream draft + its ValueError, dry-run
 convicts-without-touching, apply retreats+cascades+cures, two-revisable refuses to guess,
 all-constitution flagged untouched, the dream spawn's postability gate + per-night dedup).
+
+**The sleep phase (§0 slice 3.5, 2026-07-18 — the author's design: "he falls asleep wondering… which is actually similar to what I usually do")**
+The coordinator gains its fourth mode — hunch 20's sleep phase, arriving through the untangler
+(95% of the machinery already existed; the phase is ~90 lines of coordinator).
+- **Sleep is a MODE, never a blocker**: the phase routing runs every tick regardless — the
+  reactive probe IS the wake sensor, so "every event that would have exited wondering exits
+  sleep" holds by construction (a Discord message lands → the next tick thinks → he wakes,
+  «someone spoke»).
+- **Falling asleep**: confirmed idle + FRUITLESS wondering (no unit of work from any pass) past
+  `BRAIN_SLEEP_AFTER_S` (default 600) → 🌙. Wondering stops while asleep (re-saturating every
+  tick is not rest); the cooperative tick lengthens to `BRAIN_SLEEP_TICK_S` (default 10) — the
+  embodied machine literally rests, and a few seconds of wake latency reads as a mind stirring.
+- **The night's duty**: ONE untangle pass per sleep, KB-change-gated (`last_untangled_kb_at`
+  watermark — an unchanged KB is deep rest), `apply=True` UNSUPERVISED — safe by the fork-D bar
+  (convictions are logic; undecidables only queue ledger questions: he wakes with them on his
+  lips). In-process execution is coordinator-serialized — the script's concurrency caveat
+  dissolves.
+- **The dream discipline**: the material is STASHED (`bs.pending_dream`) and told ON WAKING
+  (`spawn_dream`, content-idempotent + per-belief dedup — one premise convicting many
+  absurdities is still ONE belief let go). The telling never disturbs the sleep; a mid-night
+  crash keeps the dream (reboot is a wake: `asleep_since` cleared on startup, the stash spawned).
+- **Waking**: any work («the world moved» / «someone spoke»), or `BRAIN_SLEEP_MAX_S` (default
+  2700) — he wakes rested with a fresh wakeful window before any next nap. Heartbeat state
+  "sleeping" (the Mind Monitor can one day show it honestly).
+5 tests (`test_sleep_phase.py`: the duty untangles+stashes+watermarks, wake tells the dream
+once, wake-when-awake identity, the reboot recovery, deep rest on an unchanged KB).
