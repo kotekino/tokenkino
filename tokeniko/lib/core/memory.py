@@ -412,3 +412,10 @@ class BrainState(BaseModel):
     # sleep duty and TOLD ON WAKING (spawn_dream) — the telling never disturbs the sleep itself,
     # and a dream survives a mid-night restart (spawned on the reboot-wake, content-idempotent).
     pending_dream: Optional[dict] = None
+    # THE MORNING QUESTIONS (author's ruling 2026-07-18, the obsession guard): waking up with a
+    # tangle the night could NOT decide is itself a reason to ask — whether he asked before or
+    # not (an old question drowns in the stream; silent nightly re-discovery would be a quiet
+    # fixation). The duty stashes the undecidable signatures {"at": epoch, "signatures": [...]};
+    # the wake re-asks each one whose ledger row is still OPEN (a fresh per-night dedup key).
+    # Deep-rest nights stash nothing — no nagging from a mind that didn't re-derive the problem.
+    pending_questions: Optional[dict] = None

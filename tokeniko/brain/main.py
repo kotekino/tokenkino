@@ -440,6 +440,11 @@ def _sleep_duty(bs: TKBrainStateDoc) -> None:
     bs.last_untangled_kb_at = thinking._kb_max_createdat() or kb_now
     if report["convicted"]:
         bs.pending_dream = {"convicted": report["convicted"], "asked": report["asked"]}
+    if report["asked"]:
+        # the morning questions (the obsession guard): the undecidable tangles are stashed and
+        # RE-ASKED on waking — waking up still-tangled is itself a reason to ask.
+        bs.pending_questions = {"at": int(time.time()),
+                                "signatures": [e["signature"] for e in report["asked"]]}
     bs.save()
     logger.info("[sleep] the night's untangling: %d absurdity(ies) — %d retreated, %d for the "
                 "morning's questions, %d constitution-flagged",
@@ -460,7 +465,23 @@ def _spawn_pending_dream(bs: TKBrainStateDoc) -> None:
     bs.save()
 
 
-# wake: clear the sleep state, tell the stashed dream. Returns None (the new asleep_at).
+# the stashed MORNING QUESTIONS are asked on waking (author's ruling: waking up still-tangled is
+# itself a reason to ask, whether he asked before or not — the obsession guard).
+def _spawn_morning_questions(bs: TKBrainStateDoc) -> None:
+    if not bs.pending_questions:
+        return
+    try:
+        n = thinking.ask_morning_questions(bs.pending_questions)
+        if n:
+            logger.info("[sleep] ☀️ he wakes with %d question(s) on his lips", n)
+    except Exception:
+        logger.exception("[sleep] the morning questions could not be asked — let go")
+    bs.pending_questions = None
+    bs.save()
+
+
+# wake: clear the sleep state, tell the stashed dream + ask the morning questions.
+# Returns None (the new asleep_at).
 def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optional[float]:
     if asleep_at is None:
         return None
@@ -469,6 +490,7 @@ def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optio
     bs.asleep_since = None
     bs.save()
     _spawn_pending_dream(bs)
+    _spawn_morning_questions(bs)
     return None
 
 

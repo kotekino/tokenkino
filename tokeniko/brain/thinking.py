@@ -809,6 +809,46 @@ def _reductio_reconcile(conflicts: list[dict]) -> None:
                            len(sentences), "; ".join(f"«{s}»" for s in sentences))
 
 
+# THE MORNING QUESTIONS (author's ruling 2026-07-18, the obsession guard): waking up with a
+# tangle the night could NOT decide is itself a reason to ask — whether he asked before or not.
+# An old question drowns in the message stream; silently re-discovering the same absurd every
+# night would be a quiet fixation. For each stashed undecidable signature whose ledger row is
+# still OPEN, spawn a fresh reduct question with a per-night dedup key (the asked-once
+# discipline holds WITHIN a night; each new sighting re-asks). Rows resolved while he slept
+# (the answer landed overnight) are skipped honestly. Returns how many questions were asked.
+def ask_morning_questions(stash: dict) -> int:
+    signatures = list((stash or {}).get("signatures") or [])
+    night = int((stash or {}).get("at") or 0)
+    if not signatures or not behavior.behavior_for(EvalToken.ABSURDITY.value):
+        return 0
+    asked = 0
+    for sig in signatures:
+        row = TKReductioDoc.find_one(
+            {"signature": sig, "status": ReductioStatus.OPEN.value}).run()  # Bunnet: .run()
+        if row is None:
+            continue  # resolved (or never ledgered) — nothing left to ask
+        docs = _premise_docs(row.premises)
+        sentences = list(dict.fromkeys(d.original.strip() for d in docs
+                                       if not getattr(d, "archived", False)))
+        if not row.absurd or not sentences:
+            continue  # nothing nameable anymore — left to the untangler
+        target = _reduct_target(docs)
+        ideas = behavior.spawn_ideas_for(
+            EvalToken.ABSURDITY.value,
+            source=f"reductio:{row.id}:{row.generation}:night:{night}",  # per-night dedup key
+            answer={"premises": sentences, "absurd": row.absurd,
+                    "premise_ids": list(row.premises), "signature": sig},
+            target=target.uid if target else row.target,
+            confidence=1.0,  # the r.a.a. is logic — logic never hedges
+        )
+        if ideas:
+            asked += 1
+            logger.warning("[reductio] MORNING QUESTION «%s» — still tangled after the night, "
+                           "asking %s again", row.absurd,
+                           target.name if target else row.target or "nobody-reachable")
+    return asked
+
+
 def _kb_wonder_one() -> bool:
     conflicts: list[dict] = []
     conclusions = evaluation_harness.kb_wonder(collect_conflicts=conflicts)

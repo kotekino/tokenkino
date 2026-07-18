@@ -1554,3 +1554,23 @@ free from the monster: take the momentum" ruling.
 proof, no-proof stays None, the poisoned-baseline guard, the v1 scope gates, and the REAL
 question path end-to-end — «is a software a mammal?» → proven NO @ confidence ≈ extremity ×
 taught trust; the unprovable question stays an honest IDK).
+
+**The morning questions (§0 live-refinement #2, 2026-07-18 evening — the obsession guard, author's ruling)**
+Found watching the FIRST LIVE NIGHT: an undecidable tangle was asked once (awake, hours earlier),
+then every KB-changed night would silently re-derive the same absurd — "already asked", nothing
+said — while the question drowned in the message stream. A quiet fixation. The author's rule:
+**waking up still-tangled is itself a reason to ask, whether he asked before or not.**
+- The duty stashes the night's undecidable signatures (`brain_state.pending_questions`, the
+  pending_dream pattern); `_wake` asks them via `thinking.ask_morning_questions`: every stashed
+  signature whose ledger row is still OPEN spawns a fresh reduct question with a PER-NIGHT dedup
+  key (`reductio:{row}:{gen}:night:{ts}`) — the asked-once discipline holds within a night, each
+  new sighting re-asks. Premises re-rendered fresh (archived ones dropped); target re-picked.
+- Honest silences: a row RESOLVED overnight (the answer landed while he slept) is skipped; a
+  deep-rest night (unchanged KB) stashes nothing — no nagging from a mind that didn't re-derive
+  the problem; the rule gate + reboot-wake survival ride the same paths as the dream.
+(Also landed this evening, same live-watch: the INSOMNIA fix — wonder_one's fruitfulness
+["derived" vs "checked"], only fruit resets the sleep clock — and the heartbeat/Mind-Monitor
+sleeping state + the tone-follows-the-mind screen, deployed to tokeniko.online.)
+2 tests (`test_sleep_phase.py`: the re-ask on waking + the resolved-row silence). First live
+night otherwise: two sleeps (17:39 — the TRUE first sleep, duty ran, nothing convictable;
+18:03 — deep rest), reboot-wake, message-wake, both reduct questions delivered.
