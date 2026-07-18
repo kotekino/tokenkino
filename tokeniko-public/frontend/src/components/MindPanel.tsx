@@ -87,12 +87,16 @@ const MindPanel: React.FC<Props> = ({ mind, live, settled, uptimeSec }) => {
   const sinceMin = Math.floor(ageMs / 60_000);
   const state = offAir ? 'off air' : mind.state;
   const stateClass = offAir ? 'offair' : mind.state;
+  // "sleeping" now belongs to the LIVE sleep state (the engine keeps beating through the
+  // night) — a silent transmitter is honestly "no signal", never dressed up as sleep.
   const doing = offAir
-    ? `tokeniko is sleeping — last heartbeat ${sinceMin} min ago`
+    ? `no signal from the mind — last heartbeat ${sinceMin} min ago`
     : mind.doing;
 
   return (
-    <aside className="mind" aria-label="Live view on the mind of tokeniko">
+    // the tone follows the mind: the root carries the state so the screen's
+    // background (the night overlay in CSS) can dim with it.
+    <aside className={`mind mind--${stateClass}`} aria-label="Live view on the mind of tokeniko">
       <div className="mind__screen">
         <div className="mind__scanlines" aria-hidden="true" />
 

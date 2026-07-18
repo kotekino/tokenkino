@@ -45,6 +45,9 @@ _DOING: dict[str, str] = {
     "thinking": "evaluating fresh memory against what I know",
     "wondering": "re-examining an old memory — my knowledge has grown since",
     "idle": "waiting — nothing new to think about",
+    # the sleep phase (§0 slice 3.5): the heartbeat keeps beating through the night (300s cadence
+    # vs the 10s sleep tick), so the monitor shows an honest sleeping mind, not a dead feed.
+    "sleeping": "asleep — untangling what I believe",
 }
 
 

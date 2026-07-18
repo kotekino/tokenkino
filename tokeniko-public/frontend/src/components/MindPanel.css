@@ -74,6 +74,39 @@
 .mind__state--wondering { color: var(--crt-amber); }
 .mind__state--tuning { color: var(--crt-amber); }
 
+/* Sleeping — a LIVE state (the engine's sleep phase, heartbeats keep landing):
+   dim phosphor with a slow, breathing pulse — a resting lamp, not a dead one. */
+.mind__state--sleeping { color: var(--crt-green-dim); }
+.mind__state--sleeping .mind__state-dot { animation: mind-breathe 3.5s ease-in-out infinite; }
+
+@keyframes mind-breathe {
+  0%, 100% { opacity: 0.9; }
+  50%      { opacity: 0.25; }
+}
+
+/* ─── The tone follows the mind (the author's epiphany, 2026-07-18) ────────
+   The screen's BACKGROUND is bound to the state: full phosphor on the active
+   states, darker while wondering (same color, just less of it), near-black
+   asleep. Mechanism: a black overlay above the tube glass but below the
+   content (everything except the scanlines sits at z-index 1), fading slowly
+   — a lamp being turned down, never a hard cut. */
+.mind__screen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #020403;
+  opacity: 0;
+  transition: opacity 2.5s ease;
+  pointer-events: none;
+  z-index: 0;
+}
+/* the daydream: the room darkens a shade */
+.mind--wondering .mind__screen::after { opacity: 0.45; }
+/* the night: a black theme — the tube barely glows, the text rests dim */
+.mind--sleeping .mind__screen::after { opacity: 0.78; }
+.mind--sleeping .mind__screen { color: var(--crt-green-dim); }
+.mind--sleeping .mind__head-title { opacity: 0.6; }
+
 /* Skeleton figures — the screen holds its layout while honest about having
    no data yet: dim phosphor, softly breathing. */
 .mind__dim {

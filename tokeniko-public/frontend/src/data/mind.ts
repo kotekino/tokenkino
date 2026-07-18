@@ -63,8 +63,9 @@ export interface MindSnapshot {
    * much older. Absent on the mock fallback (nothing to be stale relative to).
    */
   capturedAt?: string;
-  /** Operational state shown as the screen header. */
-  state: 'thinking' | 'idle' | 'ingesting' | 'refuting' | 'wondering';
+  /** Operational state shown as the screen header. 'sleeping' is a LIVE state
+   *  (the engine's sleep phase — heartbeats keep landing), distinct from off-air. */
+  state: 'thinking' | 'idle' | 'ingesting' | 'refuting' | 'wondering' | 'sleeping';
   /** Seconds since the mind last (re)started. */
   uptimeSec: number;
   kpis: MindKpi[];
