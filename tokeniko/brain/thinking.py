@@ -41,6 +41,7 @@ from lib.core.models import (
     TKReductioDoc,
     TKTheoremDoc,
 )
+from lib.core.tk import TKQuantifier
 from lib.core.zip_native import assemble_reportative_zip
 from brain import api_client, behavior, context
 
@@ -509,6 +510,103 @@ def _try_correction(item: TKMemoryItemDoc) -> bool:
         [s["original"] for s in ct["sources"]],
     )
     return True
+
+
+# --------------------------------------------------------------
+# THE REDUCT-ANSWER BINDING (§0 slice 2, the author's fork-A ruling) — the answer-form gap's cure.
+# The correction detector consumes O/E CORNERS; but the natural answer to the reduct question is
+# the GENERIC denial («a mind is not a software»), which is no corner — without this, tokeniko
+# would push back on the answer to his own question (the bounce, inside the very conversation he
+# opened). The CONTEXT disambiguates it, exactly as it does for humans: when the ASKED teacher
+# (an OPEN reductio row's target) denies one of THAT row's premises (pinned senses match, net
+# polarity flipped), the denial binds as a correction of that premise — same Popper trust gate,
+# same downstream (retreat + cascade + concede; the next saturation resolves the row). Scoped
+# three ways: only the asked teacher, only the asked premises, only while the row is OPEN.
+# Corner "R"; weakened=None — a flat denial licenses no subaltern (the teacher said the belief is
+# false, not that «some» survives): archive, mint nothing (epistemic caution). Readonly axioms
+# stay non-retractable (the constitution, v1 rule); archived premises never re-bind.
+# --------------------------------------------------------------
+
+# a leaf's NET comparison key: (subject, predicate, direct, net-negation) — the net folds the
+# surface split between negation-on-copula and negation-on-quantifier (NEGATIVE «no S is P»,
+# NEGATED_UNIVERSAL «not all S are P»), so a denial matches its premise whichever way either
+# was phrased. None when the leaf carries no subject/predicate senses (nothing to compare).
+def _leaf_net_key(leaf) -> Optional[tuple]:
+    senses = getattr(leaf, "senses", None) or {}
+    subj, pred = senses.get("subject"), senses.get("predicate")
+    if not subj or not pred:
+        return None
+    q = getattr(leaf, "quantifier", None)
+    neg = bool(getattr(leaf, "negated", False)) != (
+        q in (TKQuantifier.NEGATIVE, TKQuantifier.NEGATED_UNIVERSAL))
+    return (subj, pred, senses.get("direct"), neg)
+
+
+def _try_reduct_answer(item: TKMemoryItemDoc) -> bool:
+    from lib.core.kb_extract import _leaf_is_crisp
+    if item.zip is None:
+        return False
+    soul = trust.resolve_canonical(item.sourceId)
+    if soul is None or soul.isMe:
+        return False
+    rows = TKReductioDoc.find(
+        {"status": ReductioStatus.OPEN.value, "target": soul.uid}).to_list()
+    if not rows:
+        return False  # the cheap gate: no open question aimed at this speaker
+    answer_keys = set()
+    for leaf in evaluation_harness._zip_leaves(item.zip.items):
+        if not _leaf_is_crisp(leaf):
+            continue  # a ◇-claim asserts nothing — it answers nothing
+        key = _leaf_net_key(leaf)
+        if key:
+            answer_keys.add(key)
+    if not answer_keys:
+        return False
+    corrector_trust = 1.0 if soul.imprint else soul.trust
+    for row in rows:
+        for doc in _premise_docs(row.premises):
+            if getattr(doc, "archived", False):
+                continue  # already retreated — nothing left to bind
+            if isinstance(doc, TKAxiomDoc) and getattr(doc, "readonly", True):
+                continue  # the constitution is never conversationally retractable (v1)
+            if doc.zip is None:
+                continue
+            for pleaf in evaluation_harness._zip_leaves(doc.zip.items):
+                pk = _leaf_net_key(pleaf)
+                if pk is None or (pk[0], pk[1], pk[2], not pk[3]) not in answer_keys:
+                    continue
+                # the context binds — same Popper gate as every correction
+                if corrector_trust < doc.trusted:
+                    logger.info(
+                        "[thinking] reduct answer «%s» denies asked premise «%s» but the trust "
+                        "gate holds (answerer %.2f < belief %.2f) — the belief stands",
+                        item.original, doc.original, corrector_trust, doc.trusted)
+                    return False
+                kind = "axiom" if isinstance(doc, TKAxiomDoc) else "theorem"
+                answer = {
+                    "corner": "R",  # reduct-context binding (no square corner — the row is the context)
+                    "corrector": soul.uid, "corrector_trust": corrector_trust,
+                    "belief_trust": doc.trusted, "edge_keys": [],
+                    "sources": [{"kind": kind, "id": str(doc.id), "original": doc.original}],
+                    "weakened": None,
+                    "signature": row.signature,  # audit: which absurdity this answer resolves
+                }
+                behavior.spawn_ideas_for(
+                    EvalToken.CORRECTION.value, payload=item.zip, source=str(item.id),
+                    answer=answer, target=item.sourceId,
+                )
+                behavior.spawn_ideas_for(
+                    TrustEpisodeKind.CORRECTION.value, payload=item.zip, source=str(item.id),
+                    answer={"note": f"answered my reductio: the denial retires "
+                                    f"«{doc.original}» (context-bound, Popper trust-gated)"},
+                    target=item.sourceId,
+                )
+                logger.info(
+                    "[thinking] REDUCT ANSWER accepted: «%s» from %s retires asked premise «%s» "
+                    "(answerer %.2f >= belief %.2f)",
+                    item.original, soul.name, doc.original, corrector_trust, doc.trusted)
+                return True
+    return False
 
 
 # --------------------------------------------------------------
@@ -1056,6 +1154,11 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         # DISAGREEMENT ding) AND the cross-item conflict check below (self-correction is deliberate
         # revision, not the honest-liar's contradiction). See _try_correction.
         corrected = token == EvalToken.FALSE.value and _try_correction(item)
+        # the reduct-answer binding (§0 slice 2, fork A): the asked teacher's generic denial of
+        # an asked premise binds regardless of corner AND of verdict (inside the conflict zone
+        # the mirror abstains, so the denial may grade UNKNOWN — the context still binds it).
+        if not corrected:
+            corrected = _try_reduct_answer(item)
 
         if corrected:
             pass  # the correction path spawned its own ideas (retreat + trust echo)

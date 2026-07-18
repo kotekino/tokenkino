@@ -79,9 +79,11 @@ auto-retreat, logic never guesses). Four slices:
   `eval:absurdity` → `tokeniko:reduct` (directed, teacher-channel, verbatim-carried) + the
   `reductio_ledger` (asked-once / resolve-on-cure / re-open on return). *Seeds pending his
   `--apply`: the 0.95 rule + the 3-scaffold reduct shelf.*
-- **Slice 2 — the loop closes** 🔭: verify end-to-end that the natural answer («a is false»)
-  rides the existing correction/retreat path, the conflict vanishes from the next saturation and
-  the ledger row RESOLVES — no new binding machinery unless the tests prove otherwise.
+- **Slice 2 — the loop closes: ✅ LANDED** (see `landed.md`): the full r.a.a. circle proven
+  end-to-end through the real components (quantified answer → existing correction path), PLUS
+  the answer-form gap found + cured by the author's fork-A ruling: the REDUCT-ANSWER BINDING
+  (the asked teacher's generic denial of an asked premise binds as a correction — context
+  disambiguates, same Popper gate).
 - **Slice 3 — THE UNTANGLER + the dream** 🔭 (author's addition): never fix the poisoned KB by
   hand — a pass that deliberately SATURATES the whole KB (every seed through the mirror),
   collects every conflict + premise set; DECIDABLE ones (sanctioned trust dominance — the Popper

@@ -1431,3 +1431,33 @@ premise-givers — clarify's derivational cousin, aimed at his own KB instead of
 9 tests (`test_reductio.py`: the surfacing + unchanged default, router + fence + never-fabricate,
 the absurd render, the full ledger lifecycle spawn-once/resolve/re-open, Fork B targeting + the
 teacher-channel plan + feasibility, the rule gate).
+
+**The reductio action — slice 2: the loop closes (2026-07-18; the circle proven + the answer-form gap cured by the author's fork-A ruling)**
+The resolution consumer needed (almost) zero new machinery — and where it needed some, the
+author's fork-A ruling shaped it: context disambiguates, exactly as it does for humans.
+- **The circle, proven end-to-end** (`test_reductio_loop.py::test_the_circle_closes` — every
+  step the REAL component): three poisoned taught theorems (probe-verified sense-consistent) →
+  `_load_active_kb` + the chainer surface animal ∧ ¬animal → the reconcile opens the row, aims
+  the question at the most trusted teacher → the teacher's QUANTIFIED answer («not all minds are
+  software») rides the EXISTING correction path (`_try_correction`, Popper gate) → the real
+  plan/dispatch/`_execute_retreat` chain archives the premise + mints the subaltern → the fresh
+  saturation is clean → the row RESOLVES → the concede names the retraction. The r.a.a. closes
+  through the door every other correction walks through.
+- **The answer-form gap** (found by studying `correction_target`, pinned by test): the detector
+  consumes O/E CORNERS only — the natural conversational answer («a mind is not a software», a
+  GENERIC denial) was no corner, so tokeniko would have PUSHED BACK on the answer to his own
+  question (the bounce, inside the very conversation he opened).
+- **The cure — the REDUCT-ANSWER BINDING** (`thinking._try_reduct_answer`, fork A): when the
+  ASKED teacher (an OPEN row's target) denies one of THAT row's premises — pinned senses match,
+  NET polarity flipped (`_leaf_net_key` folds copula-negation with quantifier-negation) — the
+  denial binds as a correction of that premise. Same Popper trust gate (context disambiguates
+  the MEANING, never lowers the bar); corner "R"; weakened=None (a flat denial licenses no
+  subaltern — archive, mint nothing); readonly axioms stay non-retractable; scoped three ways
+  (only the asked teacher, only the asked premises, only while the row is OPEN). Wired as the
+  correction path's fallback for ANY verdict (inside the conflict zone the mirror abstains, so
+  the denial may grade UNKNOWN — the context still binds it).
+- **One answer cures every absurdity resting on the premise** (found by the test itself: the
+  poison reached Mari through her humanity — her own row, same premise): all the asked rows
+  close on the next saturation.
+7 tests (`test_reductio_loop.py`: the two circles — quantified and generic — the boundary pin,
+the asked-teacher scope, the trust gate). The belief-revision arc untouched and green.
