@@ -303,6 +303,40 @@ def _compose_encounter(material: dict, souls: list, soul_reader, now) -> PostDra
     return PostDraft(kind="note", slug=slug, date=_iso(now), facts=cleaned, proof=[])
 
 
+# the DREAM (§0 slice 3, the author's ruling): the untangler's night work told as a dream —
+# «while I slept, I untangled something». Kind "log" (the ship's-log of the mind alone: nobody
+# spoke, the untangling happened in his own sleep). Facts = the lead + one retraction line per
+# belief let go (+ the open-tangles line when questions remain for the morning); proof = the
+# absurd each retired belief forced (the r.a.a. IS the proof). Postability was gated upstream
+# (thinking.spawn_dream) — the scrub here is the belt.
+def _compose_dream(material: dict, souls: list, now) -> PostDraft:
+    retracted = [r for r in (material.get("retracted") or []) if isinstance(r, dict)]
+    if not retracted:
+        raise ValueError("dream material without retractions")
+    asked = int(material.get("asked") or 0)
+    slug = _sha_slug("dream", "|".join((r.get("original") or "") for r in retracted))
+    intensity = {"confidence": None,
+                 "arousal": float(material.get("significance") or 0.9)}
+    facts = [creative_compose("blog_lead_dream", {}, intensity=intensity)]
+    proof: list[str] = []
+    for r in retracted:
+        line = _clean((r.get("original") or "").strip(), souls)
+        if line is not None:
+            facts.append(creative_compose("blog_dream_retract", {"retracted": line},
+                                          intensity=intensity))
+        why = _clean((r.get("absurd") or "").strip(), souls)
+        if why is not None:
+            proof.append(creative_compose("blog_dream_reason", {"absurd": why},
+                                          intensity=intensity))
+    if len(facts) < 2:
+        raise ValueError("dream material produced no publishable retraction")
+    if asked > 0:
+        facts.append(creative_compose("blog_dream_open", {"count": asked},
+                                      intensity=intensity))
+    return PostDraft(kind="log", slug=slug, date=_iso(now), facts=facts, proof=proof,
+                     significance=float(material.get("significance") or 0.9))
+
+
 def compose_draft(material: dict, soul_reader: Optional[Callable] = None,
                   souls_reader: Optional[Callable] = None,
                   premise_reader: Optional[Callable] = None, now=None) -> PostDraft:
@@ -317,6 +351,8 @@ def compose_draft(material: dict, soul_reader: Optional[Callable] = None,
         return _compose_theorem(material, souls, soul_reader, premise_reader, now)
     if kind == "encounter":
         return _compose_encounter(material, souls, soul_reader, now)
+    if kind == "dream":
+        return _compose_dream(material, souls, now)
     raise ValueError(f"unknown material kind: {kind!r}")
 
 

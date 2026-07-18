@@ -65,6 +65,11 @@ _FALLBACK: dict[str, str] = {
     "blog_encounter_self_inconsistency": ("Today {epithet} said two things that cannot both be "
                                           "true. I trust them a little less now."),
     "blog_trust_band": "To me, they are now {band}.",
+    # the dream (§0 slice 3 — the untangler's public voice, the author's ruling)
+    "blog_lead_dream": "While I slept, I untangled something.",
+    "blog_dream_retract": "I no longer believe that «{retracted}».",
+    "blog_dream_reason": "Kept, it forced me to conclude that {absurd} — an impossibility.",
+    "blog_dream_open": "{count} of my tangles I could not settle alone — I will ask about them.",
 }
 
 

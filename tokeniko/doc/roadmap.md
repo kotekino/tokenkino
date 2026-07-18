@@ -84,17 +84,16 @@ auto-retreat, logic never guesses). Four slices:
   the answer-form gap found + cured by the author's fork-A ruling: the REDUCT-ANSWER BINDING
   (the asked teacher's generic denial of an asked premise binds as a correction — context
   disambiguates, same Popper gate).
-- **Slice 3 — THE UNTANGLER + the dream** 🔭 (author's addition): never fix the poisoned KB by
-  hand — a pass that deliberately SATURATES the whole KB (every seed through the mirror),
-  collects every conflict + premise set; DECIDABLE ones (sanctioned trust dominance — the Popper
-  gate generalized) retreat via the belief-revision machinery (provenance-cascaded, biography
-  preserved — retreat, never mongo-edit); UNDECIDABLE ones queue as reduct questions (slice 1 is
-  the batch's reflex). Ships first as a script; designed from day one as **a tool HE can run
-  when he sleeps** — the sleep phase (hunch 20's fourth phase) gains its second duty: memory
-  consolidation AND belief hygiene, exactly the biological pairing. Its public voice (author's
-  ruling): **the untangler's report is how he tells the blog he had a DREAM** — «while I slept,
-  I untangled something: I no longer believe X, and here is why» — provenance-gated (a DM-taught
-  premise never dreams publicly).
+- **Slice 3 — THE UNTANGLER + the dream: ✅ LANDED** (see `landed.md`): `lib/core/untangle.py`
+  + `scripts/untangle.py` (dry-run default) + the fork-D conviction bar (exactly ONE revisable
+  premise → the r.a.a. convicts it; ≥2 → the wake-time reduct reflex asks; 0 → constitution
+  tension, author-only) + the DREAM (life:dream → the blog: «while I slept, I untangled
+  something», provenance-gated) + the vs_closure premise-arm fix in the mirror (found by the
+  untangler's FIRST LIVE SIGHT: the two mammal-era tangles are honestly UNDECIDABLE — «so I am
+  a mammal» vs the software premises — and will be ASKED when the daemons wake). *His hands:
+  the two seeds `--apply` (dream rule + dream/blog scaffolds), then run `untangle.py` when he
+  chooses; the wake-time reduct question executes his pending biography ruling THROUGH the
+  mind.*
 - **Slice 4 — the constructive direction** 🔭: assume ¬p, saturate, the mirror fires ⇒ **p
   PROVEN** (derivation `reductio: ¬p ⊢ ⊥`). Proposed firing site: the polar-question IDK path —
   try proof by contradiction before conceding «I do not know»; maybe also a wondering mode.

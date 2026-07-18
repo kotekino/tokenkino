@@ -72,6 +72,11 @@ RULES = [
     # the retreat (a contradiction in his own derivations outranks every conversational reflex);
     # no source memory item, so the urge rides unscaled and always clears the act threshold.
     (EvalToken.ABSURDITY.value, TokenikoAction.REDUCT.value, 0.95, "an absurd derivation — ask which premise is false"),
+    # the dream (§0 slice 3): the untangler retreated belief(s) in his sleep -> tell the blog.
+    # CALIBRATION mirrors the encounter: flat significance 0.9 (a sleep-phase belief revision is
+    # rare + personal by construction): 0.7 x 0.9 = 0.63 >= 0.5 -> a dream always gets told
+    # (unless the provenance gate kept the whole night private — then no idea spawns at all).
+    (LifeEventKind.DREAM.value, TokenikoAction.POST.value, 0.7, "a sleep-phase untangling — tell the world I had a dream"),
 ]
 
 

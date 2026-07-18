@@ -118,24 +118,9 @@ def _try_anecdote(item) -> None:
 
 
 # B1 (compose 2.0 slice 4, generalized for the reductio §0): the premise ids that resolve to
-# stored KB sentences (axiom or theorem docs with an original). Edge keys ("subj|is_a|obj") and
-# rule keys are graph internals, not sentences — skipped honestly; nothing resolvable -> [].
+# stored KB sentences — homed in the harness since §0 slice 3 (the untangler shares it).
 def _premise_docs(premises) -> list:
-    out = []
-    for pid in (premises or []):
-        pid = str(pid).strip()
-        if not pid or "|" in pid or ":" in pid:
-            continue  # a graph/rule/provenance key, not a doc id
-        try:
-            oid = ObjectId(pid)
-        except Exception:
-            continue
-        for doc_cls in (TKAxiomDoc, TKTheoremDoc):
-            doc = doc_cls.get(oid).run()  # Bunnet: .run() executes
-            if doc is not None and (doc.original or "").strip():
-                out.append(doc)
-                break
-    return out
+    return evaluation_harness.premise_docs(premises)
 
 
 # the refuting BELIEF behind a FALSE verdict — the first resolvable premise sentence; None and
@@ -326,6 +311,41 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
         _spawn_life_theorem(str(theorem.id), norm, derived_by,
                             result.premises, chain, _is_personal(item.zip, norm))
     return True
+
+
+# THE DREAM (§0 slice 3, the author's ruling): the untangler's report is how he tells the blog he
+# had a DREAM — «while I slept, I untangled something: I no longer believe X, and here is why».
+# Called by scripts/untangle.py after an --apply pass with convictions. The provenance gate holds
+# in the dream too: only POSTABLE retractions are narrated (a DM-taught premise never dreams
+# publicly); all excluded -> no dream idea at all (he keeps that night to himself). Significance
+# is flat-high (an ENCOUNTER-style rare event: a belief revision during sleep is personal by
+# nature); the PUBLIC channel is addressing-exempt, so the idea rides unscaled to Priorities.
+DREAM_SIGNIFICANCE = 0.9
+
+
+def spawn_dream(report: dict) -> bool:
+    import hashlib
+    retracted = [{"original": c["original"], "absurd": c["absurd"]}
+                 for c in report.get("convicted", []) if c.get("postable", True)]
+    if not retracted:
+        return False
+    seed = "|".join(r["original"] for r in retracted)
+    source = "dream:" + hashlib.sha1(seed.encode("utf-8")).hexdigest()[:12]  # idempotent per night
+    ideas = behavior.spawn_ideas_for(
+        LifeEventKind.DREAM.value,
+        source=source,
+        material={
+            "kind": "dream",
+            "retracted": retracted,
+            "asked": len(report.get("asked", [])),
+            "significance": DREAM_SIGNIFICANCE,
+        },
+        urge_scale=DREAM_SIGNIFICANCE,
+    )
+    if ideas:
+        logger.info("[dream] the night's untangling -> dream idea (%d retraction(s), %d open)",
+                    len(retracted), len(report.get("asked", [])))
+    return bool(ideas)
 
 
 # --------------------------------------------------------------

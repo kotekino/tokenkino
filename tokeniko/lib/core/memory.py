@@ -75,6 +75,7 @@ class TrustEpisodeKind(str, Enum):
 class LifeEventKind(str, Enum):
     THEOREM = "life:theorem"      # a genuinely NEW postable theorem entered the KB
     ENCOUNTER = "life:encounter"  # a trust fold ACTUALLY MOVED (his opinion of someone changed)
+    DREAM = "life:dream"          # the untangler retreated belief(s) in his sleep (§0 slice 3) — the dream report
 
 
 class MEMTrustEpisode(BaseModel):

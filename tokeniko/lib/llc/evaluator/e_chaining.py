@@ -402,6 +402,16 @@ def evaluator_forwardChain(
         if both_polarities or vs_closure:
             d["conflict"] = True
             d["chain"] += "  [CONFLICT: the same derivation also supports the opposite]"
+            if vs_closure:
+                # the r.a.a.'s OTHER ARM (found live 2026-07-18, the untangler's first sight):
+                # the stamped negated conclusion carries only ITS OWN chain's premises — the
+                # closure's support for the contradicted class must join the set, or the
+                # conflict's premise union is HALF the reductio and a downstream conviction bar
+                # blames the wrong arm («software are not animals» convicted because «so I am a
+                # mammal»'s support never entered the union). Both-polarity twins already union
+                # at the consumer (same signature).
+                d["premises"] = (d.get("premises", frozenset())
+                                 | closure_premises.get(d["predicate"], frozenset()))
 
     # surface premises as a sorted list per conclusion (frozensets are an internal accumulation detail).
     for d in derived:

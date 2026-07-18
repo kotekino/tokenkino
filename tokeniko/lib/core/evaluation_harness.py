@@ -17,6 +17,8 @@ import os
 import time
 from typing import Optional
 
+from bson import ObjectId
+
 from lib.core.constants import _ME_UID
 from lib.core.models import TKAxiomDoc, TKDefinitionDoc, TKDictionaryDoc, TKRelationDoc, TKDerivedRelationDoc, TKDerivedRuleDoc, TKTheoremDoc
 from lib.core.tk import TKOperator, TKQuantifier
@@ -200,6 +202,28 @@ def revoke_dependents(premise_ids, dry_run: bool = True) -> list:
 # subaltern I standing («some S are P» — consistent with «not all»), so `weakened` carries the
 # I-mint (tokens + pinned senses). An E correction contests I too — nothing survives to mint.
 # ------------------------------------------------------------------------------------------------
+# the premise ids that resolve to stored KB sentences — axiom or theorem docs with an original
+# (B1's pattern, homed HERE at slice 3 so brain/thinking and the untangler share one resolver).
+# Edge keys ("subj|is_a|obj") and rule/provenance keys are graph internals, not sentences —
+# skipped honestly; nothing resolvable -> [].
+def premise_docs(premises) -> list:
+    out = []
+    for pid in (premises or []):
+        pid = str(pid).strip()
+        if not pid or "|" in pid or ":" in pid:
+            continue  # a graph/rule/provenance key, not a doc id
+        try:
+            oid = ObjectId(pid)
+        except Exception:
+            continue
+        for doc_cls in (TKAxiomDoc, TKTheoremDoc):
+            doc = doc_cls.get(oid).run()  # Bunnet: .run() executes
+            if doc is not None and (getattr(doc, "original", "") or "").strip():
+                out.append(doc)
+                break
+    return out
+
+
 def correction_target(zip_obj: TKZip) -> Optional[dict]:
     from lib.llc.evaluator.e_statement import _isa_senses
     from lib.llc.evaluator.e_relations import relations_subsumes

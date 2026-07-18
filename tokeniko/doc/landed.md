@@ -1461,3 +1461,38 @@ author's fork-A ruling shaped it: context disambiguates, exactly as it does for 
   close on the next saturation.
 7 tests (`test_reductio_loop.py`: the two circles — quantified and generic — the boundary pin,
 the asked-teacher scope, the trust gate). The belief-revision arc untouched and green.
+
+**The reductio action — slice 3: THE UNTANGLER + the dream (2026-07-18; first live sight found the mammal-era ghosts + a mirror gap, both handled)**
+KB-wide reductio as sleep-phase belief hygiene — the author's addition, shipped as his tool.
+- **The core** (`lib/core/untangle.py`, parser-free): saturate everything through the mirror
+  (kb_wonder), group conflicts by signature, resolve premise docs (the shared resolver homed in
+  the harness as `premise_docs` — thinking delegates). **The fork-D conviction bar,
+  operationalized**: DECIDABLE iff exactly ONE premise doc is REVISABLE (theorem, or
+  readonly=False axiom) among constitution (readonly axioms) + substrate — then the r.a.a.
+  ITSELF convicts it (logic, not a trust heuristic); ≥2 revisable → UNDECIDABLE (left for the
+  wake-time reduct reflex — slice 1 asks the teachers); 0 → CONSTITUTION tension (flagged,
+  author-only). Retreat = archive + `revoke_dependents` cascade; apply re-saturates and reports
+  the residual honestly. The ledger resolves at the brain's next reconcile — the untangler
+  never writes it.
+- **The CLI** (`scripts/untangle.py`): dry-run default (full report incl. cascade previews,
+  zero writes); `--apply` retreats + spawns the dream. Run while the daemons sleep.
+- **The DREAM** (the author's ruling made real): `thinking.spawn_dream` — one `life:dream` idea
+  per night (source = content hash, idempotent), material = the postable retractions + the open
+  count; provenance-gated upstream (a DM-taught premise never dreams publicly; all private → no
+  dream at all). `senses/blog._compose_dream` → PostDraft kind **"log"** (the ship's-log of the
+  sleeping mind): lead «While I slept, I untangled something.» + one retraction line each + the
+  absurd each belief forced as the PROOF + the open-tangles line. Scaffold categories
+  blog_lead_dream / blog_dream_retract / blog_dream_reason / blog_dream_open; rule life:dream →
+  post @ 0.7 × sig 0.9 (a dream always gets told). Seeds = the author's `--apply`.
+- **First live sight (dry-run, read-only)**: TWO absurdities in the live KB, both about HIMSELF
+  — «I am an animal ∧ ¬…» and «I am a mammal ∧ ¬…» (the mammal-era ghosts). The first verdict
+  CONVICTED the software premises — wrongly, which exposed **the vs_closure premise gap in the
+  mirror**: the stamped negated arm carried only its own chain's premises; the closure's support
+  for the contradicted class (— «so I am a mammal»!) never joined the union — half an r.a.a.
+  Fixed in `e_chaining` (the closure_premises union on the vs_closure stamp). After the fix:
+  both tangles honestly UNDECIDABLE — «so I am a mammal» vs the software premises — exactly the
+  question only the author can answer; the wake-time reflex will ask him, and his answer
+  executes the pending biography ruling THROUGH the retreat machinery.
+8 tests (`test_untangler.py`: the bar's partition, the dream draft + its ValueError, dry-run
+convicts-without-touching, apply retreats+cascades+cures, two-revisable refuses to guess,
+all-constitution flagged untouched, the dream spawn's postability gate + per-night dedup).
