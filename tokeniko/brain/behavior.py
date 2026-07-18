@@ -60,6 +60,11 @@ _DISPATCH = {
     # the anecdote (compose 2.0 slice 5): an on-topic KB notion offered as a side-note into the
     # channel — outward, threads under the message that stirred the association.
     TokenikoAction.MENTION.value: ActionType.SEND_MESSAGE,
+    # the reductio (roadmap §0): outward + DIRECTED at the chosen premise-giver (idea.target).
+    # No source memory item exists (the trigger is a derivation, not a perception) — the channel
+    # is read off the target stakeholder (see plan_action), and the carrier's destination
+    # fallback DMs via the contextKey (provenance-safe: a DM never leaks a premise to a room).
+    TokenikoAction.REDUCT.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
@@ -140,6 +145,10 @@ _SELF_RELEVANT_TRIGGERS = {
     # clear the act threshold and case 3 would be stillborn; below ambient the scale stands (the
     # polite eavesdropper does not interject into someone else's thread).
     EvalToken.ASSOCIATION.value,
+    # the reductio (§0): the absurd lives in HIS OWN derivations — self-relevant par excellence.
+    # (In practice its ideas carry no source memory item, so the urge rides unscaled anyway;
+    # listed for the honesty of the set.)
+    EvalToken.ABSURDITY.value,
 }
 _ADDRESSED_FLOOR = 0.9   # senses/inbound.grade_directedness: addressed
 _AMBIENT_GRADE = 0.6     # senses/inbound.grade_directedness: ambient
@@ -196,6 +205,12 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
                 channel = MEMChannels(src.channel)
             except ValueError:
                 channel = MEMChannels.INTERNAL
+        elif token == TokenikoAction.REDUCT.value and idea.target:
+            # the reductio (§0): no source memory item (the trigger is a derivation) — the
+            # channel is where the chosen premise-giver LIVES (their stakeholder doc).
+            sh = TKMemoryStakeholdersDoc.find_one({"uid": idea.target}).run()  # Bunnet: .run()
+            if sh is not None and sh.channel:
+                channel = sh.channel
 
     # target: None for a post (broadcast, not directed) / self (internal KB-write) / the asker
     # (directed answer) / the speaker whose ledger moves (trust) / the speaker (outward reply).

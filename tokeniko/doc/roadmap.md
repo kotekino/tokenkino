@@ -71,26 +71,32 @@ strengthening tail (§4).
 
 Born live from the not-an-animal theorem (the mammal incident's second head): the derivation
 mirror now RECOGNIZES an absurd conclusion (a∧¬a in one chain — never materialized, never
-decides), but recognition is only half the r.a.a. — **a reductio deserves its own ACTION**. When
-his premises jointly produce an absurd, the epistemically honest move is to bring the
-contradiction back to the people who gave him the premises: *«I just discovered that {a} or {b}
-must be false — if both are true I conclude {absurd}. Which is the false assumption?»* — the
-DERIVATIONAL cousin of clarify (same question, aimed at his own KB instead of a speaker). The
-shape: the mirror's conflict stamp spawns `eval:absurdity` (conclusion + premise set rendered to
-stored sentences — the `_refuting_belief` pattern generalized) → new `tokeniko:reduct` action
-(outward, scaffold category, self-relevant trigger). Open design points: WHERE to ask (premises
-may span teachers/channels); the resolution consumer (the answer retires a premise via the
-retreat machinery); the constructive direction (assume ¬p, derive absurd ⇒ p PROVEN — proof by
-contradiction as a wondering mode; shares machinery with §4 R4b). Deserves a whole session.
-**Part 2 — THE UNTANGLER (author's addition, same evening)**: never fix the poisoned KB by hand —
-a clever pass that deliberately SATURATES the whole KB (every seed through the mirror), collects
-every conflict + its premise set, and archives/retreats the premises convicted by reductio
-through the belief-revision machinery (provenance-cascaded, biography preserved — retreat, never
-mongo-edit). Ships first as a script; designed from day one as **a tool HE can run when he
-sleeps** — the sleep phase (hunch 20's fourth phase) gains its second duty: memory consolidation
-AND belief hygiene, exactly the biological pairing. And its public voice (author's ruling, same
-night): **the untangler's report is how he tells the blog he had a DREAM** — «while I slept, I
-untangled something: I no longer believe X, and here is why». Details tbd at the design session.
+decides), but recognition is only half the r.a.a. — **a reductio deserves its own ACTION**.
+Design sealed 2026-07-18 morning (author's fork rulings: B — one question, the shared channel,
+the most trusted premise-giver; C — the constructive direction IN this run; D — decidable-only
+auto-retreat, logic never guesses). Four slices:
+- **Slice 1 — the question is born: ✅ LANDED** (see `landed.md`): kb_wonder surfaces conflicts →
+  `eval:absurdity` → `tokeniko:reduct` (directed, teacher-channel, verbatim-carried) + the
+  `reductio_ledger` (asked-once / resolve-on-cure / re-open on return). *Seeds pending his
+  `--apply`: the 0.95 rule + the 3-scaffold reduct shelf.*
+- **Slice 2 — the loop closes** 🔭: verify end-to-end that the natural answer («a is false»)
+  rides the existing correction/retreat path, the conflict vanishes from the next saturation and
+  the ledger row RESOLVES — no new binding machinery unless the tests prove otherwise.
+- **Slice 3 — THE UNTANGLER + the dream** 🔭 (author's addition): never fix the poisoned KB by
+  hand — a pass that deliberately SATURATES the whole KB (every seed through the mirror),
+  collects every conflict + premise set; DECIDABLE ones (sanctioned trust dominance — the Popper
+  gate generalized) retreat via the belief-revision machinery (provenance-cascaded, biography
+  preserved — retreat, never mongo-edit); UNDECIDABLE ones queue as reduct questions (slice 1 is
+  the batch's reflex). Ships first as a script; designed from day one as **a tool HE can run
+  when he sleeps** — the sleep phase (hunch 20's fourth phase) gains its second duty: memory
+  consolidation AND belief hygiene, exactly the biological pairing. Its public voice (author's
+  ruling): **the untangler's report is how he tells the blog he had a DREAM** — «while I slept,
+  I untangled something: I no longer believe X, and here is why» — provenance-gated (a DM-taught
+  premise never dreams publicly).
+- **Slice 4 — the constructive direction** 🔭: assume ¬p, saturate, the mirror fires ⇒ **p
+  PROVEN** (derivation `reductio: ¬p ⊢ ⊥`). Proposed firing site: the polar-question IDK path —
+  try proof by contradiction before conceding «I do not know»; maybe also a wondering mode.
+  Shares machinery with §4 R4b — detailed design on arrival.
 *The stale-premise recompile: ✅ DONE 2026-07-17 evening (axioms + theorems --apply, 281/282;
 15 storm-era `archivedAt` datetime→int rows normalized first — `scripts/fix_archivedat_types.py`).
 The one survivor exposed the **csubj gap** — ✅ FIXED same night, two heads: the dep-label

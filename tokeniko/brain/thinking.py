@@ -29,7 +29,8 @@ from lib.core.deixis import normalize_deixis, strip_vocative
 from lib.core.evaluation_harness import evaluate_zip
 from lib.core.evaluation import EvaluatorResult, EvaluatorStatus
 from lib.core.io import get_tokeniko
-from lib.core.memory import EvalToken, LifeEventKind, MEMChannels, MEMProvenance, TrustEpisodeKind
+from lib.core.memory import (EvalToken, LifeEventKind, MEMChannels, MEMProvenance,
+                             ReductioStatus, TrustEpisodeKind)
 from lib.core import trust
 from lib.core.models import (
     TKAxiomDoc,
@@ -37,6 +38,7 @@ from lib.core.models import (
     TKDefinitionDoc,
     TKMemoryItemDoc,
     TKMemoryStakeholdersDoc,
+    TKReductioDoc,
     TKTheoremDoc,
 )
 from lib.core.zip_native import assemble_reportative_zip
@@ -114,11 +116,11 @@ def _try_anecdote(item) -> None:
                     assoc["notion"], assoc["proximity"], key)
 
 
-# B1 (compose 2.0 slice 4): the refuting BELIEF behind a FALSE verdict — the first premise that
-# resolves to a stored KB sentence (axiom or theorem original). Edge keys ("subj|is_a|obj") and
-# rule keys are graph internals, not sentences — skipped honestly; nothing resolvable -> None and
-# the plain speakup speaks (the slot gate keeps belief-naming scaffolds unreachable).
-def _refuting_belief(premises) -> Optional[str]:
+# B1 (compose 2.0 slice 4, generalized for the reductio §0): the premise ids that resolve to
+# stored KB sentences (axiom or theorem docs with an original). Edge keys ("subj|is_a|obj") and
+# rule keys are graph internals, not sentences — skipped honestly; nothing resolvable -> [].
+def _premise_docs(premises) -> list:
+    out = []
     for pid in (premises or []):
         pid = str(pid).strip()
         if not pid or "|" in pid or ":" in pid:
@@ -130,8 +132,16 @@ def _refuting_belief(premises) -> Optional[str]:
         for doc_cls in (TKAxiomDoc, TKTheoremDoc):
             doc = doc_cls.get(oid).run()  # Bunnet: .run() executes
             if doc is not None and (doc.original or "").strip():
-                return doc.original.strip()
-    return None
+                out.append(doc)
+                break
+    return out
+
+
+# the refuting BELIEF behind a FALSE verdict — the first resolvable premise sentence; None and
+# the plain speakup speaks (the slot gate keeps belief-naming scaffolds unreachable).
+def _refuting_belief(premises) -> Optional[str]:
+    docs = _premise_docs(premises)
+    return docs[0].original.strip() if docs else None
 
 
 # the CONTENT's epistemic confidence for the verdict (compose 2.0 slice 2) — computed HERE, the
@@ -557,8 +567,132 @@ def _kb_max_createdat() -> int:
 _dedup_suppressed: set[str] = set()
 
 
+# --------------------------------------------------------------
+# THE REDUCTIO ACTION (roadmap §0 slice 1, 2026-07-18) — the other half of the r.a.a. The
+# derivation mirror RECOGNIZES an absurd (a∧¬a in one chain: never materialized, never decides);
+# these consumers turn it into a QUESTION to the premise-givers: «one of these must be false —
+# if all were true I would conclude {absurd}. Which is the false assumption?» (clarify's
+# derivational cousin). The resolution consumer is the EXISTING correction/retreat path: the
+# natural answer («a is false») retreats the premise, the conflict vanishes from the next
+# saturation, and the ledger row resolves — the r.a.a. closes through the door every other
+# correction walks through. The reductio_ledger is the asked-once memory (one row per live
+# contradicted conclusion), so the same conflict re-surfacing every wondering pass never re-asks.
+# --------------------------------------------------------------
+
+# Fork B (author's ruling): ONE question, aimed at the most trusted premise-giver of the pair —
+# the external souls behind the resolvable premise docs; when none is external (graph edges,
+# self-derived theorems), the KB's gardener: the most-trusted external soul with a channel route.
+# The carrier's destination fallback (senses/outbound) DMs via the contextKey — provenance-safe
+# by construction (a DM never leaks a premise to a shared room).
+def _reduct_target(premise_docs) -> Optional[TKMemoryStakeholdersDoc]:
+    souls: dict[str, TKMemoryStakeholdersDoc] = {}
+    for doc in premise_docs:
+        src = getattr(doc, "sourceId", None)
+        if not src:
+            continue
+        soul = trust.resolve_canonical(str(src))
+        if soul is not None and not getattr(soul, "isMe", False):
+            souls[soul.uid] = soul
+    if not souls:  # the gardener fallback: every reachable external soul, most trusted first
+        for soul in TKMemoryStakeholdersDoc.find(
+            {"isMe": {"$ne": True}, "kind": {"$ne": "individual"}}
+        ).to_list():
+            if soul.contextKey and ":" in soul.contextKey:
+                souls[soul.uid] = soul
+    if not souls:
+        return None
+    return max(souls.values(),
+               key=lambda s: (bool(getattr(s, "imprint", False)), getattr(s, "trust", 0.0)))
+
+
+# the rendered absurd pair — both polarities of the contradicted conclusion, joined. This is the
+# {absurd} the question names («kotekino is an animal and kotekino is not an animal»).
+def _conflict_absurd(c: dict) -> Optional[str]:
+    pos = evaluation_harness.render_conclusion(
+        c["subject"], c["predicate"], c.get("object"), False, c["subject_kind"])
+    neg = evaluation_harness.render_conclusion(
+        c["subject"], c["predicate"], c.get("object"), True, c["subject_kind"])
+    if pos and neg:
+        return f"{pos.rstrip('.')} and {neg.rstrip('.')}"
+    return None
+
+
+# reconcile the ledger against THIS pass's full conflict set (kb_wonder saturates every seed, so
+# the set is complete per tick): open rows whose signature vanished are RESOLVED (a premise was
+# retreated — the r.a.a. closed); new signatures spawn eval:absurdity (rule-gated); a signature
+# returning after resolution re-opens at generation+1 (the spawn-dedup key changes -> re-asked).
+def _reductio_reconcile(conflicts: list[dict]) -> None:
+    groups: dict[str, dict] = {}
+    for c in conflicts:  # the two polarity twins of one incident share the signature — union them
+        sig = f"{c['subject']}|{c['predicate']}|{c.get('object') or ''}"
+        g = groups.setdefault(sig, {"c": c, "premises": set()})
+        g["premises"].update(str(p) for p in c.get("premises", []))
+
+    now = int(time.time())
+    open_rows = TKReductioDoc.find({"status": ReductioStatus.OPEN.value}).to_list()
+    for row in open_rows:
+        if row.signature not in groups:
+            row.status = ReductioStatus.RESOLVED
+            row.resolvedAt = now
+            row.save()
+            logger.info("[reductio] RESOLVED «%s» — the conflict is gone from the saturation "
+                        "(a premise retreated; the r.a.a. closed)", row.absurd or row.signature)
+    open_sigs = {r.signature for r in open_rows if r.status == ReductioStatus.OPEN}
+
+    new_sigs = [s for s in groups if s not in open_sigs]
+    if not new_sigs:
+        return
+    if not behavior.behavior_for(EvalToken.ABSURDITY.value):
+        logger.warning("[reductio] %d unasked conflict(s) but no enabled eval:absurdity rule — "
+                       "the question stays unledgered until the personality learns the reflex",
+                       len(new_sigs))
+        return
+    for sig in new_sigs:
+        g = groups[sig]
+        absurd = _conflict_absurd(g["c"])
+        premise_ids = sorted(g["premises"])
+        docs = _premise_docs(premise_ids)
+        sentences = list(dict.fromkeys(d.original.strip() for d in docs))  # unique, order kept
+        if not absurd or not sentences:
+            logger.warning("[reductio] conflict %s not askable (absurd=%s, nameable premises=%d) "
+                           "— left to the untangler", sig, bool(absurd), len(sentences))
+            continue
+        target = _reduct_target(docs)
+        row = TKReductioDoc.find_one({"signature": sig}).run()  # Bunnet: .run() executes
+        if row is None:
+            row = TKReductioDoc(signature=sig, premises=premise_ids, absurd=absurd,
+                                target=target.uid if target else None)
+            row.insert()
+        else:  # resolved before, the poison returned — re-open one generation up (re-asked)
+            row.status = ReductioStatus.OPEN
+            row.generation += 1
+            row.premises = premise_ids
+            row.absurd = absurd
+            row.target = target.uid if target else None
+            row.resolvedAt = None
+            row.save()
+        ideas = behavior.spawn_ideas_for(
+            EvalToken.ABSURDITY.value,
+            source=f"reductio:{row.id}:{row.generation}",  # per-asking-round dedup key
+            answer={"premises": sentences, "absurd": absurd,
+                    "premise_ids": premise_ids, "signature": sig},
+            target=target.uid if target else None,
+            confidence=1.0,  # the r.a.a. is logic — logic never hedges
+        )
+        if ideas:
+            logger.warning("[reductio] ABSURD «%s» — asking %s which premise is false "
+                           "(%d nameable: %s)", absurd,
+                           target.name if target else "nobody-reachable",
+                           len(sentences), "; ".join(f"«{s}»" for s in sentences))
+
+
 def _kb_wonder_one() -> bool:
-    conclusions = evaluation_harness.kb_wonder()
+    conflicts: list[dict] = []
+    conclusions = evaluation_harness.kb_wonder(collect_conflicts=conflicts)
+    try:  # ledger trouble must never kill the wondering tick
+        _reductio_reconcile(conflicts)
+    except Exception as error:
+        logger.error("[reductio] reconcile failed (%s) — wondering continues", error)
     if not conclusions:
         return False
     # `held` needs only the original strings — project them (a full .to_list() would pull every

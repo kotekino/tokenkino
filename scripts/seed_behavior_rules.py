@@ -67,6 +67,11 @@ RULES = [
     # The social throttles (conservative floor, per-channel cooldown, novelty) live in
     # brain/context.py — this urge is only the personality's APPETITE for side-notes.
     (EvalToken.ASSOCIATION.value, TokenikoAction.MENTION.value, 0.75, "an on-topic association — offer it as a side-note"),
+    # the reductio action (roadmap §0, 2026-07-18): the derivation mirror found an absurd —
+    # ask the premise-givers which assumption is false. The poison alarm: same urgency tier as
+    # the retreat (a contradiction in his own derivations outranks every conversational reflex);
+    # no source memory item, so the urge rides unscaled and always clears the act threshold.
+    (EvalToken.ABSURDITY.value, TokenikoAction.REDUCT.value, 0.95, "an absurd derivation — ask which premise is false"),
 ]
 
 

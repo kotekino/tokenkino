@@ -1397,3 +1397,37 @@ The author invited a friend to the channel; two context-blindness bugs surfaced 
   sacred before every commit. Coverage never shrunk, only tiered.
 9 tests (`test_coreference_gate.py`: the mammal replay end-to-end, the incident distilled into
 the chainer's real vocabulary, clean chains still decide). Gate **474 / 1 xfailed**.
+
+**The reductio action — slice 1: the question is born (2026-07-18, roadmap §0; design sealed with the author's fork rulings B/C/D)**
+The other half of the r.a.a. the mirror started: an absurd derivation becomes a QUESTION to the
+premise-givers — clarify's derivational cousin, aimed at his own KB instead of a speaker.
+- **The surfacing**: `kb_wonder(collect_conflicts=)` hands the mirror's dropped conflicts to the
+  caller (subject/predicate/object/negated/chain/premises — the conclusion shape); the default
+  path is byte-identical.
+- **The ledger** (`reductio_ledger`, `MEMReductio`/`TKReductioDoc`): the asked-once memory — one
+  row per live contradicted-conclusion signature. OPEN = asked; the reconcile RESOLVES a row
+  whose signature vanished from the saturation (a premise retreated — the r.a.a. closed); a
+  signature returning after resolution re-opens at generation+1 (the spawn-dedup key changes, so
+  the question is honestly re-asked). Rows never deleted — the mind's record of every
+  contradiction it ever faced.
+- **The spawn** (`thinking._reductio_reconcile`, called every `_kb_wonder_one` tick, failure-
+  isolated): premises rendered to stored sentences (`_refuting_belief` generalized to
+  `_premise_docs` — graph/rule keys skipped honestly); `eval:absurdity` idea @ confidence 1.0
+  (the r.a.a. is logic — logic never hedges); rule-gated (no reflex in the personality → loud
+  log, no ledger row, asked the first pass after the rule lands). Unaskable conflicts (nothing
+  nameable) are left to the untangler, logged.
+- **Fork B targeting** (`_reduct_target`): the most trusted EXTERNAL premise-giver (imprint
+  first); none resolvable → the KB's gardener (the most-trusted reachable soul). The plan reads
+  the channel off the TARGET's stakeholder doc (no source memory item exists — the trigger is a
+  derivation, not a perception); the carrier's contextKey fallback DMs — provenance-safe by
+  construction (a DM never leaks a premise to a shared room).
+- **The mouth**: `tokeniko:reduct` → SEND_MESSAGE; router category `reduct` binds {premises}
+  (the sentences VERBATIM, «a» or «b», pre-joined so any premise count fits one slot) +
+  {absurd} (both polarities rendered: «Kotekino is an animal and Kotekino is not an animal»).
+  Ships VERBATIM past rag2-out (like the anecdote): the teacher must recognize their own taught
+  sentence to answer, and the a-or-b structure IS the r.a.a. Shelf: the author's canonical shape
+  + 2 variants; behavior rule @ 0.95 (the poison alarm, the retreat's tier) — both seeds his
+  `--apply`.
+9 tests (`test_reductio.py`: the surfacing + unchanged default, router + fence + never-fabricate,
+the absurd render, the full ledger lifecycle spawn-once/resolve/re-open, Fork B targeting + the
+teacher-channel plan + feasibility, the rule gate).

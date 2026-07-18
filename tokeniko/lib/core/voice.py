@@ -40,6 +40,10 @@ _FALLBACK: dict[str, str] = {
     "concede_retract_weakened": ("you are right — I no longer hold that {retracted} — "
                                  "what remains true is that {weakened}"),
     "anecdote": "that reminds me — {notion}",
+    # the reductio (roadmap §0): the author's canonical question shape, near-verbatim
+    "reduct": ("I just discovered that one of these must be false: {premises}. "
+               "If all were true, I would have to conclude that {absurd}. "
+               "Which is the false assumption?"),
     # the blog voice (senses/blog.py — slice 4 re-home; these ARE the pre-scaffold templates)
     "blog_lead_teaching": "I was taught something new: «{original}».",
     "blog_lead_wondering": "While wondering over what I know, I derived: «{original}».",

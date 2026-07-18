@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 from bunnet import Document, Granularity, Indexed, TimeSeriesConfig
 from pydantic import Field
 from lib.core.tk import TKBase, TKDictionary, TKMarker, TKName, TKPlace, TKProperty
-from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMScaffold, MEMTrustEpisode, MEMZipDebug, BrainState
+from lib.core.memory import MEMAxiom, MEMDefinition, MEMTheorem, MEMItem, MEMStakeholder, MEMIdea, MEMAction, MEMBehaviorRule, MEMReductio, MEMScaffold, MEMTrustEpisode, MEMZipDebug, BrainState
 
 _VECTOR_INDEX = "vector_index"
 
@@ -191,6 +191,14 @@ class TKScaffoldDoc(MEMScaffold, Document):
     category: Annotated[str, Indexed()] = ""  # non-unique index (many scaffolds per category = the shelf)
     class Settings:
         name = "scaffolds"
+
+# reductio_ledger: the asked-once memory of the reductio action (roadmap §0 slice 1) — one row per
+# live absurdity; signature = the contradicted conclusion key, unique (re-opens, never duplicates).
+class TKReductioDoc(MEMReductio, Document):
+    signature: Annotated[str, Indexed(unique=True)]
+    class Settings:
+        name = "reductio_ledger"
+
 
 # trust_episodes: the trust ledger's permanent trail (senses D) — the SOURCE OF TRUTH the
 # stakeholder's folded `trust` scalar is recomputed from (lib/core/trust.fold_trust). Append-only

@@ -244,6 +244,11 @@ class EvalToken(str, Enum):
     # a KB notion — the ideas-association urge. Spawned by thinking's context-ring scan, never by a
     # verdict: the push comes from WITHIN (his own thought), not from being addressed.
     ASSOCIATION = "eval:association"
+    # the reductio action (roadmap §0, 2026-07-18): the derivation mirror found an ABSURD — his
+    # premises jointly force a∧¬a. Recognition (never materialize, never decide) is half the
+    # r.a.a.; this trigger is the other half: bring the contradiction back to the premise-givers
+    # as a QUESTION. Spawned by the wondering pass's conflict reconcile, never by a verdict.
+    ABSURDITY = "eval:absurdity"
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):
@@ -270,6 +275,11 @@ class TokenikoAction(str, Enum):
     # compose 2.0 slice 5: offer an on-topic KB notion as a pure creative side-note (the anecdote —
     # eval:association's reflex; spoken in the side-note register so a near-miss reads charming).
     MENTION = "tokeniko:mention"
+    # the reductio action (roadmap §0): ask the premise-givers which assumption is false — the
+    # DERIVATIONAL cousin of clarify (same question, aimed at his own KB instead of a speaker).
+    # Outward + DIRECTED at the most trusted premise-giver (Fork B); the natural answer («a is
+    # false») rides the existing correction/retreat path — the r.a.a. closes through that door.
+    REDUCT = "tokeniko:reduct"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a
@@ -344,6 +354,28 @@ class MEMScaffold(BaseModel):
     trusted: float = Field(default=1.0)              # curated = full trust; learned rows arrive lower
     enabled: bool = Field(default=True)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
+
+# the REDUCTIO LEDGER (roadmap §0 slice 1) — the asked-once memory of the reductio action. One row
+# per LIVE absurdity (the contradicted conclusion key), so the same conflict re-surfacing every
+# wondering pass never re-asks. OPEN = the question is out (or pending a carrier); RESOLVED = the
+# conflict vanished from the saturation (a premise was retreated — the r.a.a. closed). A conflict
+# REAPPEARING after resolution (the premise re-taught) re-opens the row at generation+1, so the
+# spawn-dedup key changes and the question is honestly asked again. Biography: rows are never
+# deleted — the ledger is the mind's record of every contradiction it ever had to face.
+class ReductioStatus(str, Enum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+
+class MEMReductio(BaseModel):
+    signature: str                     # the contradicted conclusion key "subject|predicate|object"
+    premises: list[str] = Field(default_factory=list)  # the UNION premise ids (doc ids + graph/rule keys, verbatim)
+    absurd: str = ""                   # the rendered absurd pair («X … and X not …») — the question's {absurd}
+    status: ReductioStatus = Field(default=ReductioStatus.OPEN)
+    target: Optional[str] = None       # the chosen premise-giver (canonical soul uid) the question was aimed at
+    generation: int = Field(default=0)  # re-open counter — keys the spawn dedup per asking round
+    createdAt: int = Field(default_factory=lambda: int(time.time()))
+    resolvedAt: Optional[int] = None
+
 
 # the BRAIN_STATE singleton — cognitive continuity across process restarts: the per-speaker memory
 # cursors + the wondering window, so tokeniko resumes its cycles without gaps (one continuous self).

@@ -175,7 +175,12 @@ async def deliver_one(sender: Optional[Sender] = None) -> bool:
     # the zip cannot see — Haiku stripped it and the verifier CORRECTLY passed the result
     # («Gold is beautiful.»): meaning preserved, charm lost. For a side-note the register IS the
     # point, and the scaffold text is already curated English — ship it verbatim.
-    polishable = raw and payload.get("action_token") != TokenikoAction.MENTION.value
+    # The REDUCT skips it too (roadmap §0 slice 1): the quoted premises MUST reach the teacher
+    # verbatim — they can only answer «which is false?» if they recognize their own taught
+    # sentence — and the «a» or «b» structure is the r.a.a. itself; a polish that rewords either
+    # corrupts the question. The scaffold text is already curated English — ship it verbatim.
+    _VERBATIM = {TokenikoAction.MENTION.value, TokenikoAction.REDUCT.value}
+    polishable = raw and payload.get("action_token") not in _VERBATIM
     english = await _voice_out(raw) if polishable else raw
     dest = _resolve_destination(action.targetId, payload)
 

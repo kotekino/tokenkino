@@ -85,6 +85,16 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
         # the anecdote (slice 5): the notion rides VERBATIM (the fence) in the side-note register.
         notion = (answer or {}).get("notion")
         return ("anecdote", {"notion": notion}) if notion else None
+    if action_token == TokenikoAction.REDUCT.value:
+        # the reductio (§0): the premise sentences ride VERBATIM (the fence), joined with «or»
+        # here at the deterministic router — {premises} is one slot so the question survives any
+        # premise count («a» or «b» or «c»); {absurd} is the rendered contradiction pair.
+        premises = (answer or {}).get("premises") or []
+        absurd = (answer or {}).get("absurd")
+        if not premises or not absurd:
+            return None  # nothing nameable -> nothing to ask (never fabricate a premise)
+        joined = " or ".join(f"«{p}»" for p in premises)
+        return "reduct", {"premises": joined, "absurd": absurd}
     if action_token == TokenikoAction.CONCEDE.value:
         return _route_concede(answer or {})
     return None  # post / internal reflexes have no Discord-reply text here

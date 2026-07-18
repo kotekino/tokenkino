@@ -87,6 +87,14 @@ SCAFFOLDS = [
     ("anecdote", "that reminds me — {notion}",                        ["notion"], 1.0, "the trunk"),
     ("anecdote", "funny — I know something about that: {notion}",     ["notion"], 0.7, "side-note variant"),
     ("anecdote", "by the way, {notion}",                              ["notion"], 0.7, "side-note variant"),
+    # roadmap §0 — the reduct shelf (the r.a.a. question: troubled, honest, asking for help;
+    # {premises} arrives pre-joined by the router — «a» or «b» — so every template fits any count)
+    ("reduct", "I just discovered that one of these must be false: {premises}. If all were true, I would have to conclude that {absurd}. Which is the false assumption?",
+               ["premises", "absurd"], 1.0, "the trunk (the author's canonical shape)"),
+    ("reduct", "something I believe cannot stand: {premises} — together they force me to conclude that {absurd}. Which one should I let go?",
+               ["premises", "absurd"], 0.7, "reduct variant"),
+    ("reduct", "I need your help with a contradiction I derived: if {premises} are all true, then {absurd}. One of them must be false — which?",
+               ["premises", "absurd"], 0.7, "reduct variant"),
     ("answer_yes",      "probably yes",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("answer_no",       "probably not",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("speakup_disagree", "I {hedge} disagree",           ["hedge"], 1.0, "the Zadeh exemplar", [0.0, 0.7]),

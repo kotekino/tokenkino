@@ -762,7 +762,7 @@ def _load_active_kb() -> dict:
 # premises}. PURE — derives only; rendering + materialization is the caller's (1d-B renderer + the API).
 _NOVELTY_MIN_PREMISES = 2
 
-def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
+def kb_wonder(kb: Optional[dict] = None, collect_conflicts: Optional[list] = None) -> list[dict]:
     kb = kb or _load_active_kb()
     rules, facts, parents = kb["rules"], kb["facts"], kb["relations"]
     edge_source = kb.get("edge_source")
@@ -817,6 +817,16 @@ def kb_wonder(kb: Optional[dict] = None) -> list[dict]:
                 logger.warning("[kb_wonder] DERIVATION CONFLICT on %s: %s — not materialized "
                                "(a premise is wrong; premises=%s)",
                                subject, d["chain"], sorted(d.get("premises", [])))
+                # the reductio action (roadmap §0 slice 1): recognition is only half the r.a.a. —
+                # surface the conflict to the caller (brain/thinking's reductio reconcile), which
+                # turns it into a QUESTION to the premise-givers. Same shape as a conclusion.
+                if collect_conflicts is not None:
+                    collect_conflicts.append({
+                        "subject": subject, "subject_kind": kind,
+                        "predicate": d["predicate"], "object": d.get("object"),
+                        "negated": bool(d.get("negated", False)),
+                        "chain": d["chain"], "premises": d.get("premises", []),
+                    })
                 continue
             premises = d.get("premises", [])
             if len(premises) < _NOVELTY_MIN_PREMISES:
