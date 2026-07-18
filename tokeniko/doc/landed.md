@@ -1574,3 +1574,18 @@ sleeping state + the tone-follows-the-mind screen, deployed to tokeniko.online.)
 2 tests (`test_sleep_phase.py`: the re-ask on waking + the resolved-row silence). First live
 night otherwise: two sleeps (17:39 — the TRUE first sleep, duty ran, nothing convictable;
 18:03 — deep rest), reboot-wake, message-wake, both reduct questions delivered.
+
+**The sleeping mind's public face (2026-07-18 evening — the author's epiphany + taxonomy)**
+- **The tone follows the mind** (site-wide, v2 of the epiphany — v1 dimmed only the already-dark
+  CRT panel, imperceptible): MindContext stamps `data-tone` on `<body>`; the palette VARIABLES
+  re-tone every page. day = active states · dusk = wondering (same Bakelite, a shade darker) ·
+  night = sleeping OR off-air (warm charcoal, parchment ink, enamel accents glowing). The footer
+  keeps its identity via its own tokens (`--footer-bg`, `--footer-ink` — the darkest strip, the
+  wordmark matching the header's at night).
+- **The sleep taxonomy** (author's ruling): the engine's live sleep = **sleeping (REM)** — one
+  message wakes him; a silent transmitter is inferred as **sleeping (DEEP)**. One shared
+  `stateLabel` speaks it on the Mind Monitor chip and the footer `$ uptime` line; the masthead
+  lamp reads OFF AIR for both sleep stages (a studio whose host sleeps is not on air). Heartbeat
+  keeps beating through REM (state "sleeping", «asleep — untangling what I believe»).
+- Growth ring 160 «It learned to sleep — and woke up asking which of its beliefs was false»
+  drafted in `seed-growth.mjs` (the edge stays «Growing a voice of its own»).

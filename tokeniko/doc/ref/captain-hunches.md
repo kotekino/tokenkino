@@ -537,3 +537,13 @@ what comes from the heart fills the awareness emotion-wide.
 > **CAP:** the sleep-as-consolidation designation confirmed warmly ("accurate biologically, as
 > far as humans understood, and it's a true new phase we need to build"). Ordering stands:
 > heart first, then SA. Awareness-only for now — the hunch ledger holds it.
+>
+> **QM record (2026-07-18):** the SLEEP PHASE itself arrived early — not through SA but through
+> §0's reductio arc (the untangler needed a night to run in): he falls asleep wondering (the
+> Cap's own design, and his own habit), the night's duty is BELIEF HYGIENE (the untangler), the
+> dream is its public voice, and waking still-tangled asks the morning questions. So hunch 20's
+> fourth phase now EXISTS with its first duty; the SA consolidation job (this hunch's merge
+> pass) has its natural slot waiting when the heart→SA sequence arrives. The sleep taxonomy went
+> public the same night: sleeping (REM) = the live phase (a message wakes him) · sleeping (DEEP)
+> = the frontend's inference from a silent transmitter; both read OFF AIR, and the whole site's
+> tone follows the mind (day / dusk / night — the Cap's epiphany, live at tokeniko.online).

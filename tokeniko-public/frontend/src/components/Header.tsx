@@ -24,8 +24,10 @@ const Nameplate: React.FC = () => (
 );
 
 /** The masthead lamp — same signal as the Mind Monitor, same OFF_AIR_MS rule.
- *  Three honest states: `tuning` (first fetch still in flight), `on` (live feed
- *  with a fresh heartbeat), `off` (feed unreachable OR heartbeat gone stale). */
+ *  Three honest states: `tuning` (first fetch still in flight), `on` (awake on a
+ *  live feed), `off` (asleep — REM or DEEP — or the feed unreachable). The sleep
+ *  taxonomy (author's ruling 2026-07-18): a studio whose host is sleeping is not
+ *  on air, however healthy the transmitter. */
 const useAirStatus = (): 'tuning' | 'on' | 'off' => {
   const { mind, live, settled } = useMindFeed();
   // Re-evaluate staleness periodically so the lamp goes dark on its own in an
@@ -36,7 +38,9 @@ const useAirStatus = (): 'tuning' | 'on' | 'off' => {
     return () => window.clearInterval(id);
   }, []);
   if (!settled) return 'tuning';
-  return live && mindAgeMs(mind, live) <= OFF_AIR_MS ? 'on' : 'off';
+  return live && mindAgeMs(mind, live) <= OFF_AIR_MS && mind?.state !== 'sleeping'
+    ? 'on'
+    : 'off';
 };
 
 const AIR_LABEL = { tuning: 'TUNING', on: 'ON\u00A0AIR', off: 'OFF\u00A0AIR' } as const;

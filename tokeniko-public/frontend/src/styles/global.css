@@ -129,6 +129,8 @@ body[data-tone='night'] {
   /* the footer stays what it has always been — the darkest strip on the page — even
      though --ink (its daytime surface) has flipped to parchment for the text. */
   --footer-bg:  #100D0A;
+  /* the footer wordmark matches the header's "tokeniko" at night (both read --ink). */
+  --footer-ink: var(--ink);
 }
 
 /* the lamp is turned, not switched: the page background fades between tones.

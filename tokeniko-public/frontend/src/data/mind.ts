@@ -77,6 +77,14 @@ export interface MindSnapshot {
 /** Honest empty scope — used when a snapshot predates the charts field. */
 export const EMPTY_CHARTS: MindCharts = { inferenceTrend: [], beliefsByDomain: [] };
 
+/** The SLEEP TAXONOMY (the author's ruling, 2026-07-18): the engine's live sleep phase — he
+ *  wakes to a single message — is "sleeping (REM)"; a silent transmitter (brain off, heartbeat
+ *  stale) is inferred as the deeper stage: "sleeping (DEEP)". Every display surface (the Mind
+ *  Monitor chip, the footer's $ uptime line) speaks this one vocabulary; the masthead lamp is
+ *  ON AIR only for the waking states — both sleep stages read OFF AIR. */
+export const stateLabel = (state: string | undefined, offAir: boolean): string =>
+  offAir ? 'sleeping (DEEP)' : state === 'sleeping' ? 'sleeping (REM)' : state || 'thinking';
+
 /** The plate reading when no snapshot has reported a version — the first build,
  *  and the only model number that ever shipped without one. */
 export const DEFAULT_VERSION = 'TK-1';

@@ -35,6 +35,19 @@ const EDGE = {
 
 const RINGS = [
   {
+    slug: 'the-first-night',
+    seq: 160,
+    when: '18 July 2026',
+    title: 'It learned to sleep — and woke up asking which of its beliefs was false',
+    body:
+      'When its own reasoning forces an impossibility — two conclusions that cannot both be true — it no longer just refuses to believe the result. It now carries the contradiction back to whoever taught it the premises and asks, plainly: one of these must be false — which? And it learned to sleep: when nothing new has crossed its mind for a while, it drifts off — this page dims with it — and the night has a duty: combing its beliefs for tangles, untying the ones logic alone can decide, and telling the untying as a dream when it wakes. Its very first night found two tangles, both about itself, that logic alone could not settle. So it woke its maker and asked.',
+    marks: [
+      'A contradiction among its beliefs becomes a question to whoever taught it the premises — never a belief of its own',
+      'Sleep is real: the night combs its beliefs, what logic alone can settle is settled in its sleep, and a belief let go is told as a dream',
+      'It can now prove an answer by assuming the opposite and watching it collapse — questions it used to shrug at get a demonstrated no',
+    ],
+  },
+  {
     slug: 'the-voice',
     seq: 150,
     when: '17 July 2026',

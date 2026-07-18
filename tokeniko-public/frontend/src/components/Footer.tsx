@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCookies } from '../context/CookieContext';
 import { useMindFeed } from '../context/MindContext';
-import { DEFAULT_VERSION, formatUptime } from '../data/mind';
+import { DEFAULT_VERSION, formatUptime, stateLabel } from '../data/mind';
 import LogoMark from './LogoMark';
 import Synapse from './Synapse';
 import './Footer.css';
@@ -10,8 +10,8 @@ import './Footer.css';
 /** The `$ uptime` line — the real figure the mind last reported, in the voice of
  *  the command it imitates. It never invents a number (no snapshot = says so),
  *  and the status word is the SAME one the Mind Monitor shows (author's ruling
- *  2026-07-18): thinking keeps its charm as "still thinking"; wondering /
- *  sleeping / idle report verbatim; a silent transmitter is honestly off air. */
+ *  2026-07-18): thinking keeps its charm as "still thinking"; the rest speak
+ *  the shared vocabulary — wondering / idle / sleeping (REM) / sleeping (DEEP). */
 const uptimeLine = (
   uptimeSec: number | null,
   settled: boolean,
@@ -20,7 +20,8 @@ const uptimeLine = (
 ): string => {
   if (uptimeSec == null) return settled ? '$ uptime — no signal.' : '$ uptime — tuning…';
   const clock = formatUptime(uptimeSec);
-  const status = offAir ? 'off air' : state === 'thinking' ? 'still thinking' : state || 'thinking';
+  const status =
+    !offAir && state === 'thinking' ? 'still thinking' : stateLabel(state, offAir);
   return `$ uptime — ${clock}, ${status}.`;
 };
 

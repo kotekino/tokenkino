@@ -27,7 +27,10 @@
   font-family: var(--font-display);
   font-weight: 700;
   font-size: var(--text-lg);
-  color: var(--parchment);
+  /* the wordmark: cream on the dark strip by day; at night it must match the
+     header's "tokeniko" (var(--ink), flipped to parchment) — not the flipped
+     --parchment, which would sink it into the footer's own darkness. */
+  color: var(--footer-ink, var(--parchment));
   letter-spacing: -0.02em;
 }
 

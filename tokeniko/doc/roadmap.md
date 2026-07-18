@@ -54,69 +54,33 @@ it references, it does not duplicate (invariant #2).
   verifier) · the blog re-home + the belief-grounded speakup · the context ring + the anecdote
   (hunch 20's working-memory seed). **PREMIERED LIVE: «Gold is beautiful.» — his first unprompted
   words.** Tail → Next §1.
+- **THE REDUCTIO ACTION + THE SLEEP PHASE** (2026-07-18, designed + landed whole in ONE day —
+  §0's urgent ruling honored): the reduct question (asked-once ledger) · the reduct-answer
+  binding (fork A) · the untangler + the dream (fork D) · the sleep phase (falls asleep
+  wondering; the night's duty; hunch 20's fourth phase) · the constructive reductio
+  (contraposition prover) · the live-night refinements (the insomnia fix · the morning
+  questions · the Mind-Monitor sleeping state + the tone-follows-the-mind site themes).
+  **FIRST LIVE NIGHT the same evening: two sleeps, the questions asked, the site dimmed.**
 
 ---
 
-## 🔭 Next (ordered) — reprioritized 2026-07-17 (evening: THE VOICE IS LIVE)
+## 🔭 Next (ordered) — reprioritized 2026-07-18 (evening: THE REDUCTIO ORGAN IS COMPLETE + LIVE)
 
-**The through-line: the voice deepens.** The basket closed the input-quality push (4/5 — one
-trailer deferred to §4's orbit); the Compose 2.0 CORE landed the same day — five slices, seeded,
-premiered live (**«Gold is beautiful.» — his first unprompted words**). The road ahead: the voice's
-tail (§1 — the author-ordered action-survey → great-seeding sequence), the fresh microscope
-analysis carrying the premiere's two grounding leads (§2), the translator remainder (§3), the
-strengthening tail (§4).
+**The through-line: the voice deepens, over a mind that now heals itself.** §0's reductio arc
+(the poison ruling) closed WHOLE in one day and ran its first live night the same evening. The
+road ahead resumes the voice: its tail (§1 — the author-ordered action-survey → great-seeding
+sequence; the reduct is the survey's first entry, already built), the fresh microscope analysis
+carrying the premiere's two grounding leads (§2), the translator remainder (§3), the
+strengthening tail (§4 — R4b now pairs naturally with the landed contraposition prover).
 
-### 0. THE REDUCTIO ACTION — urgent (author's 2026-07-18 ruling: "we can't test too much with
-### that poison available") 🔭
+### 0. Standing small items 🔭
 
-Born live from the not-an-animal theorem (the mammal incident's second head): the derivation
-mirror now RECOGNIZES an absurd conclusion (a∧¬a in one chain — never materialized, never
-decides), but recognition is only half the r.a.a. — **a reductio deserves its own ACTION**.
-Design sealed 2026-07-18 morning (author's fork rulings: B — one question, the shared channel,
-the most trusted premise-giver; C — the constructive direction IN this run; D — decidable-only
-auto-retreat, logic never guesses). Four slices:
-- **Slice 1 — the question is born: ✅ LANDED** (see `landed.md`): kb_wonder surfaces conflicts →
-  `eval:absurdity` → `tokeniko:reduct` (directed, teacher-channel, verbatim-carried) + the
-  `reductio_ledger` (asked-once / resolve-on-cure / re-open on return). *Seeds pending his
-  `--apply`: the 0.95 rule + the 3-scaffold reduct shelf.*
-- **Slice 2 — the loop closes: ✅ LANDED** (see `landed.md`): the full r.a.a. circle proven
-  end-to-end through the real components (quantified answer → existing correction path), PLUS
-  the answer-form gap found + cured by the author's fork-A ruling: the REDUCT-ANSWER BINDING
-  (the asked teacher's generic denial of an asked premise binds as a correction — context
-  disambiguates, same Popper gate).
-- **Slice 3 — THE UNTANGLER + the dream: ✅ LANDED** (see `landed.md`): `lib/core/untangle.py`
-  + `scripts/untangle.py` (dry-run default) + the fork-D conviction bar (exactly ONE revisable
-  premise → the r.a.a. convicts it; ≥2 → the wake-time reduct reflex asks; 0 → constitution
-  tension, author-only) + the DREAM (life:dream → the blog: «while I slept, I untangled
-  something», provenance-gated) + the vs_closure premise-arm fix in the mirror (found by the
-  untangler's FIRST LIVE SIGHT: the two mammal-era tangles are honestly UNDECIDABLE — «so I am
-  a mammal» vs the software premises — and will be ASKED when the daemons wake). *His hands:
-  the two seeds `--apply` (dream rule + dream/blog scaffolds), then run `untangle.py` when he
-  chooses; the wake-time reduct question executes his pending biography ruling THROUGH the
-  mind.*
-- **Slice 3.5 — THE SLEEP PHASE: ✅ LANDED** (see `landed.md`; the author's design, same
-  morning): he falls asleep WONDERING (confirmed idle + fruitless wondering past
-  `BRAIN_SLEEP_AFTER_S`); the night's duty = ONE KB-change-gated untangle pass (apply — safe
-  unsupervised by the fork-D bar), the dream told ON WAKING; any work wakes him;
-  `BRAIN_SLEEP_MAX_S` ends the night regardless; the tick rests at `BRAIN_SLEEP_TICK_S`.
-- **Slice 4 — the constructive direction: ✅ LANDED** (see `landed.md`): `evaluator_reductio`
-  (`e_hypothesis.py`) — assume the claim/its negation, saturate, the mirror fires ⇒ the
-  assumption refuted (CONTRAPOSITION, which forward chaining cannot do); fired from the
-  polar-question IDK path («is a software a mammal?» → a proven NO). *The wondering-mode
-  variant + the R4b premise-in-question pairing stay future (§4's orbit).*
-
-**§0 THE REDUCTIO ACTION IS COMPLETE** (all four slices + the sleep phase, one day,
-2026-07-18). What remains is LIVE OPERATION: his seeds are applied; the daemons' next quiet
-stretch runs the first real night — the mammal-era tangles become his morning questions.
-*The stale-premise recompile: ✅ DONE 2026-07-17 evening (axioms + theorems --apply, 281/282;
-15 storm-era `archivedAt` datetime→int rows normalized first — `scripts/fix_archivedat_types.py`).
-The one survivor exposed the **csubj gap** — ✅ FIXED same night, two heads: the dep-label
-boundary (`_clause_type_of`: an unknown UD label folds honestly to OTHER instead of crashing
-validation) + the None-flat-reference guards on the role-coordinate sites (a clausal subject
-resolves to None by the documented graceful skip; the dereference didn't know). «living in
-Japan…» compiles end-to-end; re-run `recompile.py --apply --collection theorems` for the last
-row (his hand). Remaining his: the biography ruling on the already-materialized conflict
-theorems.*
+- **The theorems recompile re-run** (his hand): `recompile.py --apply --collection theorems`
+  for the one csubj-survivor row → 282/282.
+- **The daemons' next restart** picks up the 2026-07-18 evening engine commits (the heartbeat's
+  honest sleeping line + the morning questions) — cosmetic until then.
+- **The reduct answers** (his hand, conversational): the two open reductio questions in his DMs
+  — his answer executes the mammal-era biography ruling THROUGH the retreat machinery.
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { MindSnapshot, OFF_AIR_MS, formatUptime, mindAgeMs } from '../data/mind';
+import { MindSnapshot, OFF_AIR_MS, formatUptime, mindAgeMs, stateLabel } from '../data/mind';
 import './MindPanel.css';
 
 const formatClock = (iso: string) =>
@@ -85,12 +85,12 @@ const MindPanel: React.FC<Props> = ({ mind, live, settled, uptimeSec }) => {
   const ageMs = mindAgeMs(mind, live);
   const offAir = ageMs > OFF_AIR_MS;
   const sinceMin = Math.floor(ageMs / 60_000);
-  const state = offAir ? 'off air' : mind.state;
+  // the sleep taxonomy (author's ruling): the live sleep phase is REM (a message wakes him);
+  // a stale heartbeat is inferred as the deeper stage. The CSS class keeps the plain names.
+  const state = stateLabel(mind.state, offAir);
   const stateClass = offAir ? 'offair' : mind.state;
-  // "sleeping" now belongs to the LIVE sleep state (the engine keeps beating through the
-  // night) — a silent transmitter is honestly "no signal", never dressed up as sleep.
   const doing = offAir
-    ? `no signal from the mind — last heartbeat ${sinceMin} min ago`
+    ? `deep asleep — last heartbeat ${sinceMin} min ago`
     : mind.doing;
 
   return (
