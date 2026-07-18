@@ -964,8 +964,40 @@ def answer_zip(statement: TKZip) -> Optional[dict]:
 
     if wh_leaf is None:
         answer = _polar_answer(result)
+        if answer.verdict == AnswerVerdict.UNKNOWN:
+            answer = _try_reductio_answer(leaves, kb) or answer
     else:
         answer = evaluator_solveWh(wh_leaf, kb["axiom_zips"], kb["theorem_zips"], kb["relations"],
                                    assertion=result, place_parent=kb["place_parent"])
 
     return {"answer": answer, "result": result}
+
+
+# THE CONSTRUCTIVE REDUCTIO (§0 slice 4) — a prover hiding inside the answer machinery: before
+# conceding «I do not know» on a polar question, try to PROVE the answer by contradiction
+# (evaluator_reductio: assume the claim / its negation, saturate, the mirror fires ⇒ the
+# assumption is refuted). This is CONTRAPOSITION, which forward chaining alone cannot do — the
+# incident's own «is tokeniko a mammal?» becomes a proven NO through «no software is an animal».
+# Single-clause questions only (v1); confidence = truth extremity × the proof premises' trust
+# (the same honesty as every chained verdict — a proof through a 0.7-taught rule is not 1.0).
+def _try_reductio_answer(leaves: list, kb: dict) -> Optional[AnswerResult]:
+    from lib.core.kb_extract import _leaf_is_crisp
+    from lib.llc.evaluator import evaluator_reductio
+
+    crisp = [l for l in leaves if _leaf_is_crisp(l)]
+    if len(crisp) != 1:
+        return None  # one claim, one assumption — a coordinated question is not v1's shape
+    out = evaluator_reductio(crisp[0], kb["rules"], kb["relations"], kb["facts"],
+                             edge_source=kb["edge_source"])
+    if out is None:
+        return None
+    truth, chain, premises = out
+    trust = _conclusion_trust(premises, kb.get("edge_trust")) if premises else 1.0
+    verdict = AnswerVerdict.YES if truth > _TRUE_FLOOR else AnswerVerdict.NO
+    extremity = truth if verdict == AnswerVerdict.YES else 1.0 - truth
+    return AnswerResult(
+        kind=AnswerKind.POLAR, verdict=verdict,
+        confidence=max(0.0, min(1.0, extremity * trust)),
+        reason="proved by contradiction",
+        derivation=["chain: " + chain],
+    )

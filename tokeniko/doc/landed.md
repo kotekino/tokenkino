@@ -1522,3 +1522,35 @@ The coordinator gains its fourth mode — hunch 20's sleep phase, arriving throu
   "sleeping" (the Mind Monitor can one day show it honestly).
 5 tests (`test_sleep_phase.py`: the duty untangles+stashes+watermarks, wake tells the dream
 once, wake-when-awake identity, the reboot recovery, deep rest on an unchanged KB).
+
+**The reductio action — slice 4: the constructive direction (2026-07-18; §0 COMPLETE — designed and landed whole in one day)**
+Proof by contradiction as a PROVER inside the answer machinery — the author's "we got something
+free from the monster: take the momentum" ruling.
+- **`evaluator_reductio`** (`lib/llc/evaluator/e_hypothesis.py`, DB-agnostic like the package):
+  assume a membership hypothesis (an individual claim injects a FACT, a class claim injects a
+  universal membership RULE, marker source_id "hypothesis"), forward-saturate, and if the
+  derivation mirror fires on a conflict that (a) was NOT in the unassumed baseline (an old
+  absurd convicts nothing — signature-matched) and (b) RESTS ON the assumption (the marker must
+  appear in the conflict's premises), the assumption is refuted: h ⊢ ⊥ ⇒ ¬h. Both polarities
+  attempted symmetrically (assume c ⇒ c FALSE; assume ¬c ⇒ c PROVEN); the negated-fact arm
+  skips honestly for individuals (negated facts never extend the closure — inert). The marker
+  is stripped from the returned proof premises.
+- **What it adds: CONTRAPOSITION** — the one direction a forward chainer cannot walk. The
+  incident's own question, «is tokeniko a mammal?» (forward-unreachable → IDK yesterday), now:
+  assume it → mammal joins the closure → animal follows → «no software is an animal» fires →
+  the mirror → **a proven NO** («if I were a mammal I would be an animal — and no software is
+  an animal, and I am a software»).
+- **The firing site** (`_try_reductio_answer`, `answer_zip`'s polar path): before conceding
+  «I do not know», try to prove the answer. Single-crisp-clause questions, membership shape
+  (noun predicate, no direct object), NEGATIVE/¬∀ quantifiers declined — v1 scope. Confidence =
+  truth extremity × the proof premises' trust (a proof through a 0.7-taught rule is not 1.0);
+  reason "proved by contradiction"; the reductio chain rides the derivation.
+- **The author's events.py draft rides along** (`lib/core/events.py`): the MEMEvent base
+  structure for the atproto retrieval arc (three-tree taxonomy: IPTC static + geo static +
+  open-tag centroids; EV stakeholders/sources as MEMStakeholder extensions) — disconnected, no
+  registration, no consumer; two mechanical fixes only (package-relative imports, Optional
+  defaults).
+8 tests (`test_reductio_prover.py`: the mammal question individual + class, the negated-claim
+proof, no-proof stays None, the poisoned-baseline guard, the v1 scope gates, and the REAL
+question path end-to-end — «is a software a mammal?» → proven NO @ confidence ≈ extremity ×
+taught trust; the unprovable question stays an honest IDK).

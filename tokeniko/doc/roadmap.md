@@ -99,10 +99,15 @@ auto-retreat, logic never guesses). Four slices:
   `BRAIN_SLEEP_AFTER_S`); the night's duty = ONE KB-change-gated untangle pass (apply — safe
   unsupervised by the fork-D bar), the dream told ON WAKING; any work wakes him;
   `BRAIN_SLEEP_MAX_S` ends the night regardless; the tick rests at `BRAIN_SLEEP_TICK_S`.
-- **Slice 4 — the constructive direction** 🔭: assume ¬p, saturate, the mirror fires ⇒ **p
-  PROVEN** (derivation `reductio: ¬p ⊢ ⊥`). Proposed firing site: the polar-question IDK path —
-  try proof by contradiction before conceding «I do not know»; maybe also a wondering mode.
-  Shares machinery with §4 R4b — detailed design on arrival.
+- **Slice 4 — the constructive direction: ✅ LANDED** (see `landed.md`): `evaluator_reductio`
+  (`e_hypothesis.py`) — assume the claim/its negation, saturate, the mirror fires ⇒ the
+  assumption refuted (CONTRAPOSITION, which forward chaining cannot do); fired from the
+  polar-question IDK path («is a software a mammal?» → a proven NO). *The wondering-mode
+  variant + the R4b premise-in-question pairing stay future (§4's orbit).*
+
+**§0 THE REDUCTIO ACTION IS COMPLETE** (all four slices + the sleep phase, one day,
+2026-07-18). What remains is LIVE OPERATION: his seeds are applied; the daemons' next quiet
+stretch runs the first real night — the mammal-era tangles become his morning questions.
 *The stale-premise recompile: ✅ DONE 2026-07-17 evening (axioms + theorems --apply, 281/282;
 15 storm-era `archivedAt` datetime→int rows normalized first — `scripts/fix_archivedat_types.py`).
 The one survivor exposed the **csubj gap** — ✅ FIXED same night, two heads: the dep-label
