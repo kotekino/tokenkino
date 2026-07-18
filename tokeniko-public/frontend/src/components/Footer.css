@@ -1,5 +1,8 @@
 .footer {
-  background: var(--ink);
+  /* the footer's own surface token (tone-follows-the-mind): by day it borrows the ink —
+     the one dark strip on the cream page — but when the night flips --ink to parchment
+     the footer must NOT flip with it; the night tone overrides --footer-bg instead. */
+  background: var(--footer-bg, var(--ink));
   color: rgba(233, 223, 200, 0.75);
   padding-top: var(--space-16);
   border-top: 4px solid var(--coral);

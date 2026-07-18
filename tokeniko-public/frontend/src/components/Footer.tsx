@@ -8,16 +8,20 @@ import Synapse from './Synapse';
 import './Footer.css';
 
 /** The `$ uptime` line — the real figure the mind last reported, in the voice of
- *  the command it imitates. It never invents a number: with no snapshot it says
- *  so, and while off air it reports the frozen clock as sleep, not thought. */
+ *  the command it imitates. It never invents a number (no snapshot = says so),
+ *  and the status word is the SAME one the Mind Monitor shows (author's ruling
+ *  2026-07-18): thinking keeps its charm as "still thinking"; wondering /
+ *  sleeping / idle report verbatim; a silent transmitter is honestly off air. */
 const uptimeLine = (
   uptimeSec: number | null,
   settled: boolean,
-  offAir: boolean
+  offAir: boolean,
+  state?: string
 ): string => {
   if (uptimeSec == null) return settled ? '$ uptime — no signal.' : '$ uptime — tuning…';
   const clock = formatUptime(uptimeSec);
-  return offAir ? `$ uptime — ${clock}, sleeping.` : `$ uptime — ${clock}, still thinking.`;
+  const status = offAir ? 'off air' : state === 'thinking' ? 'still thinking' : state || 'thinking';
+  return `$ uptime — ${clock}, ${status}.`;
 };
 
 const Footer: React.FC = () => {
@@ -76,7 +80,7 @@ const Footer: React.FC = () => {
         <p className="footer__copy">
           © {year} tokeniko. Thoughts are its own; mistakes are too.
         </p>
-        <p className="footer__made">{uptimeLine(uptimeSec, settled, offAir)}</p>
+        <p className="footer__made">{uptimeLine(uptimeSec, settled, offAir, mind?.state)}</p>
       </div>
     </footer>
   );

@@ -54,6 +54,26 @@ export const MindProvider: React.FC<{ children: React.ReactNode }> = ({ children
       : feed.mind.uptimeSec +
         (offAir ? 0 : Math.max(0, (Date.now() - seededAt.current) / 1000));
 
+  // THE TONE FOLLOWS THE MIND (the author's epiphany, 2026-07-18): the whole site's theme is
+  // bound to the state — full daylight on the active states, the room a shade darker while
+  // wondering (same palette, dimmed), the night theme while sleeping. OFF-AIR wears the same
+  // night: a silent transmitter reads as deep sleep. Set on <body> so every page follows;
+  // 'day' is the neutral default (skeleton phase included — never dark before we know).
+  const tone =
+    feed.mind == null
+      ? 'day'
+      : offAir || feed.mind.state === 'sleeping'
+        ? 'night'
+        : feed.mind.state === 'wondering'
+          ? 'dusk'
+          : 'day';
+  useEffect(() => {
+    document.body.dataset.tone = tone;
+    return () => {
+      delete document.body.dataset.tone;
+    };
+  }, [tone]);
+
   return (
     <MindContext.Provider value={{ ...feed, uptimeSec, offAir }}>
       {children}

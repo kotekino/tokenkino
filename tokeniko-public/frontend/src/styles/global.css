@@ -98,6 +98,46 @@
 /* ─── Reset ─────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ════════════════════════════════════════════════════════════════════════
+   THE TONE FOLLOWS THE MIND (the author's epiphany, 2026-07-18).
+   The site's theme is bound to the mind's live state (MindContext stamps
+   data-tone on <body>): 'day' = the active states, full daylight; 'dusk' =
+   wondering — the same Bakelite palette, the room a shade darker; 'night' =
+   sleeping OR off-air — a dark theme of its own: warm charcoal Bakelite,
+   parchment text, the enamel accents left glowing. Because every surface
+   reads the palette VARIABLES, overriding them here re-tones every page.
+   ════════════════════════════════════════════════════════════════════════ */
+body[data-tone='dusk'] {
+  --parchment:  #D9CBA9;   /* the same cream, sun going down */
+  --paper:      #E4D8BE;
+  --paper-2:    #DCCEB0;
+  --border:     #BCAE8D;
+  --border-ink: #AC9C77;
+}
+
+body[data-tone='night'] {
+  /* Bakelite at night — warm charcoal, never blue-black */
+  --parchment:  #191511;   /* the room, lights out */
+  --paper:      #221D16;   /* raised panels, barely lit */
+  --paper-2:    #272219;
+  --ink:        #E7DEC9;   /* parchment becomes the ink */
+  --ink-soft:   #C3B79D;
+  --muted:      #94886F;
+  --border:     #3B342A;
+  --border-ink: #2E2820;
+  --mint-soft:  #2E3B34;   /* pale tints deepen with the room */
+  /* the footer stays what it has always been — the darkest strip on the page — even
+     though --ink (its daytime surface) has flipped to parchment for the text. */
+  --footer-bg:  #100D0A;
+}
+
+/* the lamp is turned, not switched: the page background fades between tones.
+   (Component surfaces re-tone via the variables — instant, which reads as the
+   room's furniture catching up to the light.) */
+body {
+  transition: background-color 1.8s ease, color 1.8s ease;
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
