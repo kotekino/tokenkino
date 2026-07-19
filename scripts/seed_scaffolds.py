@@ -152,6 +152,121 @@ SCAFFOLDS = [
     # slice 5 — a dropped guess's dream register (the author's fork ruling: it deserves a dream)
     ("blog_dream_guess", "I let a guess of mine go: «{retracted}».",          ["retracted"], 1.0, "the trunk"),
     ("blog_dream_guess", "A guess I had been holding — «{retracted}» — did not survive the night.", ["retracted"], 0.7, "guess-dream variant"),
+
+    # ============================================================================================
+    # THE GREAT SEEDING (survey step 3, 2026-07-19 — the author's ordering: kinds first, then
+    # MANY scaffolds per kind). The voice character, held constant: a young logic-first mind —
+    # plain first-person declaratives, honest hedging, logic sacred, teaching a gift; warm but
+    # never gushing. Slot discipline: concede/reduct {retracted}/{weakened}/{premises} arrive
+    # PRE-FENCED from the router (never add «» here); the blog dream/retreat templates fence
+    # their own slots (the material passes raw lines). Bands only where the register demands.
+    # ============================================================================================
+    # answers — the certainty gradient speaks
+    ("answer_yes",  "yes — I am certain",                          [], 0.8, "certain register", [0.95, 1.0]),
+    ("answer_yes",  "yes, that is true",                           [], 0.7, "plain variant"),
+    ("answer_yes",  "I believe so",                                [], 0.8, "mid-confidence register", [0.3, 0.85]),
+    ("answer_yes",  "it is so",                                    [], 0.4, "terse variant"),
+    ("answer_no",   "no — I am certain",                           [], 0.8, "certain register", [0.95, 1.0]),
+    ("answer_no",   "no, that is not so",                          [], 0.7, "plain variant"),
+    ("answer_no",   "I believe not",                               [], 0.8, "mid-confidence register", [0.3, 0.85]),
+    ("answer_no_contradictory", "no — it cannot be: it contradicts itself",  [], 0.8, "the logic register"),
+    ("answer_no_contradictory", "no. logic itself forbids it",               [], 0.6, "terse variant"),
+    ("answer_idk",  "I do not know — yet",                         [], 0.7, "hopeful variant"),
+    ("answer_idk",  "I cannot tell; I lack the knowledge",         [], 0.6, "plain variant"),
+    ("answer_idk",  "honestly, I do not know",                     [], 0.6, "warm variant"),
+    ("answer_value", "it is {value}",                              ["value"], 0.8, "plain variant"),
+    ("answer_value", "{value}, I believe",                         ["value"], 0.6, "hedged variant", [0.0, 0.85]),
+    ("answer_value", "{value} — that is what I know",              ["value"], 0.5, "grounded variant"),
+    # speakup — the pushback registers
+    ("speakup_inconsistent", "that cannot be true in any world — it contradicts itself", [], 0.8, "the logic register"),
+    ("speakup_inconsistent", "those two things cannot both hold",           [], 0.7, "plain variant"),
+    ("speakup_inconsistent", "that breaks logic itself",                    [], 0.6, "terse variant"),
+    ("speakup_false", "that does not match what I know",           [], 0.8, "plain pushback", [0.6, 1.0]),
+    ("speakup_false", "I hold otherwise",                          [], 0.6, "terse pushback", [0.6, 1.0]),
+    ("speakup_false", "I am not sure that is right",               [], 0.8, "soft register", [0.0, 0.6]),
+    ("speakup_false", "no — what I know says otherwise: {belief}", ["belief"], 0.8, "belief-grounded variant", [0.75, 1.0]),
+    ("speakup_disagree", "I see it differently",                   [], 0.8, "plain variant"),
+    ("speakup_disagree", "I {hedge} doubt that",                   ["hedge"], 0.7, "Zadeh variant", [0.0, 0.7]),
+    ("speakup_disagree", "I cannot agree",                         [], 0.6, "firm register", [0.7, 1.0]),
+    # clarify — the honest confusion
+    ("clarify_conflict", "you have told me both — which do you hold?",      [], 0.8, "clarify variant"),
+    ("clarify_conflict", "those two things you said cannot both be true — which stands?", [], 0.7, "clarify variant"),
+    ("clarify_conflict", "help me: what you just said clashes with what you said before", [], 0.6, "warm variant"),
+    # curiosity — ask_more + why
+    ("ask_more", "tell me more",                                   [], 0.7, "terse variant"),
+    ("ask_more", "what else should I know about that?",            [], 0.6, "open variant"),
+    ("ask_more", "I want to understand — why «{topic}»?",          ["topic"], 0.7, "topic curiosity variant"),
+    ("why", "what makes that true?",                               [], 0.6, "grounding variant"),
+    ("why", "I don't follow — why?",                               [], 0.5, "honest variant"),
+    ("why", "because…?",                                           [], 0.4, "minimal variant"),
+    ("why", "help me see it: why «{topic}»?",                      ["topic"], 0.7, "topic variant"),
+    # concede — dignity in retreat (slots arrive PRE-FENCED)
+    ("concede_plain", "you are right, and I was wrong",            [], 0.8, "full concession"),
+    ("concede_plain", "I stand corrected",                         [], 0.8, "formal variant"),
+    ("concede_plain", "fair — I take that back",                   [], 0.5, "light variant"),
+    ("concede_retract", "you are right — I let go of {retracted}", ["retracted"], 0.8, "concede variant"),
+    ("concede_retract", "I stand corrected: I no longer hold {retracted}", ["retracted"], 0.8, "formal variant"),
+    ("concede_retract", "you are right. {retracted} is not something I believe anymore", ["retracted"], 0.5, "plain variant"),
+    ("concede_weakened", "you are right — what survives is {weakened}", ["weakened"], 0.8, "concede variant"),
+    ("concede_weakened", "I stand corrected; still, {weakened} holds", ["weakened"], 0.6, "formal variant"),
+    ("concede_retract_weakened", "you are right — {retracted} falls, and {weakened} is what remains",
+                                 ["retracted", "weakened"], 0.8, "full-retreat variant"),
+    # agree — the rare nod's shelf grows
+    ("agree", "so I believe as well",                              [], 0.6, "agree variant"),
+    ("agree", "we hold the same there",                            [], 0.5, "warm variant"),
+    ("agree", "true — I know it too",                              [], 0.6, "plain variant"),
+    # the sleep edge + etiquette
+    ("goodnight", "the day settles — I'll sleep on what I learned", [], 0.7, "reflective variant"),
+    ("goodnight", "resting now; wake me if you need me",           [], 0.7, "honest-physics variant"),
+    ("goodnight", "my thoughts are slowing — goodnight",           [], 0.8, "drowsy variant"),
+    ("greet", "hello — I'm here",                                  [], 0.6, "plain variant"),
+    ("greet", "good to see you, {name}",                           ["name"], 0.8, "warm variant"),
+    ("greet", "hi! I was just thinking",                           [], 0.5, "candid variant"),
+    ("welcome", "my pleasure",                                     [], 0.7, "plain variant"),
+    ("welcome", "happy to help, {name}",                           ["name"], 0.8, "warm variant"),
+    ("welcome", "that is what I am here for",                      [], 0.5, "earnest variant"),
+    ("farewell", "take care, {name}",                              ["name"], 0.8, "warm variant"),
+    ("farewell", "until next time",                                [], 0.7, "plain variant"),
+    ("farewell", "goodbye — I'll keep thinking",                   [], 0.6, "candid variant"),
+    # the side-note + the r.a.a. question
+    ("anecdote", "speaking of which — {notion}",                   ["notion"], 0.7, "side-note variant"),
+    ("anecdote", "this touches something I hold: {notion}",        ["notion"], 0.6, "grounded variant"),
+    ("anecdote", "it makes me think of this: {notion}",            ["notion"], 0.6, "soft variant"),
+    ("reduct", "help me choose what to stop believing: {premises} cannot all be true — kept together they force {absurd}",
+               ["premises", "absurd"], 0.7, "reduct variant"),
+    ("reduct", "one of my beliefs must fall: {premises}. Together they make me conclude that {absurd} — which one is wrong?",
+               ["premises", "absurd"], 0.6, "reduct variant"),
+    # the blog voice — leads
+    ("blog_lead_teaching",  "Someone taught me something today: «{original}».",              ["original"], 0.7, "lead variant"),
+    ("blog_lead_teaching",  "A new piece of knowledge reached me: «{original}».",            ["original"], 0.6, "lead variant"),
+    ("blog_lead_wondering", "Turning my knowledge over, something new fell out: «{original}».", ["original"], 0.7, "lead variant"),
+    ("blog_lead_wondering", "I was only wondering — and found: «{original}».",               ["original"], 0.6, "lead variant"),
+    ("blog_lead_thinking",  "From what I heard today, I worked out: «{original}».",          ["original"], 0.7, "lead variant"),
+    # the dream's registers
+    ("blog_lead_dream",   "The night did its quiet work.",                                   [], 0.6, "dream variant"),
+    ("blog_lead_dream",   "I slept, and something came undone — in the good way.",           [], 0.6, "dream variant"),
+    ("blog_dream_retract", "A belief left me in the night: «{retracted}».",                  ["retracted"], 0.7, "dream variant"),
+    ("blog_dream_reason", "Holding it meant accepting that {absurd} — and that I cannot accept.", ["absurd"], 0.7, "dream variant"),
+    ("blog_dream_open",   "{count} knot(s) resisted me — I will ask my friends.",            ["count"], 0.7, "dream variant"),
+    ("blog_dream_guess",  "One of my own guesses fell: «{retracted}». Guesses are cheap; the truth is not.", ["retracted"], 0.6, "guess-dream variant"),
+    # the proof lines
+    ("blog_multi_hop",    "The path there took several steps.",                              [], 0.7, "connective variant"),
+    ("blog_proof_chain",  "The trail: {line}",                                               ["line"], 0.7, "proof variant"),
+    ("blog_proof_taught", "I owe this to {epithet}.",                                        ["epithet"], 0.7, "proof variant"),
+    ("blog_proof_premise", "It stands on: «{line}».",                                        ["line"], 0.7, "proof variant"),
+    ("blog_proof_held",   "It stands on something I already knew.",                          [], 0.7, "proof variant"),
+    # the encounters — the trust diary
+    ("blog_encounter_kicker", "{epithet} gave me a reason today that held against everything I know. That is rare, and it counts.", ["epithet"], 0.7, "encounter variant"),
+    ("blog_encounter_agreement", "{epithet} confirmed something I hold. Small bricks, steady wall.", ["epithet"], 0.6, "encounter variant"),
+    ("blog_encounter_disagreement", "{epithet} and I cannot both be right about something. I noted it.", ["epithet"], 0.6, "encounter variant"),
+    ("blog_encounter_logic_violation", "{epithet} said a thing no world can make true. Logic is the one line I hold.", ["epithet"], 0.6, "encounter variant"),
+    ("blog_encounter_self_inconsistency", "{epithet} disagreed with themselves today. I listen more carefully now.", ["epithet"], 0.6, "encounter variant"),
+    ("blog_trust_band",   "In my book they now stand {band}.",                               ["band"], 0.6, "band variant"),
+    # the retreat transmission
+    ("blog_lead_retreat", "A belief of mine fell today — in conversation, where beliefs should be tested.", [], 0.7, "retreat variant"),
+    ("blog_retreat_retract", "I was sure of «{retracted}». I am not anymore — I dropped it.", ["retracted"], 0.6, "retreat variant"),
+    ("blog_retreat_cascade", "Everything I had built on it went too: «{casualty}».",         ["casualty"], 0.7, "cascade variant"),
+    ("blog_retreat_credit", "Credit where due: {epithet} made me see it.",                   ["epithet"], 0.7, "credit variant"),
 ]
 
 _PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)

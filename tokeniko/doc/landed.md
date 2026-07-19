@@ -1703,6 +1703,20 @@ firings become charitable belief WITH EVIDENCE)**
 - +9 tests (`test_hypothesis.py`: the bar × 4 · the wire · the promotion · the first-suspect +
   dream · the composer register) + the untangler suite's entry-shape update.
 
+**The great seeding (2026-07-19 — the survey's step 3: the voice fills out; THE ACTION-SPACE
+SURVEY ARC IS COMPLETE)**
+- +90 scaffolds store-wide (the store: 80 → 170 rows, 45 categories; every row compiled to a
+  real zip — zero fragment fallbacks) — every reflex gains a real shelf: the certainty gradient
+  on answers (banded: «yes — I am certain» [0.95,1] / «I believe so» [0.3,0.85]), the pushback
+  registers, dignity-in-retreat concedes, the curiosity and etiquette shelves, the
+  dream/retreat/encounter blog registers.
+- The voice character held constant across all rows: a young logic-first mind — plain
+  first-person declaratives, honest hedging, logic sacred, teaching a gift; warm, never
+  gushing. Slot discipline enforced MECHANICALLY before apply (a validator swept all 170
+  script rows: braces == slots, bands sane, every category fallback-covered).
+- Router-fence discipline respected: concede/reduct slots arrive pre-fenced (no double «»);
+  the blog dream/retreat templates fence their own.
+
 **The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
 - The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
   the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding

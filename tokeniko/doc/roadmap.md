@@ -95,8 +95,8 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
   5. ✅ **The hypothesis engine for `guess`** — landed 2026-07-19, see `landed.md` (the
      derivation-side promotion — a wondering mint colliding with a hypothesis row — noted as
      a follow-on there).
-- 🔭 **The great seeding** (the survey's LAST step — all five kinds now exist): MANY scaffolds
-  per category store-wide.
+- ✅ **The great seeding** — landed 2026-07-19 (+90 rows store-wide), see `landed.md`. **THE
+  ACTION-SPACE SURVEY ARC IS COMPLETE** (survey → 5 slices → the seeding, one day).
 - 🔭 **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
   with the slot masked; design after the store exists.
 - 🔭 **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
