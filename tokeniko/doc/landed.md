@@ -1652,6 +1652,31 @@ the author's option-B ruling: the mint moves BEHIND the meta-language)**
 - +3 tests (the full wire circle · no-rule-no-learning · the per-teacher throttle) + the
   return-type migrations in trust_p3/deixis/coreference suites.
 
+**Survey slice 4 — the etiquette family (2026-07-19, hunch 8: a social act is RECOGNIZED,
+never evaluated)**
+- **The detector** (`lib/llc/social.social_detect`, at the api /input seam BEFORE the parser):
+  head-position formula → the "social" anchor category → greeting/thanks/farewell + whom the act
+  names (`social_at`; leading «tokeniko,» vocative honored). PURE act → stored WITHOUT a zip
+  (nothing to compile; the microscope's `zip≠None` filter skips it naturally); MIXED («hello
+  tokeniko, is gold beautiful?») → **fork A, author's ruling: content wins** — the prefix strips
+  like a vocative, the content compiles clean, no reflex (one reply, never two). Conservative
+  guards: head-position only + a separator boundary required («hello is a word» flows whole).
+- **The measurement that shaped it** (the floor-calibration test): the spaCy interjection space
+  clusters by FUNCTION, not social meaning — «ok»→hey 0.719 ABOVE «howdy»→hello 0.558 — so no
+  semantic floor discriminates and a fallback would greet acknowledgments. The anchor-catch
+  principle yields to measurement: the category is EXACT over a generously-widened table
+  (howdy/ciao/yo/see ya/…), documented in `_SOCIAL_BASE_ANCHORS`.
+- **The reactor** (`thinking._social_react`, an early think_one branch like the question path):
+  no truth verdict, no trust echo, no teachability, no why-ask — the «hello John» junk path is
+  CURED even when no reflex fires (at-other acts are their exchange: recognized, quiet — the
+  2026-07-05 over-engagement note honored). Room-wide or at-tokeniko → `eval:greeting/thanks/
+  farewell` → `tokeniko:greet/welcome/farewell` ({name}-warm registers, threaded).
+- **The guard ruling mechanized**: the three triggers join the self-relevant directedness floor
+  (ambient «hello everyone» clears the act threshold — etiquette wins in public); rarity =
+  per-speaker `SOCIAL_COOLDOWN_S` (the throttle family's third member — no hello-loops).
+- +11 tests (`test_social.py`: detector matrix · fork-A strips · the metalinguistic guard · the
+  measurement passthrough guard · reactor room/at-other · the throttle · the junk-path cure).
+
 **The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
 - The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
   the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding

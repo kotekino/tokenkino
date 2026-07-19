@@ -279,3 +279,22 @@ _SPATIAL_RELATION_ANCHORS = {
     "near": "near", "by": "near", "beside": "near", "close": "near",
     "far": "far", "behind": "far", "beyond": "far", "over": "far", "under": "far",
 }
+# the etiquette family (survey slice 4, hunch 8) — social-act head table: surface formula ->
+# social kind (the EvalToken tails). EXACT by MEASUREMENT, not by choice (2026-07-19, the floor
+# calibration): in the spaCy space interjections cluster by FUNCTION, not social meaning —
+# «ok»->hey 0.719 and «yes»->hey 0.715 sit ABOVE «howdy»->hello 0.558, so no semantic floor
+# separates a greeting from an acknowledgment and a fallback would greet people who said «ok»
+# (the worse error — over-engagement). The anchor-catch principle yields to the measurement:
+# a generously-widened EXACT table instead; revisit if a better embedding arrives.
+_SOCIAL_BASE_ANCHORS = {
+    "hello": "greeting", "hi": "greeting", "hey": "greeting", "greetings": "greeting",
+    "howdy": "greeting", "hiya": "greeting", "heya": "greeting", "yo": "greeting",
+    "ciao": "greeting", "aloha": "greeting", "salutations": "greeting",
+    "good morning": "greeting", "good afternoon": "greeting", "good evening": "greeting",
+    "good day": "greeting",
+    "thanks": "thanks", "thank": "thanks", "thank you": "thanks", "thx": "thanks",
+    "ty": "thanks", "thankyou": "thanks", "many thanks": "thanks",
+    "bye": "farewell", "goodbye": "farewell", "good bye": "farewell", "bye bye": "farewell",
+    "farewell": "farewell", "goodnight": "farewell", "good night": "farewell",
+    "see you": "farewell", "see ya": "farewell", "cya": "farewell", "gn": "farewell",
+}

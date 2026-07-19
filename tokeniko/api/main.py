@@ -10,6 +10,7 @@ from lib.core.io import get_stakeholder, get_tokeniko, init_io, upsert_individua
 from lib.core.models import TKMemoryItemDoc
 from lib.core.evaluation_harness import zip_senses
 from lib.llc.normalizer import detector_stumbles, detector_unrepairable, normalizer_enabled, normalizer_polish, verifier_preserves, verifier_voice
+from lib.llc.social import social_detect
 
 logger_api = logging.getLogger("tokeniko-api")
 from lib.llc.utils import utils_searchDissimilarTokens, utils_searchSimilarTokens
@@ -426,6 +427,30 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # pipeline: recursive, flat, raw, output (if output). The old prepare= Ollama pre-pass is
         # RETIRED (2026-07-16) — rag1 below is the only pre-input tidying, and only on a stumble.
         preparsedTokens = tokens
+
+        # THE SOCIAL-ACT DETECTOR (survey slice 4, hunch 8): a social act is RECOGNIZED, never
+        # evaluated. PURE act -> stored as memory WITHOUT a zip (a greeting is not a claim —
+        # nothing to compile; thinking branches on `social` and reacts, or stays quiet for an
+        # act naming another). MIXED (fork A, author's ruling: content wins) -> the social
+        # prefix is stripped like a vocative and the content compiles clean; no reflex fires.
+        social = social_detect(preparsedTokens, app.state.tokeniko.name)
+        if social is not None and not social.remainder:
+            memory_doc = TKMemoryItemDoc(
+                original=tokens,             # ALWAYS the speaker's raw words (true history be it)
+                zip=None,
+                sourceId=str(talkerEntity.id),
+                targetId=str(app.state.tokeniko.id),
+                channel=channel_enum,
+                metadata=metadata,
+                directedness=directedness,
+                social=social.kind,
+                social_at=social.at,
+            )
+            memory_doc.insert()
+            return {"status": "complete",
+                    "data": {"original": tokens, "social": social.kind, "social_at": social.at}}
+        if social is not None:
+            preparsedTokens = social.remainder
         # the COREFERENCE GATE (the mammal incident, 2026-07-18): «you»→tokeniko only when the
         # utterance is actually ADDRESSED to him (DM/mention/reply-to-him ≥ 0.9); in ambient or
         # someone-else's-thread talk the addressee is unknowable and «you» stays unresolved.

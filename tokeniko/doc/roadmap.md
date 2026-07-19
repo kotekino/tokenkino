@@ -90,10 +90,8 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
   1. ✅ **Small refinements** — landed 2026-07-19, see `landed.md`.
   2. ✅ **Event-edge voices** — landed 2026-07-19, see `landed.md`.
   3. ✅ **Ask wiring + curiosity (the B-wire)** — landed 2026-07-19, see `landed.md`.
-  4. 🔭 **The etiquette family**: greet/thank/farewell as reflexes; needs social-input
-     recognition (hunch 8: «hello John» stops being an assertion). The author's guard ruling:
-     etiquette WINS over over-engagement in the public channel; opinion kinds stay
-     directedness-gated.
+  4. ✅ **The etiquette family** — landed 2026-07-19, see `landed.md` (fork B, the reciprocal
+     thanks → `parked.md`).
   5. 🔭 **The hypothesis engine for `guess`** (138 stub firings live): design first — sketch:
      on eval:unknown, the nearest KB-consistent candidate held as a low-trust hypothesis
      awaiting corroboration (pairs with `kb-growing-outward`).

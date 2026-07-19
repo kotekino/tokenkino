@@ -47,6 +47,12 @@ RULES = [
     # «why» (the kicker-hunting question), throttled per teacher (ASK_COOLDOWN_S).
     (EvalToken.NOVEL.value,        TokenikoAction.LEARN.value,   0.75, "accept teaching — the personality switch of learning"),
     (EvalToken.LEARNED.value,      TokenikoAction.ASK.value,     0.6,  "curiosity: a novel lesson earns one deepening why (throttled)"),
+    # survey slice 4 — the etiquette family (hunch 8): reactive social reflexes. The triggers are
+    # directedness-FLOORED (etiquette wins over over-engagement in public, the author's guard
+    # ruling); rarity = the per-speaker SOCIAL_COOLDOWN_S throttle + the at-other suppression.
+    (EvalToken.GREETING.value,     TokenikoAction.GREET.value,         0.7, "a greeting is returned"),
+    (EvalToken.THANKS.value,       TokenikoAction.WELCOME.value,       0.6, "thanks are acknowledged"),
+    (EvalToken.FAREWELL.value,     TokenikoAction.FAREWELL_BACK.value, 0.6, "a farewell is returned"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
     (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
     # belief-revision v1 (retreat arc #4): a trust-gated quantified correction. RETREAT is INTERNAL

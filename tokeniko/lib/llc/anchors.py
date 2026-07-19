@@ -65,6 +65,7 @@ from lib.llc.constants import (
     _REFLEXIVE_PRONOUNS,
     _TEMPORAL_ANCHORS,
     _TENSE_ANCHORS,
+    _SOCIAL_BASE_ANCHORS,
     _TIME_UNITS,
     _TEMPORAL_PREP_FUTURE,
     _TEMPORAL_PREP_PAST,
@@ -280,6 +281,11 @@ _REGISTRY: dict[str, Category] = {
     "subject_control_verbs": Category("subject_control_verbs", _SUBJECT_CONTROL_VERBS, Strategy.EXACT, default=False, is_set=True),
     "antecedent_types": Category("antecedent_types", set(_ANTECEDENT_TYPES), Strategy.EXACT, default=False, is_set=True),
     "geo_ner_labels": Category("geo_ner_labels", _GEO_NER_LABELS, Strategy.EXACT, default=False, is_set=True),
+    # the etiquette family (survey slice 4, hunch 8): social-act head -> kind. EXACT by
+    # MEASUREMENT (see _SOCIAL_BASE_ANCHORS: the spaCy interjection space puts «ok»/«yes»
+    # closer to «hey» than «howdy» is to «hello» — no floor discriminates, so a semantic
+    # fallback would greet acknowledgments; the widened table is the honest catch).
+    "social": Category("social", _SOCIAL_BASE_ANCHORS, Strategy.EXACT, default=None),
 }
 
 

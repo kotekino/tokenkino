@@ -45,6 +45,11 @@ _FALLBACK: dict[str, str] = {
     "agree": "that fits what I believe",
     # the goodnight (survey slice 2): the falling-asleep farewell's plain register
     "goodnight": "I'm getting sleepy — going to rest my mind",
+    # the etiquette family (survey slice 4): slot-less plain registers (the {name}-warm variants
+    # live on the seeded shelves, slot-gated)
+    "greet": "hello!",
+    "welcome": "you're welcome",
+    "farewell": "goodbye!",
     # the reductio (roadmap §0): the author's canonical question shape, near-verbatim
     "reduct": ("I just discovered that one of these must be false: {premises}. "
                "If all were true, I would have to conclude that {absurd}. "

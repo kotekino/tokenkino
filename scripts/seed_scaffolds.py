@@ -139,6 +139,16 @@ SCAFFOLDS = [
     ("ask_more", "why is it that «{topic}»?",                          ["topic"], 1.2, "the curiosity why (kicker-hunting)"),
     ("ask_more", "how do you know that «{topic}»?",                    ["topic"], 0.8, "curiosity variant"),
     ("ask_more", "interesting — can you tell me why «{topic}»?",       ["topic"], 0.8, "curiosity variant"),
+    # the etiquette shelves (survey slice 4): warm, brief, never gushing; {name} rows slot-gated
+    ("greet",    "hello {name}!",                       ["name"], 1.2, "the warm trunk"),
+    ("greet",    "hi {name}!",                          ["name"], 0.8, "greet variant"),
+    ("greet",    "hello! good to see you",              [],       0.8, "nameless variant"),
+    ("welcome",  "you're welcome, {name}",              ["name"], 1.2, "the warm trunk"),
+    ("welcome",  "glad it helped",                      [],       0.8, "welcome variant"),
+    ("welcome",  "anytime",                             [],       0.6, "welcome variant"),
+    ("farewell", "goodbye {name}!",                     ["name"], 1.2, "the warm trunk"),
+    ("farewell", "see you — I'll be here",              [],       0.8, "farewell variant"),
+    ("farewell", "bye! come back anytime",              [],       0.6, "farewell variant"),
 ]
 
 _PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)

@@ -98,6 +98,37 @@ _ANECDOTE_D_LO = float(os.getenv("ANECDOTE_DIRECTEDNESS_LO", "0.5"))
 _ANECDOTE_D_HI = float(os.getenv("ANECDOTE_DIRECTEDNESS_HI", "0.9"))
 
 
+# the etiquette family (survey slice 4, hunch 8): the SOCIAL REACTOR. A social item was
+# recognized at the compile seam (MEMItem.social) and is NEVER evaluated — this is the only
+# thing thinking does with it. The reflex fires for a room-wide act or one naming tokeniko;
+# an act naming ANOTHER is their exchange (the 2026-07-05 over-engagement note) — recognized,
+# skipped, silent. The speaker's display name rides as {name} for the warm registers.
+_SOCIAL_TRIGGER = {
+    "greeting": EvalToken.GREETING.value,
+    "thanks": EvalToken.THANKS.value,
+    "farewell": EvalToken.FAREWELL.value,
+}
+
+
+def _social_react(item: TKMemoryItemDoc) -> bool:
+    trigger = _SOCIAL_TRIGGER.get(item.social or "")
+    if trigger is None:
+        return False  # an unknown kind — recognized enough to skip evaluation, nothing to say
+    at = (item.social_at or "").strip().lower()
+    if at and at != get_tokeniko().name.strip().lower():
+        logger.info("[thinking] social %s aimed at %r — their exchange, staying quiet",
+                    item.social, at)
+        return False
+    soul = trust.resolve_canonical(item.sourceId)
+    name = soul.name if (soul is not None and not soul.isMe) else None
+    ideas = behavior.spawn_ideas_for(
+        trigger, source=str(item.id), target=item.sourceId,
+        answer={"name": name} if name else None,
+    )
+    logger.info("[thinking] social %s from %s -> %d idea(s)", item.social, name or "?", len(ideas))
+    return bool(ideas)
+
+
 def _try_anecdote(item) -> None:
     d = getattr(item, "directedness", None)
     if d is None or not (_ANECDOTE_D_LO <= d < _ANECDOTE_D_HI):
@@ -1196,7 +1227,9 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
     eligible = [
         c
         for c in candidates
-        if c.zip is not None and _epoch_utc(c.timestamp) > cursors.get(c.sourceId, wake)
+        # a zip to evaluate OR a social act to react to (slice 4: pure social items carry no zip)
+        if (c.zip is not None or getattr(c, "social", None))
+        and _epoch_utc(c.timestamp) > cursors.get(c.sourceId, wake)
     ]
     if not eligible:
         return False
@@ -1216,6 +1249,18 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         context.context_add(item)
     except Exception as error:
         logger.warning("[thinking] context ring feed failed (%s) — continuing", error)
+
+    # --------------------------------------------------------------
+    # SOCIAL ACT (survey slice 4, hunch 8): recognized at the ears, NEVER evaluated — no truth
+    # verdict, no trust echo, no teachability, no why-ask (the «hello John» junk path is cured
+    # here even when no reflex fires). React (or stay politely quiet), advance the cursor, done.
+    # --------------------------------------------------------------
+    if getattr(item, "social", None):
+        _social_react(item)
+        cursors[focus_source] = _epoch_utc(item.timestamp)
+        brain_state.source_cursors = cursors
+        brain_state.save()
+        return True
 
     # --------------------------------------------------------------
     # QUESTION vs ASSERTION (#4 D, questions P3): a question is ANSWERED, not believed. answer_zip

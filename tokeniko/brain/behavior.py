@@ -77,6 +77,12 @@ _DISPATCH = {
     # channel + destination resolve through the normal seams; reply_to is dropped below (a
     # goodnight is to the room, never a thread under someone's old message).
     TokenikoAction.GOODNIGHT.value: ActionType.SEND_MESSAGE,
+    # the etiquette family (survey slice 4): the reactive social reflexes — outward, recipient =
+    # the greeter/thanker/leaver (idea.target), threaded under their message via the source
+    # memory's coords. Throttled per speaker below (SOCIAL_COOLDOWN_S — no hello-loops).
+    TokenikoAction.GREET.value: ActionType.SEND_MESSAGE,
+    TokenikoAction.WELCOME.value: ActionType.SEND_MESSAGE,
+    TokenikoAction.FAREWELL_BACK.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
@@ -98,6 +104,14 @@ _AGREE_COOLDOWN_S = int(os.getenv("AGREE_COOLDOWN_S", "1800"))
 # theorems earns ONE curiosity question, not five (the over-engagement guard again; keyed by
 # target where agree keys by channel — curiosity is about the person, not the room).
 _ASK_COOLDOWN_S = int(os.getenv("ASK_COOLDOWN_S", "600"))
+
+# the SOCIAL cooldown (seconds, per SPEAKER — survey slice 4): one greeting/welcome/farewell per
+# person per window — etiquette without hello-loops (a bot greeting on a timer must not be
+# answered forever). The etiquette triggers are directedness-FLOORED (the author's guard ruling:
+# etiquette wins over over-engagement in public), so the throttle is the only rarity dial.
+_SOCIAL_COOLDOWN_S = int(os.getenv("SOCIAL_COOLDOWN_S", "3600"))
+_SOCIAL_TOKENS = {TokenikoAction.GREET.value, TokenikoAction.WELCOME.value,
+                  TokenikoAction.FAREWELL_BACK.value}
 
 
 # the candidate set / superposition: every ENABLED rule for a trigger, most-urgent first (order as
@@ -172,6 +186,13 @@ _SELF_RELEVANT_TRIGGERS = {
     # (In practice its ideas carry no source memory item, so the urge rides unscaled anyway;
     # listed for the honesty of the set.)
     EvalToken.ABSURDITY.value,
+    # the etiquette family (survey slice 4 — the author's guard ruling MECHANIZED): etiquette
+    # WINS over over-engagement in public — a room-wide «hello everyone» (ambient 0.6) must
+    # clear the act threshold, so the social triggers floor to addressed. Discretion lives in
+    # the at-other suppression (thinking) + the per-speaker throttle instead.
+    EvalToken.GREETING.value,
+    EvalToken.THANKS.value,
+    EvalToken.FAREWELL.value,
 }
 _ADDRESSED_FLOOR = 0.9   # senses/inbound.grade_directedness: addressed
 _AMBIENT_GRADE = 0.6     # senses/inbound.grade_directedness: ambient
@@ -263,6 +284,14 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         last = (TKActionDoc.find({"payload.action_token": token, "targetId": target})
                 .sort("-createdAt").limit(1).to_list())
         if last and (int(time.time()) - last[0].createdAt) < _ASK_COOLDOWN_S:
+            return None
+
+    # the SOCIAL throttle (survey slice 4): one nod of each etiquette kind per speaker per
+    # window — the hello-loop guard (the reflex dissolves; the act stays remembered).
+    if token in _SOCIAL_TOKENS and target:
+        last = (TKActionDoc.find({"payload.action_token": token, "targetId": target})
+                .sort("-createdAt").limit(1).to_list())
+        if last and (int(time.time()) - last[0].createdAt) < _SOCIAL_COOLDOWN_S:
             return None
 
     payload = {"action_token": token, "trigger": idea.trigger}

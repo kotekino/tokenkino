@@ -118,6 +118,17 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
         # the goodnight (survey slice 2): the falling-asleep edge — no data, the shelf carries
         # the register (including the honest-physics line: a message IS the wake sensor).
         return "goodnight", {}
+    # the etiquette family (survey slice 4): the speaker's display name rides as {name} for the
+    # warm registers (slot-gated — an unnamed speaker gets the bare shelf).
+    if action_token == TokenikoAction.GREET.value:
+        name = (answer or {}).get("name")
+        return "greet", ({"name": name} if name else {})
+    if action_token == TokenikoAction.WELCOME.value:
+        name = (answer or {}).get("name")
+        return "welcome", ({"name": name} if name else {})
+    if action_token == TokenikoAction.FAREWELL_BACK.value:
+        name = (answer or {}).get("name")
+        return "farewell", ({"name": name} if name else {})
     return None  # post / internal reflexes have no Discord-reply text here
 
 

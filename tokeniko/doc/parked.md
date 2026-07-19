@@ -100,3 +100,8 @@ pairwise-disjoint assertions feeding `relations_disjoint` (the refutation side o
 symmetric to how affirmative copulars feed subsumption) instead of a rule. Promote when the
 teaching workflow makes the double-teach feel like friction. *(Supersedes the step-2
 `negated_skip` residual — the rule-side consumption landed 2026-07-11.)*
+
+**The reciprocal thanks (survey slice 4 fork B, 2026-07-19)** — tokeniko THANKING a teacher after
+a lesson (one rule on the `eval:learned` seam, beside the curiosity ask). Parked with the author:
+the curiosity «why» is already his one reaction to a lesson — two reactions per lesson is chatter.
+Promote if the etiquette family's live behavior makes his teachers feel unthanked.

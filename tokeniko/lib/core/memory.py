@@ -136,6 +136,13 @@ class MEMItem(BaseModel):
     # and the polish passed the zip-verifier, the normalized text rides here and `zip` compiles
     # from it — `original` ALWAYS keeps the speaker's raw words (true history be it).
     normalized: Optional[str] = None
+    # the etiquette family (survey slice 4, hunch 8): a PURE social act carries its kind here
+    # ("greeting"/"thanks"/"farewell" — the EvalToken tails) and is stored WITHOUT a zip (a
+    # greeting is not a claim; nothing to compile). `social_at` = whom the act names (lowercase;
+    # None = the room): thinking reacts only when it's the room or tokeniko himself — a «hello
+    # John» is John's greeting to answer (the 2026-07-05 over-engagement note honored).
+    social: Optional[str] = None
+    social_at: Optional[str] = None
 
 # alias for list of memory items
 MEMContext = list[MEMItem]
@@ -262,6 +269,14 @@ class EvalToken(str, Enum):
     # deepening «why», which is literally the kicker-hunting question (the closed why-loop).
     NOVEL = "eval:novel"
     LEARNED = "eval:learned"
+    # survey slice 4 (2026-07-19, hunch 8 — the etiquette family): a SOCIAL ACT is recognized,
+    # never evaluated — «hello John» is not a claim about the world. Detected at the compile seam
+    # (lib/llc/social.social_detect, anchor-catch: nearest-of-anchors, never a fixed list),
+    # carried on MEMItem.social, branched EARLY in think_one (like questions: no truth verdict,
+    # no trust echo, no teachability, no why-ask).
+    GREETING = "eval:greeting"
+    THANKS = "eval:thanks"
+    FAREWELL = "eval:farewell"
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):
@@ -303,6 +318,13 @@ class TokenikoAction(str, Enum):
     # sleep transition (never through the idea queue: pending work would wake him — the
     # wake-catch); the spam trap is the recency gate (you say goodnight to people who are around).
     GOODNIGHT = "tokeniko:goodnight"
+    # the etiquette family (survey slice 4, hunch 8): the REACTIVE social reflexes — greet back,
+    # acknowledge thanks, return a farewell. Etiquette WINS over over-engagement in public
+    # (author's guard ruling: the triggers join the self-relevant directedness floor); discretion
+    # comes from the at-other suppression + the per-speaker SOCIAL_COOLDOWN_S throttle instead.
+    GREET = "tokeniko:greet"
+    WELCOME = "tokeniko:welcome"
+    FAREWELL_BACK = "tokeniko:farewell"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a
