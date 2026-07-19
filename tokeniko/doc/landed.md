@@ -1729,3 +1729,9 @@ SURVEY ARC IS COMPLETE)**
   an ambient un-addressed «you» still keys None (the mammal-era hole stays closed).
 - 2 new tests in `test_reductio_loop.py`: the individual-subject bind end-to-end through
   `_try_reduct_answer` (corner "R", the ghost named in sources) + the ambient-denial refusal.
+- **AND THE CIRCLE CLOSED LIVE the same day**: the author answered «you are not a mammal» on
+  the restarted daemons — binding accepted (corner "R"), the ghost «so I am a mammal» archived,
+  the cascade took «I am not a reptile» (its reason died with the premise), BOTH ledger rows
+  resolved in the same instant (they shared the ghost), and he conceded: «you are right — I no
+  longer hold that so I am a mammal». The mammal era ended through his own machinery — the
+  author's answer as a teacher, not a mongo-edit. His software premises survived untouched.

@@ -75,18 +75,25 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 
 ### 0. Standing small items 🔄
 
-- **The reduct answers** (his hand, conversational; the recompile + restart chores AND the
-  reduct-answer identity fix are done → `landed.md`): the two open reductio questions live in the
-  SHARED room (fork B — asked where the premises were taught) — answer as a Discord **reply** to
-  the question message (reply-to-him ≥ 0.9 → addressed; a bare room message scores 0.6 and «you»
-  stays honestly unresolved). «you are not a mammal» suffices; the answer executes the mammal-era
-  biography ruling THROUGH the retreat machinery. Daemons must run the fix commit (a649a7e).
+- *(The reduct answers are DONE — answered live 2026-07-19, both ledger rows resolved, the
+  mammal era closed through the retreat machinery → `landed.md`.)*
+- 🔭 **The sleep-depth theme + the Atlas theme-overrides** (author-approved design 2026-07-19,
+  next quick task — one working session, both touch the same seam):
+  1. **DEEP darker than REM**: MindContext stamps a fourth tone (`night` = sleeping REM,
+     `deep` = off-air-inferred DEEP — the stateLabel distinction reused); the `deep` palette
+     drops the warm charcoal toward black. In BOTH dark tones the Mind Monitor / signal-scope
+     `box-shadow` goes to none (shadows lift boxes off a LIGHT page; kept on day/dusk only).
+  2. **Theme tunables as OVERRIDES-over-defaults** (the agreed shape): the full palette stays
+     in code (git = design provenance; a bad DB row can never take styling down), ONE small
+     Atlas doc `{token: value}` rides the `/api/mind` snapshot the site already polls (zero
+     extra requests, no FOUC — defaults render, overrides re-tone on poll). Tuning is data;
+     identity is code. Graduated values fold into the CSS defaults at the next real deploy.
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
 
 - **The action-space survey — CONCLUDED 2026-07-19** (the author's rulings on the full
   inventory → the sliced build plan below; survey record in `landed.md`). The build, in his
-  approved order (slice 1 in flight):
+  approved order:
   1. ✅ **Small refinements** — landed 2026-07-19, see `landed.md`.
   2. ✅ **Event-edge voices** — landed 2026-07-19, see `landed.md`.
   3. ✅ **Ask wiring + curiosity (the B-wire)** — landed 2026-07-19, see `landed.md`.
