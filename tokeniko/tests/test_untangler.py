@@ -182,4 +182,7 @@ def test_spawn_dream_gates_on_postability(tiered_world):
     assert len(ideas) == 1
     material = ideas[0].material
     assert material["kind"] == "dream" and material["asked"] == 1
-    assert material["retracted"] == [{"original": _POISON_B, "absurd": "x and not x"}]
+    # slice 5: every retraction carries the guess flag (False for an ordinary belief; a dropped
+    # hypothesis dreams in its own register)
+    assert material["retracted"] == [{"original": _POISON_B, "absurd": "x and not x",
+                                      "guess": False}]

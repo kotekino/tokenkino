@@ -1677,6 +1677,32 @@ never evaluated)**
 - +11 tests (`test_social.py`: detector matrix · fork-A strips · the metalinguistic guard · the
   measurement passthrough guard · reactor room/at-other · the throttle · the junk-path cure).
 
+**Survey slice 5 — the hypothesis engine (2026-07-19: the guess gets real content; 138 stub
+firings become charitable belief WITH EVIDENCE)**
+- **The definition** (the author-approved design): a guess = the speaker's ungroundable claim
+  held PROVISIONALLY when (1) still-UNKNOWN at execution (non-refutation — a FALSE kills it, a
+  TRUE needs no guessing) and (2) `relationMatch >= HYPOTHESIS_RESEMBLANCE_FLOOR` (the fuzzy
+  layer doing induction: geometry proposes plausibility over what he already holds). He invents
+  nothing; charity goes only to what fits.
+- **The home**: a theorem row — `derived_by="hypothesis"`, trusted capped at `HYPOTHESIS_TRUST`
+  (0.3), the matched doc's id JOINING the premises (the resembled belief falls → the cascade
+  takes the guess: the evidence died). Containment was already built: the provenance cascade
+  bounds derived conclusions, `verdict_confidence` puts guess-grounded speakups in the soft
+  register. SILENT formation (`thinking.materialize_hypothesis` ← `main._execute_guess`, the
+  executor pattern's third member; the eval:unknown → guess rule stays the personality switch).
+- **The promotion** (the analytic/synthetic seam): a trusted teacher asserting the same sentence
+  finds the hypothesis row PROMOTABLE (`_taught_candidate`) and `materialize_taught` upgrades it
+  IN PLACE — teacher trust, `derived_by="teaching"`, «promoted from hypothesis» in the chain,
+  the curiosity fires (genuinely learned now). DM-taint stays conservative on postability.
+  *Follow-on noted*: derivation-side promotion (a wondering mint colliding with a hypothesis row).
+- **The first suspects** (untangler, the author's ruling): ANY hypothesis among a conflict's
+  premises is convicted first — even beside other revisables (a guess dies before a taught
+  belief is questioned; his own guess, no concession owed). **And the drop gets its DREAM**
+  (the author's fork ruling): convicted guesses carry `guess=True` through `spawn_dream` to a
+  dedicated register — «I let a guess of mine go: «…»» (`blog_dream_guess`).
+- +9 tests (`test_hypothesis.py`: the bar × 4 · the wire · the promotion · the first-suspect +
+  dream · the composer register) + the untangler suite's entry-shape update.
+
 **The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
 - The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
   the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding

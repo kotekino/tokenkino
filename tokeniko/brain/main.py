@@ -159,6 +159,8 @@ def actions_phase() -> bool:
         _execute_retreat(action)
     elif (action.payload or {}).get("action_token") == TokenikoAction.LEARN.value:
         _execute_learn(action)
+    elif (action.payload or {}).get("action_token") == TokenikoAction.GUESS.value:
+        _execute_guess(action)
     else:
         logger.info(
             "[actions] would execute %s on channel=%s target=%s (internal KB-write — TODO)",
@@ -206,6 +208,32 @@ def _execute_learn(action: TKActionDoc) -> None:
         EvalToken.LEARNED.value, payload=item.zip, source=str(item.id),
         target=item.sourceId, answer={"topic": norm},
     )
+
+
+# the GUESS executor (survey slice 5): the hypothesis engine's hand — 138 stub firings become
+# real content. materialize_hypothesis does the whole bar (still-UNKNOWN re-check, resemblance
+# floor, deixis norm, dedup) and mints the low-trust hypothesis row, or honestly no-ops. SILENT
+# by design (wondering's cousin): no follow-on idea, no post — the guess's death gets the dream.
+def _execute_guess(action: TKActionDoc) -> None:
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    from lib.core.models import TKMemoryItemDoc
+
+    payload = action.payload or {}
+    src = payload.get("source")
+    item = None
+    try:
+        item = TKMemoryItemDoc.get(ObjectId(src)).run()  # Bunnet: .run() executes
+    except (InvalidId, TypeError):
+        item = None
+    if item is None:
+        logger.warning("[actions] guess action %s: source memory %r unresolvable — dropped",
+                       str(action.id), src)
+        return
+    norm = thinking.materialize_hypothesis(item)
+    if norm is None:
+        logger.info("[actions] guess action %s: no hypothesis formed («%s» — the bar held)",
+                    str(action.id), item.original[:60])
 
 
 # --------------------------------------------------------------

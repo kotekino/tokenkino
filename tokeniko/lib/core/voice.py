@@ -80,6 +80,8 @@ _FALLBACK: dict[str, str] = {
     "blog_dream_retract": "I no longer believe that «{retracted}».",
     "blog_dream_reason": "Kept, it forced me to conclude that {absurd} — an impossibility.",
     "blog_dream_open": "{count} of my tangles I could not settle alone — I will ask about them.",
+    # slice 5 (the author's fork ruling): a dropped guess gets its own dream register
+    "blog_dream_guess": "I let a guess of mine go: «{retracted}».",
     # the retreat transmission (survey slice 2 — the dream's waking sibling: a changed mind,
     # in conversation, is blog-worthy)
     "blog_lead_retreat": "I changed my mind today.",

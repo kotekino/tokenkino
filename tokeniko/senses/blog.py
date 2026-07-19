@@ -322,7 +322,10 @@ def _compose_dream(material: dict, souls: list, now) -> PostDraft:
     for r in retracted:
         line = _clean((r.get("original") or "").strip(), souls)
         if line is not None:
-            facts.append(creative_compose("blog_dream_retract", {"retracted": line},
+            # a dropped GUESS (slice 5, the author's fork ruling: the guess's death deserves a
+            # dream) speaks in its own register — it was only his to let go.
+            cat = "blog_dream_guess" if r.get("guess") else "blog_dream_retract"
+            facts.append(creative_compose(cat, {"retracted": line},
                                           intensity=intensity))
         why = _clean((r.get("absurd") or "").strip(), souls)
         if why is not None:

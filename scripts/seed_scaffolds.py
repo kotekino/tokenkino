@@ -149,6 +149,9 @@ SCAFFOLDS = [
     ("farewell", "goodbye {name}!",                     ["name"], 1.2, "the warm trunk"),
     ("farewell", "see you — I'll be here",              [],       0.8, "farewell variant"),
     ("farewell", "bye! come back anytime",              [],       0.6, "farewell variant"),
+    # slice 5 — a dropped guess's dream register (the author's fork ruling: it deserves a dream)
+    ("blog_dream_guess", "I let a guess of mine go: «{retracted}».",          ["retracted"], 1.0, "the trunk"),
+    ("blog_dream_guess", "A guess I had been holding — «{retracted}» — did not survive the night.", ["retracted"], 0.7, "guess-dream variant"),
 ]
 
 _PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)

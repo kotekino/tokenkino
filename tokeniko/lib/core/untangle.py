@@ -83,6 +83,33 @@ def untangle_pass(apply: bool = False) -> dict:
         revisable, protected = partition_premises(docs)
         entry = {"signature": sig, "absurd": absurd,
                  "premises": [d.original.strip() for d in docs]}
+        # THE FIRST SUSPECTS (survey slice 5, the author's ruling): his own guesses die before
+        # a taught belief is questioned — ANY hypothesis among the premises is convicted (all of
+        # them), even when other revisables share the derivation: the conflict stays decidable
+        # because a guess is HIS OWN (silent retreat, no concession owed — but the DREAM tells
+        # it: each entry carries guess=True for the dream's voice, the author's fork ruling).
+        hypotheses = [d for d in revisable
+                      if getattr(getattr(d, "provenance", None), "derived_by", "") == "hypothesis"]
+        if hypotheses:
+            for doc in hypotheses:
+                e = dict(entry)
+                dependents = evaluation_harness.revoke_dependents([str(doc.id)], dry_run=True)
+                e.update({
+                    "doc_id": str(doc.id), "kind": "theorem", "guess": True,
+                    "original": doc.original.strip(),
+                    "postable": bool(getattr(doc, "postable", True)),
+                    "dependents": [t.original for t in dependents],
+                })
+                if apply:
+                    doc.archived = True
+                    doc.archivedAt = now
+                    doc.save()
+                    evaluation_harness.revoke_dependents([str(doc.id)], dry_run=False)
+                    logger.warning("[untangle] DROPPED the guess «%s» — the first suspect: "
+                                   "kept, it forced «%s» (+%d dependent(s))",
+                                   doc.original, absurd, len(e["dependents"]))
+                report["convicted"].append(e)
+            continue
         if len(revisable) == 1:
             doc = revisable[0]
             dependents = evaluation_harness.revoke_dependents([str(doc.id)], dry_run=True)

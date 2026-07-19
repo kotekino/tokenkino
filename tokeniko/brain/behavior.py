@@ -295,8 +295,9 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
             return None
 
     payload = {"action_token": token, "trigger": idea.trigger}
-    if token in _TRUST or token in (TokenikoAction.RETREAT.value, TokenikoAction.LEARN.value):
-        payload["source"] = idea.source  # provenance: the memory item behind the episode/correction/lesson
+    if token in _TRUST or token in (TokenikoAction.RETREAT.value, TokenikoAction.LEARN.value,
+                                    TokenikoAction.GUESS.value):
+        payload["source"] = idea.source  # provenance: the memory item behind the episode/correction/lesson/guess
     if idea.answer is not None:
         payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
     if idea.material is not None:

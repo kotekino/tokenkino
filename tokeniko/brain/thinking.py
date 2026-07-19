@@ -362,7 +362,8 @@ def spawn_dream(report: dict) -> bool:
         # subjects) — it is still ONE belief let go: dream it once, first absurd as the why.
         if c.get("postable", True) and c["original"] not in seen:
             seen.add(c["original"])
-            retracted.append({"original": c["original"], "absurd": c["absurd"]})
+            retracted.append({"original": c["original"], "absurd": c["absurd"],
+                              "guess": bool(c.get("guess"))})
     if not retracted:
         return False
     seed = "|".join(r["original"] for r in retracted)
@@ -483,8 +484,13 @@ def _taught_candidate(item: TKMemoryItemDoc):
         logger.info("[thinking] taught «%s» not normalizable (deixis) — remembered, not believed",
                     item.original)
         return None
-    if TKTheoremDoc.find_one({"original": norm}).run() is not None:
+    existing = TKTheoremDoc.find_one({"original": norm}).run()
+    if existing is not None and not (
+            not existing.archived
+            and getattr(existing.provenance, "derived_by", "") == "hypothesis"):
         return None  # already knowledge — dedup by (normalized) original
+    # an ACTIVE hypothesis row is PROMOTABLE, not a duplicate (slice 5: corroboration by a
+    # trusted teacher turns the guess into taught knowledge — materialize_taught upgrades it)
     return soul, norm, teacher_trust
 
 
@@ -498,6 +504,28 @@ def materialize_taught(item: TKMemoryItemDoc) -> Optional[str]:
     if cand is None:
         return None
     soul, norm, teacher_trust = cand
+    # THE PROMOTION (slice 5, the analytic/synthetic seam): an active hypothesis row holding
+    # this very sentence is corroborated — the guess becomes taught knowledge IN PLACE (same
+    # doc, trust raised to the teacher's, provenance rewritten with the promotion recorded).
+    # DM-taint stays conservative: one private premise poisons postability (constitution).
+    existing = TKTheoremDoc.find_one({"original": norm}).run()
+    if existing is not None:
+        if existing.archived or getattr(existing.provenance, "derived_by", "") != "hypothesis":
+            return None  # raced: became knowledge (or fell) since the candidate check
+        chain = (f"taught by {soul.name} ({soul.uid}) at trust {teacher_trust:.2f} — "
+                 f"promoted from hypothesis ({existing.provenance.chain})")
+        existing.trusted = min(teacher_trust, 0.9)
+        existing.sourceId = str(soul.id)
+        existing.postable = bool(existing.postable) and not _is_dm(item)
+        existing.provenance = MEMProvenance(
+            premises=[f"taught:{soul.uid}"], chain=chain, derived_by="teaching")
+        existing.save()
+        logger.info("[thinking] PROMOTED hypothesis -> taught: «%s» <- %s (trust %.2f)",
+                    norm, soul.uid, teacher_trust)
+        if existing.postable:
+            _spawn_life_theorem(str(existing.id), norm, "teaching",
+                                [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm))
+        return norm
     # provenance gate (blog P1): a lesson given in PRIVATE (a Discord DM) is learned but never
     # published — "DM never public" is constitution-level.
     postable = not _is_dm(item)
@@ -524,6 +552,74 @@ def materialize_taught(item: TKMemoryItemDoc) -> Optional[str]:
     if postable:
         _spawn_life_theorem(str(theorem.id), norm, "teaching",
                             [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm))
+    return norm
+
+
+# --------------------------------------------------------------
+# THE HYPOTHESIS ENGINE (survey slice 5, the author-approved design 2026-07-19): a GUESS is
+# CHARITABLE BELIEF WITH EVIDENCE — the speaker's ungroundable claim held provisionally when
+# (1) it still grades UNKNOWN at execution time (non-refutation: a FALSE kills the guess, a
+# TRUE needs no guessing) and (2) it geometrically RESEMBLES something already held
+# (relationMatch >= the floor — the fuzzy layer doing induction: geometry proposes
+# plausibility, the symbolic layer has already checked consistency). He invents nothing; he
+# extends charity to what fits. A claim resembling nothing he knows stays merely remembered.
+#
+# The home is a THEOREM row (everything-is-KB, one reasoning surface): derived_by="hypothesis",
+# trusted capped at HYPOTHESIS_TRUST — the containment already exists (the provenance cascade
+# bounds every conclusion by min-premise-trust; verdict_confidence scales by it, so a speakup
+# grounded in a guess speaks in the soft register by construction). The matched doc's id JOINS
+# the premises: if the resembled belief ever falls, revoke_dependents takes the guess with it
+# (the evidence died). SILENT formation (wondering's cousin — no idea, no post); the guess's
+# DEATH gets the dream (the author's fork ruling — see untangle_pass + spawn_dream).
+# Promotion (the analytic/synthetic seam): a trusted teacher later asserting the same sentence
+# PROMOTES the row in materialize_taught — corroboration turns a guess into knowledge.
+# --------------------------------------------------------------
+HYPOTHESIS_TRUST = float(os.getenv("HYPOTHESIS_TRUST", "0.3"))
+HYPOTHESIS_RESEMBLANCE_FLOOR = float(os.getenv("HYPOTHESIS_RESEMBLANCE_FLOOR", "0.6"))
+
+
+def materialize_hypothesis(item: TKMemoryItemDoc) -> Optional[str]:
+    if item.zip is None:
+        return None
+    leaves = evaluation_harness._zip_leaves(item.zip.items)
+    if not leaves or any(getattr(l, "unknown", False) for l in leaves):
+        return None  # unknown vocabulary is never guessed into knowledge (a wug stays a wug)
+    if any(not ((getattr(l, "senses", None) or {}).get("subject")
+                or (getattr(l, "identities", None) or {}).get("subject")) for l in leaves):
+        return None  # the headless belt, same as teaching
+    soul = trust.resolve_canonical(item.sourceId)
+    if soul is None or soul.isMe:
+        return None
+    out = evaluate_zip(item.zip)
+    if status_to_token(out["result"]) != EvalToken.UNKNOWN.value:
+        return None  # refuted or derivable meanwhile — nothing to guess
+    match = out.get("relationMatch")
+    if match is None or match < HYPOTHESIS_RESEMBLANCE_FLOOR:
+        return None  # resembles nothing he holds — charity needs evidence
+    norm = normalize_deixis(strip_vocative(item.original, get_tokeniko().name), soul.name)
+    if norm is None:
+        return None
+    if TKTheoremDoc.find_one({"original": norm}).run() is not None:
+        return None  # already knowledge or already guessed
+    speaker_trust = 1.0 if soul.imprint else soul.trust
+    chain = (f"hypothesis: resembles «{out.get('matchedOriginal')}» at {match:.2f}; "
+             f"said by {soul.name} ({soul.uid}) at trust {speaker_trust:.2f}")
+    premises = [f"hypothesis:{soul.uid}"] + ([out["matchedId"]] if out.get("matchedId") else [])
+    theorem = TKTheoremDoc(
+        original=norm,
+        zip=item.zip,
+        sourceId=str(soul.id),
+        channel=MEMChannels.INTERNAL,
+        archived=False,
+        trusted=min(speaker_trust, HYPOTHESIS_TRUST),
+        provenance=MEMProvenance(premises=premises, chain=chain, derived_by="hypothesis"),
+        # the flag follows the source (DM never public); a public-born guess may be DREAMED
+        # when it dies (the author's ruling: the drop deserves a dream)
+        postable=not _is_dm(item),
+    )
+    theorem.save()
+    logger.info("[thinking] HYPOTHESIS held: «%s» (resembles «%s» at %.2f, trust %.2f)",
+                norm, out.get("matchedOriginal"), match, theorem.trusted)
     return norm
 
 
