@@ -1614,6 +1614,26 @@ rulings) + slice 1, the small refinements**
   would otherwise nod at every corroboration; agree shelf + fallback). +4 tests in
   `test_compose_scaffolds.py`.
 
+**Survey slice 2 — the event-edge voices (2026-07-19: the goodnight + the retreat transmission)**
+- **The goodnight** (the etiquette family's first member, founded a slice early): the
+  falling-asleep edge speaks once into a recently-alive channel. The author-approved SPAM TRAP:
+  `GOODNIGHT_RECENCY_S` (default 1h) — goodnight is for people, never empty rooms (naps are
+  frequent). **The wake-catch** (found in design): a queued idea would be priorities-work next
+  tick and wake him — so `_say_goodnight` dispatches SYNCHRONOUSLY (the idea born DONE, plan +
+  action in one stroke; the Discord row waits for the senses carrier, invisible to the sleeping
+  brain). Still KB personality: the `life:sleep → tokeniko:goodnight` rule is the switch. The
+  shelf carries the author-loved honest-physics line («I'm drifting off — if you write me, I'll
+  wake» — a message IS the wake sensor). Destination is the ROOM (reply_to dropped).
+- **The retreat transmission** (`life:retreat` → blog, the dream's waking sibling): a
+  conversational retreat is blog-worthy — `_execute_retreat` now keeps the cascade's casualty
+  ORIGINALS and spawns the post (provenance-gated: every fallen belief postable; the corrector
+  credited by epithet only for a public exchange, «a friend» shields a DM). New composer
+  `senses/blog._compose_retreat` (kind "note"): lead «I changed my mind today» + fenced
+  retractions + «And with it went «…»» + the credit. The night's retreats stay dreams — this
+  path only runs awake, no double post by construction.
+- +7 tests (goodnight trio incl. the wake-catch regression + the executor's transmission
+  assertions + the pure composer trio).
+
 **The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
 - The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
   the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding

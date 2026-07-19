@@ -72,6 +72,11 @@ _DISPATCH = {
     # plan_action's cooldown gate (the rule outranks ignore's urge, so it would otherwise fire
     # on every corroboration; the author's over-engagement guard, cap-feedback 2026-07-05).
     TokenikoAction.AGREE.value: ActionType.SEND_MESSAGE,
+    # the goodnight (survey slice 2): outward into the recently-alive room — the source memory
+    # is the room's LAST inbound item (recency-gated at the transition site, brain/main.py), so
+    # channel + destination resolve through the normal seams; reply_to is dropped below (a
+    # goodnight is to the room, never a thread under someone's old message).
+    TokenikoAction.GOODNIGHT.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
@@ -282,6 +287,10 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         if isinstance(coords, dict) and coords.get("channel_id"):
             payload["destination"] = {"channel_id": str(coords["channel_id"]),
                                       "reply_to": coords.get("message_id")}
+            if token == TokenikoAction.GOODNIGHT.value:
+                # a goodnight addresses the ROOM — never threaded under the last speaker's
+                # (possibly long-scrolled-past) message.
+                payload["destination"].pop("reply_to", None)
 
     return {
         "action_token": token,

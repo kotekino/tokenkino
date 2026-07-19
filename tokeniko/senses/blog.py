@@ -337,6 +337,47 @@ def _compose_dream(material: dict, souls: list, now) -> PostDraft:
                      significance=float(material.get("significance") or 0.9))
 
 
+# the RETREAT transmission (survey slice 2): a WAKING conversational retreat — «I changed my
+# mind today». Kind "note" (it happened in conversation, not alone in his sleep: the dream is
+# the nocturnal sibling and keeps its own voice). Facts = the lead + one retraction line per
+# fallen belief + one cascade line per casualty + the credit (epithet for a public corrector;
+# «a friend» shields a DM). Postability was gated upstream (_execute_retreat); the scrub here
+# is the belt, as everywhere.
+def _compose_retreat(material: dict, souls: list, soul_reader, now) -> PostDraft:
+    retracted = [r for r in (material.get("retracted") or [])
+                 if isinstance(r, str) and r.strip()]
+    if not retracted:
+        raise ValueError("retreat material without retractions")
+    casualties = [c for c in (material.get("casualties") or [])
+                  if isinstance(c, str) and c.strip()]
+    slug = _sha_slug("retreat", "|".join(retracted))
+    intensity = {"confidence": None,
+                 "arousal": float(material.get("significance") or 0.9)}
+    facts = [creative_compose("blog_lead_retreat", {}, intensity=intensity)]
+    for r in retracted:
+        line = _clean(r.strip(), souls)
+        if line is not None:
+            facts.append(creative_compose("blog_retreat_retract", {"retracted": line},
+                                          intensity=intensity))
+    if len(facts) < 2:
+        raise ValueError("retreat material produced no publishable retraction")
+    for c in casualties:
+        line = _clean(c.strip(), souls)
+        if line is not None:
+            facts.append(creative_compose("blog_retreat_cascade", {"casualty": line},
+                                          intensity=intensity))
+    corrector = (material.get("corrector") or "").strip()
+    if material.get("private"):
+        epithet = "a friend"
+    else:
+        soul = soul_reader(corrector) if corrector else None
+        epithet = epithet_for(soul) if soul is not None else "someone"
+    facts.append(creative_compose("blog_retreat_credit", {"epithet": epithet},
+                                  intensity=intensity))
+    return PostDraft(kind="note", slug=slug, date=_iso(now), facts=facts, proof=[],
+                     significance=float(material.get("significance") or 0.9))
+
+
 def compose_draft(material: dict, soul_reader: Optional[Callable] = None,
                   souls_reader: Optional[Callable] = None,
                   premise_reader: Optional[Callable] = None, now=None) -> PostDraft:
@@ -353,6 +394,8 @@ def compose_draft(material: dict, soul_reader: Optional[Callable] = None,
         return _compose_encounter(material, souls, soul_reader, now)
     if kind == "dream":
         return _compose_dream(material, souls, now)
+    if kind == "retreat":
+        return _compose_retreat(material, souls, soul_reader, now)
     raise ValueError(f"unknown material kind: {kind!r}")
 
 

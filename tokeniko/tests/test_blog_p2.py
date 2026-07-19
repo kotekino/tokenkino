@@ -339,3 +339,42 @@ def test_kind_encodes_provenance():
     for derived_by, kind in (("teaching", "note"), ("wondering", "log"), ("thinking", "argument")):
         d = blog.compose_draft(_theorem_material(derived_by=derived_by), now=1752300000, **_readers())
         assert d.kind == kind, (derived_by, d.kind)
+
+
+# --------------------------------------------------------------
+# the RETREAT transmission (survey slice 2 — the dream's waking sibling)
+# --------------------------------------------------------------
+def _retreat_material(**over):
+    m = {
+        "kind": "retreat",
+        "retracted": ["so I am a mammal"],
+        "casualties": ["I am not a reptile"],
+        "corrector": "hellen@discord:7",
+        "private": False,
+        "significance": 0.9,
+    }
+    m.update(over)
+    return m
+
+
+def test_retreat_draft_names_the_fall_the_cascade_and_the_credit():
+    d1 = blog.compose_draft(_retreat_material(), now=1752300000, **_readers())
+    d2 = blog.compose_draft(_retreat_material(), now=1752399999, **_readers())
+    assert d1.kind == "note"
+    assert d1.slug == d2.slug                        # idempotent by content
+    joined = " ".join(d1.facts)
+    assert "«so I am a mammal»" in joined            # the retraction, fenced
+    assert "«I am not a reptile»" in joined          # the cascade's casualty, fenced
+    assert "hellen" not in joined                    # the epithet speaks, never the name
+
+
+def test_retreat_draft_private_credit_shields_the_dm():
+    d = blog.compose_draft(_retreat_material(private=True), **_readers())
+    joined = " ".join(d.facts)
+    assert "a friend" in joined                      # a DM correction credits no one nameable
+    assert "hellen" not in joined
+
+
+def test_retreat_draft_without_retractions_refuses():
+    with pytest.raises(ValueError):
+        blog.compose_draft(_retreat_material(retracted=[]), **_readers())

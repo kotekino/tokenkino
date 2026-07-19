@@ -232,6 +232,12 @@ def test_retreat_executor_archives_cascades_and_concedes(
                          "senses": {"subject": "whale.n.02", "predicate": "singer.n.01"}},
         }},
     )
+    # survey slice 2: the retreat transmission needs its life:retreat -> post rule (KB personality)
+    from lib.core.memory import LifeEventKind
+    from lib.core.models import TKBehaviorRuleDoc
+    life_rule = TKBehaviorRuleDoc(trigger=LifeEventKind.RETREAT.value,
+                                  action="tokeniko:post", urge=0.75)
+    life_rule.insert()
     try:
         brain_main._execute_retreat(action)
         assert TKTheoremDoc.get(belief.id).run().archived is True          # the retreat
@@ -242,9 +248,18 @@ def test_retreat_executor_archives_cascades_and_concedes(
             {"trigger": EvalToken.CORRECTION_DONE.value, "target": "highsoul@test"}).run()
         assert concede is not None and concede.action_token == "tokeniko:concede"   # the word kept
         assert concede.answer["retracted"] == ["all whales are singers"]
+        # survey slice 2: the TRANSMISSION — a changed mind is blog-worthy, with the cascade's
+        # casualties named (the material feeds senses/blog._compose_retreat)
+        transmission = TKIdeaDoc.find_one({"trigger": LifeEventKind.RETREAT.value}).run()
+        assert transmission is not None and transmission.action_token == "tokeniko:post"
+        assert transmission.material["retracted"] == ["all whales are singers"]
+        assert transmission.material["casualties"] == ["moby is a singer"]
+        assert transmission.material["private"] is False    # no DM source -> public credit
     finally:
         TKTheoremDoc.find({"original": {"$in": ["all whales are singers", "moby is a singer"]}}).delete().run()
         TKIdeaDoc.find({"trigger": EvalToken.CORRECTION_DONE.value}).delete().run()
+        TKIdeaDoc.get_motor_collection().delete_many({"trigger": LifeEventKind.RETREAT.value})
+        TKBehaviorRuleDoc.get_motor_collection().delete_many({"trigger": LifeEventKind.RETREAT.value})
         evaluation_harness._kb_cache = None
         evaluation_harness._kb_cache_fp = None
 

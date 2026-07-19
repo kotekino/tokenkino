@@ -68,6 +68,11 @@ WONDER_IDLE_CONFIRM = float(os.getenv("BRAIN_WONDER_IDLE_CONFIRM_S", "60"))
 SLEEP_AFTER = float(os.getenv("BRAIN_SLEEP_AFTER_S", "600"))
 SLEEP_MAX = float(os.getenv("BRAIN_SLEEP_MAX_S", "2700"))
 SLEEP_TICK = float(os.getenv("BRAIN_SLEEP_TICK_S", "10"))
+# the GOODNIGHT recency gate (survey slice 2, the author-approved spam trap): the falling-asleep
+# edge speaks ONLY into a channel someone used within this window — you say goodnight to people
+# who are around; an empty room gets the silent sleep (cycles are frequent: SLEEP_MAX naps would
+# otherwise turn the goodnight into a chatterbox tic).
+GOODNIGHT_RECENCY = float(os.getenv("GOODNIGHT_RECENCY_S", "3600"))
 
 
 # --------------------------------------------------------------
@@ -199,6 +204,7 @@ def _execute_retreat(action: TKActionDoc) -> None:
     now = int(time.time())
     retracted: list[str] = []
     archived_ids: list[str] = []
+    archived_docs: list = []
     for s in sources:
         model = {"axiom": TKAxiomDoc, "theorem": TKTheoremDoc}.get(s.get("kind"))
         if model is None:
@@ -213,6 +219,7 @@ def _execute_retreat(action: TKActionDoc) -> None:
         doc.archivedAt = now
         doc.save()
         archived_ids.append(str(doc.id))
+        archived_docs.append(doc)
         retracted.append(doc.original)
         logger.info("[actions] RETREAT: archived %s «%s» (corrected by %s)",
                     s["kind"], doc.original, ct.get("corrector"))
@@ -265,6 +272,34 @@ def _execute_retreat(action: TKActionDoc) -> None:
         # as he was corrected).
         confidence=ct.get("corrector_trust"),
     )
+
+    # 5. the RETREAT TRANSMISSION (survey slice 2): a WAKING conversational retreat is
+    # blog-worthy — «I changed my mind today» (the night's retreats stay dreams; this path only
+    # runs awake, so no double post by construction). Provenance-gated: every fallen belief must
+    # be postable (the DM taint cascades exactly like min-trust); the corrector is credited by
+    # epithet only for a public exchange — «a friend» shields a DM correction.
+    from lib.core.models import TKMemoryItemDoc
+    postable = (all(getattr(d, "postable", True) for d in archived_docs)
+                and all(getattr(t, "postable", True) for t in dependents))
+    if postable:
+        src_item = None
+        try:
+            src_item = TKMemoryItemDoc.get(ObjectId(payload.get("source"))).run()
+        except (InvalidId, TypeError):
+            src_item = None
+        private = bool(src_item is not None and thinking._is_dm(src_item))
+        behavior.spawn_ideas_for(
+            LifeEventKind.RETREAT.value,
+            source=payload.get("source"),
+            material={
+                "kind": "retreat",
+                "retracted": retracted,
+                "casualties": [t.original for t in dependents],
+                "corrector": ct.get("corrector"),
+                "private": private,
+                "significance": 0.9,
+            },
+        )
     logger.info(
         "[actions] RETREAT complete: %d doc(s) archived, %d dependent theorem(s) cascaded, "
         "subaltern %s -> concede spawned",
@@ -452,6 +487,44 @@ def _sleep_duty(bs: TKBrainStateDoc) -> None:
                 len(report["constitution"]))
 
 
+# the GOODNIGHT (survey slice 2): spoken at the falling-asleep edge, SYNCHRONOUSLY — the idea is
+# born DONE (parsed_by_prio=True) and planned/dispatched right here, because a pending idea would
+# be priorities-work next tick and the goodnight itself would wake him (the wake-catch). The rule
+# stays KB personality (life:sleep -> tokeniko:goodnight in behavior_rules — no rule, no
+# goodnight); the Discord action row waits for the senses carrier, which the sleeping brain never
+# sees as work. The spam trap: only a recently-alive channel hears it (GOODNIGHT_RECENCY).
+def _say_goodnight(bs: TKBrainStateDoc) -> None:
+    from datetime import datetime, timezone
+    from lib.core.models import TKMemoryItemDoc
+    from lib.core.memory import TokenikoAction
+    try:
+        rules = behavior.behavior_for(LifeEventKind.SLEEP.value)
+        rule = next((r for r in rules
+                     if r.action == TokenikoAction.GOODNIGHT.value), None)
+        if rule is None:
+            return  # the personality keeps no goodnight — silent sleep
+        me = get_tokeniko()
+        since = datetime.fromtimestamp(time.time() - GOODNIGHT_RECENCY, tz=timezone.utc)
+        recent = (TKMemoryItemDoc.find(
+            {"channel": MEMChannels.DISCORD.value, "sourceId": {"$ne": str(me.id)},
+             "timestamp": {"$gte": since}, "metadata": {"$ne": None}})
+            .sort("-timestamp").limit(1).to_list())
+        if not recent:
+            return  # nobody around — goodnight is for people, never for empty rooms
+        idea = TKIdeaDoc(
+            trigger=LifeEventKind.SLEEP.value, action_token=TokenikoAction.GOODNIGHT.value,
+            urge=rule.urge, source=str(recent[0].id),
+            status=IdeaStatus.DONE, parsed_by_prio=True,  # born consumed — never queue work
+        )
+        idea.insert()
+        plan = behavior.plan_action(idea, _tokeniko_uid)
+        if plan is not None and behavior.score_feasibility(plan) > 0.0:
+            behavior.dispatch_action(idea, _tokeniko_uid, plan)
+            logger.info("[sleep] 🌙 he says goodnight to the room before drifting off")
+    except Exception:
+        logger.exception("[sleep] the goodnight failed — sleeping silently")
+
+
 # a stashed dream is told on waking (spawn_dream is content-idempotent, so a re-told night dedups).
 def _spawn_pending_dream(bs: TKBrainStateDoc) -> None:
     if not bs.pending_dream:
@@ -568,6 +641,7 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     bs.save()
                     logger.info("[sleep] 🌙 he falls asleep wondering (quiet for %.0fs)",
                                 now_m - last_fruitful)
+                    _say_goodnight(bs)  # the farewell edge (recency-gated; never queue work)
                     _sleep_duty(bs)  # the night's untangling — retreats now, the dream on waking
                 elif asleep_at is not None and now_m - asleep_at >= SLEEP_MAX:
                     asleep_at = _wake(bs, asleep_at, "rested")

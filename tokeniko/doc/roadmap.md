@@ -87,11 +87,8 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 - **The action-space survey — CONCLUDED 2026-07-19** (the author's rulings on the full
   inventory → the sliced build plan below; survey record in `landed.md`). The build, in his
   approved order (slice 1 in flight):
-  1. 🔄 **Small refinements**: concede fences the named beliefs («…») · topic-slotted why ·
-     the agreement voice (`tokeniko:agree` @ 0.35, rarity by `AGREE_COOLDOWN_S` throttle —
-     urge cannot make it rare, the collapse is a max).
-  2. 🔭 **Event-edge voices**: the goodnight (the falling-asleep edge speaks once) · the retreat
-     transmission (`life:retreat` → blog; the mammal moment was the prototype).
+  1. ✅ **Small refinements** — landed 2026-07-19, see `landed.md`.
+  2. ✅ **Event-edge voices** — landed 2026-07-19, see `landed.md`.
   3. 🔭 **Ask wiring + curiosity**: `ask` gets its novel-learning trigger; `learn` wired the same
      pass (the eval:true novelty split — redundant→ignore/agree, novel→learn at teacher trust).
   4. 🔭 **The etiquette family**: greet/thank/farewell as reflexes; needs social-input

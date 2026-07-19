@@ -76,6 +76,10 @@ class LifeEventKind(str, Enum):
     THEOREM = "life:theorem"      # a genuinely NEW postable theorem entered the KB
     ENCOUNTER = "life:encounter"  # a trust fold ACTUALLY MOVED (his opinion of someone changed)
     DREAM = "life:dream"          # the untangler retreated belief(s) in his sleep (§0 slice 3) — the dream report
+    # survey slice 2 (2026-07-19):
+    SLEEP = "life:sleep"          # he is falling asleep — the goodnight edge (spoken only to a recently-alive room)
+    RETREAT = "life:retreat"      # a WAKING conversational retreat executed — a changed mind is blog-worthy
+                                  # (the night's retreats stay dreams: life:dream owns that voice — no double post)
 
 
 class MEMTrustEpisode(BaseModel):
@@ -286,6 +290,11 @@ class TokenikoAction(str, Enum):
     # UNSPEAKABLE. Rarity is mechanical, not urge-based (an agree rule above ignore's urge would
     # otherwise ALWAYS win the collapse): plan_action throttles by AGREE_COOLDOWN_S per channel.
     AGREE = "tokeniko:agree"
+    # the goodnight (survey slice 2): the falling-asleep edge speaks once — the etiquette
+    # family's FIRST member (a farewell), founded a slice early. Dispatched SYNCHRONOUSLY at the
+    # sleep transition (never through the idea queue: pending work would wake him — the
+    # wake-catch); the spam trap is the recency gate (you say goodnight to people who are around).
+    GOODNIGHT = "tokeniko:goodnight"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a

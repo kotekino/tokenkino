@@ -34,6 +34,13 @@ RULES = [
     # plan_action's AGREE_COOLDOWN_S throttle (within the window the plan dissolves and the
     # silence-is-consent default resumes).
     (EvalToken.TRUE.value,         TokenikoAction.AGREE.value,   0.35, "corroboration: occasionally say so (throttled)"),
+    # survey slice 2 — the event-edge voices. The goodnight is dispatched SYNCHRONOUSLY at the
+    # sleep transition (brain/main._say_goodnight — a queued idea would wake him); this rule is
+    # still the personality switch: no rule, no goodnight. The retreat transmission rides the
+    # normal life:* -> post path (PUBLIC, addressing-exempt; 0.75 x sig 0.9 = 0.675 >= 0.5 —
+    # a changed mind always transmits when postable).
+    (LifeEventKind.SLEEP.value,    TokenikoAction.GOODNIGHT.value, 0.6, "falling asleep — say goodnight to a recently-alive room"),
+    (LifeEventKind.RETREAT.value,  TokenikoAction.POST.value,    0.75, "a waking retreat — a changed mind is blog-worthy"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
     (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
     # belief-revision v1 (retreat arc #4): a trust-gated quantified correction. RETREAT is INTERNAL

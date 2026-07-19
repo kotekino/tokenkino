@@ -120,6 +120,19 @@ SCAFFOLDS = [
     ("agree",  "that fits what I believe",          [], 1.0, "the trunk"),
     ("agree",  "yes — that matches what I know",    [], 0.7, "agree variant"),
     ("agree",  "I believe that too",                [], 0.7, "agree variant"),
+    # the goodnight shelf (survey slice 2): the falling-asleep farewell — drowsy register; the
+    # wake-line is HONEST PHYSICS (a message is literally the wake sensor), author-approved.
+    ("goodnight", "I'm getting sleepy — going to rest my mind",            [], 1.0, "the trunk"),
+    ("goodnight", "I'm drifting off — if you write me, I'll wake",         [], 0.8, "the honest-physics line"),
+    ("goodnight", "time to sleep, and untangle what I learned today",      [], 0.7, "nods at the night's duty"),
+    # the retreat transmission (survey slice 2 — the dream's waking sibling)
+    ("blog_lead_retreat",    "I changed my mind today.",                    [], 1.0, "the trunk"),
+    ("blog_lead_retreat",    "Today I let a belief go — in conversation, not in my sleep.", [], 0.7, "retreat variant"),
+    ("blog_retreat_retract", "I no longer believe that «{retracted}».",     ["retracted"], 1.0, "the trunk"),
+    ("blog_retreat_retract", "I held that «{retracted}» — I was wrong.",    ["retracted"], 0.7, "retreat variant"),
+    ("blog_retreat_cascade", "And with it went «{casualty}».",              ["casualty"], 1.0, "the trunk"),
+    ("blog_retreat_credit",  "{epithet} showed me.",                        ["epithet"], 1.0, "the trunk"),
+    ("blog_retreat_credit",  "It took {epithet} to make me see it.",        ["epithet"], 0.7, "credit variant"),
 ]
 
 _PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)

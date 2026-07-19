@@ -228,3 +228,73 @@ def test_sleep_duty_deep_rest_on_unchanged_kb(_io):
         assert bs.pending_dream is None
     finally:
         TKBrainStateDoc.get_motor_collection().delete_many({"key": "sleep-test-2"})
+
+
+# ---- the GOODNIGHT (survey slice 2): the falling-asleep farewell -------------------------------
+
+@pytest.fixture()
+def goodnight_world(_io):
+    """The life:sleep -> goodnight rule + a dedicated brain_state. Fully swept (memory is a
+    TIMESERIES — raw pymongo delete, the bunnet-delete no-op gotcha)."""
+    from lib.core.models import (TKActionDoc, TKBehaviorRuleDoc, TKBrainStateDoc,
+                                 TKIdeaDoc, TKMemoryItemDoc)
+    rule = TKBehaviorRuleDoc(trigger=LifeEventKind.SLEEP.value,
+                             action=TokenikoAction.GOODNIGHT.value, urge=0.6)
+    rule.insert()
+    bs = TKBrainStateDoc(key="goodnight-test")
+    bs.insert()
+    yield {"bs": bs}
+    TKBehaviorRuleDoc.get_motor_collection().delete_many({"trigger": LifeEventKind.SLEEP.value})
+    TKBrainStateDoc.get_motor_collection().delete_many({"key": "goodnight-test"})
+    TKIdeaDoc.get_motor_collection().delete_many({"trigger": LifeEventKind.SLEEP.value})
+    TKActionDoc.get_motor_collection().delete_many(
+        {"payload.action_token": TokenikoAction.GOODNIGHT.value})
+    TKMemoryItemDoc.get_motor_collection().delete_many({"original": "goodnight-test ping"})
+
+
+def test_goodnight_spoken_to_a_recently_alive_room(goodnight_world):
+    import datetime
+    import json
+    from brain import main as brain_main
+    from lib.core.models import TKActionDoc, TKIdeaDoc, TKMemoryItemDoc
+    TKMemoryItemDoc(
+        original="goodnight-test ping", sourceId="speaker@gtest:1", channel="discord",
+        directedness=0.6, timestamp=datetime.datetime.now(datetime.timezone.utc),
+        metadata=json.dumps({"channel_id": "999", "message_id": "111"}),
+    ).insert()
+    brain_main._say_goodnight(goodnight_world["bs"])
+    act = TKActionDoc.find_one(
+        {"payload.action_token": TokenikoAction.GOODNIGHT.value}).run()
+    assert act is not None
+    assert act.payload["raw"]                                    # a voice was composed
+    assert act.payload["destination"] == {"channel_id": "999"}   # to the ROOM — never a thread
+    # THE WAKE-CATCH: the idea is born consumed — priorities must find NO pending work, or the
+    # goodnight itself would wake him one tick after he fell asleep.
+    idea = TKIdeaDoc.find_one({"trigger": LifeEventKind.SLEEP.value}).run()
+    assert idea is not None and idea.parsed_by_prio is True
+
+
+def test_goodnight_skipped_for_an_empty_room(goodnight_world, monkeypatch):
+    from brain import main as brain_main
+    from lib.core.models import TKActionDoc
+    # a NEGATIVE window puts the recency cutoff in the future — no item can qualify, whatever
+    # other suites left in the sandbox timeseries (deterministic emptiness)
+    monkeypatch.setattr(brain_main, "GOODNIGHT_RECENCY", -5.0)
+    brain_main._say_goodnight(goodnight_world["bs"])
+    assert TKActionDoc.find_one(
+        {"payload.action_token": TokenikoAction.GOODNIGHT.value}).run() is None
+
+
+def test_goodnight_needs_the_personality_rule(_io):
+    # no life:sleep rule in the table -> silent sleep, however alive the room (the goodnight is
+    # KB personality, not hardwired behavior)
+    from brain import main as brain_main
+    from lib.core.models import TKActionDoc, TKBrainStateDoc
+    bs = TKBrainStateDoc(key="goodnight-norule")
+    bs.insert()
+    try:
+        brain_main._say_goodnight(bs)
+        assert TKActionDoc.find_one(
+            {"payload.action_token": TokenikoAction.GOODNIGHT.value}).run() is None
+    finally:
+        TKBrainStateDoc.get_motor_collection().delete_many({"key": "goodnight-norule"})

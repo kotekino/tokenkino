@@ -110,6 +110,10 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
         # the agreement voice (survey 2026-07-19): the rare nod — no data, the shelf carries the
         # register; rarity is plan_action's throttle, not this router's concern.
         return "agree", {}
+    if action_token == TokenikoAction.GOODNIGHT.value:
+        # the goodnight (survey slice 2): the falling-asleep edge — no data, the shelf carries
+        # the register (including the honest-physics line: a message IS the wake sensor).
+        return "goodnight", {}
     return None  # post / internal reflexes have no Discord-reply text here
 
 
