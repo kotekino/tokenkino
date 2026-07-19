@@ -254,6 +254,14 @@ class EvalToken(str, Enum):
     # r.a.a.; this trigger is the other half: bring the contradiction back to the premise-givers
     # as a QUESTION. Spawned by the wondering pass's conflict reconcile, never by a verdict.
     ABSURDITY = "eval:absurdity"
+    # survey slice 3 (2026-07-19, the B-wire — the author's ruling): learning from others moves
+    # BEHIND the meta-language. NOVEL = a teachable novel assertion was heard (the teachability
+    # pre-check passed) — the rule eval:novel -> tokeniko:learn IS the personality switch of
+    # teachability (no rule, no learning). LEARNED = the mint actually happened (spawned by the
+    # learn EXECUTOR, never by a verdict) — the curiosity trigger: a novel lesson earns one
+    # deepening «why», which is literally the kicker-hunting question (the closed why-loop).
+    NOVEL = "eval:novel"
+    LEARNED = "eval:learned"
 
 # action side — the reflexes tokeniko CAN fire (the hardwired repertoire).
 class TokenikoAction(str, Enum):

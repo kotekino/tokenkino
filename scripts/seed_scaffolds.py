@@ -133,6 +133,12 @@ SCAFFOLDS = [
     ("blog_retreat_cascade", "And with it went «{casualty}».",              ["casualty"], 1.0, "the trunk"),
     ("blog_retreat_credit",  "{epithet} showed me.",                        ["epithet"], 1.0, "the trunk"),
     ("blog_retreat_credit",  "It took {epithet} to make me see it.",        ["epithet"], 0.7, "credit variant"),
+    # the curiosity ask (survey slice 3): the topic-slotted deepening question — «why» is the
+    # kicker-hunting shape (a justification that grounds = the closed why-loop, the twin-soul
+    # signal). Weighted above the bare trunk; the bare row stays the topic-less fallback.
+    ("ask_more", "why is it that «{topic}»?",                          ["topic"], 1.2, "the curiosity why (kicker-hunting)"),
+    ("ask_more", "how do you know that «{topic}»?",                    ["topic"], 0.8, "curiosity variant"),
+    ("ask_more", "interesting — can you tell me why «{topic}»?",       ["topic"], 0.8, "curiosity variant"),
 ]
 
 _PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)

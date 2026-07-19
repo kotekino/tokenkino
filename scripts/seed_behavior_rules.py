@@ -41,6 +41,12 @@ RULES = [
     # a changed mind always transmits when postable).
     (LifeEventKind.SLEEP.value,    TokenikoAction.GOODNIGHT.value, 0.6, "falling asleep — say goodnight to a recently-alive room"),
     (LifeEventKind.RETREAT.value,  TokenikoAction.POST.value,    0.75, "a waking retreat — a changed mind is blog-worthy"),
+    # survey slice 3 — the B-wire (author's ruling): TEACHABILITY as personality. eval:novel ->
+    # learn IS the switch (delete this rule and he stops accepting teaching; the mint runs in the
+    # learn executor). eval:learned -> ask is the CURIOSITY: a novel lesson earns one deepening
+    # «why» (the kicker-hunting question), throttled per teacher (ASK_COOLDOWN_S).
+    (EvalToken.NOVEL.value,        TokenikoAction.LEARN.value,   0.75, "accept teaching — the personality switch of learning"),
+    (EvalToken.LEARNED.value,      TokenikoAction.ASK.value,     0.6,  "curiosity: a novel lesson earns one deepening why (throttled)"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
     (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
     # belief-revision v1 (retreat arc #4): a trust-gated quantified correction. RETREAT is INTERNAL

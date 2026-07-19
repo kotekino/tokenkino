@@ -82,7 +82,7 @@ def test_headless_leaf_never_teaches(compile_ambient, monkeypatch):
     monkeypatch.setattr(trust_mod, "resolve_canonical", lambda ref: soul)
     item = SimpleNamespace(zip=zp, original="so you are a mammal", sourceId="kotekino@test",
                            channel=None, directedness=0.15)
-    assert thinking.materialize_taught(item) is False
+    assert thinking.materialize_taught(item) is None
 
 
 def test_addressed_correction_still_teaches_shape(compile_zip):

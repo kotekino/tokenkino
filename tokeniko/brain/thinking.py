@@ -419,24 +419,27 @@ def record_observation(item: TKMemoryItemDoc, result: EvaluatorResult) -> bool:
 _TEACH_BAR = 0.9
 
 
-def materialize_taught(item: TKMemoryItemDoc) -> bool:
+# the TEACHABILITY pre-check (NO write) — the exact gates materialize_taught enforces, shared so
+# the decision site (think_one -> eval:novel, the B-wire) and the executor's mint always agree.
+# Returns (soul, norm, teacher_trust) for a teachable novel lesson, else None.
+def _taught_candidate(item: TKMemoryItemDoc):
     if item.zip is None:
-        return False
+        return None
     leaves = evaluation_harness._zip_leaves(item.zip.items)
     if not leaves or any(getattr(leaf, "unknown", False) for leaf in leaves):
-        return False  # unknown vocabulary never becomes knowledge
+        return None  # unknown vocabulary never becomes knowledge
     # a HEADLESS leaf (no subject sense, no subject identity — an ambient unresolved «you», a
     # fragment) asserts nothing about anyone: never knowledge (the coreference gate's belt,
     # 2026-07-18 — the mammal incident's taught «so I am a mammal» came through here).
     if any(not ((getattr(l, "senses", None) or {}).get("subject")
                 or (getattr(l, "identities", None) or {}).get("subject")) for l in leaves):
-        return False
+        return None
     soul = trust.resolve_canonical(item.sourceId)
     if soul is None or soul.isMe:
-        return False
+        return None
     teacher_trust = 1.0 if soul.imprint else soul.trust
     if teacher_trust < _TEACH_BAR:
-        return False  # remembered, not believed
+        return None  # remembered, not believed
     # DEIXIS NORMALIZATION at the knowledge boundary: the lesson's surface string is the TEACHER's
     # utterance — «I am your creator» held verbatim would flip meaning the moment tokeniko re-utters
     # it ("I" would mean HIM). The zip is already perspective-resolved (identities carry the
@@ -448,9 +451,22 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
     if norm is None:
         logger.info("[thinking] taught «%s» not normalizable (deixis) — remembered, not believed",
                     item.original)
-        return False
+        return None
     if TKTheoremDoc.find_one({"original": norm}).run() is not None:
-        return False  # already knowledge — dedup by (normalized) original
+        return None  # already knowledge — dedup by (normalized) original
+    return soul, norm, teacher_trust
+
+
+# the MINT (survey slice 3, the B-wire): called by the learn EXECUTOR (brain/main._execute_learn)
+# — never inline from think_one anymore: whether tokeniko accepts teaching is the eval:novel ->
+# tokeniko:learn behavior rule (KB personality; no rule = a mind that doesn't learn from others).
+# Returns the normalized original on a real mint, None on refusal (the candidate re-check makes
+# the executor race-safe: a lesson learned by any other path meanwhile dedups to an honest no-op).
+def materialize_taught(item: TKMemoryItemDoc) -> Optional[str]:
+    cand = _taught_candidate(item)
+    if cand is None:
+        return None
+    soul, norm, teacher_trust = cand
     # provenance gate (blog P1): a lesson given in PRIVATE (a Discord DM) is learned but never
     # published — "DM never public" is constitution-level.
     postable = not _is_dm(item)
@@ -477,7 +493,7 @@ def materialize_taught(item: TKMemoryItemDoc) -> bool:
     if postable:
         _spawn_life_theorem(str(theorem.id), norm, "teaching",
                             [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm))
-    return True
+    return norm
 
 
 # --------------------------------------------------------------
@@ -1281,12 +1297,14 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
             if token == EvalToken.TRUE.value:
                 materialize_theorem(result, item, derived_by="thinking")
-            # D P3 (tier-1, the TEACHING CHANNEL): a novel assertion from a soul at/above the teach
-            # bar becomes a TAUGHT theorem (silent, like all learning); below the bar it stays
-            # remembered-not-believed. Runs on BOTH unknown paths (a trusted teacher's «because» is
-            # itself teachable).
-            if token == EvalToken.UNKNOWN.value:
-                materialize_taught(item)
+            # D P3 (tier-1, the TEACHING CHANNEL) — the B-WIRE (survey slice 3, author's ruling):
+            # a teachable novel assertion spawns eval:novel; the eval:novel -> tokeniko:learn RULE
+            # is the personality switch of teachability, and the MINT runs in the learn executor
+            # (brain/main._execute_learn). No rule = a mind that doesn't accept teaching. Runs on
+            # BOTH unknown paths (a trusted teacher's «because» is itself teachable).
+            if token == EvalToken.UNKNOWN.value and _taught_candidate(item) is not None:
+                behavior.spawn_ideas_for(EvalToken.NOVEL.value, payload=item.zip,
+                                         source=str(item.id), target=item.sourceId)
             # THE OBSERVATION-FACT SEAM: a refuted assertion is itself knowledge — the speaker
             # said false (silent, like all learning; the DISAGREEMENT echo below prices the
             # trust side; an accepted CORRECTION never reaches here — no offense in revision).

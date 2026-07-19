@@ -1634,6 +1634,24 @@ rulings) + slice 1, the small refinements**
 - +7 tests (goodnight trio incl. the wake-catch regression + the executor's transmission
   assertions + the pure composer trio).
 
+**Survey slice 3 — the B-wire: teachability as personality + the curiosity ask (2026-07-19,
+the author's option-B ruling: the mint moves BEHIND the meta-language)**
+- **Learning from others is now a behavior rule, not hardwired code.** The teaching mint moved
+  out of `think_one`: the decision site runs the shared teachability pre-check
+  (`_taught_candidate` — the exact gates, NO write) and spawns `eval:novel`; the
+  `eval:novel → tokeniko:learn` rule IS the personality switch (delete it and he stops
+  accepting teaching); `brain/main._execute_learn` executes the mint (race-safe — the
+  candidate re-check dedups a lesson learned meanwhile to an honest no-op).
+  `materialize_taught` returns the normalized original now (None = refusal).
+- **The curiosity ask**: a REAL mint spawns `eval:learned` (target = the teacher, topic = the
+  normalized lesson) → `tokeniko:ask`, topic-slotted: «why is it that «X»?» — deliberately the
+  kicker-hunting shape (a justification that grounds = the closed why-loop, the twin-soul
+  signal): curiosity and trust-building in one gesture. Threads under the taught message.
+  Throttled per TEACHER (`ASK_COOLDOWN_S`, default 10 min — a teaching burst earns one
+  question, not five).
+- +3 tests (the full wire circle · no-rule-no-learning · the per-teacher throttle) + the
+  return-type migrations in trust_p3/deixis/coreference suites.
+
 **The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
 - The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
   the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding

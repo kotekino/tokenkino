@@ -89,8 +89,7 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
   approved order (slice 1 in flight):
   1. ✅ **Small refinements** — landed 2026-07-19, see `landed.md`.
   2. ✅ **Event-edge voices** — landed 2026-07-19, see `landed.md`.
-  3. 🔭 **Ask wiring + curiosity**: `ask` gets its novel-learning trigger; `learn` wired the same
-     pass (the eval:true novelty split — redundant→ignore/agree, novel→learn at teacher trust).
+  3. ✅ **Ask wiring + curiosity (the B-wire)** — landed 2026-07-19, see `landed.md`.
   4. 🔭 **The etiquette family**: greet/thank/farewell as reflexes; needs social-input
      recognition (hunch 8: «hello John» stops being an assertion). The author's guard ruling:
      etiquette WINS over over-engagement in the public channel; opinion kinds stay

@@ -94,6 +94,11 @@ _TRUST = {TokenikoAction.MORE_TRUST.value, TokenikoAction.LESS_TRUST.value}
 # replace this someday.
 _AGREE_COOLDOWN_S = int(os.getenv("AGREE_COOLDOWN_S", "1800"))
 
+# the ASK cooldown (seconds, per TEACHER — survey slice 3): a teaching burst that mints five
+# theorems earns ONE curiosity question, not five (the over-engagement guard again; keyed by
+# target where agree keys by channel — curiosity is about the person, not the room).
+_ASK_COOLDOWN_S = int(os.getenv("ASK_COOLDOWN_S", "600"))
+
 
 # the candidate set / superposition: every ENABLED rule for a trigger, most-urgent first (order as
 # the tiebreak). Multiple rules may match one trigger — Priorities arbitrates.
@@ -252,9 +257,17 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
     else:
         target = None
 
+    # the ASK throttle (survey slice 3): one curiosity question per teacher per window — within
+    # it the plan dissolves (the lesson is still learned; only the question is skipped).
+    if token == TokenikoAction.ASK.value and target:
+        last = (TKActionDoc.find({"payload.action_token": token, "targetId": target})
+                .sort("-createdAt").limit(1).to_list())
+        if last and (int(time.time()) - last[0].createdAt) < _ASK_COOLDOWN_S:
+            return None
+
     payload = {"action_token": token, "trigger": idea.trigger}
-    if token in _TRUST or token == TokenikoAction.RETREAT.value:
-        payload["source"] = idea.source  # provenance: the memory item behind the episode/correction
+    if token in _TRUST or token in (TokenikoAction.RETREAT.value, TokenikoAction.LEARN.value):
+        payload["source"] = idea.source  # provenance: the memory item behind the episode/correction/lesson
     if idea.answer is not None:
         payload["answer"] = idea.answer  # the verdict/value (auditable; a native-zip channel reads it raw)
     if idea.material is not None:

@@ -91,7 +91,7 @@ def test_taught_channel_graded_is_postable_and_spawns_life_theorem(_io, clean_li
     from lib.core.models import TKTheoremDoc
     teacher = _mk_soul(_TEACHER, "life-p1-hellen", trust=0.95)
     item = _mk_item("life-p1: wisdom begins in wonder", str(teacher.id), directedness=0.9)
-    assert materialize_taught(item) is True
+    assert materialize_taught(item) is not None
     thm = TKTheoremDoc.find_one({"original": "life-p1: wisdom begins in wonder"}).run()
     assert thm is not None and thm.postable is True        # channel talk (0.9) is NOT a DM
     ideas = _life_theorem_ideas()
@@ -111,7 +111,7 @@ def test_taught_in_a_dm_is_not_postable_and_stays_silent(_io, clean_life):
     from lib.core.models import TKTheoremDoc
     teacher = _mk_soul(_TEACHER, "life-p1-hellen", trust=0.95)
     item = _mk_item("life-p1: a private lesson", str(teacher.id), directedness=1.0)  # a Discord DM
-    assert materialize_taught(item) is True                # learned all the same (knowledge is knowledge)
+    assert materialize_taught(item) is not None                # learned all the same (knowledge is knowledge)
     thm = TKTheoremDoc.find_one({"original": "life-p1: a private lesson"}).run()
     assert thm is not None and thm.postable is False       # DM never public
     assert _life_theorem_ideas() == []                     # ...and never an urge to post it

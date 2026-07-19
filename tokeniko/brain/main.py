@@ -16,6 +16,7 @@ from lib.core.memory import (
     ActionType,
     LifeEventKind,
     MEMChannels,
+    TokenikoAction,
     TrustEpisodeKind,
     UrgeLevel,
 )
@@ -156,6 +157,8 @@ def actions_phase() -> bool:
             logger.warning("[actions] malformed update_trust action %s dropped", str(action.id))
     elif action.action_type == ActionType.REVISE_BELIEF:
         _execute_retreat(action)
+    elif (action.payload or {}).get("action_token") == TokenikoAction.LEARN.value:
+        _execute_learn(action)
     else:
         logger.info(
             "[actions] would execute %s on channel=%s target=%s (internal KB-write — TODO)",
@@ -168,6 +171,41 @@ def actions_phase() -> bool:
     action.status = ActionStatus.DONE
     action.save()
     return True
+
+
+# the LEARN executor (survey slice 3, the B-wire — author's ruling): the taught-theorem MINT,
+# moved out of think_one and behind the meta-language. The eval:novel -> tokeniko:learn rule is
+# the personality switch of teachability; this executor is the hand. materialize_taught re-runs
+# the full candidate check (race-safe: a lesson learned meanwhile dedups to an honest no-op).
+# On a REAL mint, spawn eval:learned -> the curiosity trigger (target = the teacher; the topic =
+# the normalized lesson): a novel lesson earns one deepening «why» — literally the kicker-hunting
+# question (the closed why-loop is the twin-soul signal). Throttled at plan time (ASK_COOLDOWN_S).
+def _execute_learn(action: TKActionDoc) -> None:
+    from bson import ObjectId
+    from bson.errors import InvalidId
+    from lib.core.models import TKMemoryItemDoc
+    from lib.core.memory import EvalToken
+
+    payload = action.payload or {}
+    src = payload.get("source")
+    item = None
+    try:
+        item = TKMemoryItemDoc.get(ObjectId(src)).run()  # Bunnet: .run() executes
+    except (InvalidId, TypeError):
+        item = None
+    if item is None:
+        logger.warning("[actions] learn action %s: source memory %r unresolvable — dropped",
+                       str(action.id), src)
+        return
+    norm = thinking.materialize_taught(item)
+    if norm is None:
+        logger.info("[actions] learn action %s: nothing minted («%s» — raced/no longer teachable)",
+                    str(action.id), item.original[:60])
+        return
+    behavior.spawn_ideas_for(
+        EvalToken.LEARNED.value, payload=item.zip, source=str(item.id),
+        target=item.sourceId, answer={"topic": norm},
+    )
 
 
 # --------------------------------------------------------------

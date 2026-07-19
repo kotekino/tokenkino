@@ -113,7 +113,7 @@ def test_taught_theorem_stores_the_normalized_original(_io, clean_deixis):
     from lib.core.models import TKIdeaDoc, TKTheoremDoc
     teacher = _mk_teacher(_io, trust=0.95)
     item = _mk_item(_io, "I am your creator", str(teacher.id))    # channel talk (0.9) — postable
-    assert materialize_taught(item) is True
+    assert materialize_taught(item) is not None
     thm = TKTheoremDoc.find_one({"original": f"{_TEACHER_NAME} is my creator"}).run()
     assert thm is not None and thm.archived is False
     # the raw speaker-perspective string is never a held belief
@@ -129,7 +129,7 @@ def test_unnormalizable_lesson_is_remembered_not_believed(_io, clean_deixis):
     from lib.core.models import TKMemoryItemDoc, TKTheoremDoc
     teacher = _mk_teacher(_io, trust=0.95)
     item = _mk_item(_io, "I gave you my word", str(teacher.id))
-    assert materialize_taught(item) is False
+    assert materialize_taught(item) is None
     assert TKTheoremDoc.find_one({"original": "I gave you my word"}).run() is None
     # the episodic record survives regardless — remembered, not believed
     assert TKMemoryItemDoc.find_one({"original": "I gave you my word"}).run() is not None
@@ -139,9 +139,9 @@ def test_taught_dedups_on_the_normalized_key(_io, clean_deixis):
     from brain.thinking import materialize_taught
     teacher = _mk_teacher(_io, trust=0.95)
     item = _mk_item(_io, "I am your creator", str(teacher.id))
-    assert materialize_taught(item) is True
+    assert materialize_taught(item) is not None
     again = _mk_item(_io, "I am your creator", str(teacher.id))
-    assert materialize_taught(again) is False                     # dedup by the NORMALIZED original
+    assert materialize_taught(again) is None                     # dedup by the NORMALIZED original
 
 
 def test_materialize_theorem_normalizes_the_speakers_perspective(_io, clean_deixis):

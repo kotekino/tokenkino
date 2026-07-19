@@ -82,7 +82,11 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
     if action_token == TokenikoAction.CLARIFY.value:
         return "clarify_conflict", {}
     if action_token == TokenikoAction.ASK.value:
-        return "ask_more", {}
+        # the curiosity ask (survey slice 3): the learned lesson rides as {topic} so the
+        # deepening question names it — «why is it that «X»?» is the kicker-hunting shape
+        # (the closed why-loop). Slot-gated: no topic -> the bare ask_more shelf speaks.
+        topic = (answer or {}).get("topic")
+        return "ask_more", ({"topic": topic} if topic else {})
     if action_token == TokenikoAction.WHY.value:
         # the topic-slotted why (survey 2026-07-19): the ungroundable claim rides as {topic} so
         # the ask names WHAT it is asking about («why do you say that «…»?» beats a bare «why?»
