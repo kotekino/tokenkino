@@ -9,6 +9,7 @@
 - [Phased execution plan](#phased-execution-plan) — historical build phases
 - [Reasoning engine — design & empirical findings](#reasoning-engine--design--empirical-findings)
 - [Parser / compiler review — quirks, fixes, gaps](#parser--compiler-review--quirks-fixes-gaps)
+- [The identity-blindness family](#the-identity-blindness-family-2026-07-19-audit) — the audit + the generalized cure (`role_key`)
 
 ---
 
@@ -551,3 +552,66 @@ compiler.
 5. **`@-1,0,0` spacetime artifact** — single-entity normalization tidy.
 6. **Live verification** — re-run `doc/_phase0_regression.py` in an environment that permits
    executing the venv interpreter; confirm the negation cos→truth numbers and Decision 2/3b raws.
+
+---
+
+## The identity-blindness family (2026-07-19 audit)
+
+> Requested by the author after two same-day live specimens; the survey so the NEXT bounce is
+> recognized on sight and the cure is generalized, not re-derived. Status of the individual
+> leads lives in `roadmap.md` §2 — this is the reference map.
+
+**The disease, stated once.** tokeniko's symbolic layer has exactly two kinds of referent, with
+disjoint keys: a CLASS keys by WSD sense (`cat.n.01`, in `TKZipContent.senses`) and an
+INDIVIDUAL keys by identity uid (`tokeniko`, `mari@discord:…`, in `TKZipContent.identities`) —
+the identity-bridge design (an individual's 2925 vector is an honest type centroid, never a
+referent key). Any code that reads only `senses.get(role)` is therefore blind to half the world,
+and the failure is SILENT: an honest-looking IDK or a quiet non-match, never an error — which is
+why every specimen so far surfaced LIVE, not in tests.
+
+**Two distinct failure modes** (both must be checked when auditing a site):
+1. **Key-blindness** — matching/dedup/lookup reads the sense and misses the uid (the
+   reduct-answer key: the ghost «so I am a mammal» was unmatchable by ANY answer).
+2. **Source-blindness** — the knowledge source itself differs by kind: classes → the WordNet
+   is_a graph; individuals → KB facts (axioms/theorems keyed by uid). A graph-walk path that
+   lacks the KB-facts branch answers IDK for individuals even when the fact is stored
+   («what are you?» → IDK despite «I am a software»).
+
+**Confirmed blind (the queue — status in roadmap §2):**
+- `e_wh_solve` what-branch (PREDICATE gap): sense-only is_a walk; identity subjects → IDK.
+  Observed live 2026-07-18 («what are you?», 4×). Both failure modes at once.
+- `e_wh_solve` who-branch (SUBJECT gap): matches the question's predicate by sense only — an
+  identity PREDICATE («who is kotekino?») can never match. Not yet observed; it is the next
+  bounce waiting.
+- `e_consistency._contrary_pairs`: the antonym-mutex same-subject check compares subject
+  senses; two individual-subject leaves both read None and `None == None` passes — works for
+  «I am happy and I am sad» by ACCIDENT, not design. One-line hygiene.
+
+**Already identity-aware (the healthy organs — the patterns to copy):**
+- `brain/thinking._leaf_net_key` — sense OR uid per role (the 2026-07-19 fix; the family's
+  first cure and the template).
+- `evaluation_harness.conclusion_key` — identity-FIRST, deliberately («I exist» and «tokeniko
+  exists» share it).
+- `e_compare` via `evaluator_sameIndividual` — identity overrides geometry on subject/direct;
+  the consistency kernel's atom clustering inherits this by routing through compareContent.
+- `e_chaining` — individuals enter the closure via membership facts.
+- `e_wh_solve` DIRECT + LOCATION branches — both read `identities` alongside `senses` (the
+  in-file counterexamples to the blind branches).
+- the reductio signature («tokeniko|mammal.n.01|») — identity-native from birth.
+
+**Sense-only BY DESIGN (leave alone; do not "fix"):**
+- is_a/part_of graph entry points — WordNet needs a synset; the cure for individuals is the
+  KB-facts BRANCH (failure mode 2), never feeding uids to the graph.
+- `e_label` (role centroid → word) — semantic by nature; individuals carry honest type
+  centroids.
+- the P2a geometric abstention — an uid-only subject deliberately compiles sense-less so
+  bare-predicate geometry cannot vote on factless self/other claims.
+
+**The generalized cure (the low-hanging fruit, author-endorsed 2026-07-19):** one shared
+primitive — `role_key(leaf, role) -> sense | identity uid | None` — homed in the evaluator
+(`lib/llc/evaluator/`), consumed by every matching/lookup site (`_leaf_net_key`, the two blind
+wh branches, `_contrary_pairs`, and any future role reader). The anchor-resolver principle
+applied to role reading: ONE mechanism, no ad-hoc `senses.get(...)` scattered per site. Paired
+with the written rule: **every role-reading site consumes the sense-or-identity pair; every
+WordNet-graph path carries a KB-facts branch for individuals.** With both in place the family
+becomes unbuildable-again.

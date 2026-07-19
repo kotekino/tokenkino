@@ -76,10 +76,11 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 ### 0. Standing small items 🔄
 
 - **The reduct answers** (his hand, conversational; the recompile + restart chores AND the
-  reduct-answer identity fix are done → `landed.md`): the two open reductio questions — answer
-  **in the DM thread** («you are not a mammal» suffices; the room's directedness 0.6 keeps «you»
-  honestly unresolved) — his answer executes the mammal-era biography ruling THROUGH the retreat
-  machinery. Needs the daemons restarted on the fix commit first.
+  reduct-answer identity fix are done → `landed.md`): the two open reductio questions live in the
+  SHARED room (fork B — asked where the premises were taught) — answer as a Discord **reply** to
+  the question message (reply-to-him ≥ 0.9 → addressed; a bare room message scores 0.6 and «you»
+  stays honestly unresolved). «you are not a mammal» suffices; the answer executes the mammal-era
+  biography ruling THROUGH the retreat machinery. Daemons must run the fix commit (a649a7e).
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
 
@@ -105,11 +106,13 @@ premiere, both evaluator-side:
   speakup never got its live cue).
 - **Polar question misses a direct theorem**: «is gold beautiful?» → IDK despite the active
   theorem «gold is beautiful».
-- **«what are you?» — the wh what-branch is identity-blind** (cap-feedback 2026-07-08, recurred
-  live 2026-07-18; diagnosed 07-19 — see `doc/ref/cap-feedback.md`): the PREDICATE gap solver
-  reads only the subject SENSE (WordNet is_a walk); an individual subject (identity uid, no
-  sense) → IDK despite «I am a software» in the KB. Fix shape known: scan KB facts by identity,
-  like the DIRECT branch already does. Same family as the landed reduct-answer key fix.
+- **The identity-blindness family** (audit 2026-07-19 → `doc/ref/notes.md`; author-endorsed
+  low-hanging fruit): the generalized cure = the `role_key` primitive (sense OR identity uid,
+  one shared reader) + the KB-facts branch beside every WordNet-graph walk. Members: the wh
+  **what-branch** («what are you?» → IDK despite «I am a software» — cap-feedback 2026-07-08,
+  recurred live 07-18) · the wh **who-branch** (identity predicates unmatchable — the next
+  bounce waiting) · `_contrary_pairs` same-subject hygiene. The reduct-answer key fix (landed
+  07-19) is the family's first cure and the template.
 
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 
