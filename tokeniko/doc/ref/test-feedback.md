@@ -907,3 +907,25 @@ honest IDKs, taught beliefs learned, trust moves, background wondering in native
 ears normalizing 4-typo lines. The maxims and the counterexample structure compiled clean where
 the six cases above didn't bite. The instrument arc's ordering (input quality first) stands
 reconfirmed by its own third harvest.
+
+---
+
+## 2026-07-19 — the reduct answer that bounced (found by the ledger rehearsal, fixed same day)
+
+**Observed (live 2026-07-18 ~20:58, forensically replayed 07-19).** The author answered the open
+reductio questions in the shared room — «you are wrong: you are not a mammal because you are a
+software and no software is an animal», three phrasings — and the binding never fired: three
+`clarify` replies, both ledger rows stayed OPEN, the ghost «so I am a mammal» unarchived.
+*Diagnosis (two stacked gaps, replayed read-only on the stored zips):*
+1. The room message scored directedness 0.6 < 0.9 → `addressed=False` → «you» honestly
+   unresolved (`identities={}`) — the coreference gate working as designed (NOT a bug; it is the
+   mammal-incident cure itself).
+2. The real bug: `_leaf_net_key` read only WSD senses — an INDIVIDUAL-subject premise
+   («so I am a mammal», subject = the identity uid `tokeniko`, never a sense) keyed to None and
+   was unmatchable by ANY answer. The organ's central case (beliefs about himself) was invisible
+   to its own binding. Identity resolution was NOT at fault (`canonical_uid` hop → imprinted
+   soul, trust 1.0, gate passes).
+*Action:* `_leaf_net_key` now falls back per-role to the identity-bridge uid (sense OR identity;
+disjoint string formats, no collision); the un-addressed ambient «you» still keys None — the
+gate's caution preserved, not bypassed. 2 tests in `test_reductio_loop.py` (the individual-subject
+bind + the ambient-denial refusal). The live answer belongs in the DM (directedness 1.0).

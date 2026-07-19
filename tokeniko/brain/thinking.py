@@ -555,16 +555,25 @@ def _try_correction(item: TKMemoryItemDoc) -> bool:
 # a leaf's NET comparison key: (subject, predicate, direct, net-negation) — the net folds the
 # surface split between negation-on-copula and negation-on-quantifier (NEGATIVE «no S is P»,
 # NEGATED_UNIVERSAL «not all S are P»), so a denial matches its premise whichever way either
-# was phrased. None when the leaf carries no subject/predicate senses (nothing to compare).
+# was phrased. Each role keys by its WSD sense OR, failing that, its identity uid (the
+# identity-bridge): an INDIVIDUAL-subject belief («so I am a mammal» — subject tokeniko, a uid,
+# never a sense) is exactly what a reductio about HIMSELF rests on, and the teacher's addressed
+# denial («you are not a mammal» — «you»→tokeniko) carries the same uid; sense-only keys left
+# both sides None and the asked premise unmatchable (found live 2026-07-19: the answer bounced
+# to clarify). Uid and sense strings live in disjoint formats — no cross-collision. None when a
+# role has neither (an unresolved ambient «you» stays honestly unbindable — the coreference
+# gate's caution is preserved, not bypassed).
 def _leaf_net_key(leaf) -> Optional[tuple]:
     senses = getattr(leaf, "senses", None) or {}
-    subj, pred = senses.get("subject"), senses.get("predicate")
+    identities = getattr(leaf, "identities", None) or {}
+    subj = senses.get("subject") or identities.get("subject")
+    pred = senses.get("predicate") or identities.get("predicate")
     if not subj or not pred:
         return None
     q = getattr(leaf, "quantifier", None)
     neg = bool(getattr(leaf, "negated", False)) != (
         q in (TKQuantifier.NEGATIVE, TKQuantifier.NEGATED_UNIVERSAL))
-    return (subj, pred, senses.get("direct"), neg)
+    return (subj, pred, senses.get("direct") or identities.get("direct"), neg)
 
 
 def _try_reduct_answer(item: TKMemoryItemDoc) -> bool:

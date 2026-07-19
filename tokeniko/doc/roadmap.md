@@ -73,14 +73,13 @@ sequence; the reduct is the survey's first entry, already built), the fresh micr
 carrying the premiere's two grounding leads (§2), the translator remainder (§3), the
 strengthening tail (§4 — R4b now pairs naturally with the landed contraposition prover).
 
-### 0. Standing small items 🔭
+### 0. Standing small items 🔄
 
-- **The theorems recompile re-run** (his hand): `recompile.py --apply --collection theorems`
-  for the one csubj-survivor row → 282/282.
-- **The daemons' next restart** picks up the 2026-07-18 evening engine commits (the heartbeat's
-  honest sleeping line + the morning questions) — cosmetic until then.
-- **The reduct answers** (his hand, conversational): the two open reductio questions in his DMs
-  — his answer executes the mammal-era biography ruling THROUGH the retreat machinery.
+- **The reduct answers** (his hand, conversational; the recompile + restart chores AND the
+  reduct-answer identity fix are done → `landed.md`): the two open reductio questions — answer
+  **in the DM thread** («you are not a mammal» suffices; the room's directedness 0.6 keeps «you»
+  honestly unresolved) — his answer executes the mammal-era biography ruling THROUGH the retreat
+  machinery. Needs the daemons restarted on the fix commit first.
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
 
@@ -106,6 +105,11 @@ premiere, both evaluator-side:
   speakup never got its live cue).
 - **Polar question misses a direct theorem**: «is gold beautiful?» → IDK despite the active
   theorem «gold is beautiful».
+- **«what are you?» — the wh what-branch is identity-blind** (cap-feedback 2026-07-08, recurred
+  live 2026-07-18; diagnosed 07-19 — see `doc/ref/cap-feedback.md`): the PREDICATE gap solver
+  reads only the subject SENSE (WordNet is_a walk); an individual subject (identity uid, no
+  sense) → IDK despite «I am a software» in the KB. Fix shape known: scan KB facts by identity,
+  like the DIRECT branch already does. Same family as the landed reduct-answer key fix.
 
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 

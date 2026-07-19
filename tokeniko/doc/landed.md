@@ -1589,3 +1589,22 @@ night otherwise: two sleeps (17:39 — the TRUE first sleep, duty ran, nothing c
   keeps beating through REM (state "sleeping", «asleep — untangling what I believe»).
 - Growth ring 160 «It learned to sleep — and woke up asking which of its beliefs was false»
   drafted in `seed-growth.mjs` (the edge stays «Growing a voice of its own»).
+
+**The morning after (2026-07-19 — the standing chores, author's hand)**
+- The theorems recompile re-run executed: `recompile.py --apply --collection theorems` → 282/282
+  (the csubj survivor recompiled).
+- The daemons restarted on the 2026-07-18 evening engine commits — the heartbeat's honest
+  sleeping line + the morning questions are live in the running mind.
+
+**The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
+- The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
+  the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding
+  never fired — three `clarify` replies, both rows still OPEN. Forensic replay on the stored
+  zips found two stacked gaps; full story in `doc/ref/test-feedback.md` (2026-07-19 entry).
+- The fix: `_leaf_net_key` (`brain/thinking.py`) keys each role by WSD sense OR the
+  identity-bridge uid — the individual-subject premise («so I am a mammal», subject = uid
+  `tokeniko`, no sense) was unmatchable by the sense-only key: the organ's central case
+  (beliefs about HIMSELF) was invisible to its own binding. The coreference gate is untouched:
+  an ambient un-addressed «you» still keys None (the mammal-era hole stays closed).
+- 2 new tests in `test_reductio_loop.py`: the individual-subject bind end-to-end through
+  `_try_reduct_answer` (corner "R", the ghost named in sources) + the ambient-denial refusal.

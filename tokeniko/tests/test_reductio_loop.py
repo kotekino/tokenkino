@@ -238,6 +238,74 @@ def test_reduct_binding_scoped_to_the_asked_teacher(poisoned_world, compile_zip)
         _denial_item(compile_zip, "a mind is not a software", "nobody@rtest:9")) is False
 
 
+def test_reduct_binding_reaches_individual_subject_premises(poisoned_world, compile_zip, _io):
+    # the live miss (2026-07-19): an INDIVIDUAL-subject premise («so I am a mammal» — subject
+    # tokeniko, an identity uid, never a sense) was unmatchable by the sense-only key, so the
+    # teacher's denial bounced to clarify and the row stayed open. The key now falls back to the
+    # identity-bridge: the addressed «you are not a mammal» carries the same uid and binds.
+    from brain import thinking
+    from lib.core.memory import MEMProvenance
+    from lib.core.models import TKIdeaDoc, TKReductioDoc, TKTheoremDoc
+    ghost = TKTheoremDoc(
+        original="so I am a mammal", zip=compile_zip("so I am a mammal"),
+        sourceId="prof@rtest:1", channel=MEMChannels.INTERNAL, archived=False, trusted=0.7,
+        provenance=MEMProvenance(premises=["taught:prof@rtest:1"],
+                                 chain="taught (reductio-loop fixture)", derived_by="teaching"),
+    ).insert()
+    row = TKReductioDoc(
+        signature="tokeniko|mammal.n.01|", premises=[str(ghost.id)],
+        absurd="I am a mammal and I am not a mammal",
+        status=ReductioStatus.OPEN, target="prof@rtest:1", generation=0,
+    ).insert()
+    try:
+        item = _denial_item(compile_zip, "you are not a mammal", "prof@rtest:1")
+        assert thinking._try_reduct_answer(item) is True
+        retreat_idea = TKIdeaDoc.find_one(
+            {"trigger": EvalToken.CORRECTION.value, "source": str(item.id)}).run()
+        assert retreat_idea is not None
+        assert retreat_idea.answer["corner"] == "R"
+        assert retreat_idea.answer["signature"] == row.signature
+        assert retreat_idea.answer["sources"][0]["original"] == "so I am a mammal"
+    finally:
+        TKTheoremDoc.get_motor_collection().delete_many({"original": "so I am a mammal"})
+
+
+def test_unaddressed_denial_still_does_not_bind(poisoned_world, compile_zip, _io):
+    # the coreference gate's caution survives the identity fallback: an AMBIENT «you are not a
+    # mammal» (addressed=False — the room, not the DM) resolves «you» to no identity, keys to
+    # None, and binds nothing. The cure never reopens the mammal-era hole.
+    import copy as _copy
+    import datetime as _dt
+    from brain import thinking
+    from lib.core.memory import MEMProvenance
+    from lib.core.models import TKMemoryItemDoc, TKReductioDoc, TKTheoremDoc
+    from lib.llc.compiler import compiler_compile
+    from lib.llc.parser import parser
+    tok, ai = _io
+    ghost = TKTheoremDoc(
+        original="so I am a mammal", zip=compile_zip("so I am a mammal"),
+        sourceId="prof@rtest:1", channel=MEMChannels.INTERNAL, archived=False, trusted=0.7,
+        provenance=MEMProvenance(premises=["taught:prof@rtest:1"],
+                                 chain="taught (reductio-loop fixture)", derived_by="teaching"),
+    ).insert()
+    TKReductioDoc(
+        signature="tokeniko|mammal.n.01|", premises=[str(ghost.id)],
+        absurd="I am a mammal and I am not a mammal",
+        status=ReductioStatus.OPEN, target="prof@rtest:1", generation=0,
+    ).insert()
+    try:
+        ambient_zip = compiler_compile(_copy.deepcopy(
+            parser("you are not a mammal", tok, tok, ai, addressed=False)))[1]
+        item = TKMemoryItemDoc(
+            id=ObjectId(), original="you are not a mammal", zip=ambient_zip,
+            sourceId="prof@rtest:1", channel="discord", directedness=0.6,
+            timestamp=_dt.datetime.now(_dt.timezone.utc),
+        )
+        assert thinking._try_reduct_answer(item) is False
+    finally:
+        TKTheoremDoc.get_motor_collection().delete_many({"original": "so I am a mammal"})
+
+
 def test_reduct_binding_gate_holds_for_low_trust(poisoned_world, compile_zip):
     # the same Popper gate as every correction: the answerer's trust must reach the belief's —
     # the reductio context disambiguates the MEANING, it never lowers the bar
