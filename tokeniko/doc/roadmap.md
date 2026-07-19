@@ -61,6 +61,10 @@ it references, it does not duplicate (invariant #2).
   (contraposition prover) · the live-night refinements (the insomnia fix · the morning
   questions · the Mind-Monitor sleeping state + the tone-follows-the-mind site themes).
   **FIRST LIVE NIGHT the same evening: two sleeps, the questions asked, the site dimmed.**
+- **Tiredness + the parallel heartbeat** (2026-07-19, the morning after): the wakefulness bound
+  (`BRAIN_WAKE_MAX_S` — sleep no matter the fruit; fork A: conversation defers, never resets) ·
+  the heartbeat in its own thread (no more monitor holes) · the O(1) snapshot counts. *(The
+  existence-flood verbosity question → `parked.md`.)*
 
 ---
 

@@ -105,3 +105,13 @@ teaching workflow makes the double-teach feel like friction. *(Supersedes the st
 a lesson (one rule on the `eval:learned` seam, beside the curiosity ask). Parked with the author:
 the curiosity «why» is already his one reaction to a lesson — two reactions per lesson is chatter.
 Promote if the etiquette family's live behavior makes his teachers feel unthanked.
+
+**The existential-theorem blog verbosity (2026-07-19, the first live night's flood)** — wondering's
+«X exists»/«X has property» mints each post to the blog (life:theorem → tokeniko:post, urge 0.52):
+the night produced dozens of near-identical transmissions down the WordNet closure. The author's
+deliberate hold: «I'm not sure if the blog should be so verbose, but I can't really answer now —
+we need more features / samples / run time.» Candidate shapes when it promotes: a significance/
+trust gate on life:theorem posts; rule-scope containment at the wondering source (the
+cascade-amplifies-isa-noise lead); WHY-exactly-0.3 diagnosis first. Tiredness (landed 2026-07-19)
+already bounds the overnight volume; the verbosity question itself stays open pending more
+observation.

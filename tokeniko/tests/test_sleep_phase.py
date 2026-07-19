@@ -298,3 +298,52 @@ def test_goodnight_needs_the_personality_rule(_io):
             {"payload.action_token": TokenikoAction.GOODNIGHT.value}).run() is None
     finally:
         TKBrainStateDoc.get_motor_collection().delete_many({"key": "goodnight-norule"})
+
+
+# ---- TIREDNESS — the wakefulness bound (2026-07-19, the author's ruling after the existence ----
+# flood kept him wondering fruitfully 4.5h straight: sleep must come no matter the fruit).
+# _sleep_reason is the pure falling-asleep decision — a table test, no clock, no DB.
+
+def test_tiredness_beats_fruitful_wondering(monkeypatch):
+    # awake past WAKE_MAX + confirmed quiet -> "tired" EVEN on a fruitful wonder tick (the whole
+    # point of the bound: the inexhaustible frontier can't hold sleep hostage).
+    from brain import main as brain_main
+    monkeypatch.setattr(brain_main, "WAKE_MAX", 100.0)
+    monkeypatch.setattr(brain_main, "WONDER_IDLE_CONFIRM", 10.0)
+    assert brain_main._sleep_reason(
+        None, "wonder", now_m=1000.0, awake_since=850.0,   # awake 150s >= 100s
+        last_busy=900.0, last_fruitful=999.0,              # quiet 100s; fruit 1s ago
+    ) == "tired"
+
+
+def test_conversation_defers_tiredness_never_resets(monkeypatch):
+    # Fork A: a reactive tick (sub == "think") defers the collapse — you don't fall asleep
+    # mid-dialogue — and unconfirmed quiet (the pause between two sentences) defers it too;
+    # but the clock never resets: the first CONFIRMED-quiet tick past the bound drops him.
+    from brain import main as brain_main
+    monkeypatch.setattr(brain_main, "WAKE_MAX", 100.0)
+    monkeypatch.setattr(brain_main, "WONDER_IDLE_CONFIRM", 10.0)
+    common = {"now_m": 1000.0, "awake_since": 850.0, "last_fruitful": 999.0}
+    # mid-dialogue: someone spoke this very tick -> deferred
+    assert brain_main._sleep_reason(None, "think", last_busy=1000.0, **common) is None
+    # the pause between two sentences: quiet but unconfirmed -> still deferred
+    assert brain_main._sleep_reason(None, None, last_busy=995.0, **common) is None
+    # the first confirmed-quiet tick: the accumulated tiredness lands
+    assert brain_main._sleep_reason(None, None, last_busy=985.0, **common) == "tired"
+
+
+def test_fruitless_wondering_edge_still_stands(monkeypatch):
+    # the original §0 slice 3.5 door is untouched: not yet tired, but confirmed-quiet and
+    # fruitless past SLEEP_AFTER -> "wondering"; fresh fruit or being already asleep -> None.
+    from brain import main as brain_main
+    monkeypatch.setattr(brain_main, "WAKE_MAX", 10_000.0)
+    monkeypatch.setattr(brain_main, "WONDER_IDLE_CONFIRM", 10.0)
+    monkeypatch.setattr(brain_main, "SLEEP_AFTER", 50.0)
+    common = {"now_m": 1000.0, "awake_since": 900.0, "last_busy": 900.0}
+    assert brain_main._sleep_reason(None, None, last_fruitful=940.0, **common) == "wondering"
+    assert brain_main._sleep_reason(None, None, last_fruitful=990.0, **common) is None
+    # a fruitful wonder tick (sub == "wonder") never opens the wondering door — only tiredness
+    # puts a fruitful mind to bed
+    assert brain_main._sleep_reason(None, "wonder", last_fruitful=940.0, **common) is None
+    # already asleep -> no transition to decide
+    assert brain_main._sleep_reason(700.0, None, last_fruitful=940.0, **common) is None

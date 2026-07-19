@@ -1735,3 +1735,27 @@ SURVEY ARC IS COMPLETE)**
   resolved in the same instant (they shared the ghost), and he conceded: «you are right — I no
   longer hold that so I am a mammal». The mammal era ended through his own machinery — the
   author's answer as a teacher, not a mongo-edit. His software premises survived untouched.
+
+**Tiredness + the parallel heartbeat (2026-07-19 — the morning after the first live night)**
+- The night's lesson, read from the biography: the existence flood (wondering minting «X exists»/
+  «X has property» @0.3 down the WordNet closure — 42 theorems in the first post-conversation
+  hour) is an INEXHAUSTIBLE fruitful frontier, so the fruitfulness-only sleep design never
+  triggered — 4.5h of unbroken wondering. The author reversed his own 07-18 ruling on seeing it
+  run: sleep must come no matter the fruit.
+- **TIREDNESS — the wakefulness bound** (`BRAIN_WAKE_MAX_S`, default 7200): awake past the bound
+  ⇒ he falls asleep even mid-fruitful-wondering. Fork A (his ruling): conversation DEFERS the
+  collapse (no falling asleep mid-dialogue; confirmed quiet — `WONDER_IDLE_CONFIRM` — required)
+  but never resets the clock: the first confirmed-quiet tick past the bound drops him. The
+  falling-asleep decision extracted pure (`_sleep_reason`: "tired" | "wondering" | None); the
+  original fruitless-wondering door unchanged.
+- **The parallel heartbeat**: the monitor feed had 22–39-minute holes — single wonder ticks
+  blocked the coordinator for tens of minutes and the in-loop beat starved. The beat now runs in
+  its own daemon thread (wall-clock cadence, first beat on start); the coordinator only publishes
+  its observed state (`heartbeat.set_state`, GIL-atomic). A blocked tick shows the honest
+  last-published state — alive AND true.
+- Found while fixing: `find_all().count()` on the 197k-row dictionary takes **5s** (definitions
+  1.4s) — every beat was stalling the loop ~6.5s on top of the starvation. Unfiltered totals now
+  use `estimated_document_count()` (collection metadata, O(1)); filtered counts unchanged.
+- +6 tests: the `_sleep_reason` decision table ×3 (`test_sleep_phase.py`: tiredness beats
+  fruitful wondering · fork-A defer-never-reset · the original door stands) + the parallel beat
+  ×3 (`test_blog_p3.py`: published-state reporting · graceful failure · thread first-beat/stop).

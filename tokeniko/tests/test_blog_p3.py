@@ -6,7 +6,8 @@ VERBATIM to /mind; neither key, an uncomposable material, a raised push or a non
 land FAILED (no auto-retry, no raise); dry-run (flag OR missing INGEST_API_KEY) marks DONE
 without touching the push function. brain/heartbeat.build_snapshot returns the six KPI metric
 keys + the sparkline series as finite counts (souls excludes isMe) + the hand-set TOKENIKO_VERSION
-plate (omitted when unset); _should_beat is the pure tick-modulo x min-seconds cadence guard.
+plate (omitted when unset); the PARALLEL heartbeat (2026-07-19) beats from its own thread off the
+coordinator-published state (set_state/beat/start) — a blocked tick can't hole the feed.
 NO network: the push function is always injected.
 """
 import asyncio
@@ -246,19 +247,61 @@ def test_build_snapshot_version_is_env_set_and_optional(_io, clean_public, monke
     assert "version" not in build_snapshot("thinking")
 
 
-# ---- 7. the pure heartbeat cadence guard ----------------------------------------------------------------
+# ---- 7. the parallel heartbeat — published state, one beat, the thread ----------------------------------
 
-def test_should_beat_wall_clock_only():
-    # WALL-CLOCK cadence (the never-beat lesson, 2026-07-12): tick duration varies 0.05s-30s+
-    # (a wondering tick renders via Ollama), so a tick-modulo gate delayed the first live beat
-    # indefinitely. min_seconds is the ONLY cadence gate; tick>0 is just the boot guard.
-    from brain.heartbeat import _should_beat
-    kw = {"min_seconds": 300.0}
-    assert _should_beat(1, 0.0, 1000.0, **kw) is True       # first tick after boot beats at once
-    assert _should_beat(0, 0.0, 1000.0, **kw) is False      # tick 0 never beats (boot guard)
-    assert _should_beat(7, 900.0, 1000.0, **kw) is False    # only 100s elapsed
-    assert _should_beat(7, 650.0, 1000.0, **kw) is True     # 350s >= 300s — any tick number
-    assert _should_beat(9999, 999.9, 1000.0, **kw) is False # sub-threshold gap never beats
+def test_beat_reports_the_published_state(_io, clean_public):
+    # the coordinator PUBLISHES its observed state; beat() reads it and enqueues one snapshot
+    # action. During a blocked tick the last-published state stands — honest AND alive.
+    from brain import heartbeat
+    from lib.core.models import TKActionDoc
+
+    heartbeat.set_state("wondering")
+    assert heartbeat.beat("tok") is True
+    actions = TKActionDoc.find({"channel": MEMChannels.PUBLIC.value}).to_list()
+    assert len(actions) == 1
+    assert actions[0].payload["snapshot"]["state"] == "wondering"
+
+    heartbeat.set_state("sleeping")
+    assert heartbeat.beat("tok") is True
+    # sort by _id, not createdAt: epoch SECONDS tie when both beats land inside one second
+    latest = (TKActionDoc.find({"channel": MEMChannels.PUBLIC.value})
+              .sort("-_id").limit(1).to_list())[0]
+    assert latest.payload["snapshot"]["state"] == "sleeping"
+
+
+def test_beat_failure_is_graceful(_io, clean_public, monkeypatch):
+    # graceful by contract: a broken snapshot build logs False, never raises — the thread lives.
+    from brain import heartbeat
+
+    def boom(state):
+        raise RuntimeError("mongo hiccup")
+    monkeypatch.setattr(heartbeat, "build_snapshot", boom)
+    assert heartbeat.beat("tok") is False
+
+
+def test_heartbeat_thread_beats_first_and_stops(_io, clean_public, monkeypatch):
+    # the thread beats IMMEDIATELY on start (fresh stats on wake — the never-beat lesson,
+    # 2026-07-12), then paces on stop_event.wait so shutdown never waits out a cadence.
+    import threading
+    import time as _time
+    from brain import heartbeat
+    from lib.core.models import TKActionDoc
+
+    monkeypatch.setenv("BRAIN_HEARTBEAT_MIN_S", "3600")  # one immediate beat, then a long wait
+    heartbeat.set_state("idle")
+    stop = threading.Event()
+    thread = heartbeat.start(stop, "tok")
+    try:
+        deadline = _time.time() + 10.0
+        while _time.time() < deadline:
+            if TKActionDoc.find({"channel": MEMChannels.PUBLIC.value}).count() >= 1:
+                break
+            _time.sleep(0.05)
+        assert TKActionDoc.find({"channel": MEMChannels.PUBLIC.value}).count() == 1
+    finally:
+        stop.set()
+    thread.join(timeout=5.0)
+    assert not thread.is_alive()  # the stop event cuts the cadence wait short
 
 
 def test_delivered_requires_the_api_envelope():

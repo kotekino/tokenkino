@@ -3,6 +3,7 @@ import logging
 import os
 import signal
 import sys
+import threading
 import time
 from typing import Optional
 
@@ -69,6 +70,15 @@ WONDER_IDLE_CONFIRM = float(os.getenv("BRAIN_WONDER_IDLE_CONFIRM_S", "60"))
 SLEEP_AFTER = float(os.getenv("BRAIN_SLEEP_AFTER_S", "600"))
 SLEEP_MAX = float(os.getenv("BRAIN_SLEEP_MAX_S", "2700"))
 SLEEP_TICK = float(os.getenv("BRAIN_SLEEP_TICK_S", "10"))
+# TIREDNESS — the wakefulness bound (the author's ruling 2026-07-19, reversing fruitfulness-only
+# sleep after the existence flood kept him up 4.5h straight: an inexhaustible wondering frontier
+# means "sleep when nothing new comes" never triggers). The body's claim on the mind: awake for
+# WAKE_MAX seconds ⇒ he falls asleep NO MATTER how fruitful the wondering is. Fork A (his
+# ruling): reactive work (someone actually talking to him) DEFERS the collapse — you don't fall
+# asleep mid-dialogue — but never resets the clock: at the first quiet tick past the bound he
+# drops off. Staying up late talking doesn't make you less tired. Wondering defers nothing.
+# Default 7200s ≈ a 2.5:1 wake-to-nap ratio against the 45-min SLEEP_MAX naps.
+WAKE_MAX = float(os.getenv("BRAIN_WAKE_MAX_S", "7200"))
 # the GOODNIGHT recency gate (survey slice 2, the author-approved spam trap): the falling-asleep
 # edge speaks ONLY into a channel someone used within this window — you say goodnight to people
 # who are around; an empty room gets the silent sleep (cycles are frequent: SLEEP_MAX naps would
@@ -619,6 +629,32 @@ def _spawn_morning_questions(bs: TKBrainStateDoc) -> None:
     bs.save()
 
 
+# the falling-asleep decision (pure, unit-testable — no clock, no DB): the reason he falls
+# asleep this tick, or None. Two doors into the night:
+#   "tired"     — the wakefulness bound (WAKE_MAX, the author's ruling 2026-07-19): awake too
+#                 long ⇒ sleep NO MATTER how fruitful the wondering is. The existence flood
+#                 proved fruitfulness-only sleep never triggers against an inexhaustible
+#                 frontier. Fork A: a reactive tick (sub == "think") defers the collapse — you
+#                 don't fall asleep mid-dialogue — and only CONFIRMED quiet (WONDER_IDLE_CONFIRM
+#                 since the last reactive work) lets it land, so the pause between two sentences
+#                 never reads as bedtime. Deferred, never reset: at the first confirmed-quiet
+#                 tick past the bound he drops off. Wondering defers nothing.
+#   "wondering" — the original edge (§0 slice 3.5): confirmed-quiet wondering FRUITLESS for
+#                 SLEEP_AFTER — he falls asleep wondering.
+def _sleep_reason(asleep_at: Optional[float], sub: Optional[str], now_m: float,
+                  awake_since: float, last_busy: float,
+                  last_fruitful: float) -> Optional[str]:
+    if asleep_at is not None or sub == "think":
+        return None
+    if now_m - last_busy < WONDER_IDLE_CONFIRM:
+        return None  # unconfirmed quiet — he might be mid-dialogue
+    if now_m - awake_since >= WAKE_MAX:
+        return "tired"
+    if sub is None and now_m - last_fruitful >= SLEEP_AFTER:
+        return "wondering"
+    return None
+
+
 # wake: clear the sleep state, tell the stashed dream + ask the morning questions.
 # Returns None (the new asleep_at).
 def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optional[float]:
@@ -649,14 +685,27 @@ async def coordinator(stop_event: asyncio.Event) -> None:
         bs.save()
         logger.info("[sleep] ☀️ woken by the reboot — the night ended with the process")
     _spawn_pending_dream(bs)
-    tick = 0  # heartbeat cadence counter (blog P3) — monotone, one increment per loop iteration
+    tick = 0  # monotone loop counter (one increment per iteration) — used by the per-tick guard log
     # the idle-confirmation clock: last moment REACTIVE work (actions/priorities/think) happened.
     # starts at "now" so a fresh wake never opens with a daydream (he looks around first).
     last_busy = time.monotonic()
     # the sleep clock: last moment ANY pass produced a unit of work (reactive OR a fruitful
     # wonder). Quiet past SLEEP_AFTER while wondering is allowed = he falls asleep wondering.
     last_fruitful = time.monotonic()
+    # the tiredness clock (WAKE_MAX): when this wakefulness began — boot counts as a wake.
+    # Reset ONLY on an actual sleep→wake transition (see wake below); nothing defers-by-reset.
+    awake_since = time.monotonic()
     asleep_at: Optional[float] = None  # monotonic mirror of bs.asleep_since (the loop's clock)
+
+    # the loop's wake wrapper: _wake + restart the tiredness clock iff he was actually asleep
+    # (a reactive tick while already awake is the identity — his wakefulness just continues).
+    def wake(reason: str) -> None:
+        nonlocal asleep_at, awake_since
+        was_asleep = asleep_at is not None
+        asleep_at = _wake(bs, asleep_at, reason)
+        if was_asleep:
+            awake_since = time.monotonic()
+
     try:
         while not stop_event.is_set():
             tick += 1
@@ -668,15 +717,15 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     # Actions/Priorities work reports as "thinking" (blog P3 state mapping): deciding
                     # and acting on urges is still thought — "ingesting"/"refuting" would claim
                     # introspection the coordinator doesn't cheaply have.
-                    asleep_at = _wake(bs, asleep_at, "the world moved")
+                    wake("the world moved")
                     last_busy = last_fruitful = time.monotonic()
-                    heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
+                    heartbeat.set_state("thinking")
                     await asyncio.sleep(BUSY_YIELD)
                     continue
                 if priorities_phase():
-                    asleep_at = _wake(bs, asleep_at, "the world moved")
+                    wake("the world moved")
                     last_busy = last_fruitful = time.monotonic()
-                    heartbeat.maybe_beat(tick, "thinking", _tokeniko_uid)
+                    heartbeat.set_state("thinking")
                     await asyncio.sleep(BUSY_YIELD)
                     continue
                 # Thinking ran: if it actually processed memory (and may have spawned ideas), yield
@@ -690,35 +739,40 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                                   and time.monotonic() - last_busy >= WONDER_IDLE_CONFIRM)
                 sub = thinking_phase(bs, wonder_allowed)
                 if sub == "think":
-                    asleep_at = _wake(bs, asleep_at, "someone spoke")
+                    wake("someone spoke")
                     last_busy = time.monotonic()
                 if sub in ("think", "wonder"):
                     # only FRUITFUL work resets the sleep clock — an idle re-check ("wonder-idle",
                     # the drift driver finding nothing new) lets the drowsiness accumulate.
                     last_fruitful = time.monotonic()
-                # the SLEEP transitions (only in true idle): quiet wondering past SLEEP_AFTER ->
-                # he falls asleep wondering (the author's design — and his own habit); SLEEP_MAX
-                # ends the night regardless, with a fresh wakeful window before any next nap.
+                # the SLEEP transitions: tiredness (WAKE_MAX, fruitful or not) or fruitless
+                # wondering past SLEEP_AFTER — _sleep_reason decides; SLEEP_MAX ends the night
+                # regardless, with a fresh wakeful window before any next nap.
                 now_m = time.monotonic()
-                if (asleep_at is None and sub is None and wonder_allowed
-                        and now_m - last_fruitful >= SLEEP_AFTER):
+                reason = _sleep_reason(asleep_at, sub, now_m,
+                                       awake_since, last_busy, last_fruitful)
+                if reason is not None:
                     asleep_at = now_m
                     bs.asleep_since = int(time.time())
                     bs.save()
-                    logger.info("[sleep] 🌙 he falls asleep wondering (quiet for %.0fs)",
-                                now_m - last_fruitful)
+                    if reason == "tired":
+                        logger.info("[sleep] 🌙 tiredness takes him (awake for %.0fs) — "
+                                    "fruitful or not, the body claims its sleep",
+                                    now_m - awake_since)
+                    else:
+                        logger.info("[sleep] 🌙 he falls asleep wondering (quiet for %.0fs)",
+                                    now_m - last_fruitful)
                     _say_goodnight(bs)  # the farewell edge (recency-gated; never queue work)
                     _sleep_duty(bs)  # the night's untangling — retreats now, the dream on waking
                 elif asleep_at is not None and now_m - asleep_at >= SLEEP_MAX:
-                    asleep_at = _wake(bs, asleep_at, "rested")
+                    wake("rested")
                     last_fruitful = time.monotonic()
-                # the honest state for the heartbeat: reactive think -> "thinking", idle-time
-                # re-examination -> "wondering" (fruitful or not), asleep -> "sleeping",
-                # no work at all -> "idle".
-                state = ("thinking" if sub == "think"
-                         else "wondering" if sub in ("wonder", "wonder-idle")
-                         else "sleeping" if asleep_at is not None else "idle")
-                heartbeat.maybe_beat(tick, state, _tokeniko_uid)
+                # the honest state for the heartbeat thread: reactive think -> "thinking",
+                # idle-time re-examination -> "wondering" (fruitful or not), asleep ->
+                # "sleeping", no work at all -> "idle".
+                heartbeat.set_state("thinking" if sub == "think"
+                                    else "wondering" if sub in ("wonder", "wonder-idle")
+                                    else "sleeping" if asleep_at is not None else "idle")
                 await asyncio.sleep(BUSY_YIELD if sub
                                     else SLEEP_TICK if asleep_at is not None else IDLE_INTERVAL)
             except Exception:
@@ -758,7 +812,13 @@ async def main():
     for sig in (signal.SIGINT, signal.SIGTERM):
         loop.add_signal_handler(sig, shutdown_handler)
 
-    # 3. Run the single coordinator (replaces the three independent loops).
+    # 3. The parallel heartbeat (2026-07-19): its own daemon thread, started after init_io so
+    # Bunnet is wired for the first beat's counts. A blocked coordinator tick (a long wondering
+    # pass) can no longer hole the monitor feed — the heart beats through the thought.
+    heartbeat_stop = threading.Event()
+    heartbeat.start(heartbeat_stop, _tokeniko_uid)
+
+    # 4. Run the single coordinator (replaces the three independent loops).
     coordinator_task = asyncio.create_task(coordinator(stop_event))
     try:
         # Waiting for sigterms
@@ -774,6 +834,7 @@ async def main():
     except Exception as e:
         logger.error(f"❌ Critical error: {e}")
     finally:
+        heartbeat_stop.set()  # cut the beat thread's wait short (daemon — never blocks exit)
         logger.info("🛑 tokeniko is deep sleeping. See ya'll")
 
 

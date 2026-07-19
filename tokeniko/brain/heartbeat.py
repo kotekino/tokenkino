@@ -1,6 +1,6 @@
 # --------------------------------------------------------------
-# brain/heartbeat.py — the public MIND MONITOR stats heartbeat (blog P3, brain side). Every so
-# often the coordinator asks this module to enqueue ONE POST_CONTENT action on MEMChannels.PUBLIC
+# brain/heartbeat.py — the public MIND MONITOR stats heartbeat (blog P3, brain side). Every
+# BRAIN_HEARTBEAT_MIN_S this module enqueues ONE POST_CONTENT action on MEMChannels.PUBLIC
 # whose payload["snapshot"] is the ready-to-ship POST /api/mind body (the ingestion contract,
 # tokeniko-public/doc/ingestion-api.md): the brain reports RAW numeric facts (plus the hand-set
 # TOKENIKO_VERSION plate); the website backend derives the display (KPI tiles, trends, the
@@ -8,21 +8,31 @@
 # blog arc: the brain DECIDES + BUILDS, the senses PUBLIC executor (senses/blog_outbound.py)
 # CARRIES it over HTTP — this module never touches the network.
 #
-# CADENCE (the rate-limit math): a beat fires when at least BRAIN_HEARTBEAT_MIN_S (default 300s)
-# has passed since the last one — wall-clock only (see _should_beat for why tick-counting lied).
-# 300s ⇒ at most 3 heartbeats per 15-minute window, plus the occasional transmission post —
-# comfortably under the public API's 100 req / 15 min per-IP limit. Counting DB documents each
-# beat is fine at a 5-minute cadence (a handful of indexed count queries).
+# THE PARALLEL HEARTBEAT (2026-07-19, the author's ruling): the beat runs in its OWN daemon
+# thread, wall-clock paced — NOT from the coordinator loop. The morning the existence flood hit,
+# single wonder ticks blocked the loop for 20-40 minutes and the monitor showed 39-minute holes;
+# a heart that only beats between thoughts stops during a long thought. The coordinator now only
+# PUBLISHES its observed state (set_state, a GIL-atomic str assignment — no lock needed) and the
+# thread reads it at each beat. During a blocked wonder tick the last-published state is
+# "wondering" — which is exactly what the mind is doing, so the monitor stays honest AND alive.
+# pymongo/Bunnet inserts are thread-safe; the thread is started AFTER init_io in main().
 #
-# GRACEFUL BY CONTRACT: maybe_beat is wrapped whole — a heartbeat failure (Mongo hiccup, model
-# drift) must NEVER break the coordinator loop; it logs and retries at the next tick multiple.
+# CADENCE (the rate-limit math): one beat per BRAIN_HEARTBEAT_MIN_S (default 300s), first beat
+# immediately on thread start (fresh stats on wake is a feature — the never-beat lesson,
+# 2026-07-12, when a tick-modulo gate delayed the first live beat indefinitely). 300s ⇒ at most
+# 3 heartbeats per 15-minute window, plus the occasional transmission post — comfortably under
+# the public API's 100 req / 15 min per-IP limit. Counting DB documents each beat is fine at a
+# 5-minute cadence (a handful of indexed count queries).
+#
+# GRACEFUL BY CONTRACT: beat is wrapped whole — a heartbeat failure (Mongo hiccup, model drift)
+# must NEVER kill the thread; it logs and retries at the next cadence.
 # brain stays parser-free: only lib.core models here, no spaCy/Stanza/compiler.
 # --------------------------------------------------------------
 import logging
 import os
+import threading
 import time
 from datetime import datetime, timezone
-from typing import Optional
 
 from lib.core.models import (
     TKActionDoc,
@@ -39,8 +49,8 @@ from lib.core.memory import ActionType, MEMChannels
 logger = logging.getLogger("tokeniko-brain")
 
 # the honest one-line "what it's doing now" per reported state (the contract's `doing` field).
-# Only the states the coordinator can cheaply and truthfully observe are used (see maybe_beat's
-# caller in brain/main.py): "ingesting"/"refuting" would claim introspection the loop doesn't have.
+# Only the states the coordinator can cheaply and truthfully observe are used (see the set_state
+# calls in brain/main.py): "ingesting"/"refuting" would claim introspection the loop doesn't have.
 _DOING: dict[str, str] = {
     "thinking": "evaluating fresh memory against what I know",
     "wondering": "re-examining an old memory — my knowledge has grown since",
@@ -49,23 +59,6 @@ _DOING: dict[str, str] = {
     # vs the 10s sleep tick), so the monitor shows an honest sleeping mind, not a dead feed.
     "sleeping": "asleep — untangling what I believe",
 }
-
-
-# the pure cadence guard (unit-testable without a clock or a DB): beat iff at least `min_seconds`
-# have passed since the last beat — WALL-CLOCK ONLY. The original design also gated on a tick
-# multiple, but tick duration is wildly variable (a busy yield is 0.05s, an idle tick 5s, a
-# WONDERING tick 30s+ — Ollama renders, API materializes), so 100 ticks meant anything from
-# seconds to nearly an hour: the first live brain never beat (2026-07-12). Time-since-last is
-# equally O(1) and honest at every loop speed; the first beat fires on the first tick after boot
-# (last_beat_at=0 — fresh stats on wake is a feature). `tick` stays a parameter for the boot
-# guard only (tick <= 0 never beats).
-def _should_beat(tick: int, last_beat_at: float, now: float,
-                 min_seconds: Optional[float] = None) -> bool:
-    if min_seconds is None:
-        min_seconds = float(os.getenv("BRAIN_HEARTBEAT_MIN_S", "300"))
-    if tick <= 0:
-        return False
-    return (now - last_beat_at) >= min_seconds
 
 
 def _iso(epoch: int) -> str:
@@ -82,17 +75,22 @@ def build_snapshot(state: str) -> dict:
     # this" is a judgement about progress, not a commit count. Absent/blank ⇒ omitted from the
     # payload entirely (the contract's version is optional; the site falls back to its default).
     version = os.getenv("TOKENIKO_VERSION", "").strip()
+    # unfiltered totals use estimated_document_count — collection metadata, O(1). find_all().count()
+    # runs a real aggregate scan: 5s on the 197k-row dictionary, 1.4s on definitions (measured
+    # 2026-07-19) — every beat was stalling the coordinator ~6.5s before the parallel-thread move.
+    # The estimate is exact absent an unclean mongod shutdown; filtered counts (small collections)
+    # stay count_documents.
     metrics = {
-        "definitions": TKDefinitionDoc.find_all().count(),
+        "definitions": TKDefinitionDoc.get_motor_collection().estimated_document_count(),
         # active knowledge only — archived axioms/theorems don't reason, so they don't count.
         "axiomsRules": TKAxiomDoc.find({"archived": False}).count(),
         "theorems": TKTheoremDoc.find({"archived": False}).count(),
-        "dictionary": TKDictionaryDoc.find_all().count(),
+        "dictionary": TKDictionaryDoc.get_motor_collection().estimated_document_count(),
         # souls = the minds he knows, HIMSELF EXCLUDED ($ne True also catches legacy docs that
         # predate the isMe field). Participants and named individuals both count — each is a
         # known mind/entity in his world.
         "souls": TKMemoryStakeholdersDoc.find({"isMe": {"$ne": True}}).count(),
-        "trustEpisodes": TKTrustEpisodeDoc.find_all().count(),
+        "trustEpisodes": TKTrustEpisodeDoc.get_motor_collection().estimated_document_count(),
         # inferencesPerCycle: theorems derived in the last 24h (createdAt >= now-86400). Chosen
         # over the ideas-per-hour proxy because a theorem IS an inference — the count measures
         # actual reasoning output, not urges; and it's one indexed-range count, cheap at this
@@ -121,29 +119,53 @@ def build_snapshot(state: str) -> dict:
     }
 
 
-# wall-clock timestamp of the last SUCCESSFUL beat (module-level: the coordinator is one process,
-# one loop). A failed beat leaves it untouched, so the retry comes at the next tick multiple.
-_last_beat_at: float = 0.0
+# the shared state cell the coordinator PUBLISHES into and the beat thread reads. A plain str
+# assignment/read is GIL-atomic — no lock. It carries the last state the loop truthfully
+# observed; a long blocked tick leaves it at that tick's opening state, which is what the mind
+# is still doing.
+_state: str = "thinking"
 
 
-# the coordinator hook: called EVERY tick, cheap no-op unless the cadence guard fires. Returns
-# True iff a snapshot action was enqueued. Never raises — the whole body is guarded so a
-# heartbeat failure cannot break the coordinator loop.
-def maybe_beat(tick: int, state: str, tokeniko_uid: str) -> bool:
-    global _last_beat_at
+# the coordinator hook (replaces the old in-loop maybe_beat): publish the tick's observed state.
+# O(1), never raises, never touches the DB — the beat thread does all the work.
+def set_state(state: str) -> None:
+    global _state
+    _state = state
+
+
+# ONE beat: build the snapshot from the published state and enqueue it. Returns True iff the
+# action was enqueued. Never raises — a failure logs and the next cadence retries.
+def beat(tokeniko_uid: str) -> bool:
     try:
-        now = time.time()
-        if not _should_beat(tick, _last_beat_at, now):
-            return False
+        state = _state
         TKActionDoc(
             action_type=ActionType.POST_CONTENT,
             channel=MEMChannels.PUBLIC,
             sourceId=tokeniko_uid or "tokeniko",
             payload={"snapshot": build_snapshot(state)},
         ).insert()
-        _last_beat_at = now
-        logger.info("[heartbeat] mind snapshot enqueued (tick=%d, state=%s)", tick, state)
+        logger.info("[heartbeat] mind snapshot enqueued (state=%s)", state)
         return True
     except Exception as error:
-        logger.warning("[heartbeat] snapshot enqueue failed (%s) — coordinator unaffected", error)
+        logger.warning("[heartbeat] snapshot enqueue failed (%s) — retrying next cadence", error)
         return False
+
+
+# the beat thread's body: first beat immediately (fresh stats on wake), then one per cadence.
+# stop_event.wait doubles as the pacing sleep, so shutdown never waits out a full cadence.
+def _run(stop_event: threading.Event, tokeniko_uid: str) -> None:
+    min_seconds = float(os.getenv("BRAIN_HEARTBEAT_MIN_S", "300"))
+    logger.info("[heartbeat] parallel beat thread started (cadence %.0fs)", min_seconds)
+    while not stop_event.is_set():
+        beat(tokeniko_uid)
+        stop_event.wait(min_seconds)
+
+
+# start the parallel heartbeat. Called from main() AFTER init_io (Bunnet must be wired before the
+# first beat's counts). Daemon thread: it never blocks process exit — but main() sets the event
+# on shutdown anyway so the last wait is cut short cleanly.
+def start(stop_event: threading.Event, tokeniko_uid: str) -> threading.Thread:
+    thread = threading.Thread(target=_run, args=(stop_event, tokeniko_uid),
+                              name="heartbeat", daemon=True)
+    thread.start()
+    return thread
