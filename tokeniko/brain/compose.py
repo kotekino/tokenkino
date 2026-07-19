@@ -49,15 +49,19 @@ def _route_answer(answer: dict) -> tuple[str, dict]:
 
 # route the CONCEDE decision (belief-revision v1): the category is picked by what the retreat
 # actually left behind — retracted belief(s), the surviving subaltern, both, or neither.
+# The named beliefs ride FENCED («…») — bound here at the router so every concede shelf row is
+# covered without re-seeding: a stored original quoted bare can collide with the sentence's own
+# syntax (the live 2026-07-19 wart: «…I no longer hold that so I am a mammal» — the retracted
+# original's leading "so" read as a fresh conclusion once the polisher comma'd it).
 def _route_concede(answer: dict) -> tuple[str, dict]:
     retracted = answer.get("retracted") or []
     weakened = answer.get("weakened")
     if retracted and weakened:
-        return "concede_retract_weakened", {"retracted": retracted[0], "weakened": weakened}
+        return "concede_retract_weakened", {"retracted": f"«{retracted[0]}»", "weakened": f"«{weakened}»"}
     if retracted:
-        return "concede_retract", {"retracted": retracted[0]}
+        return "concede_retract", {"retracted": f"«{retracted[0]}»"}
     if weakened:
-        return "concede_weakened", {"weakened": weakened}
+        return "concede_weakened", {"weakened": f"«{weakened}»"}
     return "concede_plain", {}
 
 
@@ -80,7 +84,12 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
     if action_token == TokenikoAction.ASK.value:
         return "ask_more", {}
     if action_token == TokenikoAction.WHY.value:
-        return "why", {}
+        # the topic-slotted why (survey 2026-07-19): the ungroundable claim rides as {topic} so
+        # the ask names WHAT it is asking about («why do you say that «…»?» beats a bare «why?»
+        # landing three messages late). The slot gate keeps topic rows unreachable when the
+        # decision site resolved none — the bare shelf speaks, unchanged.
+        topic = (answer or {}).get("topic")
+        return "why", ({"topic": topic} if topic else {})
     if action_token == TokenikoAction.MENTION.value:
         # the anecdote (slice 5): the notion rides VERBATIM (the fence) in the side-note register.
         notion = (answer or {}).get("notion")
@@ -97,6 +106,10 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
         return "reduct", {"premises": joined, "absurd": absurd}
     if action_token == TokenikoAction.CONCEDE.value:
         return _route_concede(answer or {})
+    if action_token == TokenikoAction.AGREE.value:
+        # the agreement voice (survey 2026-07-19): the rare nod — no data, the shelf carries the
+        # register; rarity is plan_action's throttle, not this router's concern.
+        return "agree", {}
     return None  # post / internal reflexes have no Discord-reply text here
 
 

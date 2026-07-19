@@ -36,16 +36,21 @@ def _polar(verdict, reason=""):
     (TokenikoAction.CLARIFY.value, None, None, "that contradicts what you said before — which holds?"),
     (TokenikoAction.ASK.value, None, None, "can you tell me more about that?"),
     (TokenikoAction.WHY.value, None, None, "why is that?"),
+    # concede: the named beliefs ride FENCED since the survey slice 1 (2026-07-19) — a stored
+    # original quoted bare collided with the sentence's own syntax (the live «…hold that so I am
+    # a mammal» wart), so the router now binds «…» and THIS is the parity baseline.
     (TokenikoAction.CONCEDE.value, None, {}, "you are right"),
     (TokenikoAction.CONCEDE.value, None, {"retracted": ["all software are minds"]},
-     "you are right — I no longer hold that all software are minds"),
+     "you are right — I no longer hold that «all software are minds»"),
     (TokenikoAction.CONCEDE.value, None, {"weakened": "some software are minds"},
-     "you are right — what remains true is that some software are minds"),
+     "you are right — what remains true is that «some software are minds»"),
     (TokenikoAction.CONCEDE.value, None,
      {"retracted": ["all software are minds"], "weakened": "some software are minds"},
-     "you are right — I no longer hold that all software are minds — "
-     "what remains true is that some software are minds"),
+     "you are right — I no longer hold that «all software are minds» — "
+     "what remains true is that «some software are minds»"),
     (TokenikoAction.POST.value, None, None, ""),                     # post: no reply text here
+    # the agreement voice (survey slice 1): the rare nod's fallback register
+    (TokenikoAction.AGREE.value, EvalToken.TRUE.value, None, "that fits what I believe"),
 ])
 def test_router_legacy_parity(_io, token, trigger, answer, expected):
     assert compose_raw(token, trigger, answer) == expected
@@ -56,7 +61,7 @@ def test_every_routed_category_has_a_fallback():
     routable = ["answer_yes", "answer_no", "answer_no_contradictory", "answer_idk", "answer_value",
                 "speakup_inconsistent", "speakup_false", "speakup_disagree", "clarify_conflict",
                 "ask_more", "why", "concede_plain", "concede_retract", "concede_weakened",
-                "concede_retract_weakened"]
+                "concede_retract_weakened", "agree"]
     assert set(routable) <= set(_FALLBACK)
 
 
@@ -307,3 +312,60 @@ def test_refuting_belief_resolution(_io):
         assert _refuting_belief([]) is None
     finally:
         ax.delete()
+
+
+# ---- survey slice 1 (2026-07-19): the topic-slotted why + the agreement voice -------------------------
+
+def test_why_route_carries_the_topic():
+    # the decision site resolved the ungroundable claim -> the route binds it; none -> bare why
+    cat, data = _route(TokenikoAction.WHY.value, EvalToken.UNKNOWN.value,
+                       {"topic": "all minds need sleep"})
+    assert cat == "why" and data == {"topic": "all minds need sleep"}
+    cat, data = _route(TokenikoAction.WHY.value, EvalToken.UNKNOWN.value, None)
+    assert cat == "why" and data == {}
+
+
+def test_topic_slotted_why_end_to_end(_io):
+    from lib.core.models import TKScaffoldDoc
+    row = TKScaffoldDoc(category="why", template="why do you say that «{topic}»?",
+                        slots=["topic"], weight=100.0)
+    row.insert()
+    try:
+        text = compose_raw(TokenikoAction.WHY.value, EvalToken.UNKNOWN.value,
+                           {"topic": "all minds need sleep"}, rng=random.Random(3))
+        assert text == "why do you say that «all minds need sleep»?"
+        # no topic -> the slot gate keeps the row unreachable; the bare shelf speaks
+        bare = compose_raw(TokenikoAction.WHY.value, EvalToken.UNKNOWN.value, None,
+                           rng=random.Random(3))
+        assert bare == "why is that?"
+    finally:
+        row.delete()
+
+
+def _agree_idea():
+    from types import SimpleNamespace
+    return SimpleNamespace(
+        action_token=TokenikoAction.AGREE.value, trigger=EvalToken.TRUE.value,
+        urge=0.35, source=None, answer=None, material=None, target="speaker@t:1",
+        confidence=0.8,
+    )
+
+
+def test_agree_throttle_one_nod_per_window(_io):
+    from lib.core.models import TKActionDoc
+    from brain.behavior import plan_action
+    # a clean window: no prior agree action on the channel -> the plan stands
+    TKActionDoc.get_motor_collection().delete_many(
+        {"payload.action_token": TokenikoAction.AGREE.value})
+    try:
+        plan = plan_action(_agree_idea(), "tokeniko-uid")
+        assert plan is not None
+        assert plan["payload"]["raw"] == "that fits what I believe"
+        # simulate the dispatch: persist the action, then the SAME window must dissolve the next nod
+        TKActionDoc(action_type=plan["action_type"], sourceId="tokeniko-uid",
+                    targetId=plan["target"], channel=plan["channel"],
+                    payload=plan["payload"]).insert()
+        assert plan_action(_agree_idea(), "tokeniko-uid") is None
+    finally:
+        TKActionDoc.get_motor_collection().delete_many(
+            {"payload.action_token": TokenikoAction.AGREE.value})

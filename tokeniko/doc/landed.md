@@ -1596,6 +1596,24 @@ night otherwise: two sleeps (17:39 — the TRUE first sleep, duty ran, nothing c
 - The daemons restarted on the 2026-07-18 evening engine commits — the heartbeat's honest
   sleeping line + the morning questions are live in the running mind.
 
+**The action-space survey (2026-07-19 — compose 2.0 tail step 1, concluded with the author's
+rulings) + slice 1, the small refinements**
+- The survey (the author's 2026-07-17 ordering honored: survey FIRST): full inventory read live
+  from the enums + behavior table + scaffold store + fired-action counts. His rulings: `guess`
+  gets REAL hypothesis content (not a voice) · `ask`/`learn` get WIRED · why carries a TOPIC ·
+  concede fences its quotes · agreement gets a rare low-urge voice · the executed retreat
+  becomes a transmission · new kinds approved: the etiquette family, the goodnight, the
+  curiosity ask · the guard: etiquette WINS over over-engagement in public (cap-feedback
+  2026-07-05); opinion kinds stay directedness-gated. The sliced build plan → roadmap §1.
+- **Slice 1 landed**: the concede router binds «…» around retracted/weakened (the live comma
+  wart is unbuildable now; parity tests moved to the fenced baseline) · the topic-slotted why
+  (thinking passes the vocative-stripped ungroundable claim; slot-gated — the bare shelf stays
+  the fallback; 3 topic scaffolds seeded, weighted above the trunk) · the agreement voice
+  (`tokeniko:agree`: eval:true rule @ 0.35 over ignore @ 0.2; rarity is MECHANICAL —
+  `AGREE_COOLDOWN_S` per-channel throttle in plan_action, since the urge collapse is a max and
+  would otherwise nod at every corroboration; agree shelf + fallback). +4 tests in
+  `test_compose_scaffolds.py`.
+
 **The reduct-answer identity fix (2026-07-19 — the ledger rehearsal catches the bounced answer)**
 - The rehearsal-before-live-firing discipline paid immediately: the read-only ledger peek found
   the author had ALREADY answered (2026-07-18 ~20:58, the room, three phrasings) and the binding

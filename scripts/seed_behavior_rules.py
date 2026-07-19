@@ -29,6 +29,11 @@ RULES = [
     (EvalToken.UNKNOWN.value,      TokenikoAction.WHY.value,     0.6,  '"what is X?"'),
     (EvalToken.UNKNOWN.value,      TokenikoAction.GUESS.value,   0.55, "interpolate a provisional def (the superposition partner)"),
     (EvalToken.TRUE.value,         TokenikoAction.IGNORE.value,  0.2,  "corroboration: usually stay quiet"),
+    # the agreement voice (survey 2026-07-19): the rare nod. NOTE the urge outranks ignore's, so
+    # the collapse picks agree whenever it is PLANNABLE — the rarity dial is NOT here, it is
+    # plan_action's AGREE_COOLDOWN_S throttle (within the window the plan dissolves and the
+    # silence-is-consent default resumes).
+    (EvalToken.TRUE.value,         TokenikoAction.AGREE.value,   0.35, "corroboration: occasionally say so (throttled)"),
     (EvalToken.CONFLICT.value,     TokenikoAction.CLARIFY.value, 0.7,  "a cross-item conflict — ask the speaker to reconcile"),
     (EvalToken.QUESTION.value,     TokenikoAction.ANSWER.value,  0.9,  "answer a question (yes/no/value/idk, directed at the asker)"),
     # belief-revision v1 (retreat arc #4): a trust-gated quantified correction. RETREAT is INTERNAL

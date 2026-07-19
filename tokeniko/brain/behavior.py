@@ -10,6 +10,8 @@
 #   - dispatch_action(idea, uid) -> map an idea's baked-in tokeniko:Y reflex to a concrete Action.
 # --------------------------------------------------------------
 import json
+import os
+import time
 from typing import Optional
 
 from bson import ObjectId
@@ -65,6 +67,11 @@ _DISPATCH = {
     # is read off the target stakeholder (see plan_action), and the carrier's destination
     # fallback DMs via the contextKey (provenance-safe: a DM never leaks a premise to a room).
     TokenikoAction.REDUCT.value: ActionType.SEND_MESSAGE,
+    # the agreement voice (survey 2026-07-19): outward, recipient = the corroborated speaker
+    # (source-memory sourceId, the clarify pattern). Rare by THROTTLE, not by urge — see
+    # plan_action's cooldown gate (the rule outranks ignore's urge, so it would otherwise fire
+    # on every corroboration; the author's over-engagement guard, cap-feedback 2026-07-05).
+    TokenikoAction.AGREE.value: ActionType.SEND_MESSAGE,
     # IGNORE -> no action
 }
 
@@ -75,6 +82,12 @@ _INTERNAL = {TokenikoAction.GUESS.value, TokenikoAction.LEARN.value, TokenikoAct
 # the trust-reflex set: INTERNAL channel (brain-executed, never a senses carrier) but SPEAKER-targeted
 # (the ledger that moves is the speaker's, not tokeniko's).
 _TRUST = {TokenikoAction.MORE_TRUST.value, TokenikoAction.LESS_TRUST.value}
+
+# the AGREE cooldown (seconds, per channel): the agreement voice's RARITY dial. Urge cannot make
+# agree rare (the collapse is a max — an agree rule above ignore always wins), so rarity lives
+# here: one nod per window, then silence-is-consent resumes. Stochastic collapse (parked) may
+# replace this someday.
+_AGREE_COOLDOWN_S = int(os.getenv("AGREE_COOLDOWN_S", "1800"))
 
 
 # the candidate set / superposition: every ENABLED rule for a trigger, most-urgent first (order as
@@ -211,6 +224,15 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
             sh = TKMemoryStakeholdersDoc.find_one({"uid": idea.target}).run()  # Bunnet: .run()
             if sh is not None and sh.channel:
                 channel = sh.channel
+
+    # the AGREE throttle (survey 2026-07-19): one nod per channel per cooldown window — the
+    # over-engagement guard (cap-feedback 2026-07-05). Within the window the plan dissolves and
+    # silence-is-consent resumes, exactly as if ignore had won the collapse.
+    if token == TokenikoAction.AGREE.value:
+        last = (TKActionDoc.find({"payload.action_token": token, "channel": channel.value})
+                .sort("-createdAt").limit(1).to_list())
+        if last and (int(time.time()) - last[0].createdAt) < _AGREE_COOLDOWN_S:
+            return None
 
     # target: None for a post (broadcast, not directed) / self (internal KB-write) / the asker
     # (directed answer) / the speaker whose ledger moves (trust) / the speaker (outward reply).

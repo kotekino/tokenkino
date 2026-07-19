@@ -1260,9 +1260,16 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                 # the plain speakup speaks, unchanged.
                 belief = (_refuting_belief(result.premises)
                           if token == EvalToken.FALSE.value else None)
+                # the topic-slotted why (survey 2026-07-19): an UNKNOWN carries the ungroundable
+                # claim (vocative stripped — address is not content) so the why can name what it
+                # is asking about; the compose slot gate keeps the bare shelf as the fallback.
+                topic = (strip_vocative(item.original, get_tokeniko().name).strip()
+                         if token == EvalToken.UNKNOWN.value and item.original else None)
+                answer = ({"belief": belief} if belief
+                          else {"topic": topic} if topic else None)
                 ideas = behavior.spawn_ideas_for(token, payload=item.zip, source=str(item.id),
                                                  confidence=verdict_confidence(token, result),
-                                                 answer={"belief": belief} if belief else None)
+                                                 answer=answer)
                 logger.info(
                     "[thinking] evaluated memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
                     str(item.id),

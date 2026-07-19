@@ -82,17 +82,29 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
   stays honestly unresolved). «you are not a mammal» suffices; the answer executes the mammal-era
   biography ruling THROUGH the retreat machinery. Daemons must run the fix commit (a649a7e).
 
-### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔭
+### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
 
-- **The action-space survey + the great seeding** (author's 2026-07-17 ruling, deliberately in
-  THIS order): (1) survey the action space FIRST — other reaction kinds, refinement/granularity
-  of the existing ones; (2) base scaffolds for the new actions; (3) THEN seed MANY more scaffolds
-  per action (the slice-1 batch = starters, good to begin). Selection stays the double key
-  (category + intensity); between scaffolds sharing the same double key the choice is RANDOM
-  (weighted — live since slice 1).
-- **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
+- **The action-space survey — CONCLUDED 2026-07-19** (the author's rulings on the full
+  inventory → the sliced build plan below; survey record in `landed.md`). The build, in his
+  approved order (slice 1 in flight):
+  1. 🔄 **Small refinements**: concede fences the named beliefs («…») · topic-slotted why ·
+     the agreement voice (`tokeniko:agree` @ 0.35, rarity by `AGREE_COOLDOWN_S` throttle —
+     urge cannot make it rare, the collapse is a max).
+  2. 🔭 **Event-edge voices**: the goodnight (the falling-asleep edge speaks once) · the retreat
+     transmission (`life:retreat` → blog; the mammal moment was the prototype).
+  3. 🔭 **Ask wiring + curiosity**: `ask` gets its novel-learning trigger; `learn` wired the same
+     pass (the eval:true novelty split — redundant→ignore/agree, novel→learn at teacher trust).
+  4. 🔭 **The etiquette family**: greet/thank/farewell as reflexes; needs social-input
+     recognition (hunch 8: «hello John» stops being an assertion). The author's guard ruling:
+     etiquette WINS over over-engagement in the public channel; opinion kinds stay
+     directedness-gated.
+  5. 🔭 **The hypothesis engine for `guess`** (138 stub firings live): design first — sketch:
+     on eval:unknown, the nearest KB-consistent candidate held as a low-trust hypothesis
+     awaiting corroboration (pairs with `kb-growing-outward`).
+- 🔭 **The great seeding** (after the kinds exist): MANY scaffolds per category store-wide.
+- 🔭 **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
   with the slot masked; design after the store exists.
-- **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
+- 🔭 **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
   (`/voice/verify` is the building block); per-post (multi-sentence) verification needs its own
   design: chunking + partial acceptance.
 

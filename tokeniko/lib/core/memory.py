@@ -281,6 +281,11 @@ class TokenikoAction(str, Enum):
     # Outward + DIRECTED at the most trusted premise-giver (Fork B); the natural answer («a is
     # false») rides the existing correction/retreat path — the r.a.a. closes through that door.
     REDUCT = "tokeniko:reduct"
+    # the agreement voice (action-space survey, 2026-07-19): a rare outward nod on eval:true —
+    # silence-is-consent stays the default (the ignore rule), but agreement is no longer
+    # UNSPEAKABLE. Rarity is mechanical, not urge-based (an agree rule above ignore's urge would
+    # otherwise ALWAYS win the collapse): plan_action throttles by AGREE_COOLDOWN_S per channel.
+    AGREE = "tokeniko:agree"
 
 # an IDEA — an urge to act (the "maybe"): produced by Thinking, filtered by Priorities, mapped to an
 # Action by the meta-language (C). `payload` is what the idea is ABOUT — a single-clause idea wraps as a

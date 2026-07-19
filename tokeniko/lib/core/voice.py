@@ -40,6 +40,9 @@ _FALLBACK: dict[str, str] = {
     "concede_retract_weakened": ("you are right — I no longer hold that {retracted} — "
                                  "what remains true is that {weakened}"),
     "anecdote": "that reminds me — {notion}",
+    # the agreement voice (survey 2026-07-19): the rare nod's plain register (rarity is the
+    # plan_action throttle, never this table's concern)
+    "agree": "that fits what I believe",
     # the reductio (roadmap §0): the author's canonical question shape, near-verbatim
     "reduct": ("I just discovered that one of these must be false: {premises}. "
                "If all were true, I would have to conclude that {absurd}. "

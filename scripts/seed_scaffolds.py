@@ -51,6 +51,13 @@ SCAFFOLDS = [
     ("why",                     "why that?",                                  [], 0.5, "author variant"),
     ("why",                     "I don't see the connection, why?",           [], 0.5, "author variant"),
     ("why",                     "?",                                          [], 0.3, "author variant (rare by weight)"),
+    # the topic-slotted why (survey 2026-07-19): the ask names WHAT it is asking about — the
+    # {topic} slot the seed header anticipated finally has data (thinking passes the ungroundable
+    # claim). Weighted ABOVE the bare trunk: when a topic resolved, naming it is the better voice;
+    # the bare rows remain the fallback (slot gate) and the rare shrug.
+    ("why",  "why do you say that «{topic}»?",                    ["topic"], 1.2, "topic named"),
+    ("why",  "what makes you say «{topic}»?",                     ["topic"], 0.8, "topic variant"),
+    ("why",  "I don't understand why «{topic}» — can you explain?", ["topic"], 0.8, "the hunch-19 shape, topic-fed"),
     # concede (belief-revision v1 — what the retreat left behind picks the category)
     ("concede_plain",             "you are right",                            [], 1.0, "bare concession"),
     ("concede_retract",           "you are right — I no longer hold that {retracted}", ["retracted"], 1.0, "retraction named"),
@@ -107,6 +114,12 @@ SCAFFOLDS = [
     ("answer_yes",      "probably yes",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("answer_no",       "probably not",                          [], 1.0, "hedged register", [0.0, 0.93]),
     ("speakup_disagree", "I {hedge} disagree",           ["hedge"], 1.0, "the Zadeh exemplar", [0.0, 0.7]),
+    # the agree shelf (survey 2026-07-19): the rare nod — quiet register, no exclamation; the
+    # rarity is mechanical (plan_action's AGREE_COOLDOWN_S throttle), so these can read warm
+    # without making him a chatterbox (the over-engagement guard, cap-feedback 2026-07-05).
+    ("agree",  "that fits what I believe",          [], 1.0, "the trunk"),
+    ("agree",  "yes — that matches what I know",    [], 0.7, "agree variant"),
+    ("agree",  "I believe that too",                [], 0.7, "agree variant"),
 ]
 
 _PLACEHOLDER = "something"      # neutral slot filler for the compile pass (the wh-gap inverted)
