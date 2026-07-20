@@ -89,6 +89,10 @@
   --shadow-sm: 0 1px 2px rgba(43, 39, 34, 0.12);
   --shadow:    0 3px 0 var(--border-ink), 0 6px 14px rgba(43, 39, 34, 0.12);
   --shadow-lg: 0 6px 0 var(--border-ink), 0 18px 40px rgba(43, 39, 34, 0.18);
+  /* the CRT consoles' OUTER lift (ledge + cast shadow) — a shadow lifts a box off a LIGHT
+     page, so the dark tones flatten it to a no-op (the inset phosphor ring and vignette are
+     the CRT's own interior and stay in every tone). Read by MindPanel.css / MindCharts.css. */
+  --crt-lift: 0 6px 0 var(--border-ink), 0 18px 40px rgba(43, 39, 34, 0.25);
 
   /* Transitions */
   --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -103,8 +107,11 @@
    The site's theme is bound to the mind's live state (MindContext stamps
    data-tone on <body>): 'day' = the active states, full daylight; 'dusk' =
    wondering — the same Bakelite palette, the room a shade darker; 'night' =
-   sleeping OR off-air — a dark theme of its own: warm charcoal Bakelite,
-   parchment text, the enamel accents left glowing. Because every surface
+   the live sleep phase, sleeping (REM) — a dark theme of its own: warm
+   charcoal Bakelite, parchment text, the enamel accents left glowing;
+   'deep' = off-air, inferred as sleeping (DEEP) — the same night, the
+   charcoal dropped toward black (the sleep-taxonomy distinction of
+   data/mind.ts stateLabel, worn by the whole room). Because every surface
    reads the palette VARIABLES, overriding them here re-tones every page.
    ════════════════════════════════════════════════════════════════════════ */
 body[data-tone='dusk'] {
@@ -115,7 +122,8 @@ body[data-tone='dusk'] {
   --border-ink: #AC9C77;
 }
 
-body[data-tone='night'] {
+body[data-tone='night'],
+body[data-tone='deep'] {
   /* Bakelite at night — warm charcoal, never blue-black */
   --parchment:  #191511;   /* the room, lights out */
   --paper:      #221D16;   /* raised panels, barely lit */
@@ -131,6 +139,23 @@ body[data-tone='night'] {
   --footer-bg:  #100D0A;
   /* the footer wordmark matches the header's "tokeniko" at night (both read --ink). */
   --footer-ink: var(--ink);
+  /* no ledge, no cast shadow — nothing lifts off a dark page (see --crt-lift in :root). */
+  --crt-lift: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+body[data-tone='deep'] {
+  /* sleeping (DEEP) — the transmitter silent, the house past midnight: the same warm
+     charcoal dropped toward black, the text a breath dimmer. REM keeps the night above. */
+  --parchment:  #0D0A07;
+  --paper:      #17130D;
+  --paper-2:    #1B1710;
+  --ink:        #DCD3BE;
+  --ink-soft:   #B0A489;
+  --muted:      #82765F;
+  --border:     #2C261E;
+  --border-ink: #221D16;
+  --mint-soft:  #26302A;
+  --footer-bg:  #070503;
 }
 
 /* the lamp is turned, not switched: the page background fades between tones.

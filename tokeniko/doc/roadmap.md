@@ -81,17 +81,7 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 
 - *(The reduct answers are DONE — answered live 2026-07-19, both ledger rows resolved, the
   mammal era closed through the retreat machinery → `landed.md`.)*
-- 🔭 **The sleep-depth theme + the Atlas theme-overrides** (author-approved design 2026-07-19,
-  next quick task — one working session, both touch the same seam):
-  1. **DEEP darker than REM**: MindContext stamps a fourth tone (`night` = sleeping REM,
-     `deep` = off-air-inferred DEEP — the stateLabel distinction reused); the `deep` palette
-     drops the warm charcoal toward black. In BOTH dark tones the Mind Monitor / signal-scope
-     `box-shadow` goes to none (shadows lift boxes off a LIGHT page; kept on day/dusk only).
-  2. **Theme tunables as OVERRIDES-over-defaults** (the agreed shape): the full palette stays
-     in code (git = design provenance; a bad DB row can never take styling down), ONE small
-     Atlas doc `{token: value}` rides the `/api/mind` snapshot the site already polls (zero
-     extra requests, no FOUC — defaults render, overrides re-tone on poll). Tuning is data;
-     identity is code. Graduated values fold into the CSS defaults at the next real deploy.
+- *(The sleep-depth theme + the Atlas theme-overrides — DONE 2026-07-20 → `landed.md`.)*
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
 

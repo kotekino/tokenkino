@@ -1759,3 +1759,22 @@ SURVEY ARC IS COMPLETE)**
 - +6 tests: the `_sleep_reason` decision table ×3 (`test_sleep_phase.py`: tiredness beats
   fruitful wondering · fork-A defer-never-reset · the original door stands) + the parallel beat
   ×3 (`test_blog_p3.py`: published-state reporting · graceful failure · thread first-beat/stop).
+
+**The sleep-depth theme + the Atlas theme-overrides (2026-07-20 — the site wears the sleep taxonomy)**
+- **DEEP darker than REM**: MindContext now stamps a FOURTH tone — `night` = the live sleep
+  phase (sleeping REM, heartbeats landing), `deep` = off-air inferred as sleeping (DEEP) — the
+  same `stateLabel` taxonomy the chips and footer already speak, worn by the whole room. The
+  `deep` palette drops the warm charcoal toward black (parchment `#191511`→`#0D0A07`, the text
+  a breath dimmer); `deep` shares every `night` rule via the selector list, then overrides.
+- **The shadow discipline**: the Mind Monitor / signal-scope consoles' OUTER lift (ledge + cast
+  shadow) is now one seam — `--crt-lift` in `:root`, flattened to a no-op in BOTH dark tones (a
+  shadow lifts a box off a LIGHT page); the inset phosphor ring + vignette are the CRT's own
+  interior and stay in every tone.
+- **Theme tunables as OVERRIDES-over-defaults** (the agreed shape): the full palette stays in
+  code (git = design provenance); ONE small Atlas doc (`theme_overrides`, singleton, edited by
+  hand — deliberately NO ingest route) rides the `GET /api/mind` response the site already polls
+  (zero extra requests). Keys `--token` (every tone) or `tone:--token`; the frontend compiles
+  the map into one `<style>` in `<head>` (later in cascade at equal specificity ⇒ override
+  beats default), sanitized token+value (an unsafe row is silently dropped — a bad DB row can
+  never take styling down; defaults render either way, no FOUC). Graduated values fold into the
+  CSS defaults at the next real deploy.

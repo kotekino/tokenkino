@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { MindSnapshot } from '../models/MindSnapshot';
 import { MindCurrent } from '../models/MindCurrent';
+import { ThemeOverrides } from '../models/ThemeOverrides';
 import { requireIngestKey } from '../middleware/auth';
 import { buildDerived, parseMindBody, MOCK_MIND, SERIES_METRIC } from '../services/mind';
 
@@ -19,14 +20,25 @@ const TREND_WINDOW = Math.max(2, Number(process.env.MIND_TREND_WINDOW) || 12);
 
 // ─── GET current ─────────────────────────────────────────────────────────────
 // Falls back to the seeded mock when the archive is empty or the DB hiccups, so
-// the public window always shows something honest.
+// the public window always shows something honest. The theme-override doc rides
+// the same response (zero extra requests for the frontend); its read failing
+// never hurts the snapshot — the site just keeps its code defaults.
 router.get('/', async (_req: Request, res: Response) => {
+  let theme: Record<string, string> = {};
+  try {
+    const overrides = await ThemeOverrides.findOne({ key: 'current' }).lean();
+    if (overrides?.tokens && typeof overrides.tokens === 'object') {
+      theme = overrides.tokens as Record<string, string>;
+    }
+  } catch (err) {
+    console.warn('[mind] theme overrides read failed, serving defaults:', err);
+  }
   try {
     const current = await MindCurrent.findOne({ key: 'current' }).lean();
-    res.json({ success: true, data: (current?.data as unknown) ?? MOCK_MIND });
+    res.json({ success: true, data: (current?.data as unknown) ?? MOCK_MIND, theme });
   } catch (err) {
     console.warn('[mind] current read failed, serving mock:', err);
-    res.json({ success: true, data: MOCK_MIND });
+    res.json({ success: true, data: MOCK_MIND, theme });
   }
 });
 
