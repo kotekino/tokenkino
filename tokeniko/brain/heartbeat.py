@@ -106,9 +106,17 @@ def build_snapshot(state: str) -> dict:
                  f"[{getattr(a.status, 'value', a.status)}]"}
         for a in recent
     ]
-    # uptime = seconds since the wake boundary (brain_state.wake_at — set once on first run).
+    # uptime = LIVED-AWAKE seconds (shape c, the author's ruling 2026-07-21): the folded ledger +
+    # the open stretch — honest across the on/off stewardship. The old now-minus-wake_at reading
+    # counted every hour the process was off as "up"; wake_at is really the BIRTH stamp and now
+    # rides the metrics as ageSec («alive since») for the site to display when it grows the tile.
     bs = TKBrainStateDoc.find_one({"key": "singleton"}).run()  # Bunnet: .run() executes
-    uptime = int(now - bs.wake_at) if bs is not None and bs.wake_at else 0
+    uptime = 0
+    if bs is not None:
+        uptime = int((bs.awake_s or 0.0)
+                     + (max(0.0, now - bs.awake_mark) if bs.awake_mark else 0.0))
+        if bs.wake_at:
+            metrics["ageSec"] = int(now - bs.wake_at)
     return {
         "state": state,
         "doing": _DOING.get(state, _DOING["thinking"]),

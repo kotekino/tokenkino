@@ -14,6 +14,7 @@
 # STILL next: wondering (self-prompted derivation over the wondering window), and the tier-1 split (an
 # eval:true that is NOT KB-derivable but taught by a trusted speaker -> learn at teacher trust).
 # --------------------------------------------------------------
+import hashlib
 import json
 import logging
 import os
@@ -579,28 +580,46 @@ HYPOTHESIS_RESEMBLANCE_FLOOR = float(os.getenv("HYPOTHESIS_RESEMBLANCE_FLOOR", "
 
 
 def materialize_hypothesis(item: TKMemoryItemDoc) -> Optional[str]:
+    # every refusal names its bar (author-agreed 2026-07-21): 151 live guess firings had produced
+    # zero hypothesis rows with no way to tell WHICH gate held — the reason turns a silent no-op
+    # into diagnosis. Log lines only; the bar sequence itself is unchanged.
+    def bar(reason: str) -> None:
+        logger.info("[thinking] hypothesis bar held — %s («%s»)", reason,
+                    str(item.original)[:80])
+
     if item.zip is None:
+        bar("no zip")
         return None
     leaves = evaluation_harness._zip_leaves(item.zip.items)
     if not leaves or any(getattr(l, "unknown", False) for l in leaves):
-        return None  # unknown vocabulary is never guessed into knowledge (a wug stays a wug)
+        bar("unknown vocabulary")  # a wug stays a wug — never guessed into knowledge
+        return None
     if any(not ((getattr(l, "senses", None) or {}).get("subject")
                 or (getattr(l, "identities", None) or {}).get("subject")) for l in leaves):
-        return None  # the headless belt, same as teaching
+        bar("headless leaf")  # the headless belt, same as teaching
+        return None
     soul = trust.resolve_canonical(item.sourceId)
     if soul is None or soul.isMe:
+        bar("no soul or self-talk")
         return None
     out = evaluate_zip(item.zip)
     if status_to_token(out["result"]) != EvalToken.UNKNOWN.value:
-        return None  # refuted or derivable meanwhile — nothing to guess
+        bar(f"not UNKNOWN anymore ({status_to_token(out['result'])})")  # refuted or derivable meanwhile
+        return None
     match = out.get("relationMatch")
     if match is None or match < HYPOTHESIS_RESEMBLANCE_FLOOR:
-        return None  # resembles nothing he holds — charity needs evidence
+        # the measured value is the diagnostic gold: 0.55 vs the 0.6 floor is a tuning story,
+        # None is a no-evidence story — charity needs evidence either way.
+        bar("resembles nothing he holds" if match is None
+            else f"resemblance {match:.2f} under the {HYPOTHESIS_RESEMBLANCE_FLOOR:.2f} floor")
+        return None
     norm = normalize_deixis(strip_vocative(item.original, get_tokeniko().name), soul.name)
     if norm is None:
+        bar("deixis not normalizable")
         return None
     if TKTheoremDoc.find_one({"original": norm}).run() is not None:
-        return None  # already knowledge or already guessed
+        bar("already knowledge or already guessed")
+        return None
     speaker_trust = 1.0 if soul.imprint else soul.trust
     chain = (f"hypothesis: resembles «{out.get('matchedOriginal')}» at {match:.2f}; "
              f"said by {soul.name} ({soul.uid}) at trust {speaker_trust:.2f}")

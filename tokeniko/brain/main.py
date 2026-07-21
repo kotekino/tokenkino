@@ -655,6 +655,36 @@ def _sleep_reason(asleep_at: Optional[float], sub: Optional[str], now_m: float,
     return None
 
 
+# --------------------------------------------------------------
+# THE LIVED-AWAKE LEDGER (shape c, the author's ruling 2026-07-21) — `wake_at` is the BIRTH stamp
+# («alive since», never reset); this ledger measures time actually spent AWAKE. Neither sleep-phase
+# time nor process-dead time is awake time — the author powers the brain on and off around the work
+# sessions, and the old now-minus-wake_at "uptime" counted every one of those dead hours. Fold on
+# falling asleep, (re)open on waking and on boot. Pure state mutations (no save — the caller owns
+# the write) so the tests can drive them directly; a live reading = awake_s + (now - awake_mark).
+# --------------------------------------------------------------
+def _fold_awake(bs: TKBrainStateDoc, now_w: float) -> None:
+    if bs.awake_mark is not None:
+        bs.awake_s += max(0.0, now_w - bs.awake_mark)
+        bs.awake_mark = None
+
+
+def _mark_awake(bs: TKBrainStateDoc, now_w: float) -> None:
+    if bs.awake_mark is None:
+        bs.awake_mark = now_w
+
+
+def _boot_awake_ledger(bs: TKBrainStateDoc, now_w: float) -> None:
+    # a mark left open by a process death: credit only the WITNESSED tail — the last recorded
+    # think/wonder moment. The stretch beyond it is unwitnessed and never credited (conservative:
+    # an idle hour before a crash undercounts; the ledger never overcounts).
+    if bs.awake_mark is not None:
+        witnessed = float(max(bs.last_thinking_at or 0, bs.last_wondering_at or 0))
+        bs.awake_s += max(0.0, min(witnessed, now_w) - bs.awake_mark)
+        bs.awake_mark = None
+    _mark_awake(bs, now_w)
+
+
 # wake: clear the sleep state, tell the stashed dream + ask the morning questions.
 # Returns None (the new asleep_at).
 def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optional[float]:
@@ -663,6 +693,7 @@ def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optio
     slept = time.monotonic() - asleep_at
     logger.info("[sleep] ☀️ he wakes (%s) after %.0fs asleep", reason, slept)
     bs.asleep_since = None
+    _mark_awake(bs, time.time())  # the lived-awake stretch reopens with him
     bs.save()
     _spawn_pending_dream(bs)
     _spawn_morning_questions(bs)
@@ -682,8 +713,10 @@ async def coordinator(stop_event: asyncio.Event) -> None:
     # survived in bs.pending_dream and is told on this wake (content-idempotent).
     if bs.asleep_since is not None:
         bs.asleep_since = None
-        bs.save()
         logger.info("[sleep] ☀️ woken by the reboot — the night ended with the process")
+    # the lived-awake ledger: fold any stretch orphaned by the last process death, open this one.
+    _boot_awake_ledger(bs, time.time())
+    bs.save()
     _spawn_pending_dream(bs)
     tick = 0  # monotone loop counter (one increment per iteration) — used by the per-tick guard log
     # the idle-confirmation clock: last moment REACTIVE work (actions/priorities/think) happened.
@@ -754,6 +787,7 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                 if reason is not None:
                     asleep_at = now_m
                     bs.asleep_since = int(time.time())
+                    _fold_awake(bs, time.time())  # the lived-awake stretch closes with his eyes
                     bs.save()
                     if reason == "tired":
                         logger.info("[sleep] 🌙 tiredness takes him (awake for %.0fs) — "

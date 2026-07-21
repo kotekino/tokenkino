@@ -449,6 +449,26 @@ class BrainState(BaseModel):
     # seconds while asleep, None awake — observability + honesty across restarts (a reboot is a
     # wake: cleared on coordinator start, never resumed).
     asleep_since: Optional[int] = None
+    # THE LIVED-AWAKE LEDGER (shape c, author's ruling 2026-07-21): `wake_at` above is the BIRTH
+    # stamp («alive since», never reset); this pair measures time actually spent awake — the
+    # honest uptime across the author's on/off stewardship (process-dead time and sleep-phase
+    # time are NOT awake time). `awake_s` = folded cumulative seconds; `awake_mark` = epoch when
+    # the current awake stretch began (None while asleep). Folded at the sleep/wake transitions
+    # + coordinator boot (brain/main.py `_fold_awake`/`_mark_awake`); a live reading is
+    # awake_s + (now - awake_mark).
+    awake_s: float = 0.0
+    awake_mark: Optional[float] = None
+    # THE DIGEST BUFFER (the digest machinery, the author's ruling 2026-07-21): novelty of reasoning
+    # ⇒ immediate post, repetition ⇒ digest. Keyed by DIGEST KEY (a shared reasoning shape:
+    # "rule:<hash>" for same-rule wondering mints, "taught:<uid>" for same-teacher taught runs). The
+    # key's FIRST occurrence posts 1:1 (an entry is opened, theorem_ids empty) — its reasoning is
+    # news; from the SECOND on, same-key mints APPEND here instead of spawning a post. Each entry:
+    # {kind:"rule"|"teacher", theorem_ids:[...], subjects:[originals], shared:[rule ids / teacher
+    # uid], opened_at:epoch, generation:int, significance:float}. Flushed (one digest post per
+    # non-empty entry, then theorem_ids/subjects cleared — the entry stays as the "seen" marker so
+    # later mints keep batching) at sleep-onset, on a count-cap, and on coordinator boot. Everything-
+    # is-KB: restart-proof, JSON-plain (Bunnet Mixed-friendly). See brain/thinking.py digest_* .
+    digest_buffer: dict[str, dict] = Field(default_factory=dict)
     # the sleep duty's KB watermark: max knowledge createdAt when the last untangle pass ran — a
     # night on an unchanged KB is deep rest (no re-saturation), mirroring the wondering watermark.
     last_untangled_kb_at: int = 0

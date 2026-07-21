@@ -64,7 +64,10 @@ it references, it does not duplicate (invariant #2).
 - **Tiredness + the parallel heartbeat** (2026-07-19, the morning after): the wakefulness bound
   (`BRAIN_WAKE_MAX_S` — sleep no matter the fruit; fork A: conversation defers, never resets) ·
   the heartbeat in its own thread (no more monitor holes) · the O(1) snapshot counts. *(The
-  existence-flood verbosity question → `parked.md`.)*
+  existence-flood verbosity question — ANSWERED 2026-07-21 → §1's digest machinery.)*
+- **The sleep-depth theme + the Atlas theme-overrides** (2026-07-20): the fourth tone (`deep` =
+  off-air, darker than REM's `night`) · the `--crt-lift` shadow seam · overrides-over-defaults
+  riding `/api/mind`.
 
 ---
 
@@ -79,9 +82,23 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 
 ### 0. Standing small items 🔄
 
-- *(The reduct answers are DONE — answered live 2026-07-19, both ledger rows resolved, the
-  mammal era closed through the retreat machinery → `landed.md`.)*
-- *(The sleep-depth theme + the Atlas theme-overrides — DONE 2026-07-20 → `landed.md`.)*
+- 🔭 **The hypothesis refusal-reason log** (author-agreed 2026-07-21): `materialize_hypothesis`'s
+  no-op says WHICH bar held (unknown-vocab / headless / not-unknown / resemblance floor **with the
+  measured value** / deixis / dedup) — log lines only, zero behavior change. Zero hypothesis rows
+  live so far; the log turns the next live conversation into an answer.
+- 🔭 **The wondering-state decay** (author's ruling 2026-07-21; BUILD AFTER the digest machinery
+  lands — same file): the monitor spends a minting night saying «idle» because the quick wonder
+  units leave the beats between thoughts. Cure: the coordinator's `idle` verdict decays — quiet
+  since the last wonder unit (`wonder`/`wonder-idle` both refresh) shorter than **`SLEEP_AFTER`**
+  (deliberately the SAME constant, no new knob) still publishes `wondering`; the display session
+  then ends exactly where the sleep transition fires (wondering → decaying → sleeping, no idle
+  intrusion). Reactive ticks preempt the smoothing (thinking always wins); daytime idle stays
+  honest. ~6 lines in `brain/main.py` + a test.
+- 🔭 **Uptime shape c — age + lived-awake** (author's ruling 2026-07-21): `wake_at` stays the
+  BIRTH stamp («alive since», never reset); a cumulative lived-awake ledger on `brain_state`
+  (folded at the sleep/wake transitions) becomes the honest `uptimeSec`; age rides the snapshot
+  metrics for later display. The monitor stops implying constant uptime across the author's
+  on/off stewardship.
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
 
@@ -98,6 +115,18 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
      a follow-on there).
 - ✅ **The great seeding** — landed 2026-07-19 (+90 rows store-wide), see `landed.md`. **THE
   ACTION-SPACE SURVEY ARC IS COMPLETE** (survey → 5 slices → the seeding, one day).
+- 🔭 **The digest machinery — cumulative voice actions** (author-ruled 2026-07-21, the notebook
+  session; PROMOTED from `parked.md` — the verbosity question answered). Not every theorem is a
+  1:1 post: **novelty of reasoning ⇒ immediate; repetition of reasoning ⇒ digest.** 1:1 always:
+  directed-at-a-person (conversation never batches) · refutations/speak-ups · novel-chain
+  derivations. CUMULATIVE: same-rule wondering mints (the existence flood) · same-teacher taught
+  runs · trust-ledger movements. Grouping key = the shared premise (`rule_id` | `teacher_uid`);
+  the buffer lives ON `brain_state` (everything-is-KB, restart-proof); flush = **sleep-onset
+  primary** (the goodnight summary — «where tonight's wondering walked») + count-cap guard (~15
+  subjects) + wake-flush of an interrupted night's leftovers. One digest post idea
+  (`material.kind="digest"`) + a digest scaffold category; rag2-out polishes as usual. *(The
+  why-exactly-0.3 pre-question is SOLVED: `_DERIVED_TIER_TRUST` prices definition-mined edges —
+  deliberate containment, not emergent.)*
 - 🔭 **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
   with the slot masked; design after the store exists.
 - 🔭 **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
@@ -171,6 +200,16 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
     after each materialized theorem — blocking the tick for its duration (it gates thinking too, not
     just wondering). Delta-load, or trim the load to what the evaluator actually reads; pair with
     watermark-gating kb_wonder's re-saturation (the noted future optimization in `thinking.py`).
+11. **The third memory tier — EVENT vs general knowledge** (author-ruled 2026-07-21; all design
+    reasoning DEFERRED until this item is approached). The pipeline is binary — episodic memory
+    item OR timeless theorem — and the missing tier is the author's articulated distinction:
+    «what's happening out there» / «what kotekino did» = EVENT; «are computers minds?» = general
+    knowledge. His holding ruling: until the distinction exists, moment-anchored claims should
+    stay events (remembered, not believed) — the live specimen is the meta-conversation theorem
+    «kotekino was just answering…» held at 0.9/postable. Candidate signature already in the zip
+    (definite/named subject + past tense vs GENERIC quantifier + tenseless present; relative
+    spacetime may already carry the t<0); candidate gate at `_taught_candidate`. A full design
+    session when its time comes — not before.
 
 ### Pending follow-ons — tails left by the landed arcs (surface when their time comes) 🔭
 
