@@ -381,6 +381,59 @@ def _compose_retreat(material: dict, souls: list, soul_reader, now) -> PostDraft
                      significance=float(material.get("significance") or 0.9))
 
 
+# the DIGEST (the digest machinery 2026-07-21): the cumulative post — one repeated reasoning shape,
+# many subjects batched into ONE transmission («since x, y, z each …»). Kind "log" (a solo sweep of
+# his own KB, nobody spoke). Facts = the lead + the fenced subject list; proof = the shared ground
+# (the rule original(s) for a "rule" digest, the teacher's epithet for a "teacher" digest). Subjects
+# are the batched theorem `original`s carried in the material (no reader round-trip needed); the
+# scrub is the belt everywhere. Degrades gracefully: an unseeded digest shelf speaks the _FALLBACK
+# trunk (creative_compose's fallback), so the post ships verbatim even before the seed script runs.
+def _compose_digest(material: dict, souls: list, soul_reader, premise_reader, now) -> PostDraft:
+    subjects = [s.strip() for s in (material.get("subjects") or [])
+                if isinstance(s, str) and s.strip()]
+    if not subjects:
+        raise ValueError("digest material without subjects")
+    digest_kind = material.get("digest_kind") or "rule"
+    key = str(material.get("digest_key") or "")
+    slug = _sha_slug("digest", key + "::" + "|".join(subjects))
+    intensity = {"confidence": None, "arousal": float(material.get("significance") or 0.0)}
+
+    cleaned = [c for c in (_clean(s, souls) for s in subjects) if c is not None]
+    if not cleaned:
+        raise ValueError("digest material produced no publishable subject")
+    joined = "; ".join(f"«{s}»" for s in cleaned)
+    facts = [creative_compose("blog_digest_lead", {}, intensity=intensity),
+             creative_compose("blog_digest_body", {"subjects": joined}, intensity=intensity)]
+
+    proof: list[str] = []
+    if digest_kind == "teacher":
+        shared = material.get("shared") or []
+        soul = soul_reader(shared[0]) if shared else None
+        epithet = epithet_for(soul) if soul is not None else "someone"
+        proof.append(creative_compose("blog_digest_teacher", {"epithet": epithet},
+                                      intensity=intensity))
+    else:  # "rule" — resolve the shared rule premise(s) to their held sentence(s)
+        rule_lines: list[str] = []
+        for rid in (material.get("shared") or []):
+            resolved = None
+            try:
+                resolved = premise_reader(str(rid))
+            except Exception as error:
+                logger.warning("[blog] digest rule %s resolution failed (%s)", rid, error)
+            line = _clean(str(resolved), souls) if resolved else None
+            if line is not None:
+                rule_lines.append(line)
+        if rule_lines:
+            proof.append(creative_compose(
+                "blog_digest_rule", {"rule": "; ".join(f"«{r}»" for r in rule_lines)},
+                intensity=intensity))
+        else:  # the rule id no longer resolves (archived / a graph key) — the honest generic line
+            proof.append(creative_compose("blog_digest_reasoning", {}, intensity=intensity))
+
+    return PostDraft(kind="log", slug=slug, date=_iso(now), facts=facts, proof=proof,
+                     significance=float(material.get("significance") or 0.0))
+
+
 def compose_draft(material: dict, soul_reader: Optional[Callable] = None,
                   souls_reader: Optional[Callable] = None,
                   premise_reader: Optional[Callable] = None, now=None) -> PostDraft:
@@ -399,6 +452,8 @@ def compose_draft(material: dict, soul_reader: Optional[Callable] = None,
         return _compose_dream(material, souls, now)
     if kind == "retreat":
         return _compose_retreat(material, souls, soul_reader, now)
+    if kind == "digest":
+        return _compose_digest(material, souls, soul_reader, premise_reader, now)
     raise ValueError(f"unknown material kind: {kind!r}")
 
 

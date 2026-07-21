@@ -88,6 +88,14 @@ _FALLBACK: dict[str, str] = {
     "blog_retreat_retract": "I no longer believe that «{retracted}».",
     "blog_retreat_cascade": "And with it went «{casualty}».",
     "blog_retreat_credit": "{epithet} showed me.",
+    # the DIGEST (the digest machinery 2026-07-21): the cumulative post — one repeated reasoning
+    # shape, batched. These trunk strings ARE the graceful fallback: an unseeded digest shelf posts
+    # byte-identically to the seeded one (seed_scaffolds_digest.py adds the variants).
+    "blog_digest_lead": "Turning my knowledge over, the same reasoning kept bearing fruit.",
+    "blog_digest_body": "In one sweep, I reached: {subjects}.",
+    "blog_digest_rule": "They all rest on the same ground: {rule}.",
+    "blog_digest_teacher": "All of this I owe to {epithet}.",
+    "blog_digest_reasoning": "They all follow from one line of reasoning I already held.",
 }
 
 

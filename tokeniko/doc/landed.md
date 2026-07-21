@@ -1778,3 +1778,38 @@ SURVEY ARC IS COMPLETE)**
   beats default), sanitized token+value (an unsafe row is silently dropped — a bad DB row can
   never take styling down; defaults render either way, no FOUC). Graduated values fold into the
   CSS defaults at the next real deploy.
+
+**The lived-awake ledger + the hypothesis refusal reasons (2026-07-21 — the notebook session's small pair)**
+- **Uptime shape c** (the author's ruling): `wake_at` is the BIRTH stamp («alive since», never
+  reset); the new `awake_s`/`awake_mark` ledger on `brain_state` measures time actually spent
+  AWAKE — folded at the sleep/wake transitions, reopened at boot, an orphaned stretch credited
+  only up to the last witnessed think/wonder moment (never overcounts). Heartbeat `uptimeSec` =
+  lived-awake (the old now−wake_at counted every powered-off hour as up); age rides the metrics
+  as `ageSec` for the site's future tile. +2 ledger decision-table tests.
+- **The hypothesis refusal reasons**: every `materialize_hypothesis` no-op names WHICH bar held
+  (unknown-vocab / headless / not-UNKNOWN / resemblance floor with the measured value / deixis /
+  dedup) — 151 live guess firings, zero rows, no way to tell which gate; log lines only, the bar
+  sequence unchanged. The next live conversation becomes the diagnosis.
+
+**THE DIGEST MACHINERY — cumulative voice actions (2026-07-21 — the 1st Officier's maiden build)**
+- The verbosity ruling operationalized: **novelty of reasoning ⇒ immediate post; repetition ⇒
+  digest.** `digest_classify` reads the shared reasoning off provenance (`rule:<hash>` for
+  same-rule wondering mints — rule premises identified by intersecting with the active KB's rule
+  source_ids, fingerprint-cached; `taught:<uid>` for same-teacher runs; none ⇒ 1:1,
+  conservative). A key's FIRST occurrence posts 1:1 (its reasoning is news) and opens the buffer
+  entry as the "seen" marker; from the second on, mints batch (`digest_admit`).
+- The buffer lives ON `brain_state` (`digest_buffer`, everything-is-KB, restart-proof); flushed —
+  one digest post idea per non-empty entry — at **sleep-onset** (the goodnight summary), on the
+  **count-cap** (15, no monster posts), and at **coordinator boot** (an interrupted night's
+  leftovers). Flushed entries persist as seen-markers so later same-key mints keep batching.
+- The render: `senses/blog.py::compose_draft` grew the `digest` branch (the REAL post-material
+  seam — `brain/compose.py` is the Discord-reply router; brief's map corrected, deviation
+  reported) through `voice.creative_compose`; 5 digest fallback categories in `lib/core/voice.py`
+  ship byte-identically unseeded; `scripts/seed_scaffolds_digest.py` surfaced, `--apply` = the
+  author's hand. rag2-out polishes as any post.
+- Digest activates only when `bs` is threaded (the live coordinator always does; un-threaded
+  callers keep byte-identical 1:1) — why the whole suite stayed green. +12 tests
+  (`tests/test_digest.py`); full gate **585 passed, 1 xfailed**.
+- **The workflow first**: designed QM+Captain, built by the 1st Officier (the Opus operative,
+  contract in `.claude/agents/first-officer.md`) from a written brief — the brief-then-build
+  working agreement's sea trial, passed.

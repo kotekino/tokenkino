@@ -82,10 +82,6 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 
 ### 0. Standing small items 🔄
 
-- 🔭 **The hypothesis refusal-reason log** (author-agreed 2026-07-21): `materialize_hypothesis`'s
-  no-op says WHICH bar held (unknown-vocab / headless / not-unknown / resemblance floor **with the
-  measured value** / deixis / dedup) — log lines only, zero behavior change. Zero hypothesis rows
-  live so far; the log turns the next live conversation into an answer.
 - 🔭 **The wondering-state decay** (author's ruling 2026-07-21; BUILD AFTER the digest machinery
   lands — same file): the monitor spends a minting night saying «idle» because the quick wonder
   units leave the beats between thoughts. Cure: the coordinator's `idle` verdict decays — quiet
@@ -94,11 +90,7 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
   then ends exactly where the sleep transition fires (wondering → decaying → sleeping, no idle
   intrusion). Reactive ticks preempt the smoothing (thinking always wins); daytime idle stays
   honest. ~6 lines in `brain/main.py` + a test.
-- 🔭 **Uptime shape c — age + lived-awake** (author's ruling 2026-07-21): `wake_at` stays the
-  BIRTH stamp («alive since», never reset); a cumulative lived-awake ledger on `brain_state`
-  (folded at the sleep/wake transitions) becomes the honest `uptimeSec`; age rides the snapshot
-  metrics for later display. The monitor stops implying constant uptime across the author's
-  on/off stewardship.
+- *(The hypothesis refusal-reason log + uptime shape c — DONE 2026-07-21 → `landed.md`.)*
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
 
@@ -115,18 +107,8 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
      a follow-on there).
 - ✅ **The great seeding** — landed 2026-07-19 (+90 rows store-wide), see `landed.md`. **THE
   ACTION-SPACE SURVEY ARC IS COMPLETE** (survey → 5 slices → the seeding, one day).
-- 🔭 **The digest machinery — cumulative voice actions** (author-ruled 2026-07-21, the notebook
-  session; PROMOTED from `parked.md` — the verbosity question answered). Not every theorem is a
-  1:1 post: **novelty of reasoning ⇒ immediate; repetition of reasoning ⇒ digest.** 1:1 always:
-  directed-at-a-person (conversation never batches) · refutations/speak-ups · novel-chain
-  derivations. CUMULATIVE: same-rule wondering mints (the existence flood) · same-teacher taught
-  runs · trust-ledger movements. Grouping key = the shared premise (`rule_id` | `teacher_uid`);
-  the buffer lives ON `brain_state` (everything-is-KB, restart-proof); flush = **sleep-onset
-  primary** (the goodnight summary — «where tonight's wondering walked») + count-cap guard (~15
-  subjects) + wake-flush of an interrupted night's leftovers. One digest post idea
-  (`material.kind="digest"`) + a digest scaffold category; rag2-out polishes as usual. *(The
-  why-exactly-0.3 pre-question is SOLVED: `_DERIVED_TIER_TRUST` prices definition-mined edges —
-  deliberate containment, not emergent.)*
+- *(The digest machinery — DONE 2026-07-21, the 1st Officier's maiden build → `landed.md`.
+  Trust-ledger-movement digests stay a follow-on, see Pending follow-ons.)*
 - 🔭 **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
   with the slot masked; design after the store exists.
 - 🔭 **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
@@ -216,6 +198,9 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 Gathered so nothing is lost; each waits on its parent feature's next season.
 - **Blog**: `life:learned` / `life:discussion` triggers *(consensus-over-the-polisher → folded
   into Compose 2.0 §2 slice 3)*.
+- **Trust-ledger-movement digests** (the digest machinery's explicit scope fence, 2026-07-21):
+  «my opinion of X shifted twice today» batches like the rest — once the rule/teacher digests
+  have lived a while.
 - **Trust-ledger consumers**: the trust-gated tkzip lane · attitude-report unwrapping (events /
   facts-as-axioms) · tier-1 teaching by an EARNED-trust stranger (Hellen is 4 kickers from the bar).
 - **Complement family residuals**: verify the infinitival/control complement (xcomp→THAT) · the

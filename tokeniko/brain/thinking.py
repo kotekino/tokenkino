@@ -263,13 +263,149 @@ def _premises_postable(premises) -> bool:
     return True
 
 
+# --------------------------------------------------------------
+# THE DIGEST MACHINERY (the author's ruling 2026-07-21) — novelty of reasoning ⇒ immediate post,
+# repetition of reasoning ⇒ digest. Wondering's existence flood posts EVERY «X exists» 1:1 (dozens
+# of near-identical transmissions a night); the cure is to batch the REPEATED reasoning shape into
+# one cumulative post («since x, y, z exist, each …»). The classification hook lives HERE, where the
+# post idea is born — NOT where the theorem is minted (minting is sacred; a non-postable theorem
+# still batches nothing, it just never reaches this seam). The buffer is homed on brain_state
+# (everything-is-KB, restart-proof); the flush sites (sleep-onset, count-cap, boot) live in
+# brain/main.py + the count-cap below.
+# --------------------------------------------------------------
+DIGEST_COUNT_CAP = 15          # an entry reaching this many subjects flushes immediately (no monster posts)
+DIGEST_SIGNIFICANCE = 0.9      # a cumulative post is noteworthy by construction: 0.65 x 0.9 = 0.585 >= 0.5
+
+
+# the ACTIVE rule source-ids (the KB's own labelling of which premises are RULES) — the flood's
+# shared reasoning IS the rule that fired across many subjects. _load_active_kb is fingerprint-cached
+# (the reactive/wondering passes already loaded it this tick), so this is essentially free.
+def _active_rule_source_ids() -> set[str]:
+    kb = evaluation_harness._load_active_kb()
+    return {str(r.get("source_id")) for r in kb.get("rules", []) if r.get("source_id")}
+
+
+# the DIGEST KEY — the shared reasoning shape, extracted from provenance. Returns (key, kind, shared)
+# or None (not digestible -> 1:1, conservative). The key is STABLE across restarts (rule source-ids
+# are Mongo ids / stable "rule:…" keys; a teacher uid is immutable).
+#   wondering: the RULE premise(s) — the flood's «every thing that exists …» rule fires the same
+#              across subjects, so its id is the constant the subject-specific fact premises are not.
+#              key = "rule:<hash of the sorted rule premises>"; shared = those rule ids.
+#   teaching:  the teacher — "taught:<uid>" is already the provenance-premise shape; shared = [uid].
+# ONLY these two faculties digest (a reactive-thinking derivation is conversational -> always 1:1).
+def digest_classify(derived_by: str, premises: list,
+                    rule_ids: Optional[set] = None) -> Optional[tuple[str, str, list]]:
+    prems = [str(p) for p in (premises or [])]
+    if not prems:
+        return None
+    if derived_by == "teaching":
+        for p in prems:
+            if p.startswith("taught:"):
+                return (p, "teacher", [p[len("taught:"):]])
+        return None
+    if derived_by == "wondering":
+        rules = rule_ids if rule_ids is not None else _active_rule_source_ids()
+        shared = sorted(p for p in prems if p in rules)
+        if not shared:
+            return None  # no extractable shared rule premise -> not digestible (conservative)
+        key = "rule:" + hashlib.sha1("|".join(shared).encode("utf-8")).hexdigest()[:12]
+        return (key, "rule", shared)
+    return None
+
+
+# flush ONE buffer entry: spawn its cumulative digest post (mirrors _spawn_life_theorem's material
+# shape, kind="digest") and clear its accumulation — the entry itself STAYS as the "seen" marker so
+# subsequent same-key mints keep batching instead of re-posting 1:1. No-op on an empty entry.
+# Returns the spawned idea (or None). The caller owns the bs.save().
+def _flush_digest_entry(key: str, entry: dict) -> Optional[TKIdeaDoc]:
+    if not entry.get("theorem_ids"):
+        return None
+    entry["generation"] = int(entry.get("generation", 0)) + 1
+    sig = float(entry.get("significance") or DIGEST_SIGNIFICANCE)
+    material = {
+        "kind": "digest",
+        "digest_key": key,
+        "digest_kind": entry.get("kind"),               # "rule" | "teacher" — the render branch
+        "theorem_ids": list(entry.get("theorem_ids") or []),
+        "subjects": list(entry.get("subjects") or []),  # the batched originals (the composer renders these)
+        "shared": list(entry.get("shared") or []),      # rule ids (rule) / [teacher uid] (teacher)
+        "significance": sig,
+    }
+    ideas = behavior.spawn_ideas_for(
+        LifeEventKind.THEOREM.value,                    # the same life:theorem -> post pipeline
+        source=f"digest:{key}:{entry['generation']}",   # unique per flush (idempotency key)
+        material=material,
+        urge_scale=sig,
+    )
+    entry["theorem_ids"] = []
+    entry["subjects"] = []
+    return ideas[0] if ideas else None
+
+
+# ADMIT a freshly-minted theorem's post decision into the digest buffer on `bs`. Returns "post"
+# (the key's FIRST occurrence — its reasoning is news, let the 1:1 post proceed) or "buffered" (a
+# repetition — accumulated, no 1:1). Mutates + SAVES bs (the caller's coordinator object). A
+# count-cap hit flushes the entry in place (no monster posts). Pure-ish: driven directly by tests.
+def digest_admit(bs: TKBrainStateDoc, key: str, kind: str, theorem_id: Optional[str],
+                 original: str, shared: list, significance: float) -> str:
+    buf = dict(bs.digest_buffer or {})
+    entry = buf.get(key)
+    if entry is None:
+        # first occurrence: open the entry (empty) as the "seen" marker and post 1:1.
+        buf[key] = {"kind": kind, "theorem_ids": [], "subjects": [], "shared": list(shared or []),
+                    "opened_at": int(time.time()), "generation": 0,
+                    "significance": float(significance)}
+        bs.digest_buffer = buf
+        bs.save()
+        return "post"
+    entry.setdefault("theorem_ids", []).append(theorem_id or "")
+    entry.setdefault("subjects", []).append(original)
+    entry["significance"] = max(float(entry.get("significance") or 0.0), float(significance))
+    if len(entry["theorem_ids"]) >= DIGEST_COUNT_CAP:
+        _flush_digest_entry(key, entry)  # a full entry ships now
+    bs.digest_buffer = buf
+    bs.save()
+    return "buffered"
+
+
+# FLUSH the whole buffer — one cumulative digest post per entry that accumulated anything, then
+# clear those entries' accumulation (the entries persist as "seen"). The sleep-onset goodnight
+# summary + the boot recovery of an interrupted night both call this. Returns how many posts spawned.
+def flush_digests(bs: TKBrainStateDoc) -> int:
+    buf = dict(bs.digest_buffer or {})
+    if not buf:
+        return 0
+    n = 0
+    for key, entry in buf.items():
+        if _flush_digest_entry(key, entry) is not None:
+            n += 1
+    bs.digest_buffer = buf
+    bs.save()
+    if n:
+        logger.info("[digest] flushed %d cumulative post(s) from the digest buffer", n)
+    return n
+
+
 # SPAWN the life:theorem trigger for a genuinely-NEW postable theorem (the third trigger namespace,
 # blog P1). source = the THEOREM doc id — NOT a memory item — so behavior._source_memory resolves
 # None and effective_urge sees directedness 1.0: self-expression is never scaled down by addressing
 # (posts are additionally addressing-exempt in Priorities via the PUBLIC channel).
+#
+# THE DIGEST GATE (2026-07-21): when a brain_state is in hand (the live coordinator always threads
+# it; tests opt in), a REPEATED reasoning shape (same wondering rule / same teacher, past its first
+# occurrence) is BATCHED into the digest buffer instead of posting 1:1 (digest_classify/digest_admit
+# above). No brain_state (an un-threaded caller / a unit test) -> the historical 1:1 behavior.
 def _spawn_life_theorem(theorem_id: Optional[str], original: str, derived_by: str,
-                        premises: list, chain: str, personal: bool) -> None:
+                        premises: list, chain: str, personal: bool,
+                        bs: Optional[TKBrainStateDoc] = None) -> None:
     sig = life_theorem_significance(derived_by, chain, personal)
+    if bs is not None:
+        classified = digest_classify(derived_by, premises)
+        if classified is not None:
+            key, kind, shared = classified
+            if digest_admit(bs, key, kind, theorem_id, original, shared, sig) == "buffered":
+                return  # a repetition — batched, no 1:1 post
+            # a FIRST occurrence falls through to the normal 1:1 post below (its reasoning is news)
     behavior.spawn_ideas_for(
         LifeEventKind.THEOREM.value,
         source=theorem_id,
@@ -290,7 +426,8 @@ def _spawn_life_theorem(theorem_id: Optional[str], original: str, derived_by: st
 # grows the KB, it does not speak. Idempotent by `original` (silence = consent: a re-derived truth
 # already known is not re-stored). Caching the demonstrated conclusion lets future evals match it
 # geometrically instead of re-deriving it every time. Returns True iff a NEW theorem was written.
-def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_by: str = "thinking") -> bool:
+def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_by: str = "thinking",
+                        bs: Optional[TKBrainStateDoc] = None) -> bool:
     if item.zip is None or not _derived_theorem(result):
         return False
     # INTEGRITY INVARIANT: a derived theorem MUST rest on KB premises — only RULE/FACT derivations are
@@ -341,7 +478,7 @@ def materialize_theorem(result: EvaluatorResult, item: TKMemoryItemDoc, derived_
     # urge on the PUBLIC channel, arbitrated by Priorities like any idea.
     if postable:
         _spawn_life_theorem(str(theorem.id), norm, derived_by,
-                            result.premises, chain, _is_personal(item.zip, norm))
+                            result.premises, chain, _is_personal(item.zip, norm), bs=bs)
     return True
 
 
@@ -500,7 +637,8 @@ def _taught_candidate(item: TKMemoryItemDoc):
 # tokeniko:learn behavior rule (KB personality; no rule = a mind that doesn't learn from others).
 # Returns the normalized original on a real mint, None on refusal (the candidate re-check makes
 # the executor race-safe: a lesson learned by any other path meanwhile dedups to an honest no-op).
-def materialize_taught(item: TKMemoryItemDoc) -> Optional[str]:
+def materialize_taught(item: TKMemoryItemDoc,
+                       bs: Optional[TKBrainStateDoc] = None) -> Optional[str]:
     cand = _taught_candidate(item)
     if cand is None:
         return None
@@ -525,7 +663,7 @@ def materialize_taught(item: TKMemoryItemDoc) -> Optional[str]:
                     norm, soul.uid, teacher_trust)
         if existing.postable:
             _spawn_life_theorem(str(existing.id), norm, "teaching",
-                                [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm))
+                                [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm), bs=bs)
         return norm
     # provenance gate (blog P1): a lesson given in PRIVATE (a Discord DM) is learned but never
     # published — "DM never public" is constitution-level.
@@ -552,7 +690,7 @@ def materialize_taught(item: TKMemoryItemDoc) -> Optional[str]:
     # _is_personal too: a taught "you are kind" → "I am kind" correctly reads personal ("I " prefix).
     if postable:
         _spawn_life_theorem(str(theorem.id), norm, "teaching",
-                            [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm))
+                            [f"taught:{soul.uid}"], chain, _is_personal(item.zip, norm), bs=bs)
     return norm
 
 
@@ -1020,7 +1158,7 @@ def ask_morning_questions(stash: dict) -> int:
     return asked
 
 
-def _kb_wonder_one() -> bool:
+def _kb_wonder_one(bs: Optional[TKBrainStateDoc] = None) -> bool:
     conflicts: list[dict] = []
     conclusions = evaluation_harness.kb_wonder(collect_conflicts=conflicts)
     try:  # ledger trouble must never kill the wondering tick
@@ -1077,7 +1215,8 @@ def _kb_wonder_one() -> bool:
                 c["subject_kind"] == "individual" and trust.resolve_canonical(c["subject"]) is not None
             )
             theorem_id = str(data.get("_id") or data.get("id") or "")
-            _spawn_life_theorem(theorem_id or None, nl, "wondering", c["premises"], chain, personal)
+            _spawn_life_theorem(theorem_id or None, nl, "wondering", c["premises"], chain,
+                                personal, bs=bs)
         return True  # one bounded unit per tick
     logger.info("[wondering] KB-wonder quiet: %d conclusions, all %d already held (converged)",
                 len(conclusions), n_held_skip)
@@ -1092,7 +1231,7 @@ def _kb_wonder_one() -> bool:
 def wonder_one(brain_state: TKBrainStateDoc):
     # 0. KB-WONDERING FIRST — derive what the KB implies and materialize ONE new theorem (the cogito's
     #    autonomous birth). When it has nothing new (converged), fall through to memory-wondering below.
-    if _kb_wonder_one():
+    if _kb_wonder_one(bs=brain_state):
         return "derived"
 
     # 1. FIRST-RUN GUARD. Anchor the associative watermark at "now" so the entire seeded KB is not
@@ -1194,7 +1333,8 @@ def wonder_one(brain_state: TKBrainStateDoc):
     result: EvaluatorResult = out["result"]
     tok = status_to_token(result)
     logger.info("[wondering] memory-item «%s» -> %s (truth=%.2f)", item.original, tok, result.truth)
-    if tok == EvalToken.TRUE.value and materialize_theorem(result, item, derived_by="wondering"):
+    if tok == EvalToken.TRUE.value and materialize_theorem(result, item, derived_by="wondering",
+                                                           bs=brain_state):
         return "derived"  # SILENT learning: a NEW theorem entered the KB — fruit
     return "checked"
 
@@ -1456,7 +1596,7 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                 )
             # D1b: a forward-chained eval:true is genuine derived knowledge -> learn it (silently).
             if token == EvalToken.TRUE.value:
-                materialize_theorem(result, item, derived_by="thinking")
+                materialize_theorem(result, item, derived_by="thinking", bs=brain_state)
             # D P3 (tier-1, the TEACHING CHANNEL) — the B-WIRE (survey slice 3, author's ruling):
             # a teachable novel assertion spawns eval:novel; the eval:novel -> tokeniko:learn RULE
             # is the personality switch of teachability, and the MINT runs in the learn executor

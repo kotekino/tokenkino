@@ -102,7 +102,7 @@ def get_or_create_brain_state() -> TKBrainStateDoc:
 # Actions phase (The Executor) — strict FIFO. Pull the oldest pending action and carry it out.
 # Returns True if it processed an action this tick, False if the queue was empty.
 # --------------------------------------------------------------
-def actions_phase() -> bool:
+def actions_phase(bs: Optional[TKBrainStateDoc] = None) -> bool:
     # INTERNAL channel ONLY (D3b): outward actions (discord/atproto) are carried out by `senses`, which
     # polls its OWN channel — the brain must NOT consume them (disjoint channel filters = no cross-process
     # race, no new status). INTERNAL = the KB-write reflexes (guess/learn) the brain executes itself.
@@ -168,7 +168,7 @@ def actions_phase() -> bool:
     elif action.action_type == ActionType.REVISE_BELIEF:
         _execute_retreat(action)
     elif (action.payload or {}).get("action_token") == TokenikoAction.LEARN.value:
-        _execute_learn(action)
+        _execute_learn(action, bs)
     elif (action.payload or {}).get("action_token") == TokenikoAction.GUESS.value:
         _execute_guess(action)
     else:
@@ -192,7 +192,7 @@ def actions_phase() -> bool:
 # On a REAL mint, spawn eval:learned -> the curiosity trigger (target = the teacher; the topic =
 # the normalized lesson): a novel lesson earns one deepening «why» — literally the kicker-hunting
 # question (the closed why-loop is the twin-soul signal). Throttled at plan time (ASK_COOLDOWN_S).
-def _execute_learn(action: TKActionDoc) -> None:
+def _execute_learn(action: TKActionDoc, bs: Optional[TKBrainStateDoc] = None) -> None:
     from bson import ObjectId
     from bson.errors import InvalidId
     from lib.core.models import TKMemoryItemDoc
@@ -209,7 +209,9 @@ def _execute_learn(action: TKActionDoc) -> None:
         logger.warning("[actions] learn action %s: source memory %r unresolvable — dropped",
                        str(action.id), src)
         return
-    norm = thinking.materialize_taught(item)
+    # bs threaded from the coordinator so a same-teacher run BATCHES into the digest buffer (the
+    # post decision happens inside materialize_taught -> _spawn_life_theorem); None -> 1:1, as before.
+    norm = thinking.materialize_taught(item, bs=bs)
     if norm is None:
         logger.info("[actions] learn action %s: nothing minted («%s» — raced/no longer teachable)",
                     str(action.id), item.original[:60])
@@ -717,6 +719,9 @@ async def coordinator(stop_event: asyncio.Event) -> None:
     # the lived-awake ledger: fold any stretch orphaned by the last process death, open this one.
     _boot_awake_ledger(bs, time.time())
     bs.save()
+    # the digest buffer: an interrupted night's leftover batches ship on this wake (the boot flush,
+    # the digest machinery 2026-07-21) — the goodnight summary a crash never got to send.
+    thinking.flush_digests(bs)
     _spawn_pending_dream(bs)
     tick = 0  # monotone loop counter (one increment per iteration) — used by the per-tick guard log
     # the idle-confirmation clock: last moment REACTIVE work (actions/priorities/think) happened.
@@ -746,7 +751,7 @@ async def coordinator(stop_event: asyncio.Event) -> None:
             # the process would stay alive with a dead loop (indistinguishable from a hang). Log the
             # full traceback, back off one idle interval, keep living.
             try:
-                if actions_phase():
+                if actions_phase(bs):
                     # Actions/Priorities work reports as "thinking" (blog P3 state mapping): deciding
                     # and acting on urges is still thought — "ingesting"/"refuting" would claim
                     # introspection the coordinator doesn't cheaply have.
@@ -788,6 +793,10 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     asleep_at = now_m
                     bs.asleep_since = int(time.time())
                     _fold_awake(bs, time.time())  # the lived-awake stretch closes with his eyes
+                    # the digest buffer's goodnight summary (the digest machinery 2026-07-21): the
+                    # night's repeated-reasoning batches ship as one cumulative post per shape at the
+                    # falling-asleep edge — beside the goodnight, before the untangling dream.
+                    thinking.flush_digests(bs)
                     bs.save()
                     if reason == "tired":
                         logger.info("[sleep] 🌙 tiredness takes him (awake for %.0fs) — "
