@@ -1813,3 +1813,14 @@ SURVEY ARC IS COMPLETE)**
 - **The workflow first**: designed QM+Captain, built by the 1st Officier (the Opus operative,
   contract in `.claude/agents/first-officer.md`) from a written brief — the brief-then-build
   working agreement's sea trial, passed.
+
+**The wondering-state decay (2026-07-21 — the published state becomes session-granular)**
+- The monitor spent flood nights saying «idle» — the wonder units got quick, so the beats always
+  landed between thoughts while theorems arrived every few minutes. The `idle` verdict now
+  DECAYS (`_published_state`, pure + table-tested): quiet since the last wonder unit
+  (`wonder`/`wonder-idle` both refresh — checking the notebooks IS wondering) shorter than
+  **`SLEEP_AFTER`** still publishes `wondering`. Deliberately the same constant, no new knob:
+  the sleep design ends a fruitless session at exactly SLEEP_AFTER, so the display hands off
+  wondering → sleeping with no idle intrusion — and the site's dusk tone now holds through a
+  minting night. Real events preempt (think → "thinking" instantly); a cold boot reads honest
+  idle. +1 decision-table test.

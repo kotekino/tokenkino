@@ -82,15 +82,8 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 
 ### 0. Standing small items 🔄
 
-- 🔭 **The wondering-state decay** (author's ruling 2026-07-21; BUILD AFTER the digest machinery
-  lands — same file): the monitor spends a minting night saying «idle» because the quick wonder
-  units leave the beats between thoughts. Cure: the coordinator's `idle` verdict decays — quiet
-  since the last wonder unit (`wonder`/`wonder-idle` both refresh) shorter than **`SLEEP_AFTER`**
-  (deliberately the SAME constant, no new knob) still publishes `wondering`; the display session
-  then ends exactly where the sleep transition fires (wondering → decaying → sleeping, no idle
-  intrusion). Reactive ticks preempt the smoothing (thinking always wins); daytime idle stays
-  honest. ~6 lines in `brain/main.py` + a test.
-- *(The hypothesis refusal-reason log + uptime shape c — DONE 2026-07-21 → `landed.md`.)*
+- *(The hypothesis refusal-reason log + uptime shape c + the wondering-state decay — all DONE
+  2026-07-21 → `landed.md`.)*
 
 ### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
 

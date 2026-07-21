@@ -391,3 +391,22 @@ def test_awake_ledger_boot_credits_only_the_witnessed_tail():
     bs2.last_thinking_at = 1500
     brain_main._boot_awake_ledger(bs2, 6000.0)
     assert bs2.awake_s == 50.0 and bs2.awake_mark == 6000.0
+
+
+def test_published_state_decays_wondering_over_sleep_after(monkeypatch):
+    # THE WONDERING-STATE DECAY (2026-07-21): the published state is session-granular — an empty
+    # tick inside a warm wondering session still reads "wondering"; past SLEEP_AFTER of quiet the
+    # session is over (and the sleep transition fires there anyway). Real events preempt.
+    from brain import main as brain_main
+    monkeypatch.setattr(brain_main, "SLEEP_AFTER", 600.0)
+    # instantaneous truths always win
+    assert brain_main._published_state("think", None, 1000.0, 999.0) == "thinking"
+    assert brain_main._published_state("wonder", None, 1000.0, 1000.0) == "wondering"
+    assert brain_main._published_state("wonder-idle", None, 1000.0, 1000.0) == "wondering"
+    assert brain_main._published_state(None, 700.0, 1000.0, 999.0) == "sleeping"
+    # the decay: an empty tick 599s after the last wonder unit is still the session...
+    assert brain_main._published_state(None, None, 1000.0, 401.0) == "wondering"
+    # ...and 601s after, the session has honestly ended
+    assert brain_main._published_state(None, None, 1000.0, 399.0) == "idle"
+    # a cold boot (no wonder unit ever) is honest idle — never a stale session
+    assert brain_main._published_state(None, None, 1000.0, float("-inf")) == "idle"

@@ -657,6 +657,28 @@ def _sleep_reason(asleep_at: Optional[float], sub: Optional[str], now_m: float,
     return None
 
 
+# THE WONDERING-STATE DECAY (the author's ruling 2026-07-21): the published state describes the
+# SESSION, not the instant. The wonder units are quick — a minting night is mostly empty ticks —
+# so the instantaneous verdict spent flood nights saying «idle» while theorems arrived every few
+# minutes. The `idle` verdict now decays: quiet since the last wonder unit (`wonder` and
+# `wonder-idle` both refresh — checking the notebooks IS wondering) shorter than SLEEP_AFTER still
+# reads "wondering". DELIBERATELY the same constant, no new knob: the sleep design already ends a
+# fruitless wondering session at exactly SLEEP_AFTER, so the display session hands off to
+# "sleeping" with no idle intrusion. Real events always preempt the smoothing (think → "thinking"
+# instantly); daytime idle stays honest (no recent wonder unit → "idle"). Pure — table-testable.
+def _published_state(sub: Optional[str], asleep_at: Optional[float], now_m: float,
+                     last_wonder_at: float) -> str:
+    if sub == "think":
+        return "thinking"
+    if sub in ("wonder", "wonder-idle"):
+        return "wondering"
+    if asleep_at is not None:
+        return "sleeping"
+    if now_m - last_wonder_at <= SLEEP_AFTER:
+        return "wondering"  # the session is still warm — between thoughts, not idle
+    return "idle"
+
+
 # --------------------------------------------------------------
 # THE LIVED-AWAKE LEDGER (shape c, the author's ruling 2026-07-21) — `wake_at` is the BIRTH stamp
 # («alive since», never reset); this ledger measures time actually spent AWAKE. Neither sleep-phase
@@ -734,6 +756,9 @@ async def coordinator(stop_event: asyncio.Event) -> None:
     # Reset ONLY on an actual sleep→wake transition (see wake below); nothing defers-by-reset.
     awake_since = time.monotonic()
     asleep_at: Optional[float] = None  # monotonic mirror of bs.asleep_since (the loop's clock)
+    # the display decay clock (_published_state): last wonder unit of any flavor. Starts cold —
+    # a fresh boot with no wondering yet reads honestly "idle"/"thinking", never a stale session.
+    last_wonder_at = float("-inf")
 
     # the loop's wake wrapper: _wake + restart the tiredness clock iff he was actually asleep
     # (a reactive tick while already awake is the identity — his wakefulness just continues).
@@ -783,6 +808,8 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     # only FRUITFUL work resets the sleep clock — an idle re-check ("wonder-idle",
                     # the drift driver finding nothing new) lets the drowsiness accumulate.
                     last_fruitful = time.monotonic()
+                if sub in ("wonder", "wonder-idle"):
+                    last_wonder_at = time.monotonic()  # the display decay clock (both flavors)
                 # the SLEEP transitions: tiredness (WAKE_MAX, fruitful or not) or fruitless
                 # wondering past SLEEP_AFTER — _sleep_reason decides; SLEEP_MAX ends the night
                 # regardless, with a fresh wakeful window before any next nap.
@@ -810,12 +837,10 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                 elif asleep_at is not None and now_m - asleep_at >= SLEEP_MAX:
                     wake("rested")
                     last_fruitful = time.monotonic()
-                # the honest state for the heartbeat thread: reactive think -> "thinking",
-                # idle-time re-examination -> "wondering" (fruitful or not), asleep ->
-                # "sleeping", no work at all -> "idle".
-                heartbeat.set_state("thinking" if sub == "think"
-                                    else "wondering" if sub in ("wonder", "wonder-idle")
-                                    else "sleeping" if asleep_at is not None else "idle")
+                # the honest state for the heartbeat thread — session-granular via the wondering
+                # decay (_published_state): think -> "thinking", wondering (or a still-warm
+                # wondering session) -> "wondering", asleep -> "sleeping", else "idle".
+                heartbeat.set_state(_published_state(sub, asleep_at, now_m, last_wonder_at))
                 await asyncio.sleep(BUSY_YIELD if sub
                                     else SLEEP_TICK if asleep_at is not None else IDLE_INTERVAL)
             except Exception:
