@@ -912,6 +912,22 @@ def evaluate_zip(statement: TKZip) -> dict:
         doc = theorem_docs[result.matchedIndex]
         matchedId, matchedOriginal = str(doc.id), doc.original
 
+    # DIRECT FACT-MATCH provenance (2026-07-23): the evaluator resolved a single-clause claim by an
+    # EXACT key-for-key match against a stored fact (DB-agnostic — it reported only kind + index). Map
+    # it back to the doc here (the harness owns them) so the FALSE/TRUE speakup can NAME the belief
+    # (_refuting_belief) and PRICE it by the fact's trust (verdict_confidence -> _conclusion_trust):
+    # record the fact's doc id as a premise and cite its original sentence in the derivation.
+    fact_doc = None
+    if result.factKind == "axiom" and result.factIndex is not None:
+        fact_doc = axiom_docs[result.factIndex]
+    elif result.factKind == "theorem" and result.factIndex is not None:
+        fact_doc = theorem_docs[result.factIndex]
+    if fact_doc is not None:
+        if str(fact_doc.id) not in result.premises:
+            result.premises = list(result.premises) + [str(fact_doc.id)]
+        result.derivation = list(result.derivation) + [
+            f"direct-fact source: «{fact_doc.original}» (trust={fact_doc.trusted})"]
+
     return {
         "result": result,
         "matchedId": matchedId,
@@ -927,19 +943,29 @@ _FALSE_CEIL = 0.15
 
 # map a grounded EvaluatorResult to a POLAR answer. logic-is-sacred: a self-contradictory polar
 # question ("the cat is dead and alive?") is a definitive, confident NO — not a mid/insufficient.
-def _polar_answer(result: EvaluatorResult) -> AnswerResult:
+#
+# MIN-PREMISE HONESTY (2026-07-23, the direct-fact-match's dying finding): a grounded verdict that
+# rests on DERIVED premises is only as trustworthy as its weakest premise — the SAME plumbing the
+# reductio prover already applies (_conclusion_trust), which the RESOLVED grounded path never did.
+# Without it the forward-chainer SELF-GROUNDS a polar question through a stored theorem re-expressed
+# as a generic property rule («gold is beautiful» -> "most gold beautiful" -> «is gold beautiful?»)
+# and prices the answer at truth 1.0, IGNORING the theorem's trust. Now the self-grounding chain is
+# priced by its premises' trust (a proof through a 0.x-trusted theorem never speaks at 1.0). A pure-
+# taxonomic verdict (bedrock is_a, no premises) stays undiscounted — trust 1.0 by construction.
+def _polar_answer(result: EvaluatorResult, edge_trust: Optional[dict] = None) -> AnswerResult:
     if result.status == EvaluatorStatus.INCONSISTENT:
         return AnswerResult(
             kind=AnswerKind.POLAR, verdict=AnswerVerdict.NO, confidence=1.0,
             reason=result.inconsistency or "logically inconsistent", derivation=list(result.derivation),
         )
     if result.status == EvaluatorStatus.RESOLVED:
+        trust = _conclusion_trust(result.premises, edge_trust) if result.premises else 1.0
         if result.truth > _TRUE_FLOOR:
             return AnswerResult(kind=AnswerKind.POLAR, verdict=AnswerVerdict.YES,
-                                confidence=result.truth, derivation=list(result.derivation))
+                                confidence=result.truth * trust, derivation=list(result.derivation))
         if result.truth < _FALSE_CEIL:
             return AnswerResult(kind=AnswerKind.POLAR, verdict=AnswerVerdict.NO,
-                                confidence=1.0 - result.truth, derivation=list(result.derivation))
+                                confidence=(1.0 - result.truth) * trust, derivation=list(result.derivation))
     return AnswerResult(kind=AnswerKind.POLAR, verdict=AnswerVerdict.UNKNOWN, confidence=0.5,
                         reason="insufficient knowledge to answer")
 
@@ -964,14 +990,43 @@ def answer_zip(statement: TKZip) -> Optional[dict]:
     )
 
     if wh_leaf is None:
-        answer = _polar_answer(result)
+        answer = _polar_answer(result, kb.get("edge_trust"))
         if answer.verdict == AnswerVerdict.UNKNOWN:
-            answer = _try_reductio_answer(leaves, kb) or answer
+            # ORDER (§2, ruling): grounded-RESOLVED first (above) -> DIRECT MATCH (an active fact
+            # answers outright, priced by its trust) -> the reductio prover (contraposition, the last
+            # resort) -> honest IDK.
+            answer = (_try_direct_answer(leaves, kb)
+                      or _try_reductio_answer(leaves, kb) or answer)
     else:
         answer = evaluator_solveWh(wh_leaf, kb["axiom_zips"], kb["theorem_zips"], kb["relations"],
                                    assertion=result, place_parent=kb["place_parent"])
 
     return {"answer": answer, "result": result}
+
+
+# THE DIRECT FACT-MATCH (§2, 2026-07-23) — before the reductio prover, ask the cheapest question:
+# do I already HOLD the answer? Consult the active facts key-for-key (e_facts.direct_fact_match) —
+# a same-polarity fact answers YES, an opposite-polarity fact answers NO, confidence = that fact's
+# TRUST (ruling 2: no new threshold — a low-trust fact answers softly by construction). Single-clause
+# questions only (v1); no match -> None -> the reductio prover gets its turn.
+def _try_direct_answer(leaves: list, kb: dict) -> Optional[AnswerResult]:
+    from lib.core.kb_extract import _leaf_is_crisp
+    from lib.llc.evaluator.e_facts import direct_fact_match
+
+    crisp = [l for l in leaves if _leaf_is_crisp(l)]
+    if len(crisp) != 1:
+        return None  # one claim, one key — a coordinated question is not v1's shape
+    dm = direct_fact_match(crisp[0], kb["axiom_zips"], kb["theorem_zips"])
+    if dm is None:
+        return None
+    doc = (kb["axiom_docs"] if dm.kind == "axiom" else kb["theorem_docs"])[dm.index]
+    verdict = AnswerVerdict.YES if dm.confirms else AnswerVerdict.NO
+    return AnswerResult(
+        kind=AnswerKind.POLAR, verdict=verdict,
+        confidence=max(0.0, min(1.0, float(doc.trusted))),
+        reason=f"direct fact: «{doc.original}»",
+        derivation=[f"direct-fact ({'confirms' if dm.confirms else 'refutes'}): «{doc.original}»"],
+    )
 
 
 # THE CONSTRUCTIVE REDUCTIO (§0 slice 4) — a prover hiding inside the answer machinery: before

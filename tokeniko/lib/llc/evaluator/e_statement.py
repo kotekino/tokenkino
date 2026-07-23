@@ -431,6 +431,8 @@ def evaluator_evaluateStatement(
     derivation: list[str] = []
     graph_decided: set[int] = set()
     premises_acc: set[str] = set()  # PROVENANCE: the KB-doc ids the graph-decided verdicts rest on
+    fact_kind: Optional[str] = None   # DIRECT FACT-MATCH: which stored fact decided a single-clause
+    fact_index: Optional[int] = None  # claim key-for-key (kind + index; the harness maps back to a doc)
     if relations is not None or part_of is not None or rules or facts or place_contains is not None:
         for i, c in enumerate(contents):
             # a clause is EITHER a part-whole claim OR a taxonomic one — never both. recognize the
@@ -477,6 +479,29 @@ def evaluator_evaluateStatement(
                 graph_decided.add(i)
                 derivation.append(chain)
                 premises_acc.update(prem)  # provenance: KB-doc ids this clause's verdict rests on
+
+    # DIRECT FACT-MATCH (2026-07-23, §2's two grounding leads): when the graph/chainer left a
+    # SINGLE-CLAUSE, ASSERTED, non-question claim undecided, consult the stored facts key-for-key
+    # (e_facts). An opposite-polarity fact REFUTES it (truth 0 — the belief-grounded speakup's live
+    # cue), a same-polarity fact CONFIRMS it (truth 1) — an EXACT conclusion-key match, identity-aware,
+    # NEVER geometry (`_best_match` stays untouched). v1: single-clause claims only (multi-clause keeps
+    # the existing machinery). Runs BEFORE the abstention post-passes so a direct verdict — decided,
+    # hence graph_decided — is not washed back to insufficient. A question (dubitative) is skipped here:
+    # its direct match rides the harness POLAR path (answer_zip), priced by the matched fact's trust.
+    from lib.core.kb_extract import _zip_is_asserted, _leaf_is_crisp
+    if len(contents) == 1 and _zip_is_asserted(statement.items):
+        c0 = contents[0]
+        if (0 not in graph_decided and _leaf_is_crisp(c0)
+                and getattr(c0, "dubitative", 0.5) < 0.75):
+            from .e_facts import direct_fact_match, render_fact
+            dm = direct_fact_match(c0, axioms, theorems)
+            if dm is not None:
+                groundings[0] = _TAXO_TRUE if dm.confirms else _TAXO_FALSE
+                graph_decided.add(0)
+                derivation.append(
+                    f"direct-fact ({'confirms' if dm.confirms else 'refutes'}): "
+                    f"stored {dm.kind} «{render_fact(dm.fact_leaf)}»")
+                fact_kind, fact_index = dm.kind, dm.index
 
     # SPINE (logic-is-sacred): a BARE copular identity "X is Y" gets its truth ONLY from the is_a graph.
     # If the graph did not decide it (no subsumption -> TRUE, no tiered-disjointness -> FALSE), geometry
@@ -548,6 +573,7 @@ def evaluator_evaluateStatement(
             truth=0.5, status=EvaluatorStatus.INSUFFICIENT, groundings=groundings, missing=missing,
             relationMatch=relationMatch, matchedKind=matchedKind, matchedIndex=matchedIndex,
             derivation=derivation, premises=sorted(premises_acc),
+            factKind=fact_kind, factIndex=fact_index,
         )
 
     # RESOLVED — clauses grounded (by definitions and/or the is_a graph) and (if relational) a known
@@ -556,4 +582,5 @@ def evaluator_evaluateStatement(
         truth=folded, status=EvaluatorStatus.RESOLVED, groundings=groundings,
         relationMatch=relationMatch, matchedKind=matchedKind, matchedIndex=matchedIndex,
         derivation=derivation, premises=sorted(premises_acc),
+        factKind=fact_kind, factIndex=fact_index,
     )

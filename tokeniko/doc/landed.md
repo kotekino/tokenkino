@@ -1882,3 +1882,24 @@ SURVEY ARC IS COMPLETE)**
   abandoned: the goodnight settle drains any owed answer before sleep sticks.
 - +1 decision-table test (internal-fresh/external-quiet ⇒ tired · external-fresh ⇒ deferred ·
   the wondering door still honors internal work). Gate: 595 passed, 1 xfailed.
+
+**The direct fact-match + min-premise polar honesty (2026-07-23 — §2's grounding leads closed; a two-officer build)**
+- The two live specimens («tokeniko does not learn» → UNKNOWN despite «I learn»; «is gold
+  beautiful?» → IDK despite the active theorem): both now answer correctly — and the build's
+  REAL discovery is that the verdicts were already mostly there; **the defect was the pricing**.
+  The forward-chainer SELF-GROUNDS a polar question through a stored theorem re-expressed as a
+  generic property rule and answered at truth-priced confidence 1.0, ignoring the theorem's
+  trust — the RESOLVED grounded path never applied the min-premise plumbing the reductio prover
+  always had. Now it does (`_polar_answer` × `_conclusion_trust`): «is gold beautiful?» = YES at
+  0.7 (min of the 0.9 theorem and the generic-rule floor), a 0.3-trust variant at 0.3; bedrock
+  taxonomy stays 1.0.
+- **The `e_facts` primitive** (exact conclusion-key match, polarity-aware both ways,
+  attitude-skipped, `role_key`-based): built per the brief, both consumers wired (assertion
+  grounding when the graph didn't decide; the polar path before the reductio), provenance cites
+  the fact («direct-fact source: …» + the doc id as a premise so the speakup can name and price
+  the belief). Currently SHADOWED for the two specimens (the chainer and
+  `evaluator_groundIndividualFact` decide first) — the honest fallback for shapes the grounders
+  miss; its authoritative-pricer repositioning = a parked design question.
+- +12 tests (`test_direct_fact_match.py`, faithful to the actual deciding paths). Full gate
+  **607 passed, 1 xfailed**. Built across two 1st-Officier dispatches (the first lost to an
+  accidental stop — the finding survived in his last words; the second finished on it).

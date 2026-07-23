@@ -31,6 +31,12 @@ class EvaluatorResult(BaseModel):
     # axioms fired) — the union across all graph-decided clauses. NOT the WordNet is_a edges walked
     # (bedrock substrate). empty for a pure-taxonomic verdict; non-empty for a rule/fact derivation.
     premises: list[str] = Field(default_factory=list)
+    # DIRECT FACT-MATCH (2026-07-23): when a single-clause claim was grounded by an EXACT key-for-key
+    # match against a stored fact (e_facts.direct_fact_match), which injected fact decided it — DB-
+    # agnostic (kind + index, no doc id). The harness (which owns the docs) maps this back to the
+    # matched document so the verdict is priced by that fact's trust and the speakup can name the belief.
+    factKind: Optional[str] = None                         # "axiom" | "theorem"
+    factIndex: Optional[int] = None                        # position within that kind's injected list
 
 
 # --------------------------------------------------

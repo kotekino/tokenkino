@@ -105,3 +105,13 @@ teaching workflow makes the double-teach feel like friction. *(Supersedes the st
 a lesson (one rule on the `eval:learned` seam, beside the curiosity ask). Parked with the author:
 the curiosity «why» is already his one reaction to a lesson — two reactions per lesson is chatter.
 Promote if the etiquette family's live behavior makes his teachers feel unthanked.
+
+**The `e_facts` repositioning question (2026-07-23, the fact-match build's finding)** — the direct
+fact-match primitive is currently SHADOWED for the known specimens: the forward-chainer (class
+subjects, via generic-rule re-expression) and `evaluator_groundIndividualFact` (individual
+subjects) decide first, now honestly priced by min-premise trust (an exact-restatement chain
+prices at the 0.7 generic-rule floor, not the theorem's 0.9 — conservative, never wrong-verdict).
+The parked fork: reposition `e_facts` as the AUTHORITATIVE pricer ahead of the self-grounding
+chainer — an exact restatement is a lookup, not a derivation, so arguably worth the fact's full
+trust (0.9). Promote if live behavior makes the conservative pricing feel dishonest (answers
+about well-trusted beliefs sounding oddly unsure).

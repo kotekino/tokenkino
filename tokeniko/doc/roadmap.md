@@ -111,13 +111,10 @@ strengthening tail (§4 — R4b now pairs naturally with the landed contrapositi
 ### 2. The fresh microscope analysis — the premiere's leads (~30 unaddressed) 🔭
 
 The `addressed` flip (2026-07-17) sealed the analyzed generations; the fresh corpus = the
-2026-07-17 play + premiere, judged on current code. Two grounding leads already known from the
-premiere, both evaluator-side:
-- **Negated property vs stored affirmative fact**: «tokeniko you do not learn» grounded UNKNOWN,
-  not FALSE — the self-axiom «I learn» did not refute the negated claim (so the belief-grounded
-  speakup never got its live cue).
-- **Polar question misses a direct theorem**: «is gold beautiful?» → IDK despite the active
-  theorem «gold is beautiful».
+2026-07-17 play + premiere, judged on current code — **the analysis pass itself is the remaining
+item**; its known leads are all closed:
+- *(The two grounding leads — negated-property refutation + the polar direct-theorem miss —
+  CLOSED 2026-07-23 via the direct fact-match + min-premise polar honesty → `landed.md`.)*
 - *(The identity-blindness family — CURED 2026-07-23, the 1st Officier's second build →
   `landed.md`. The audit map stays in `doc/ref/notes.md`.)*
 
