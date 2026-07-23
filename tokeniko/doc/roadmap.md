@@ -191,8 +191,6 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
 Gathered so nothing is lost; each waits on its parent feature's next season.
 - **Blog**: `life:learned` / `life:discussion` triggers *(consensus-over-the-polisher → folded
   into Compose 2.0 §2 slice 3)*.
-- **The age/birth site tile** (2026-07-23): `metrics.ageSec` + `metrics.birthEpoch` already flow
-  on every heartbeat — a backend KPI entry + «alive since …» formatting at the next real deploy.
 - **Trust-ledger-movement digests** (the digest machinery's explicit scope fence, 2026-07-21):
   «my opinion of X shifted twice today» batches like the rest — once the rule/teacher digests
   have lived a while.

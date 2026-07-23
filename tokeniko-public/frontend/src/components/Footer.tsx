@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useCookies } from '../context/CookieContext';
 import { useMindFeed } from '../context/MindContext';
-import { DEFAULT_VERSION, formatUptime, stateLabel } from '../data/mind';
+import { DEFAULT_VERSION, formatUptime, plateDate, stateLabel } from '../data/mind';
 import LogoMark from './LogoMark';
 import Synapse from './Synapse';
 import './Footer.css';
@@ -43,8 +43,13 @@ const Footer: React.FC = () => {
             output — unfiltered transmissions from a mind that never stops
             reasoning.
           </p>
+          {/* the appliance plate — a birth date belongs on the manufacturer's plate.
+              ALIVE SINCE appears once the mind reports its birth stamp (birthAt);
+              older snapshots keep the plate as it always was. */}
           <p className="footer__plate">
-            MODEL&nbsp;{mind?.version || DEFAULT_VERSION} · LOGIC&nbsp;CORE · MADE IN JAPAN 🇯🇵
+            MODEL&nbsp;{mind?.version || DEFAULT_VERSION} · LOGIC&nbsp;CORE
+            {mind?.birthAt ? <> · ALIVE&nbsp;SINCE&nbsp;{plateDate(mind.birthAt)}</> : null}
+            {' '}· MADE IN JAPAN 🇯🇵
           </p>
         </div>
 

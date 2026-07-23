@@ -23,6 +23,13 @@ export interface MindData {
    * real progress lands; absent on snapshots that predate the field.
    */
   version?: string;
+  /**
+   * The BIRTH stamp (ISO) — derived from metrics.birthEpoch (the brain's
+   * wake_at, the 2026-07-09 go-live ceremony; numbers-only metrics contract,
+   * so the epoch arrives raw and the ISO is minted here). The footer plate
+   * prints «ALIVE SINCE …». Absent on snapshots that predate the metric.
+   */
+  birthAt?: string;
   uptimeSec: number;
   kpis: MindKpi[];
   activity: MindActivity[];
@@ -88,10 +95,14 @@ export function buildDerived(
   prevMetrics: Record<string, number>,
   inferenceTrend: number[]
 ): MindData {
+  const birthEpoch = raw.metrics.birthEpoch;
   return {
     doing: raw.doing,
     state: raw.state,
     ...(raw.version ? { version: raw.version } : {}),
+    ...(isFiniteNum(birthEpoch) && birthEpoch > 0
+      ? { birthAt: new Date(birthEpoch * 1000).toISOString() }
+      : {}),
     uptimeSec: raw.uptimeSec,
     kpis: buildKpis(raw.metrics, prevMetrics),
     activity: raw.activity.map((a) => ({ at: a.at.toISOString(), text: a.text })),

@@ -58,6 +58,12 @@ export interface MindSnapshot {
    */
   version?: string;
   /**
+   * The BIRTH stamp (ISO) — the brain's wake_at, set once at the 2026-07-09
+   * go-live and never moved. The footer plate prints «ALIVE SINCE …» from it.
+   * Absent on snapshots that predate the metric (the plate omits the segment).
+   */
+  birthAt?: string;
+  /**
    * When the brain captured this snapshot (ISO) — the transmitter "ping".
    * Heartbeats land every ~5 min; the panel goes "off air" when the stamp is
    * much older. Absent on the mock fallback (nothing to be stale relative to).
@@ -88,6 +94,16 @@ export const stateLabel = (state: string | undefined, offAir: boolean): string =
 /** The plate reading when no snapshot has reported a version — the first build,
  *  and the only model number that ever shipped without one. */
 export const DEFAULT_VERSION = 'TK-1';
+
+/** `9 JUL 2026` — the appliance-plate date (the ALIVE SINCE segment). UTC, so
+ *  the birth day never shifts with the viewer's timezone. */
+export const plateDate = (iso: string): string => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+                  'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+  return `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+};
 
 /** `5d 22:26:30` — the appliance clock. Shared by every readout of the uptime
  *  (the CRT panel, the footer) so two clocks on one page can never disagree. */

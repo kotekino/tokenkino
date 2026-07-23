@@ -1842,3 +1842,11 @@ SURVEY ARC IS COMPLETE)**
 - **The birth stamp**: `metrics.birthEpoch` (= `wake_at`, the 07-09 06:21:37Z go-live ceremony)
   rides every heartbeat beside `ageSec` — the site can print «alive since July 9» without
   arithmetic (numbers-only metrics contract; the backend formats). Site tile = a later deploy.
+
+**The ALIVE SINCE plate (2026-07-23 — the birth date on the appliance plate)**
+- The footer's manufacturer plate — MODEL TK-1 · LOGIC CORE · MADE IN JAPAN — now carries
+  «ALIVE SINCE 9 JUL 2026»: the backend mints `birthAt` (ISO) from `metrics.birthEpoch` (the
+  brain's wake_at, the go-live ceremony; numbers-only metrics contract, the backend formats),
+  and the plate prints it via `plateDate` (UTC — the birth day never shifts with the viewer's
+  timezone). Snapshots that predate the metric keep the plate as it always was. Live on the
+  next site deploy.
