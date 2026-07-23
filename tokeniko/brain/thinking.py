@@ -43,6 +43,7 @@ from lib.core.models import (
     TKTheoremDoc,
 )
 from lib.core.tk import TKQuantifier
+from lib.llc.evaluator.e_keys import role_key
 from lib.core.zip_native import assemble_reportative_zip
 from brain import api_client, behavior, context
 
@@ -869,16 +870,14 @@ def _try_correction(item: TKMemoryItemDoc) -> bool:
 # role has neither (an unresolved ambient «you» stays honestly unbindable — the coreference
 # gate's caution is preserved, not bypassed).
 def _leaf_net_key(leaf) -> Optional[tuple]:
-    senses = getattr(leaf, "senses", None) or {}
-    identities = getattr(leaf, "identities", None) or {}
-    subj = senses.get("subject") or identities.get("subject")
-    pred = senses.get("predicate") or identities.get("predicate")
+    subj = role_key(leaf, "subject")
+    pred = role_key(leaf, "predicate")
     if not subj or not pred:
         return None
     q = getattr(leaf, "quantifier", None)
     neg = bool(getattr(leaf, "negated", False)) != (
         q in (TKQuantifier.NEGATIVE, TKQuantifier.NEGATED_UNIVERSAL))
-    return (subj, pred, senses.get("direct") or identities.get("direct"), neg)
+    return (subj, pred, role_key(leaf, "direct"), neg)
 
 
 def _try_reduct_answer(item: TKMemoryItemDoc) -> bool:

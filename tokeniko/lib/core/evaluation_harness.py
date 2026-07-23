@@ -30,6 +30,7 @@ from lib.core.evaluation import AnswerKind, AnswerResult, AnswerVerdict, Evaluat
 from lib.core.kb_extract import _zip_leaves, _zip_leaf_items, extract_logic
 from lib.core.places import place_contains, place_parent, place_type_of
 from lib.llc.evaluator import evaluator_classifyForm, evaluator_evaluateStatement, evaluator_solveWh, evaluator_forwardChain
+from lib.llc.evaluator.e_keys import role_key
 
 # verbose wondering trace — shares the brain's "tokeniko-brain" logger/handler so it prints to the
 # console when the brain runs. Gated by WONDER_VERBOSE (default ON while we debug the enriched soak;
@@ -508,15 +509,15 @@ def render_conclusion(subject: str, predicate: str, object: Optional[str] = None
 def conclusion_key(statement) -> tuple:
     leaves = []
     for leaf in _zip_leaves(statement.items):
-        senses = getattr(leaf, "senses", None) or {}
-        identities = getattr(leaf, "identities", None) or {}
-        subject = identities.get("subject") or senses.get("subject")
+        # each role keyed identity-FIRST via role_key (the identity-blindness cure): an INDIVIDUAL
+        # role keys by its uid, a CLASS role by its WSD sense — the two are disjoint per role, so
+        # predicate/direct gain identity-awareness with no churn on the sense-keyed theorem pool.
         # the ¬∀ discriminator joins the key (M6): with NEGATED_UNIVERSAL first-class, «not all S
         # are P» carries negated=False — without this slot it would collide with «all S are P».
         # Deliberately a BOOL, not the full quantifier value: widening the key by quantifier would
         # break dedup continuity with every stored theorem (generic-vs-indefinite re-derivation
         # churn); only the O corner needs the distinction.
-        leaves.append((subject, senses.get("predicate"), senses.get("direct"),
+        leaves.append((role_key(leaf, "subject"), role_key(leaf, "predicate"), role_key(leaf, "direct"),
                        bool(getattr(leaf, "negated", False)),
                        getattr(leaf, "quantifier", None) == TKQuantifier.NEGATED_UNIVERSAL))
     # sort key: stringify every slot — `x or ""` left the negated bool as True (bool<str TypeError

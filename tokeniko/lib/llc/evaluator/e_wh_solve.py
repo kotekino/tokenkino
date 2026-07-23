@@ -17,6 +17,7 @@ from typing import Callable, Optional
 from lib.core.tk import TKWhRole
 from lib.core.tkzip import TKZip, TKZipContent
 from lib.core.evaluation import AnswerResult, AnswerKind, AnswerVerdict, EvaluatorResult
+from .e_keys import role_key
 
 Parents = Callable[[str], list[str]]
 
@@ -26,6 +27,28 @@ def _surface(sense: Optional[str]) -> Optional[str]:
     if not sense:
         return None
     return sense.split(".")[0].replace("_", " ")
+
+
+# the KB-FACTS BRANCH for an INDIVIDUAL (the identity-blindness cure, failure mode 2 = source-
+# blindness): the WordNet is_a graph has no synset for a named individual, so "what/who is
+# <individual>?" is answered from a copular is_a FACT keyed by the uid instead. scan axioms then
+# theorems for a leaf whose SUBJECT is this uid and whose predicate is a NOMINAL sense (".n." — a
+# class membership; an adjective/verb predicate is not a "what is it" answer); skip negated facts
+# («I am not a fish» does not answer «what are you»). returns (class_surface, kind) or None.
+def _isa_fact_for(subj_id: str, axioms: list, theorems: list):
+    for zips, kind in ((axioms, "axiom"), (theorems, "theorem")):
+        for z in zips:
+            if z is None:
+                continue
+            for kb_leaf in _leaves(z.items):
+                if role_key(kb_leaf, "subject") != subj_id:
+                    continue
+                if getattr(kb_leaf, "negated", False):
+                    continue
+                pred = (getattr(kb_leaf, "senses", None) or {}).get("predicate")
+                if pred and ".n." in pred:
+                    return _surface(pred), kind
+    return None
 
 
 # collect every leaf TKZipContent of a zip-item tree (local copy — keeps the evaluator independent of
@@ -72,6 +95,20 @@ def evaluator_solveWh(
                     confidence=0.9, reason=f"is_a: a {_surface(subj)} is a {_surface(hyper)}",
                     derivation=[f"{subj} is_a {hyper}"],
                 )
+        # IDENTITY subject («what are you?» — "you"/"I" is a uid, sense-less): the is_a graph is
+        # silent on individuals (sense-only-by-design), so answer from the KB-facts branch — a
+        # copular fact keyed by the subject's uid («I am a software» -> "software"). the uid is
+        # NEVER fed to `parents`. (identity-blindness family: both failure modes at once, the live
+        # «what are you?»×4 specimen of 2026-07-18.)
+        subj_id = identities.get("subject")
+        if subj_id:
+            hit = _isa_fact_for(subj_id, axioms, theorems)
+            if hit:
+                klass, kind = hit
+                return AnswerResult(
+                    kind=AnswerKind.WH, verdict=AnswerVerdict.VALUE, value=klass, confidence=0.7,
+                    reason=f"KB {kind}: {subj_id.split('@')[0]} is a {klass}",
+                )
         return _idk("no is_a knowledge for the subject")
 
     # "who/which is P?" -> the gap is the subject: find a KB clause predicating P, return its subject.
@@ -93,6 +130,20 @@ def evaluator_solveWh(
                                 kind=AnswerKind.WH, verdict=AnswerVerdict.VALUE, value=subj_word,
                                 confidence=0.7, reason=f"KB {kind}: {subj_word} is {_surface(pred)}",
                             )
+        # IDENTITY target («who is Mari?» — the named individual is carried as a uid, sense-less;
+        # role_key makes it matchable where the sense-only predicate read missed it). the parser
+        # leaves the individual on the SUBJECT role while marking the gap SUBJECT, so read the uid
+        # from either role, then DESCRIBE it from KB facts about that uid (the same is_a-fact lookup
+        # as the what-branch). (identity-blindness family: the who-branch bounce, notes §.)
+        target_id = identities.get("predicate") or identities.get("subject")
+        if target_id:
+            hit = _isa_fact_for(target_id, axioms, theorems)
+            if hit:
+                klass, kind = hit
+                return AnswerResult(
+                    kind=AnswerKind.WH, verdict=AnswerVerdict.VALUE, value=klass, confidence=0.7,
+                    reason=f"KB {kind}: {target_id.split('@')[0]} is a {klass}",
+                )
         return _idk("no KB fact predicates that of any known subject")
 
     # "what do you LIKE?" -> the gap is the verb's DIRECT object (the verb-frame refinement of

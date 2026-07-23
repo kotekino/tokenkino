@@ -21,6 +21,7 @@ from typing import Callable, Optional
 from lib.core.tk import TKQuantifier
 from lib.core.tkzip import TKZip, TKZipContent
 from .e_compare import evaluator_compareContent
+from .e_keys import role_key
 from .e_statement import _collect_contents, _fold_statement
 
 # due foglie sono lo stesso atomo quando la similarità geometrica clear questa soglia.
@@ -117,9 +118,14 @@ def _contrary_pairs(
             if reps_corner is not None and reps_corner[j] not in _STRONG_CORNERS:
                 continue
             rep_i, rep_j = reps[i], reps[j]
-            si = (getattr(rep_i, "senses", None) or {}).get("subject")
+            # SUBJECT keyed identity-first (role_key): two individual-subject leaves («I am alive» /
+            # «I am dead») compare by uid, not by two None senses that fell through the truthiness
+            # guard below and left the contrary pair silently undetected (identity-blindness family).
+            # PREDICATE stays a SENSE read — the antonym reader is keyed by synset; an identity
+            # predicate has no antonym, so it never forms a contrary pair.
+            si = role_key(rep_i, "subject")
             pi = (getattr(rep_i, "senses", None) or {}).get("predicate")
-            sj = (getattr(rep_j, "senses", None) or {}).get("subject")
+            sj = role_key(rep_j, "subject")
             pj = (getattr(rep_j, "senses", None) or {}).get("predicate")
             # stesso soggetto, predicati distinti
             if not (si and sj and si == sj):

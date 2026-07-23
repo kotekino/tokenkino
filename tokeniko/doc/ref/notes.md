@@ -584,8 +584,9 @@ why every specimen so far surfaced LIVE, not in tests.
   identity PREDICATE («who is kotekino?») can never match. Not yet observed; it is the next
   bounce waiting.
 - `e_consistency._contrary_pairs`: the antonym-mutex same-subject check compares subject
-  senses; two individual-subject leaves both read None and `None == None` passes — works for
-  «I am happy and I am sad» by ACCIDENT, not design. One-line hygiene.
+  senses; two individual-subject leaves both read None and the `si and sj` guard SKIPS the pair
+  — the contrary is MISSED entirely (mechanism corrected 2026-07-23: not an accidental pass; an
+  individual-subject contrary was simply never flagged). One-line hygiene. CURED 2026-07-23.
 
 **Already identity-aware (the healthy organs — the patterns to copy):**
 - `brain/thinking._leaf_net_key` — sense OR uid per role (the 2026-07-19 fix; the family's

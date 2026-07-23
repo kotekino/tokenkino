@@ -118,13 +118,8 @@ premiere, both evaluator-side:
   speakup never got its live cue).
 - **Polar question misses a direct theorem**: «is gold beautiful?» → IDK despite the active
   theorem «gold is beautiful».
-- **The identity-blindness family** (audit 2026-07-19 → `doc/ref/notes.md`; author-endorsed
-  low-hanging fruit): the generalized cure = the `role_key` primitive (sense OR identity uid,
-  one shared reader) + the KB-facts branch beside every WordNet-graph walk. Members: the wh
-  **what-branch** («what are you?» → IDK despite «I am a software» — cap-feedback 2026-07-08,
-  recurred live 07-18) · the wh **who-branch** (identity predicates unmatchable — the next
-  bounce waiting) · `_contrary_pairs` same-subject hygiene. The reduct-answer key fix (landed
-  07-19) is the family's first cure and the template.
+- *(The identity-blindness family — CURED 2026-07-23, the 1st Officier's second build →
+  `landed.md`. The audit map stays in `doc/ref/notes.md`.)*
 
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 

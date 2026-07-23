@@ -1850,3 +1850,22 @@ SURVEY ARC IS COMPLETE)**
   and the plate prints it via `plateDate` (UTC — the birth day never shifts with the viewer's
   timezone). Snapshots that predate the metric keep the plate as it always was. Live on the
   next site deploy.
+
+**THE IDENTITY-BLINDNESS FAMILY CURED (2026-07-23 — the 1st Officier's second build: `role_key`)**
+- The generalized cure, built whole (audit map: `doc/ref/notes.md`): **`role_key(leaf, role)`**
+  (`lib/llc/evaluator/e_keys.py`) — ONE shared role reader, identity-FIRST per `conclusion_key`'s
+  dedup discipline, returning sense | identity uid | None; `_leaf_net_key` and `conclusion_key`
+  routed through it (one mechanism, no scattered `senses.get(...)`).
+- **The what-branch** («what are you?» → IDK despite «I am a software», the 07-18 ×4 live
+  specimen): identity subjects answer from the KB-FACTS branch (`_isa_fact_for` — copular
+  nominal facts keyed by uid, negation-skipped, axioms before theorems); the uid is NEVER fed
+  to the WordNet graph. **The who-branch** («who is Mari?» — fixed BEFORE it ever bounced live,
+  a first): the named individual's uid read from predicate OR subject role (the parser leaves
+  the individual on SUBJECT while marking the gap SUBJECT — an empirical labeling quirk, honest
+  deviation), described from KB facts.
+- **`_contrary_pairs` hygiene**: individual subjects compare by uid — «I am alive and I am dead»
+  now folds INCONSISTENT (pre-fix it was MISSED, not accidentally-passed: the officer corrected
+  the audit notes' mechanism — the `si and sj` guard skipped the pair; empirically confirmed
+  False→True).
+- +7 tests (`tests/test_identity_blindness.py`: the role_key unit table, both wh cures, both
+  sense-path regressions, both contrary paths). Full gate **594 passed, 1 xfailed**.
