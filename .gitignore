@@ -5,7 +5,11 @@
 /doc/~$notes.xlsx
 __pycache__/
 *.pyc
-.claude/
+# Claude Code local state stays private — but the CREW's working record (the 1st Officier's
+# standing contract + the QM's briefs) is public, as the wiki's Collaboration page documents.
+.claude/*
+!.claude/agents/
+!.claude/briefs/
 
 # secrets — never commit (env files hold tokens / DB URIs)
 .env
