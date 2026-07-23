@@ -273,7 +273,12 @@ def _premises_postable(premises) -> bool:
 # (everything-is-KB, restart-proof); the flush sites (sleep-onset, count-cap, boot) live in
 # brain/main.py + the count-cap below.
 # --------------------------------------------------------------
-DIGEST_COUNT_CAP = 15          # an entry reaching this many subjects flushes immediately (no monster posts)
+# an entry reaching this many subjects flushes immediately (no monster posts). Raised 15 → 40
+# (the author's ruling 2026-07-23, the first digest night's lesson): at cap 15 the existence
+# flood — ~2.7 mints/min — filled a cap every ~5.5 minutes and the count-cap became the PRIMARY
+# flush, a metronome of 21 same-key digests; at 40 the intra-night pulse stays alive at chapter,
+# not page, granularity (sleep-onset remains the true summary edge).
+DIGEST_COUNT_CAP = int(os.getenv("BRAIN_DIGEST_COUNT_CAP", "40"))
 DIGEST_SIGNIFICANCE = 0.9      # a cumulative post is noteworthy by construction: 0.65 x 0.9 = 0.585 >= 0.5
 
 

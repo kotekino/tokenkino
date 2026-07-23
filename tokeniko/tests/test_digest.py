@@ -227,3 +227,34 @@ def test_compose_digest_uses_a_seeded_scaffold_when_present(digest_world):
         material, soul_reader=lambda uid: None, souls_reader=lambda: [],
         premise_reader=lambda pid: "every thing that thinks exists", now=0)
     assert any("DIGEST-MARKER" in f for f in draft.facts)           # the seeded shelf spoke
+
+
+def test_settle_for_sleep_leaves_no_work_to_wake_him(digest_world):
+    # THE GOODNIGHT SETTLE (2026-07-23): on 07-21 the sleep-onset flush's own post ideas were
+    # found by the next tick's priorities pass — "the world moved" — and his goodnight woke him
+    # (three sleep attempts; only the empty-buffer one stuck). _settle_for_sleep flushes AND
+    # drains inline: after it, no unparsed idea remains for the next tick to report as work.
+    from brain import main as brain_main
+    from lib.core.models import TKActionDoc, TKIdeaDoc
+    bs = digest_world["bs"]
+    bs.digest_buffer = {
+        "rule:a": {"kind": "rule", "theorem_ids": ["t2", "t3"],
+                   "subjects": ["a dog exists", "a fish exists"], "shared": ["R1"],
+                   "opened_at": 0, "generation": 0, "significance": 0.9},
+    }
+    bs.save()
+    try:
+        brain_main._settle_for_sleep(bs)
+        # the flush happened (accumulation cleared, the seen-marker persists)...
+        assert bs.digest_buffer["rule:a"]["theorem_ids"] == []
+        # ...its idea was DRAINED through priorities (parsed, not pending for the next tick)...
+        leftover = [i for i in TKIdeaDoc.find(
+            {"trigger": LifeEventKind.THEOREM.value, "parsed_by_prio": False}).to_list()]
+        assert leftover == []
+        # ...and the queued PUBLIC action exists for `senses` to carry (outward stays theirs).
+        acts = [a for a in TKActionDoc.find_all().to_list()
+                if ((a.payload or {}).get("material") or {}).get("kind") == "digest"]
+        assert len(acts) == 1
+    finally:
+        TKActionDoc.get_motor_collection().delete_many(
+            {"payload.material.digest_key": "rule:a"})

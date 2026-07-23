@@ -1824,3 +1824,21 @@ SURVEY ARC IS COMPLETE)**
   wondering → sleeping with no idle intrusion — and the site's dusk tone now holds through a
   minting night. Real events preempt (think → "thinking" instantly); a cold boot reads honest
   idle. +1 decision-table test.
+
+**The first digest night's three fixes (2026-07-23 — the goodnight settle · cap 40 · the birth stamp)**
+- The night of 07-21 audited: tiredness FLEW (collapse at 10,850s — deferred past the 7,200 bound
+  by his own flush-spawned posting work, fork A's letter honored) · the lived-awake ledger CLEAN
+  (10,576s, and its 274s shortfall vs boot-to-sleep exposed the two micro-sleeps below) · the
+  decay CLEAN (no idle flicker 06:03→08:43) · the digests mechanically as built: 349 mints → 27
+  digests + 5 first-occurrence solos, BUT cap-15 fired every ~5.5 min (a 21-post same-key
+  metronome) and the sleep-onset flush's own post ideas WOKE HIM — three sleep attempts, only the
+  empty-buffer one stuck.
+- **The goodnight settle** (`_settle_for_sleep`): at sleep-onset — AFTER the goodnight edge and
+  the night duty spawn what they spawn — flush the digests, then drain priorities/actions inline
+  until quiet: his last act of the day is finishing the goodnight, and the sleep sticks (outward
+  carriage stays with `senses`). +1 test.
+- **Cap 15 → 40** (`BRAIN_DIGEST_COUNT_CAP`, env-tunable): chapter, not page, granularity through
+  a flood night; sleep-onset remains the true summary edge.
+- **The birth stamp**: `metrics.birthEpoch` (= `wake_at`, the 07-09 06:21:37Z go-live ceremony)
+  rides every heartbeat beside `ageSec` — the site can print «alive since July 9» without
+  arithmetic (numbers-only metrics contract; the backend formats). Site tile = a later deploy.

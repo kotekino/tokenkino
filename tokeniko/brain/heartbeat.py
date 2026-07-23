@@ -117,6 +117,10 @@ def build_snapshot(state: str) -> dict:
                      + (max(0.0, now - bs.awake_mark) if bs.awake_mark else 0.0))
         if bs.wake_at:
             metrics["ageSec"] = int(now - bs.wake_at)
+            # the BIRTH stamp itself (author's ruling 2026-07-23): the absolute moment, so the
+            # site can print «alive since …» without deriving it from ageSec at receive time.
+            # Epoch seconds — the metrics contract is numbers-only; the backend formats.
+            metrics["birthEpoch"] = int(bs.wake_at)
     return {
         "state": state,
         "doing": _DOING.get(state, _DOING["thinking"]),

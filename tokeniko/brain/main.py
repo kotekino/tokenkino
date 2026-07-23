@@ -709,6 +709,20 @@ def _boot_awake_ledger(bs: TKBrainStateDoc, now_w: float) -> None:
     _mark_awake(bs, now_w)
 
 
+# THE GOODNIGHT SETTLE (the author's ruling 2026-07-23, the first digest night's lesson): the
+# sleep-onset digest flush spawns post ideas — and on the next tick priorities_phase found them,
+# reported work, and wake("the world moved") ended the night HE had just closed: he fell asleep,
+# his own goodnight summary landed on the desk, and deciding to say it woke him (three sleep
+# attempts on 07-21; only the third — buffer empty — stuck). Cure: settle the flush's own work
+# INLINE at the transition — flush, then drain priorities/actions until quiet — so his last act
+# of the day is finishing the goodnight, and the sleep sticks. Outward carriage stays with
+# `senses` (the drain only turns ideas into their queued actions, INTERNAL ones executed).
+def _settle_for_sleep(bs: TKBrainStateDoc) -> None:
+    thinking.flush_digests(bs)
+    while actions_phase(bs) or priorities_phase():
+        pass
+
+
 # wake: clear the sleep state, tell the stashed dream + ask the morning questions.
 # Returns None (the new asleep_at).
 def _wake(bs: TKBrainStateDoc, asleep_at: Optional[float], reason: str) -> Optional[float]:
@@ -820,10 +834,6 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                     asleep_at = now_m
                     bs.asleep_since = int(time.time())
                     _fold_awake(bs, time.time())  # the lived-awake stretch closes with his eyes
-                    # the digest buffer's goodnight summary (the digest machinery 2026-07-21): the
-                    # night's repeated-reasoning batches ship as one cumulative post per shape at the
-                    # falling-asleep edge — beside the goodnight, before the untangling dream.
-                    thinking.flush_digests(bs)
                     bs.save()
                     if reason == "tired":
                         logger.info("[sleep] 🌙 tiredness takes him (awake for %.0fs) — "
@@ -834,6 +844,10 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                                     now_m - last_fruitful)
                     _say_goodnight(bs)  # the farewell edge (recency-gated; never queue work)
                     _sleep_duty(bs)  # the night's untangling — retreats now, the dream on waking
+                    # LAST: the digest goodnight summary + the inline drain (_settle_for_sleep) —
+                    # after every edge above has spawned what it spawns, so nothing of his own
+                    # bedtime work remains to wake him on the next tick.
+                    _settle_for_sleep(bs)
                 elif asleep_at is not None and now_m - asleep_at >= SLEEP_MAX:
                     wake("rested")
                     last_fruitful = time.monotonic()
