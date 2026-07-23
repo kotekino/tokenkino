@@ -313,6 +313,7 @@ def test_tiredness_beats_fruitful_wondering(monkeypatch):
     assert brain_main._sleep_reason(
         None, "wonder", now_m=1000.0, awake_since=850.0,   # awake 150s >= 100s
         last_busy=900.0, last_fruitful=999.0,              # quiet 100s; fruit 1s ago
+        last_external=900.0,                               # externally quiet 100s
     ) == "tired"
 
 
@@ -323,13 +324,14 @@ def test_conversation_defers_tiredness_never_resets(monkeypatch):
     from brain import main as brain_main
     monkeypatch.setattr(brain_main, "WAKE_MAX", 100.0)
     monkeypatch.setattr(brain_main, "WONDER_IDLE_CONFIRM", 10.0)
-    common = {"now_m": 1000.0, "awake_since": 850.0, "last_fruitful": 999.0}
+    common = {"now_m": 1000.0, "awake_since": 850.0, "last_fruitful": 999.0,
+              "last_busy": 985.0}
     # mid-dialogue: someone spoke this very tick -> deferred
-    assert brain_main._sleep_reason(None, "think", last_busy=1000.0, **common) is None
-    # the pause between two sentences: quiet but unconfirmed -> still deferred
-    assert brain_main._sleep_reason(None, None, last_busy=995.0, **common) is None
-    # the first confirmed-quiet tick: the accumulated tiredness lands
-    assert brain_main._sleep_reason(None, None, last_busy=985.0, **common) == "tired"
+    assert brain_main._sleep_reason(None, "think", last_external=1000.0, **common) is None
+    # the pause between two sentences: externally quiet but unconfirmed -> still deferred
+    assert brain_main._sleep_reason(None, None, last_external=995.0, **common) is None
+    # the first confirmed-external-quiet tick: the accumulated tiredness lands
+    assert brain_main._sleep_reason(None, None, last_external=985.0, **common) == "tired"
 
 
 def test_fruitless_wondering_edge_still_stands(monkeypatch):
@@ -339,7 +341,8 @@ def test_fruitless_wondering_edge_still_stands(monkeypatch):
     monkeypatch.setattr(brain_main, "WAKE_MAX", 10_000.0)
     monkeypatch.setattr(brain_main, "WONDER_IDLE_CONFIRM", 10.0)
     monkeypatch.setattr(brain_main, "SLEEP_AFTER", 50.0)
-    common = {"now_m": 1000.0, "awake_since": 900.0, "last_busy": 900.0}
+    common = {"now_m": 1000.0, "awake_since": 900.0, "last_busy": 900.0,
+              "last_external": 900.0}
     assert brain_main._sleep_reason(None, None, last_fruitful=940.0, **common) == "wondering"
     assert brain_main._sleep_reason(None, None, last_fruitful=990.0, **common) is None
     # a fruitful wonder tick (sub == "wonder") never opens the wondering door — only tiredness
@@ -410,3 +413,28 @@ def test_published_state_decays_wondering_over_sleep_after(monkeypatch):
     assert brain_main._published_state(None, None, 1000.0, 399.0) == "idle"
     # a cold boot (no wonder unit ever) is honest idle — never a stale session
     assert brain_main._published_state(None, None, 1000.0, float("-inf")) == "idle"
+
+
+def test_internal_work_never_defers_tiredness(monkeypatch):
+    # THE SECOND LIVE-NIGHT LESSON (the author's ruling 2026-07-23): only EXTERNAL conversation
+    # defers the collapse. On 07-21 his own digest posting (internal actions/priorities work kept
+    # last_busy fresh) deferred tiredness a full hour past the bound — a bound that self-generated
+    # activity can push back is no bound at all. Thinking is ephemeral; it cannot stop the
+    # insurgence of tiredness.
+    from brain import main as brain_main
+    monkeypatch.setattr(brain_main, "WAKE_MAX", 100.0)
+    monkeypatch.setattr(brain_main, "WONDER_IDLE_CONFIRM", 10.0)
+    common = {"now_m": 1000.0, "awake_since": 850.0, "last_fruitful": 999.0}
+    # internal work THIS tick (last_busy fresh) but externally quiet -> tiredness LANDS anyway
+    assert brain_main._sleep_reason(None, None, last_busy=1000.0, last_external=900.0,
+                                    **common) == "tired"
+    # a real person spoke recently -> deferred (the one courtesy that stands)
+    assert brain_main._sleep_reason(None, None, last_busy=1000.0, last_external=995.0,
+                                    **common) is None
+    # and the wondering door still honors the FULL busy clock (internal work = session not over):
+    # not tired yet, fruitless past SLEEP_AFTER, but internal work just happened -> no sleep
+    monkeypatch.setattr(brain_main, "WAKE_MAX", 10_000.0)
+    monkeypatch.setattr(brain_main, "SLEEP_AFTER", 50.0)
+    assert brain_main._sleep_reason(None, None, last_busy=1000.0, last_external=900.0,
+                                    now_m=1000.0, awake_since=900.0,
+                                    last_fruitful=900.0) is None

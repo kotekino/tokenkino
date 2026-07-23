@@ -1869,3 +1869,16 @@ SURVEY ARC IS COMPLETE)**
   False→True).
 - +7 tests (`tests/test_identity_blindness.py`: the role_key unit table, both wh cures, both
   sense-path regressions, both contrary paths). Full gate **594 passed, 1 xfailed**.
+
+**External-only tiredness deferral (2026-07-23 — the second live-night lesson)**
+- The 07-21 audit showed his own digest posting deferred the tiredness collapse a full hour past
+  the bound: internal work (actions/priorities — his own posting, flushes, urges) kept the
+  confirmed-quiet clock fresh. The author's ruling: **only external conversation defers** —
+  thinking is ephemeral; a bound that self-generated activity can push back is no bound at all.
+- The cure: a `last_external` clock (reset ONLY when a fresh outside message is processed,
+  `sub == "think"`); the tiredness branch of `_sleep_reason` reads it alone. The wondering door
+  and the wondering-idle-confirm gate keep the FULL busy clock (starting a daydream between two
+  queue items is still wrong; internal work honestly means the session isn't over). Nobody is
+  abandoned: the goodnight settle drains any owed answer before sleep sticks.
+- +1 decision-table test (internal-fresh/external-quiet ⇒ tired · external-fresh ⇒ deferred ·
+  the wondering door still honors internal work). Gate: 595 passed, 1 xfailed.

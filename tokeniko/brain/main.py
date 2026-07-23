@@ -638,20 +638,28 @@ def _spawn_morning_questions(bs: TKBrainStateDoc) -> None:
 #                 proved fruitfulness-only sleep never triggers against an inexhaustible
 #                 frontier. Fork A: a reactive tick (sub == "think") defers the collapse — you
 #                 don't fall asleep mid-dialogue — and only CONFIRMED quiet (WONDER_IDLE_CONFIRM
-#                 since the last reactive work) lets it land, so the pause between two sentences
-#                 never reads as bedtime. Deferred, never reset: at the first confirmed-quiet
-#                 tick past the bound he drops off. Wondering defers nothing.
+#                 since the last EXTERNAL work) lets it land, so the pause between two sentences
+#                 never reads as bedtime. ONLY EXTERNAL CONVERSATION DEFERS (the author's ruling
+#                 2026-07-23, the second live-night lesson): internal work — his own posting,
+#                 flushes, urges — is self-generated, and a bound that self-generated activity
+#                 can push back is no bound at all (on 07-21 his own digest posting deferred the
+#                 collapse a full hour). Thinking is ephemeral; it cannot stop the insurgence of
+#                 tiredness. No one is abandoned: the goodnight settle drains the queue before
+#                 sleep sticks. Deferred, never reset: at the first externally-quiet tick past
+#                 the bound he drops off. Wondering defers nothing.
 #   "wondering" — the original edge (§0 slice 3.5): confirmed-quiet wondering FRUITLESS for
-#                 SLEEP_AFTER — he falls asleep wondering.
+#                 SLEEP_AFTER — he falls asleep wondering. This door keeps the FULL busy clock
+#                 (last_busy, internal included): it describes a wondering session petering out,
+#                 and internal work mid-session honestly means the session is not over.
 def _sleep_reason(asleep_at: Optional[float], sub: Optional[str], now_m: float,
                   awake_since: float, last_busy: float,
-                  last_fruitful: float) -> Optional[str]:
+                  last_fruitful: float, last_external: float) -> Optional[str]:
     if asleep_at is not None or sub == "think":
         return None
-    if now_m - last_busy < WONDER_IDLE_CONFIRM:
-        return None  # unconfirmed quiet — he might be mid-dialogue
-    if now_m - awake_since >= WAKE_MAX:
+    if now_m - awake_since >= WAKE_MAX and now_m - last_external >= WONDER_IDLE_CONFIRM:
         return "tired"
+    if now_m - last_busy < WONDER_IDLE_CONFIRM:
+        return None  # unconfirmed quiet — he might be mid-activity
     if sub is None and now_m - last_fruitful >= SLEEP_AFTER:
         return "wondering"
     return None
@@ -770,6 +778,11 @@ async def coordinator(stop_event: asyncio.Event) -> None:
     # Reset ONLY on an actual sleep→wake transition (see wake below); nothing defers-by-reset.
     awake_since = time.monotonic()
     asleep_at: Optional[float] = None  # monotonic mirror of bs.asleep_since (the loop's clock)
+    # the EXTERNAL-work clock (the author's ruling 2026-07-23): last moment a fresh OUTSIDE
+    # message was actually processed (sub == "think"). Only this defers the tiredness collapse —
+    # internal work (posting, flushes, urges) is self-generated and cannot push back the bound
+    # built to contain self-generated activity. Starts at boot (a fresh boot is no bedtime).
+    last_external = time.monotonic()
     # the display decay clock (_published_state): last wonder unit of any flavor. Starts cold —
     # a fresh boot with no wondering yet reads honestly "idle"/"thinking", never a stale session.
     last_wonder_at = float("-inf")
@@ -817,7 +830,7 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                 sub = thinking_phase(bs, wonder_allowed)
                 if sub == "think":
                     wake("someone spoke")
-                    last_busy = time.monotonic()
+                    last_busy = last_external = time.monotonic()  # the ONE deferral of tiredness
                 if sub in ("think", "wonder"):
                     # only FRUITFUL work resets the sleep clock — an idle re-check ("wonder-idle",
                     # the drift driver finding nothing new) lets the drowsiness accumulate.
@@ -829,7 +842,7 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                 # regardless, with a fresh wakeful window before any next nap.
                 now_m = time.monotonic()
                 reason = _sleep_reason(asleep_at, sub, now_m,
-                                       awake_since, last_busy, last_fruitful)
+                                       awake_since, last_busy, last_fruitful, last_external)
                 if reason is not None:
                     asleep_at = now_m
                     bs.asleep_since = int(time.time())
