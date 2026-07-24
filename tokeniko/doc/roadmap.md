@@ -37,8 +37,9 @@ status detail — it references, it does not duplicate (invariant #2).
   concentration · the wondering-freeze fix.
 - **The basket** (2026-07-17) — observation-fact seam · nominal IMPLY · adverbial quantifiers · the
   pronoun-leaf unrepairable gate.
-- **Compose 2.0 — the voice** (2026-07-17) — scaffold store · intensity + hedges · rag2-out · blog
-  re-home + belief-grounded speakup · context ring + anecdote *(tail → §1)*.
+- **Compose 2.0 — the voice, WHOLE** (2026-07-17 → 24) — scaffold store · intensity + hedges ·
+  rag2-out · blog re-home + belief-grounded speakup · context ring + anecdote · the survey arc ·
+  digests · learned scaffolds · the line-aligned blog consensus. **The arc is complete.**
 - **The reductio action + the sleep phase** (2026-07-18) — reduct question + answer binding ·
   untangler + dream · the sleep phase · constructive reductio · the live-night refinements.
 - **Tiredness + the parallel heartbeat** (2026-07-19) — the wakefulness bound · the heartbeat thread ·
@@ -60,9 +61,9 @@ status detail — it references, it does not duplicate (invariant #2).
 
 ## 🔭 Next (ordered) — reprioritized 2026-07-24
 
-**The through-line: the voice's tail closes, then the microscope looks again.** §1 is down to its
-last item (blog consensus — designed and briefed); when it lands, compose 2.0 is whole. Then the
-fresh microscope analysis pass (§2), the translator remainder (§3), and the strengthening tail (§4).
+**The through-line: THE VOICE IS WHOLE (compose 2.0 complete, 2026-07-24 — §1 closed and removed).**
+The road: the AND-split (§0, queued next), the fresh microscope analysis pass (§2 — now fed by a
+full day of new instruments), the translator remainder (§3), the strengthening tail (§4).
 
 ### 0. The ears' hallucination chain (2026-07-24 — A LANDED, see `landed.md`) 🔄
 
@@ -72,8 +73,8 @@ fresh microscope analysis pass (§2), the translator remainder (§3), and the st
   the additive centroid is weak on small invention-within-balloon (guarded by the balloon cap +
   key-match; a per-added-leaf semantic check would be the cut if it ever bites live).
 - *(B — pronoun momentum: LANDED 2026-07-24 → `landed.md`.)*
-- 🔭 **The AND-split — per-conjunct reactions** (author-designed 2026-07-24; QUEUED THIRD — after
-  §1's blog consensus): a root-level PLAIN AND over clauses with DISTINCT subject atoms is
+- 🔭 **The AND-split — per-conjunct reactions** (author-designed 2026-07-24; NEXT in the queue —
+  the day's order fulfilled up to here): a root-level PLAIN AND over clauses with DISTINCT subject atoms is
   reacted to per-conjunct (fork b — split at EVALUATION, the memory item stays whole): thinking
   fans per-conjunct verdicts into per-conjunct ideas («the cat is a mammal and pigs fly because
   Z» → agree/learn on 1, speakup naming conjunct 2). Same-subject coordination NEVER splits (the
@@ -81,12 +82,6 @@ fresh microscope analysis pass (§2), the translator remainder (§3), and the st
   «because Z» distributes over the conjuncts (`_inherit_shared`'s cousin — the author's own early
   legacy machinery). Also closes the invention-within-balloon residual as a side effect. Brief:
   `.claude/briefs/2026-07-24-and-split.md`.
-
-### 1. Compose 2.0 — the tail (the core + the survey arc + digests + learned scaffolds are landed → `landed.md`) 🔄
-
-- 🔭 **Blog consensus-over-the-polisher** — the line-aligned polish held to the rag2-out contract
-  (per-line verify, mixed acceptance). Brief: `.claude/briefs/2026-07-24-blog-consensus.md` —
-  designed, awaiting dispatch.
 
 ### 2. The fresh microscope analysis pass 🔭
 

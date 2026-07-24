@@ -4,9 +4,11 @@ injected fake soul readers (no DB), and polish runs on a fake client (NO network
 Covered: theorem drafts (slug stability, lead line per derived_by, proof lines, taught:<uid>
 epithet render), constitution-level anonymization (imprint -> "my author", discord band suffix,
 the unscrubbed-line guard), encounter drafts (kicker / self-inconsistency, band closing fact,
-slug stability), render_raw (title truncation, readMin floor, proof paragraph), polish (valid
-JSON -> polished dict, SDK error / bad JSON / missing keys -> honest raw fallback), and the
-compose_post end-to-end transmission contract.
+slug stability), render_raw (title truncation, readMin floor, proof paragraph), polish (the
+line-aligned per-line consensus: all-verified / one-rejected-verbatim / all-rejected / count
+mismatch / identical-line / verify-unreachable / title+excerpt as presentation / proof-line gate,
+plus SDK error / bad JSON / missing keys -> honest raw fallback), and the compose_post end-to-end
+transmission contract. The /voice/verify seam is stubbed (blog._verify_voice) — NO network, ever.
 """
 import asyncio
 import json
@@ -247,14 +249,18 @@ def _draft():
                           proof=["How I know: cat -> mammal -> animal."])
 
 
-def test_polish_valid_json_returns_polished_dict_and_true():
+def test_polish_valid_json_returns_polished_dict_and_true(monkeypatch):
+    # a line-aligned polish (1 fact + 1 proof = 2 lines), every line verified -> all polished.
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: {"ok": True, "note": "verified"})
     payload = {"title": "A cat is an animal", "excerpt": "I worked something out.",
-               "body": ["I concluded that every cat is an animal.",
-                        "How I know: cat, then mammal, then animal."]}
+               "lines": ["I concluded that every cat is an animal.",
+                         "How I know: cat, then mammal, then animal."]}
     client = _FakeClient(text=json.dumps(payload))
     out, ok = asyncio.run(blog.polish(_draft(), client=client))
     assert ok is True
-    assert out["title"] == payload["title"] and out["body"] == payload["body"]
+    assert out["title"] == payload["title"]
+    # body = the fact line + the (single) proof line joined into one paragraph = the two lines
+    assert out["body"] == payload["lines"]
     assert out["readMin"] == 1                             # recomputed from the polished body
     # the call shape: strict schema-constrained JSON, no sampling params
     call = client.messages.calls[0]
@@ -281,25 +287,153 @@ def test_polish_invalid_json_falls_back():
 def test_polish_missing_keys_or_bad_shape_falls_back():
     out, ok = asyncio.run(blog.polish(_draft(), client=_FakeClient(text=json.dumps({"title": "x"}))))
     assert ok is False and out == blog.render_raw(_draft())
-    bad = {"title": "x", "excerpt": "y", "body": []}       # empty body fails client-side validation
+    bad = {"title": "x", "excerpt": "y", "lines": []}      # empty lines fails client-side validation
     out, ok = asyncio.run(blog.polish(_draft(), client=_FakeClient(text=json.dumps(bad))))
     assert ok is False and out == blog.render_raw(_draft())
 
 
-def test_polish_truncates_an_overlong_title_client_side():
-    payload = {"title": "t" * 300, "excerpt": "e", "body": ["p"]}
+def test_polish_truncates_an_overlong_title_client_side(monkeypatch):
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: {"ok": True})
+    payload = {"title": "t" * 300, "excerpt": "e",
+               "lines": ["polished fact.", "polished proof."]}   # aligned 1:1 with _draft()
     out, ok = asyncio.run(blog.polish(_draft(), client=_FakeClient(text=json.dumps(payload))))
     assert ok is True and len(out["title"]) == 120
 
 
 # --------------------------------------------------------------
+# 5b. polish — the line-aligned per-line consensus (roadmap §1's tail, 2026-07-24)
+# --------------------------------------------------------------
+def _multi_draft():
+    # 2 facts + 2 proof = 4 aligned lines; render_raw joins the two proof lines into one paragraph.
+    return blog.PostDraft(kind="argument", slug="theorem-m", date="2026-07-12T00:00:00+00:00",
+                          facts=["I derived one thing.", "I derived a second thing."],
+                          proof=["How I know: a -> b.", "This rests on: «c»."])
+
+
+def _polished(draft):
+    # a distinct polished line per raw line (so nothing is trivially identical) — the polisher's
+    # `lines` array, aligned 1:1 with facts+proof.
+    return [f"polished: {ln}" for ln in list(draft.facts) + list(draft.proof)]
+
+
+def test_polish_all_lines_verified_ships_all_polished(monkeypatch):
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: {"ok": True})
+    draft = _multi_draft()
+    payload = {"title": "T", "excerpt": "e", "lines": _polished(draft)}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is True
+    # 2 fact paragraphs + 1 joined proof paragraph
+    assert out["body"] == ["polished: I derived one thing.", "polished: I derived a second thing.",
+                           "polished: How I know: a -> b. polished: This rests on: «c»."]
+
+
+def test_polish_one_line_rejected_ships_that_line_verbatim(monkeypatch):
+    # reject exactly the second fact line; its raw ships, its polished neighbours stand.
+    draft = _multi_draft()
+    reject = "polished: I derived a second thing."
+    monkeypatch.setattr(blog, "_verify_voice",
+                        lambda raw, pol: {"ok": pol != reject, "note": "n"})
+    payload = {"title": "T", "excerpt": "e", "lines": _polished(draft)}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is True                                      # the other three lines shipped polished
+    assert out["body"][0] == "polished: I derived one thing."
+    assert out["body"][1] == "I derived a second thing."   # the rejected line, RAW verbatim
+    assert out["body"][2] == "polished: How I know: a -> b. polished: This rests on: «c»."
+
+
+def test_polish_all_rejected_body_equals_raw_render(monkeypatch):
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: {"ok": False, "note": "no"})
+    draft = _multi_draft()
+    payload = {"title": "T", "excerpt": "e", "lines": _polished(draft)}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is False                                     # nothing shipped polished
+    assert out["body"] == blog.render_raw(draft)["body"]   # byte-close to the honest raw render
+
+
+def test_polish_line_count_mismatch_falls_back_to_raw(monkeypatch):
+    # the polisher merged two lines -> 3 for a 4-line draft: no per-line pairing -> whole raw render.
+    called = []
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: called.append(1) or {"ok": True})
+    draft = _multi_draft()
+    payload = {"title": "T", "excerpt": "e", "lines": ["a", "b", "c"]}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is False and out == blog.render_raw(draft)
+    assert called == []                                    # the guard fired before any verify
+
+
+def test_polish_identical_line_spends_no_verify(monkeypatch):
+    # a polished line identical to its raw needs no consensus — the verify call is never spent on it.
+    draft = _multi_draft()
+    raw_lines = list(draft.facts) + list(draft.proof)
+    # line 0 comes back identical; the rest are re-voiced and verified.
+    lines = [raw_lines[0]] + [f"polished: {ln}" for ln in raw_lines[1:]]
+    verify_calls = []
+    def _decide(raw, pol):
+        verify_calls.append((raw, pol))
+        return {"ok": True}
+    monkeypatch.setattr(blog, "_verify_voice", _decide)
+    payload = {"title": "T", "excerpt": "e", "lines": lines}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is True                                      # the three re-voiced lines verified
+    assert out["body"][0] == raw_lines[0]                  # the identical line kept as-is
+    assert all(pair[1] != raw_lines[0] for pair in verify_calls)  # never verified the identical one
+    assert len(verify_calls) == 3                          # only the three changed lines
+
+
+def test_polish_verify_unreachable_ships_raw_never_raises(monkeypatch):
+    # the /voice/verify seam down -> None for every line -> every line ships raw, no exception.
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: None)
+    draft = _multi_draft()
+    payload = {"title": "T", "excerpt": "e", "lines": _polished(draft)}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is False and out["body"] == blog.render_raw(draft)["body"]
+
+
+def test_polish_title_and_excerpt_ride_from_the_polisher_untouched(monkeypatch):
+    # presentation ruling: title/excerpt come straight from the polisher (title only capped at 120),
+    # even when every body line is rejected and ships raw.
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: {"ok": False})
+    draft = _multi_draft()
+    payload = {"title": "A framing title", "excerpt": "A one-sentence excerpt.",
+               "lines": _polished(draft)}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is False
+    assert out["title"] == "A framing title" and out["excerpt"] == "A one-sentence excerpt."
+
+
+def test_polish_proof_lines_go_through_the_same_per_line_gate(monkeypatch):
+    # only the PROOF lines are re-voiced; both must pass the gate to ship polished (the proof gets no
+    # register exemption — uniform with the fact lines).
+    draft = _multi_draft()
+    raw_lines = list(draft.facts) + list(draft.proof)
+    seen = []
+    def _decide(raw, pol):
+        seen.append(raw)
+        return {"ok": True}
+    monkeypatch.setattr(blog, "_verify_voice", _decide)
+    # facts identical (no verify), proof re-voiced (verified)
+    lines = list(draft.facts) + [f"polished: {p}" for p in draft.proof]
+    payload = {"title": "T", "excerpt": "e", "lines": lines}
+    out, ok = asyncio.run(blog.polish(draft, client=_FakeClient(text=json.dumps(payload))))
+    assert ok is True
+    assert seen == list(draft.proof)                       # exactly the two proof lines were gated
+    # the two verified proof lines join into the single proof paragraph
+    assert out["body"][-1] == "polished: How I know: a -> b. polished: This rests on: «c»."
+
+
+# --------------------------------------------------------------
 # 6. compose_post — the end-to-end assembly the P3 carrier consumes
 # --------------------------------------------------------------
-def test_compose_post_theorem_end_to_end_contract():
+def test_compose_post_theorem_end_to_end_contract(monkeypatch):
+    monkeypatch.setattr(blog, "_verify_voice", lambda raw, pol: {"ok": True})
+    material = _theorem_material()
+    # the polisher must return one line per draft line (facts+proof) — build a matching aligned array.
+    draft = blog.compose_draft(material, now=1752300000, **_readers())
+    n = len(draft.facts) + len(draft.proof)
     payload = {"title": "Every cat is an animal", "excerpt": "A derivation.",
-               "body": ["I derived it.", "How I know: cat, mammal, animal."]}
+               "lines": [f"polished line {i}." for i in range(n)]}
     out = asyncio.run(blog.compose_post(
-        _theorem_material(), client=_FakeClient(text=json.dumps(payload)),
+        material, client=_FakeClient(text=json.dumps(payload)),
         now=1752300000, **_readers()))
     assert set(out) == {"slug", "date", "kind", "title", "excerpt", "body", "readMin", "polished"}
     assert out["kind"] == "log" and out["slug"] == "theorem-665f1e2a9b3c4d5e6f708192"

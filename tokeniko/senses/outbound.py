@@ -19,41 +19,22 @@ import asyncio
 import json
 import logging
 import os
-import urllib.request
 from typing import Awaitable, Callable, Optional
 
 from lib.core.models import TKActionDoc, TKMemoryItemDoc, TKMemoryStakeholdersDoc
 from lib.core.memory import ActionStatus, MEMChannels, TokenikoAction
 from lib.discord.models import Destination
 from lib.rag import RAG2_OUT, rag_call, rag_enabled
+from senses.voicegate import _verify_voice  # the shared /voice/verify seam (blog.py uses it too)
 
 logger = logging.getLogger("tokeniko-brain")
 
-_API_BASE = os.getenv("BRAIN_API_BASE", "http://localhost:8000")  # same seam as inbound
-_VERIFY_TIMEOUT = float(os.getenv("SENSES_VOICE_VERIFY_TIMEOUT", "120"))  # two compiles; patient
 # below this length a reply is template-curated and fragment-shaped ("yes", "why is that?") —
 # unpolishable by the verifier's own gate, so the Haiku call is never spent on it.
 _POLISH_MIN_CHARS = int(os.getenv("SENSES_VOICE_POLISH_MIN_CHARS", "25"))
 
 
 # ---- the rag2-out voice gate (compose 2.0 slice 3) ---------------------------------------------------
-# ask the API whether the polish still compiles to the raw's meaning. Graceful None on any trouble
-# (API down / malformed reply) — the caller ships the raw.
-def _verify_voice(raw: str, polished: str) -> Optional[dict]:
-    body = json.dumps({"raw": raw, "polished": polished}).encode("utf-8")
-    req = urllib.request.Request(
-        f"{_API_BASE.rstrip('/')}/api/v1/voice/verify", data=body, method="POST",
-        headers={"Content-Type": "application/json"},
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=_VERIFY_TIMEOUT) as resp:
-            out = json.loads(resp.read().decode("utf-8"))
-        return out.get("data") if out.get("status") == "complete" else None
-    except Exception as error:
-        logger.warning("[outbound] voice verify unreachable (%s) — raw ships", error)
-        return None
-
-
 # polish + verify one composed reply; returns the text to ship (the polish ONLY when the compiler
 # consensus holds — every other path is the raw, verbatim). Never raises.
 async def _voice_out(raw: str) -> str:

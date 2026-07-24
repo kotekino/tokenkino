@@ -1975,3 +1975,22 @@ SURVEY ARC IS COMPLETE)**
   entry wanted, by the same one scalar.
 - +12 tests (`test_pronoun_momentum.py`, incl. the parser-level specimen: «so, what are you?»
   addressed → `identities.subject = tokeniko`). Full gate **642 passed, 1 xfailed**.
+
+**Blog consensus-over-the-polisher — the line-aligned polish (2026-07-24 — the 1st Officier's sixth build; §1 CLOSES: COMPOSE 2.0 IS WHOLE)**
+- The gap: the blog's polish was one blind cloud call (structural checks only) — the last outbound
+  surface not held to the rag2-out contract. The naive whole-body verify would be a constant
+  false-failure machine, so the polish CONTRACT changed instead (the ruled design): `BLOG_POLISH`
+  returns a `lines` array aligned 1:1 with the draft's fact+proof lines (never merge/split/reorder
+  — the alignment is load-bearing, documented in the registry header).
+- Each (raw, polished) pair rides the SHARED `/voice/verify` seam — lifted into `senses/voicegate.py`
+  (stdlib-only, one definition, both consumers; blog.py stays import-light) — inheriting the strong
+  wall (mood gate + semantic floor) for free. Per-line MIXED acceptance (ruled): a rejected /
+  unverifiable / unreachable line ships its raw verbatim beside polished neighbours — safe by
+  construction, each line independently meaning-true; identical lines spend no verify; a count
+  mismatch = structural failure → the whole raw render. Title/excerpt ride as PRESENTATION (ruled:
+  condensation isn't 1:1-alignable; the body carries the claims). `polished` = ≥1 line shipped
+  polished; the consensus ratio is logged.
+- +8 consensus tests (`test_blog_p2.py` section 5b; the verify seam stubbed — the real gate behavior
+  lives in the compiler-path tests, as with `_voice_out`). Full gate **650 passed, 1 xfailed**.
+  One flag for the record: a fully-rejected polish is byte-close to the raw render in BODY;
+  title/excerpt still come from the polisher (the presentation ruling, by design).

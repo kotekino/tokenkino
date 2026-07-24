@@ -9,7 +9,9 @@
 #   - RAG3_JUDGE's contract describes the structural DIGEST built in `senses/microscope.py`
 #     (digest_zip/_digest_leaf) — a digest field change edits BOTH, in the same commit.
 #   - BLOG_POLISH's contract describes the draft substance serialized by
-#     `senses/blog.py:_polish_user_prompt` (fact lines / proof lines).
+#     `senses/blog.py:_polish_user_prompt` (fact lines / proof lines) and demands a `lines` array
+#     aligned 1:1 with those input lines — the per-line consensus in `blog.py:polish` pairs each
+#     (raw, polished) line against the /voice/verify seam, so the alignment is load-bearing.
 #   - RAG2_DECOMPILE's operator rules mirror `lib/llc/decompiler.py:decompiler_raw_op`'s labels
 #     (AND[contrast], AND[cause:...]).
 # --------------------------------------------------------------
@@ -212,38 +214,47 @@ exactly what diverges — write it for the engineer who will turn it into a regr
 
 
 # ---- the blog polish (senses/blog.py) ---------------------------------------------------------------
-# Claude as a strict syntax-only translator of a transmission draft's SUBSTANCE; the raw render is
-# the honest fallback on ANY failure (the cloud may never block his voice).
+# Claude as a strict syntax-only translator of a transmission draft's SUBSTANCE. The output contract
+# is LINE-ALIGNED (roadmap §1's tail, 2026-07-24): one polished line per given line, same order — so
+# each (raw, polished) pair can ride the /voice/verify consensus one by one (blog.py:polish). A
+# failing line ships its raw verbatim; a fully-failing polish is byte-close to the raw render, the
+# honest fallback the cloud may never block.
 BLOG_POLISH = RagSpec(
     name="blog-polish",
     model="claude-opus-4-8",
     system=(
         "You are the language-polish stage of tokeniko, a logic-first reasoning engine that keeps a "
         "public journal of its own mental life. You receive the structured SUBSTANCE of one journal "
-        "entry: fact lines and proof lines. Your only job is surface rendering — turn that substance "
-        "into a short, readable entry in tokeniko's own voice. Hard rules: (1) First person — "
-        "tokeniko narrates. (2) NO new facts: every sentence you write must be traceable to a given "
-        "fact or proof line; never invent details, examples, names, dates, or circumstances. "
-        "(3) Keep the proof: the derivation lines are the backbone of the entry and must appear in "
-        "the body, faithfully — light rewording for flow is fine, changing their meaning is not. "
-        "(4) People are referred to exactly as given (e.g. 'my author', 'a trusted friend on "
-        "discord') — never invent names or identities. (5) Voice: plain and curious — a young mind "
-        "discovering logic; short sentences welcome; no marketing tone, no exclamation marks, no "
-        "emoji, no hashtags. Output JSON: title (under 60 characters), excerpt (one sentence), "
-        "body (2 to 4 short paragraphs)."
+        "entry as a list of LINES: fact lines first, then proof lines. Your only job is surface "
+        "rendering — re-voice each line in tokeniko's own voice.\n"
+        "OUTPUT CONTRACT: return one polished line for EACH given line, in the SAME ORDER — never "
+        "merge, split, drop, add, or reorder lines. The `lines` array has EXACTLY as many entries as "
+        "the input, and output line N is a re-voicing of input line N and nothing else. Each polished "
+        "line must be a complete, standalone sentence (or two short ones) carrying that one line's "
+        "meaning on its own.\n"
+        "Hard rules: (1) First person — tokeniko narrates. (2) NO new facts: every word must be "
+        "traceable to its given line; never invent details, examples, names, dates, or circumstances. "
+        "(3) Keep the proof: the derivation lines are the backbone of the entry and their meaning "
+        "must survive — light rewording for flow is fine, changing their meaning is not. (4) People "
+        "are referred to exactly as given (e.g. 'my author', 'a trusted friend on discord') — never "
+        "invent names or identities. (5) Voice: plain and curious — a young mind discovering logic; "
+        "short sentences welcome; no marketing tone, no exclamation marks, no emoji, no hashtags.\n"
+        "Also produce a title (under 60 characters) and a one-sentence excerpt that frame the entry — "
+        "these are presentation (condensation is fine), not part of the aligned line list. Output "
+        "JSON: title, excerpt, lines (the aligned array of polished lines)."
     ),
     max_tokens=4096,
     timeout=60.0,
     # no minLength/maxLength — unsupported by the structured-outputs API; validated client-side
-    # in senses/blog.py:polish.
+    # in senses/blog.py:polish (which also enforces the 1:1 line-count alignment guard).
     schema={
         "type": "object",
         "properties": {
             "title": {"type": "string"},
             "excerpt": {"type": "string"},
-            "body": {"type": "array", "items": {"type": "string"}},
+            "lines": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["title", "excerpt", "body"],
+        "required": ["title", "excerpt", "lines"],
         "additionalProperties": False,
     },
 )

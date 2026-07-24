@@ -14,8 +14,12 @@
 #   2. POLISH (polish) — the Claude API as a STRICT syntax-only translator (the author's POC of
 #      the LLM-as-translator asymmetry: cloud LLM for OUTPUT rendering only). The system prompt
 #      is a mini-RAG of hard rules (first person, NO new facts, keep the proof, people exactly as
-#      given); the output is schema-constrained JSON. ANY failure (SDK error, missing key, bad
-#      JSON, invalid shape) falls back to the raw render — his voice never blocks on the cloud.
+#      given); the output is schema-constrained JSON, LINE-ALIGNED (roadmap §1's tail, 2026-07-24):
+#      one polished line per draft line (facts then proof), so each (raw, polished) pair rides the
+#      rag2-out /voice/verify consensus one by one — a verified line ships polished, a rejected /
+#      unverifiable / unreachable line ships its RAW verbatim beside its polished neighbours. ANY
+#      structural failure (SDK error, missing key, bad JSON, invalid shape, count mismatch) falls
+#      back to the whole raw render — his voice never blocks on the cloud, and never loses meaning.
 #
 # compose_post() is the one-call assembly the P3 carrier will use: material -> draft -> polish ->
 # the transmission contract {slug, date, kind, title, excerpt, body, readMin} (+ polished: bool).
@@ -24,6 +28,7 @@
 # imports (bunnet models, trust resolution, the anthropic SDK) happen lazily inside the default
 # readers / the client factory, so `import senses.blog` is clean and tests can stay pure.
 # --------------------------------------------------------------
+import asyncio
 import hashlib
 import logging
 import re
@@ -34,6 +39,7 @@ from pydantic import BaseModel, Field
 
 from lib.core.voice import creative_compose
 from lib.rag import BLOG_POLISH, rag_call
+from senses.voicegate import _verify_voice  # the shared /voice/verify seam (outbound.py uses it too)
 
 logger = logging.getLogger("tokeniko-brain")
 
@@ -485,16 +491,21 @@ def render_raw(draft: PostDraft) -> dict:
 
 
 # --------------------------------------------------------------
-# POLISH — Claude as a strict syntax-only translator. Schema-constrained JSON out; the raw
-# render is the honest fallback on ANY failure (the cloud may never block his voice).
+# POLISH — Claude as a strict syntax-only translator, held to the rag2-out contract PER LINE.
+# Schema-constrained JSON out (a `lines` array aligned 1:1 with the draft's fact+proof lines); each
+# (raw, polished) pair rides the /voice/verify consensus, and every failure ships the raw — the
+# whole raw render on a structural failure, that one raw line on a per-line rejection.
 # --------------------------------------------------------------
 # the system prompt (the strict syntax-only translator contract), model and response schema live
-# in the lib/rag registry (BLOG_POLISH); length constraints are validated client-side in polish()
-# (no minLength/maxLength — unsupported by the structured-outputs API).
+# in the lib/rag registry (BLOG_POLISH); length constraints AND the 1:1 line-alignment guard are
+# validated client-side in polish() (no minLength/maxLength — unsupported by the structured-outputs
+# API).
 
 
 # the user content: the draft's substance serialized readably — kind, fact lines, proof lines,
-# NOTHING else (no ids, no dates, no soul data — the translator only ever sees the substance).
+# NOTHING else (no ids, no dates, no soul data — the translator only ever sees the substance). The
+# serialization order (facts, then proof) IS the alignment contract: the polisher returns `lines`
+# in this order, and polish() pairs them back against `draft.facts + draft.proof`.
 def _polish_user_prompt(draft: PostDraft) -> str:
     lines = [f"kind: {draft.kind}", "", "Fact lines:"]
     lines += [f"- {f}" for f in draft.facts]
@@ -505,35 +516,70 @@ def _polish_user_prompt(draft: PostDraft) -> str:
 
 
 async def polish(draft: PostDraft, client=None) -> tuple[dict, bool]:
-    """Polish a draft into {title, excerpt, body, readMin}; second value = polish succeeded.
+    """Polish a draft into {title, excerpt, body, readMin}; second value = ≥1 line shipped polished.
 
-    False means the returned dict is the deterministic raw render (never an error)."""
+    False means every body line shipped raw (byte-close to the raw render) — never an error. A
+    per-line rejection ships that one line verbatim beside its polished neighbours, so the body is
+    always meaning-true line by line."""
+    raw_lines = list(draft.facts) + list(draft.proof)  # the alignment baseline (facts, then proof)
     try:
         data = await rag_call(BLOG_POLISH, _polish_user_prompt(draft), client=client)
         if data is None:
             raise ValueError("rag call failed — see the [rag:blog-polish] log line")
         # client-side validation (the schema can't carry length constraints): keys present,
-        # non-empty strings, body a non-empty list of non-empty strings.
-        title, excerpt, body = data["title"], data["excerpt"], data["body"]
+        # non-empty title/excerpt strings, `lines` a list of non-empty strings.
+        title, excerpt, lines = data["title"], data["excerpt"], data["lines"]
         if not (isinstance(title, str) and title.strip()):
             raise ValueError("polish returned an empty title")
         if not (isinstance(excerpt, str) and excerpt.strip()):
             raise ValueError("polish returned an empty excerpt")
-        if not (isinstance(body, list) and body
-                and all(isinstance(p, str) and p.strip() for p in body)):
-            raise ValueError("polish returned an invalid body")
-        return ({
-            "title": title.strip()[:120],
-            "excerpt": excerpt.strip(),
-            "body": [p.strip() for p in body],
-            "readMin": _read_min(body),
-        }, True)
+        if not (isinstance(lines, list) and lines
+                and all(isinstance(l, str) and l.strip() for l in lines)):
+            raise ValueError("polish returned an invalid lines array")
+        # ALIGNMENT guard: one polished line per given line, or the per-line consensus has no raw to
+        # pair against — a structural failure, so the whole raw render (the existing fallback).
+        if len(lines) != len(raw_lines):
+            raise ValueError(f"polish line count {len(lines)} != draft lines {len(raw_lines)}")
     except Exception as error:
-        # anthropic.APIError / APIConnectionError / auth (missing key) / json / validation —
-        # ANY failure lands here: log + honest raw fallback. Never raises to the caller.
+        # anthropic.APIError / APIConnectionError / auth (missing key) / json / validation / a
+        # count mismatch — ANY structural failure lands here: log + honest raw fallback. Never raises.
         logger.warning("[blog] polish failed (%s: %s) — falling back to the raw render",
                        type(error).__name__, error)
         return (render_raw(draft), False)
+
+    # PER-LINE consensus (the rag2-out contract, blog-side — mirrors _voice_out exactly): each
+    # (raw, polished) pair rides the /voice/verify seam. Identical needs no verify (nothing changed);
+    # a verified polish ships; a rejected, unverifiable, or unreachable line ships its RAW verbatim.
+    # _verify_voice is sync (urllib) — run it off-thread so we never block the loop.
+    verified: list[str] = []
+    polished_count = 0
+    for raw_line, polished_line in zip(raw_lines, (l.strip() for l in lines)):
+        if polished_line == raw_line:
+            verified.append(raw_line)
+            continue
+        verdict = await asyncio.to_thread(_verify_voice, raw_line, polished_line)
+        if verdict and verdict.get("ok"):
+            verified.append(polished_line)
+            polished_count += 1
+        else:
+            verified.append(raw_line)
+    logger.info("[blog] polish consensus: %d/%d lines verified", polished_count, len(raw_lines))
+
+    # reassemble with the SAME paragraph structure the raw render uses (facts, then the proof lines
+    # joined into ONE paragraph) — so a fully-rejected polish is byte-close to render_raw's body.
+    n_facts = len(draft.facts)
+    body = list(verified[:n_facts])
+    proof_lines = verified[n_facts:]
+    if proof_lines:
+        body.append(" ".join(proof_lines))
+    # title/excerpt ride from the polisher as-is (presentation ruling): they frame the entry, are
+    # NOT 1:1-alignable, and stay polished-unverified; the body carries the verified claims.
+    return ({
+        "title": title.strip()[:120],
+        "excerpt": excerpt.strip(),
+        "body": body,
+        "readMin": _read_min(body),
+    }, polished_count > 0)
 
 
 # --------------------------------------------------------------
