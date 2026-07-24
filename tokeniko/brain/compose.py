@@ -138,9 +138,10 @@ def _route(action_token: str, trigger: Optional[str], answer: Optional[dict]) ->
 # tuple assembled by the plan (slice 2 — gates the shelf + feeds the hedge). Returns the composed
 # string, or "" when there is nothing to say.
 def compose_raw(action_token: str, trigger: Optional[str] = None, answer: Optional[dict] = None,
-                rng: Optional[random.Random] = None, intensity: Optional[dict] = None) -> str:
+                rng: Optional[random.Random] = None, intensity: Optional[dict] = None,
+                target: Optional[str] = None) -> str:
     routed = _route(action_token, trigger, answer)
     if routed is None:
         return ""
     category, data = routed
-    return creative_compose(category, data, rng=rng, intensity=intensity)
+    return creative_compose(category, data, rng=rng, intensity=intensity, target=target)

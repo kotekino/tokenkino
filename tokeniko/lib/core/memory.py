@@ -395,9 +395,16 @@ class MEMScaffold(BaseModel):
     intensity_band: list[float] = Field(default=[0.0, 1.0], min_length=2, max_length=2)
     arousal_band: list[float] = Field(default=[0.0, 1.0], min_length=2, max_length=2)
     weight: float = Field(default=1.0)               # selection weight within the category's shelf
-    provenance: str = Field(default="seed")          # "seed" | "taught:<uid>" (the learning tail)
+    provenance: str = Field(default="seed")          # "seed" | "mimic:<uid>" (ephemeral, per-conversation) | "taught:<uid>" (consolidated, global)
     trusted: float = Field(default=1.0)              # curated = full trust; learned rows arrive lower
     enabled: bool = Field(default=True)
+    # learned-scaffolds (§1, 2026-07-24) — two-stage linguistic accommodation. A `scope`d row is a
+    # MIMIC: a phrasing picked up from a decently-trusted talker mid-conversation, PRIVATE to that
+    # person (his voice with everyone else stays untouched — the quarantine IS the conversation).
+    # Sleep consolidation (_sleep_duty) promotes the deserving ones to global (scope=None) or retires
+    # the rest (enabled=False — biography, never deleted).
+    scope: Optional[str] = None                      # canonical stakeholder uid this row is private to; None = global
+    used: int = 0                                     # times compose actually picked this row (consolidation's adoption signal)
     createdAt: int = Field(default_factory=lambda: int(time.time()))
 
 # the REDUCTIO LEDGER (roadmap §0 slice 1) — the asked-once memory of the reductio action. One row

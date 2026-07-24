@@ -131,7 +131,8 @@ def _in_band(band, value: Optional[float]) -> bool:
 # bind is str.format on named keys — VERBATIM, the fence. Any store trouble -> the fallback.
 def creative_compose(category: str, data: Optional[dict] = None,
                      rng: Optional[random.Random] = None,
-                     intensity: Optional[dict] = None) -> str:
+                     intensity: Optional[dict] = None,
+                     target: Optional[str] = None) -> str:
     data = {k: str(v) for k, v in (data or {}).items()}
     confidence = (intensity or {}).get("confidence")
     arousal = (intensity or {}).get("arousal")
@@ -141,8 +142,12 @@ def creative_compose(category: str, data: Optional[dict] = None,
     template = _FALLBACK.get(category, "")
     try:
         from lib.core.models import TKScaffoldDoc
+        # the scope gate (§1 learned scaffolds): a global row (scope=None) speaks to everyone; a
+        # scoped MIMIC row speaks ONLY to the person it was picked up from. Callers with no target
+        # (blog, tests) therefore never see scoped rows — his voice with the world stays curated.
         shelf = [s for s in TKScaffoldDoc.find({"category": category, "enabled": True}).to_list()
-                 if set(s.slots or []) <= set(data)]
+                 if set(s.slots or []) <= set(data)
+                 and (getattr(s, "scope", None) is None or getattr(s, "scope", None) == target)]
         banded = [s for s in shelf
                   if _in_band(getattr(s, "intensity_band", None), confidence)
                   and _in_band(getattr(s, "arousal_band", None), arousal)]
@@ -153,6 +158,16 @@ def creative_compose(category: str, data: Optional[dict] = None,
             template = chosen.template
             logger.debug("[compose] %s (c=%s a=%s) -> scaffold %s «%s»",
                          category, confidence, arousal, str(chosen.id), template)
+            # adoption signal: when he actually reaches for a picked-up phrasing, tick its `used`
+            # (the consolidation reads it as proof the mimicry took). A failed save must never break
+            # speech. Seeds/global rows carry no scope — no tick.
+            if getattr(chosen, "scope", None) is not None:
+                try:
+                    chosen.used = (chosen.used or 0) + 1
+                    chosen.save()
+                except Exception as tick_error:
+                    logger.warning("[compose] used-tick failed for scoped scaffold %s (%s)",
+                                   str(chosen.id), tick_error)
     except Exception as error:  # the voice must never crash its caller — fall back, log, speak
         logger.warning("[compose] scaffold store unavailable for %s (%s) — fallback", category, error)
     try:

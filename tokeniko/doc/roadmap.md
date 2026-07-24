@@ -12,111 +12,70 @@ Legend: 🔄 in progress · 🔭 next · ✅ done  ·  *(done → `landed.md` ·
 
 ## ✅ Landed arcs — pointers only (full detail in `landed.md`; no status lives here)
 
-The road *behind*, one line each so the road ahead reads clean. Nothing here carries status detail —
-it references, it does not duplicate (invariant #2).
+The road *behind*, strictly one line per arc so the road ahead reads clean. Nothing here carries
+status detail — it references, it does not duplicate (invariant #2).
 
-- **Brain v1.1 — the Unified KB** (2026-07-03 → 09): write-path invariant → generic taxonomy →
-  provenance cascade + theorem fuel → universal extractor + sufficiency → reason-over-everything +
-  subject-WSD hardening + the enriched soak. Vision/design in `doc/ref/brain-v1.1.md`.
-- **Going live — embodied I/O** (2026-07-09 → 12): Discord DM (P1–P3) → B deepen the 1:1 →
-  C channel listening + the directedness ladder → D trust ledger → the Blog output channel.
-  **LIVE on tokeniko.online — the going-live arc is COMPLETE.**
-- **Robustness — live-play bugs** (2026-07-12 → 14): wh-position · vocative wart · operator-aware
-  chainer (the STORM) · charity of interpretation · identity fission on rename.
-- **Robustness — the storm sequel** (2026-07-14): subordination must survive compilation (the
-  three-domino fix; `test_subordination.py` is the regression corpus).
-- **The first-portrait harvest queue** (2026-07-14): complement/locative + the places bridge · the
-  WSD selection fixes · the singles · the judge contract taught. **THE FIRST PORTRAIT'S HARVEST IS
-  FULLY CONSUMED.**
-- **The retreat arc** (2026-07-14 → 15): the Socratic dialogue (baseline) → the square of opposition
-  in the kernel → modality gates (◇) → the self-relevant directedness floor → belief-revision v1,
-  **WHICH RAN LIVE the same day** (the retreat + the `conclusion_key` bool<str fix).
-- **The instrument arc** (2026-07-14 → 16): (1) **rag3 the microscope** — now STANDING PRACTICE
-  (every live sentence → a judged lead) · (2) **zip-native derivation** (English is I/O, not thought) ·
-  (3) **the translator apparatus v1** (rag1-in + rag2-in: escalation-only detector → Claude Haiku
-  tidy → the zip-verifier gate). *(Remaining translator pieces → Next §3.)*
-- **Growth Rings / The Growing Edge** (2026-07-15): Atlas-homed, PUBLISHED at tokeniko.online/growth.
-  *Reconciliation duty it left behind:* when a season closes, update the live edge + append the ring
-  via `tokeniko-public/backend/scripts/seed-growth.mjs` (no deploy).
-- **THE HARVEST CONSUMPTION** (2026-07-16, both sessions): all six macro-cases (M1 contrast · M2
-  factive causality · M3 WSD curation · M4 necessity □ · M5 dropped content · M6 pt1 ¬∀) + the
-  second-harvest strays (passive normalization · title-case OOV guard · store/bit) + the
-  **conditional-rule extractor** (taught IF/CONV/when + cause pairs → class-conditioned chainer
-  rules). **Every lead from all three harvests is closed.**
-- **The bridge cleaning** (2026-07-16): the local-models retirement (D4) · `.env.template` ·
-  **`lib/rag/`** (the Claude machinery concentrated) · the **wondering-freeze fix**
-  (dictionary.sense index + idle-confirmed, preemptible wondering + the coordinator guard).
-- **The basket** (2026-07-17): observation-fact seam (the taught «says false» rule fires — fired
-  LIVE same day) · nominal IMPLY · adverbial quantifiers (the dropped-word family fully consumed)
-  · the pronoun-leaf unrepairable gate.
-- **COMPOSE 2.0 — THE VOICE** (2026-07-17, designed + five slices landed in ONE day): the scaffold
-  store (voice-in-memory) · intensity (confidence, arousal) + Zadeh hedges · rag2-out (the exit
-  verifier) · the blog re-home + the belief-grounded speakup · the context ring + the anecdote
-  (hunch 20's working-memory seed). **PREMIERED LIVE: «Gold is beautiful.» — his first unprompted
-  words.** Tail → Next §1.
-- **THE REDUCTIO ACTION + THE SLEEP PHASE** (2026-07-18, designed + landed whole in ONE day —
-  §0's urgent ruling honored): the reduct question (asked-once ledger) · the reduct-answer
-  binding (fork A) · the untangler + the dream (fork D) · the sleep phase (falls asleep
-  wondering; the night's duty; hunch 20's fourth phase) · the constructive reductio
-  (contraposition prover) · the live-night refinements (the insomnia fix · the morning
-  questions · the Mind-Monitor sleeping state + the tone-follows-the-mind site themes).
-  **FIRST LIVE NIGHT the same evening: two sleeps, the questions asked, the site dimmed.**
-- **Tiredness + the parallel heartbeat** (2026-07-19, the morning after): the wakefulness bound
-  (`BRAIN_WAKE_MAX_S` — sleep no matter the fruit; fork A: conversation defers, never resets) ·
-  the heartbeat in its own thread (no more monitor holes) · the O(1) snapshot counts. *(The
-  existence-flood verbosity question — ANSWERED 2026-07-21 → §1's digest machinery.)*
-- **The sleep-depth theme + the Atlas theme-overrides** (2026-07-20): the fourth tone (`deep` =
-  off-air, darker than REM's `night`) · the `--crt-lift` shadow seam · overrides-over-defaults
-  riding `/api/mind`.
+- **Brain v1.1 — the Unified KB** (2026-07-03 → 09) — write-path invariant → generic taxonomy →
+  provenance cascade → universal extractor → the enriched soak; vision/design in `doc/ref/brain-v1.1.md`.
+- **Going live — embodied I/O** (2026-07-09 → 12) — Discord DM → 1:1 deepening → channel listening →
+  trust ledger → the Blog channel; live on tokeniko.online.
+- **Robustness — live-play bugs** (2026-07-12 → 14) — wh-position · vocative wart · operator-aware
+  chainer · charity of interpretation · identity fission on rename.
+- **Robustness — the storm sequel** (2026-07-14) — subordination survives compilation
+  (`test_subordination.py` is the regression corpus).
+- **The first-portrait harvest queue** (2026-07-14) — complement/locative + the places bridge · WSD
+  selection fixes · the singles · the judge contract.
+- **The retreat arc** (2026-07-14 → 15) — Socratic baseline → square of opposition → modality gates →
+  the directedness floor → belief-revision v1.
+- **The instrument arc** (2026-07-14 → 16) — rag3 the microscope · zip-native derivation · the
+  translator apparatus v1 *(remainder → §3)*.
+- **Growth Rings** (2026-07-15) — published at tokeniko.online/growth; season-close duty: update the
+  live edge + append the ring via `tokeniko-public/backend/scripts/seed-growth.mjs` (no deploy).
+- **The harvest consumption** (2026-07-16) — all six macro-cases + the second-harvest strays + the
+  conditional-rule extractor; every lead from all three harvests closed.
+- **The bridge cleaning** (2026-07-16) — the local-models retirement · `.env.template` · `lib/rag/`
+  concentration · the wondering-freeze fix.
+- **The basket** (2026-07-17) — observation-fact seam · nominal IMPLY · adverbial quantifiers · the
+  pronoun-leaf unrepairable gate.
+- **Compose 2.0 — the voice** (2026-07-17) — scaffold store · intensity + hedges · rag2-out · blog
+  re-home + belief-grounded speakup · context ring + anecdote *(tail → §1)*.
+- **The reductio action + the sleep phase** (2026-07-18) — reduct question + answer binding ·
+  untangler + dream · the sleep phase · constructive reductio · the live-night refinements.
+- **Tiredness + the parallel heartbeat** (2026-07-19) — the wakefulness bound · the heartbeat thread ·
+  O(1) snapshot counts.
+- **The action-space survey arc** (2026-07-19) — survey → five slices (refinements · event-edge
+  voices · the B-wire · etiquette · the hypothesis engine) → the great seeding.
+- **The sleep-depth theme + the Atlas theme-overrides** (2026-07-20) — the fourth tone (`deep`) ·
+  the `--crt-lift` seam · overrides riding `/api/mind`.
+- **The notebook session's small pair + the digest machinery** (2026-07-21) — lived-awake ledger ·
+  refusal-reason log · wondering-state decay · the digest engine (the 1st Officier's maiden build).
+- **The first digest night's three fixes + the plate** (2026-07-23) — the goodnight settle · cap 40 ·
+  the birth stamp · the ALIVE SINCE plate.
+- **The evaluator pair** (2026-07-23) — the identity-blindness family cured (`role_key`) · the direct
+  fact-match + min-premise polar honesty.
+- **External-only tiredness deferral** (2026-07-23) — only external conversation defers the collapse;
+  internal work is self-generated.
 
 ---
 
-## 🔭 Next (ordered) — reprioritized 2026-07-18 (evening: THE REDUCTIO ORGAN IS COMPLETE + LIVE)
+## 🔭 Next (ordered) — reprioritized 2026-07-24
 
-**The through-line: the voice deepens, over a mind that now heals itself.** §0's reductio arc
-(the poison ruling) closed WHOLE in one day and ran its first live night the same evening. The
-road ahead resumes the voice: its tail (§1 — the author-ordered action-survey → great-seeding
-sequence; the reduct is the survey's first entry, already built), the fresh microscope analysis
-carrying the premiere's two grounding leads (§2), the translator remainder (§3), the
-strengthening tail (§4 — R4b now pairs naturally with the landed contraposition prover).
+**The through-line: the voice's tail closes, then the microscope looks again.** §1 is down to its
+last item (blog consensus — designed and briefed); when it lands, compose 2.0 is whole. Then the
+fresh microscope analysis pass (§2), the translator remainder (§3), and the strengthening tail (§4).
 
-### 0. Standing small items 🔄
+### 1. Compose 2.0 — the tail (the core + the survey arc + digests + learned scaffolds are landed → `landed.md`) 🔄
 
-- *(The hypothesis refusal-reason log + uptime shape c + the wondering-state decay — all DONE
-  2026-07-21 → `landed.md`.)*
+- 🔭 **Blog consensus-over-the-polisher** — the line-aligned polish held to the rag2-out contract
+  (per-line verify, mixed acceptance). Brief: `.claude/briefs/2026-07-24-blog-consensus.md` —
+  designed, awaiting dispatch.
 
-### 1. Compose 2.0 — the tail (the core: five slices, landed 2026-07-17 → `landed.md`) 🔄
-
-- **The action-space survey — CONCLUDED 2026-07-19** (the author's rulings on the full
-  inventory → the sliced build plan below; survey record in `landed.md`). The build, in his
-  approved order:
-  1. ✅ **Small refinements** — landed 2026-07-19, see `landed.md`.
-  2. ✅ **Event-edge voices** — landed 2026-07-19, see `landed.md`.
-  3. ✅ **Ask wiring + curiosity (the B-wire)** — landed 2026-07-19, see `landed.md`.
-  4. ✅ **The etiquette family** — landed 2026-07-19, see `landed.md` (fork B, the reciprocal
-     thanks → `parked.md`).
-  5. ✅ **The hypothesis engine for `guess`** — landed 2026-07-19, see `landed.md` (the
-     derivation-side promotion — a wondering mint colliding with a hypothesis row — noted as
-     a follow-on there).
-- ✅ **The great seeding** — landed 2026-07-19 (+90 rows store-wide), see `landed.md`. **THE
-  ACTION-SPACE SURVEY ARC IS COMPLETE** (survey → 5 slices → the seeding, one day).
-- *(The digest machinery — DONE 2026-07-21, the 1st Officier's maiden build → `landed.md`.
-  Trust-ledger-movement digests stay a follow-on, see Pending follow-ons.)*
-- 🔭 **Learned scaffolds from the audience** — trust-gated rows, detector = `evaluator_compareZip`
-  with the slot masked; design after the store exists.
-- 🔭 **Blog consensus-over-the-polisher** — hold the blog polish to the rag2-out contract
-  (`/voice/verify` is the building block); per-post (multi-sentence) verification needs its own
-  design: chunking + partial acceptance.
-
-### 2. The fresh microscope analysis — the premiere's leads (~30 unaddressed) 🔭
+### 2. The fresh microscope analysis pass 🔭
 
 The `addressed` flip (2026-07-17) sealed the analyzed generations; the fresh corpus = the
-2026-07-17 play + premiere, judged on current code — **the analysis pass itself is the remaining
-item**; its known leads are all closed:
-- *(The two grounding leads — negated-property refutation + the polar direct-theorem miss —
-  CLOSED 2026-07-23 via the direct fact-match + min-premise polar honesty → `landed.md`.)*
-- *(The identity-blindness family — CURED 2026-07-23, the 1st Officier's second build →
-  `landed.md`. The audit map stays in `doc/ref/notes.md`.)*
+2026-07-17 play + premiere, judged on current code. **The analysis pass itself is the remaining
+item** — its previously-known leads are all closed (→ `landed.md`; the identity-blindness audit
+map stays in `doc/ref/notes.md`).
 
 ### 3. The translator apparatus — remaining (instrument arc item 3; v1 landed 2026-07-16) 🔭
 
@@ -168,21 +127,16 @@ One line each; design detail in `git` history / `doc/ref/captain-hunches.md`.
     just wondering). Delta-load, or trim the load to what the evaluator actually reads; pair with
     watermark-gating kb_wonder's re-saturation (the noted future optimization in `thinking.py`).
 11. **The third memory tier — EVENT vs general knowledge** (author-ruled 2026-07-21; all design
-    reasoning DEFERRED until this item is approached). The pipeline is binary — episodic memory
-    item OR timeless theorem — and the missing tier is the author's articulated distinction:
-    «what's happening out there» / «what kotekino did» = EVENT; «are computers minds?» = general
-    knowledge. His holding ruling: until the distinction exists, moment-anchored claims should
-    stay events (remembered, not believed) — the live specimen is the meta-conversation theorem
-    «kotekino was just answering…» held at 0.9/postable. Candidate signature already in the zip
-    (definite/named subject + past tense vs GENERIC quantifier + tenseless present; relative
-    spacetime may already carry the t<0); candidate gate at `_taught_candidate`. A full design
-    session when its time comes — not before.
+    reasoning DEFERRED until this item is approached): episodic event vs timeless theorem — the
+    missing middle tier. Holding ruling: moment-anchored claims stay events (remembered, not
+    believed). Candidate anchors + the live specimen → `doc/ref/notes.md` (the third-tier note).
+    A full design session when its time comes — not before.
 
 ### Pending follow-ons — tails left by the landed arcs (surface when their time comes) 🔭
 
 Gathered so nothing is lost; each waits on its parent feature's next season.
-- **Blog**: `life:learned` / `life:discussion` triggers *(consensus-over-the-polisher → folded
-  into Compose 2.0 §2 slice 3)*.
+- **Blog**: `life:learned` / `life:discussion` triggers *(the consensus-over-the-polisher itself
+  → §1)*.
 - **Trust-ledger-movement digests** (the digest machinery's explicit scope fence, 2026-07-21):
   «my opinion of X shifted twice today» batches like the rest — once the rule/teacher digests
   have lived a while.
@@ -197,6 +151,8 @@ Gathered so nothing is lost; each waits on its parent feature's next season.
   an exception or spawn an honest ask at low trust. The flag is live; the consumer waits.
 - **Biography rulings** (author's, per-row — never auto): the **stakeholder merge** (two kotekino
   rows; Renzo/john duplicates → aliases) · the trust-ding-from-engine-bugs repair question.
+- **«I picked up a way of speaking from X»** — a transmission voice for a consolidated learned
+  scaffold (left by the learned-scaffolds design, 2026-07-24); waits on the feature living a while.
 
 ---
 
@@ -217,4 +173,4 @@ Gathered so nothing is lost; each waits on its parent feature's next season.
 **Root:**
 - **`VISION.md`** — the why (north star).
 - **`brain/README.md`** — the brain's orchestration + meta-language spec.
-- **`CLAUDE.md`** — architecture / code layout + ground rules (not status).
+- **`CLAUDE.md`** — the architecture / code layout + ground rules (not status).

@@ -616,3 +616,15 @@ applied to role reading: ONE mechanism, no ad-hoc `senses.get(...)` scattered pe
 with the written rule: **every role-reading site consumes the sense-or-identity pair; every
 WordNet-graph path carries a KB-facts branch for individuals.** With both in place the family
 becomes unbuildable-again.
+
+## The third memory tier — EVENT vs general knowledge (candidate anchors, parked with the roadmap §4.11 entry)
+
+The pipeline is binary — episodic memory item OR timeless theorem — and the missing tier is the
+author's articulated distinction (2026-07-21): «what's happening out there» / «what kotekino did»
+= EVENT; «are computers minds?» = general knowledge. His holding ruling: until the distinction
+exists, moment-anchored claims stay events (remembered, not believed) — the live specimen is the
+meta-conversation theorem «kotekino was just answering…» held at 0.9/postable. Candidate
+signature already in the zip (definite/named subject + past tense vs GENERIC quantifier +
+tenseless present; relative spacetime may already carry the t<0); candidate gate at
+`_taught_candidate`. ALL design reasoning deferred until §4.11 is approached — a full design
+session when its time comes, not before (the author's explicit ruling).

@@ -24,6 +24,7 @@ from lib.core.models import (
     TKMemoryStakeholdersDoc,
 )
 from lib.core.memory import EvalToken, TokenikoAction, ActionType, MEMChannels
+from lib.core.trust import resolve_canonical
 from brain import compose
 
 # the channels tokeniko can currently ACT on (deliver an outward action). HARDWIRED for v1 (a small
@@ -311,7 +312,16 @@ def plan_action(idea: TKIdeaDoc, tokeniko_uid: str) -> Optional[dict]:
         confidence = idea.answer.get("confidence")
     intensity = {"confidence": confidence, "arousal": effective_urge(idea, src)}
     payload["intensity"] = intensity
-    raw = compose.compose_raw(token, idea.trigger, idea.answer, intensity=intensity)
+    # the SCOPE target (§1 learned scaffolds): the outbound recipient's CANONICAL uid, so a mimic
+    # phrasing picked up from him surfaces only when speaking BACK to him. Posts / internal
+    # KB-writes / self-directed actions have no person recipient -> None (curated voice only).
+    compose_target = None
+    if token != TokenikoAction.POST.value and token not in _INTERNAL and target:
+        soul = resolve_canonical(target)
+        if soul is not None:
+            compose_target = soul.uid
+    raw = compose.compose_raw(token, idea.trigger, idea.answer, intensity=intensity,
+                              target=compose_target)
     if raw:
         payload["raw"] = raw             # the decision text -> senses decompiles -> fluent English
         # (compose_raw returns "" for post — that's fine: raw is OPTIONAL here, the post composer

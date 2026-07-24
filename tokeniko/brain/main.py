@@ -84,6 +84,11 @@ WAKE_MAX = float(os.getenv("BRAIN_WAKE_MAX_S", "7200"))
 # who are around; an empty room gets the silent sleep (cycles are frequent: SLEEP_MAX naps would
 # otherwise turn the goodnight into a chatterbox tic).
 GOODNIGHT_RECENCY = float(os.getenv("GOODNIGHT_RECENCY_S", "3600"))
+# mimicry CONSOLIDATION (§1 learned scaffolds, stage two): a mimic row promotes to a durable global
+# row only from a HIGHLY-trusted teacher (the belief-teaching bar) that carries an AFFINITY signal
+# (he actually used it, or a positive trust episode with that teacher sits close in time to the pick).
+CONSOLIDATE_BAR = float(os.getenv("CONSOLIDATE_BAR", "0.9"))
+MIMIC_EPISODE_PROX = float(os.getenv("MIMIC_EPISODE_PROX", "1800"))
 
 
 # --------------------------------------------------------------
@@ -565,6 +570,47 @@ def _sleep_duty(bs: TKBrainStateDoc) -> None:
                 len(report["constitution"]))
 
 
+# MIMICRY CONSOLIDATION (§1 learned scaffolds, stage two) — the night's promote-or-retire over the
+# ephemeral mimic rows. One night is a mimic's whole life: the conversation is over by sleep, so the
+# scope quarantine must resolve now. NOT KB-change-gated (mimicry is voice, not belief) — gated on
+# mimic rows existing. A row PROMOTES to a durable global row iff its teacher is highly-trusted NOW
+# (belief-teaching bar) AND an affinity signal backs it (he used it, OR a positive trust episode
+# with that teacher sits close in time to the pick); otherwise it RETIRES (enabled=False — never
+# deleted, biography). The durable shelf only ever grows here.
+def _consolidate_mimicry(bs: TKBrainStateDoc) -> None:
+    from lib.core.models import TKScaffoldDoc, TKTrustEpisodeDoc
+    rows = TKScaffoldDoc.find({"enabled": True, "scope": {"$ne": None}}).to_list()
+    if not rows:
+        return  # no ephemeral rows tonight — nothing to consolidate
+    promoted, retired = 0, 0
+    for row in rows:
+        teacher_trust = trust.trust_of(row.scope)
+        affinity = (row.used or 0) >= 1
+        if not affinity and teacher_trust >= CONSOLIDATE_BAR:
+            # look for a positive-delta trust episode with this teacher near the pick's birth
+            lo, hi = row.createdAt - MIMIC_EPISODE_PROX, row.createdAt + MIMIC_EPISODE_PROX
+            episode = TKTrustEpisodeDoc.find_one(
+                {"stakeholder_uid": row.scope, "delta": {"$gt": 0.0},
+                 "timestamp": {"$gte": lo, "$lte": hi}}).run()
+            affinity = episode is not None
+        if teacher_trust >= CONSOLIDATE_BAR and affinity:
+            teacher = row.scope
+            row.scope = None                               # the quarantine lifts — a global voice now
+            row.provenance = f"taught:{teacher}"
+            row.trusted = min(teacher_trust, 0.9)          # learned rows arrive lower than curated
+            row.weight = 0.5                               # they SEASON the voice; the curated shelf stays dominant
+            row.save()                                     # `used` stays — biography
+            promoted += 1
+            logger.info("[sleep] 🌱 a way of speaking became his own (%s, from %s)",
+                        row.category, teacher)
+        else:
+            row.enabled = False                            # retired — the ephemeral life ends, the row stays
+            row.save()
+            retired += 1
+    logger.info("[sleep] the night's accommodation: %d phrasing(s) kept, %d let go",
+                promoted, retired)
+
+
 # the GOODNIGHT (survey slice 2): spoken at the falling-asleep edge, SYNCHRONOUSLY — the idea is
 # born DONE (parsed_by_prio=True) and planned/dispatched right here, because a pending idea would
 # be priorities-work next tick and the goodnight itself would wake him (the wake-catch). The rule
@@ -857,6 +903,7 @@ async def coordinator(stop_event: asyncio.Event) -> None:
                                     now_m - last_fruitful)
                     _say_goodnight(bs)  # the farewell edge (recency-gated; never queue work)
                     _sleep_duty(bs)  # the night's untangling — retreats now, the dream on waking
+                    _consolidate_mimicry(bs)  # promote-or-retire the day's picked-up phrasings
                     # LAST: the digest goodnight summary + the inline drain (_settle_for_sleep) —
                     # after every edge above has spawned what it spawns, so nothing of his own
                     # bedtime work remains to wake him on the next tick.

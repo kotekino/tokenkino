@@ -164,6 +164,18 @@ def context_add(item) -> None:
     _evict(ring)
 
 
+# how many of `uid`'s rows the channel's ring currently holds (the mimicry MOMENTUM read, §1
+# learned scaffolds): a DERIVED count over the live ring, never stored state — «after a while» of
+# talking with someone is just their depth in the working memory. `uid` is the ring's speaker key
+# (str(sourceId), the channel body), matching how context_add stamps rows.
+def talker_depth(key: str, uid: str) -> int:
+    ring = _rings.get(key)
+    if not ring:
+        return 0
+    _evict(ring)
+    return sum(1 for row in ring if row.speaker_uid == uid)
+
+
 # the channel's TOPIC CENTROID: the mean semantic of OTHERS' recent zips (his own speech follows
 # the topic, it does not define it). None = no signal (empty/cold ring).
 def topic_centroid(key: str) -> Optional[np.ndarray]:

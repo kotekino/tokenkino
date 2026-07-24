@@ -1903,3 +1903,26 @@ SURVEY ARC IS COMPLETE)**
 - +12 tests (`test_direct_fact_match.py`, faithful to the actual deciding paths). Full gate
   **607 passed, 1 xfailed**. Built across two 1st-Officier dispatches (the first lost to an
   accidental stop — the finding survived in his last words; the second finished on it).
+
+**Learned scaffolds from the audience — two-stage accommodation (2026-07-24 — §1's tail, the 1st Officier's third build)**
+- The author's design (his gut feeling, made machinery): humans in an intense 1:1 converge on each
+  other's phrasing, and some of it outlives the conversation. **Stage one — ephemeral mimicry,
+  realtime** (`brain/mimicry.py`, hooked after the context-ring feed): a phrasing from a
+  decently-trusted talker (trust ≥0.6) after enough momentum (≥3 prior ring turns) that re-expresses
+  an act he already performs — Lane A social (greeting/farewell) or Lane B slot-less whole-zip match
+  (≥0.85 against the `_LEARNABLE` shelves) — mints a scaffold row SCOPED to that person
+  (`provenance="mimic:<uid>"`): he drifts toward their register mid-conversation, his voice with
+  everyone else untouched. Quality fences: verbatim template, no braces, ≤120 chars, dedup, cap 8
+  per talker. **Stage two — sleep consolidation** (`_consolidate_mimicry`, beside `_sleep_duty`):
+  promote to a durable global row (`taught:<uid>`, trusted min(teacher,0.9), weight 0.5 — learned
+  rows season, the curated voice stays dominant) iff teacher trust ≥0.9 (the belief-teaching bar)
+  AND an affinity signal (he actually USED the row — the `used` tick in `creative_compose` — OR a
+  positive trust episode within ±30 min); otherwise retire (`enabled=False`, never deleted —
+  biography). The quarantine IS the conversation scope: the durable shelf only ever grows in sleep.
+- The seam: `MEMScaffold` gains `scope`/`used`; `creative_compose` gains the target gate (scoped
+  rows surface only when speaking TO their teacher); the target uid threads
+  `plan_action → compose_raw → creative_compose` (canonical, one hop). All knobs env-tunable
+  (`MIMIC_MOMENTUM/BAR/FLOOR/CAP/MAXLEN`, `CONSOLIDATE_BAR`, `MIMIC_EPISODE_PROX`).
+- v1 fence honored: slotted-template extraction is v2; the «I picked up a way of speaking from X»
+  transmission voice → a pending follow-on. +20 tests (`test_mimicry.py`). Full gate
+  **624 passed, 1 xfailed**.

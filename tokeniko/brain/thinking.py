@@ -45,7 +45,7 @@ from lib.core.models import (
 from lib.core.tk import TKQuantifier
 from lib.llc.evaluator.e_keys import role_key
 from lib.core.zip_native import assemble_reportative_zip
-from brain import api_client, behavior, context
+from brain import api_client, behavior, context, mimicry
 
 logger = logging.getLogger("tokeniko-brain")
 
@@ -1508,6 +1508,14 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         context.context_add(item)
     except Exception as error:
         logger.warning("[thinking] context ring feed failed (%s) — continuing", error)
+
+    # LEARNED SCAFFOLDS (§1, stage one): pick up a decently-trusted talker's phrasing mid-
+    # conversation as a person-scoped MIMIC row (social acts + slot-less whole-zip matches). Runs
+    # for BOTH social and zipped items; an error logs + continues (never blocks thinking).
+    try:
+        mimicry.mimic_observe(item)
+    except Exception as error:
+        logger.warning("[thinking] mimicry observe failed (%s) — continuing", error)
 
     # --------------------------------------------------------------
     # SOCIAL ACT (survey slice 4, hunch 8): recognized at the ears, NEVER evaluated — no truth
