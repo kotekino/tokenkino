@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import random
+import re
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Optional
@@ -1425,6 +1426,53 @@ def _derive_reply_context(item) -> Optional[TKMemoryItemDoc]:
 # D P2: the verdict's LEDGER ECHO — which trust episode (if any) an assertion's verdict implies.
 # Returns (trust_trigger, answer_dict) or (None, None). Self-speech never echoes (no ledger on
 # himself — also guarded downstream by record_episode). The mapping:
+# ----------------------------------------------------------------------------------------------
+# THE AND-SPLIT REACTION FAN (the author's design, 2026-07-24 — fork b). «the cat is a mammal and
+# pigs fly because Z» is TWO claims in ONE interaction: he agrees with the first and speaks up
+# about the second, naming it. The splitter (evaluation_harness.split_conjuncts) groups the flat
+# conjunct leaves by subject atom and distributes the shared «because Z» to every group; here each
+# group is GROUNDED ON ITS OWN and gets its OWN eval:* reflex, so the absurd conjunct can no longer
+# drag the true one down through the fuzzy AND (min) fold.
+#
+# SCOPE (v1, deliberately reaction-only): the fan decides WHAT HE SAYS BACK. Everything that WRITES
+# — the teach path (`_taught_candidate`), theorem materialization, the observation record — stays
+# WHOLE-ITEM, because each mints from `item.original`, the whole sentence: minting a conjunct's
+# knowledge would need that conjunct's own surface text, which the parser-free brain cannot render
+# honestly (the zip-native renderer is the missing piece). Splitting speech is safe; splitting
+# knowledge on a guessed string is not. The trust ledger likewise stays whole-item — one
+# conversation turn moves it once, however many claims it carried.
+def _conjunct_topics(item, parts: list) -> list[Optional[str]]:
+    # the {topic} slot for each conjunct's reply («why are you saying that PIGS FLY…?») — sliced
+    # off the speaker's ORIGINAL on the coordination, and ONLY when the slice count matches the
+    # group count exactly. A mismatch yields None per conjunct and the bare shelf speaks («why is
+    # that?») — a naming nicety degrades to honest vagueness, it never guesses. Reply text only:
+    # nothing here is ever stored or believed.
+    text = strip_vocative(item.original or "", get_tokeniko().name).strip()
+    slices = [s.strip() for s in re.split(r"\s+and\s+", text) if s.strip()]
+    return slices if len(slices) == len(parts) else [None] * len(parts)
+
+
+def _react_conjuncts(item, parts: list) -> None:
+    topics = _conjunct_topics(item, parts)
+    for part, topic in zip(parts, topics):
+        result: EvaluatorResult = evaluate_zip(part)["result"]
+        token = status_to_token(result)
+        if not token:
+            logger.info("[thinking] conjunct of memory=%s -> no strong conclusion", str(item.id))
+            continue
+        # the same naming slots as the whole-item path: a FALSE names the refuting BELIEF, an
+        # UNKNOWN names the conjunct it is asking about.
+        belief = _refuting_belief(result.premises) if token == EvalToken.FALSE.value else None
+        answer = ({"belief": belief} if belief
+                  else {"topic": topic} if topic and token == EvalToken.UNKNOWN.value else None)
+        ideas = behavior.spawn_ideas_for(token, payload=part, source=str(item.id),
+                                         confidence=verdict_confidence(token, result),
+                                         answer=answer)
+        logger.info("[thinking] conjunct «%s» of memory=%s status=%s truth=%.3f -> %s (%d idea(s))",
+                    topic or "?", str(item.id), result.status.value, result.truth, token, len(ideas))
+
+
+# ----------------------------------------------------------------------------------------------
 #   TRUE  + closes my open question -> KICKER (the strong kicker, fork 2: the speaker's «because»
 #           grounded against my KB — novel-valid-bridging through conversation)
 #   TRUE                            -> AGREEMENT (redundant corroboration — silence-is-consent's echo)
@@ -1567,8 +1615,14 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
         if not corrected:
             corrected = _try_reduct_answer(item)
 
+        # THE AND-SPLIT (the author's design, 2026-07-24 — fork b): independent claims coordinated
+        # in one utterance are REACTED TO one by one (see _react_conjuncts). None = stays whole.
+        conjuncts = evaluation_harness.split_conjuncts(item.zip) if not corrected else None
+
         if corrected:
             pass  # the correction path spawned its own ideas (retreat + trust echo)
+        elif conjuncts is not None:
+            _react_conjuncts(item, conjuncts)
         elif token:
             # B2 (the open-why): an UNKNOWN that answers my own recent question is a candidate
             # explanation — do not re-interrogate it (the why-regress). Other verdicts unaffected
@@ -1623,20 +1677,6 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
             if token == EvalToken.FALSE.value:
                 record_observation(item, result)
 
-            # D P2: the verdict's LEDGER ECHO — spawn the trust:* trigger beside the eval reflex
-            # (its own namespace: no collapse-collision, so he can push back AND distrust). The
-            # trigger/urge mapping is KB personality (behavior_rules); the episode kind rides in
-            # the trigger, the scale/note in `answer`, the speaker in `target`. The STRONG KICKER
-            # (author's fork 2) = the closed why-loop: a TRUE that answers one of my own open
-            # questions means the speaker's justification GROUNDED against my KB — novel-valid-
-            # bridging, literally through conversation. Epistemics stay pure: this is bookkeeping
-            # ABOUT the verdict, computed after it.
-            trust_trigger, trust_answer = _trust_echo(token, item, result)
-            if trust_trigger is not None:
-                behavior.spawn_ideas_for(
-                    trust_trigger, payload=item.zip, source=str(item.id),
-                    answer=trust_answer, target=item.sourceId,
-                )
         else:
             logger.info(
                 "[thinking] evaluated memory=%s status=%s truth=%.3f -> no strong conclusion",
@@ -1644,6 +1684,24 @@ def think_one(brain_state: TKBrainStateDoc) -> bool:
                 result.status.value,
                 result.truth,
             )
+
+        # D P2: the verdict's LEDGER ECHO — spawn the trust:* trigger beside the eval reflex
+        # (its own namespace: no collapse-collision, so he can push back AND distrust). The
+        # trigger/urge mapping is KB personality (behavior_rules); the episode kind rides in
+        # the trigger, the scale/note in `answer`, the speaker in `target`. The STRONG KICKER
+        # (author's fork 2) = the closed why-loop: a TRUE that answers one of my own open
+        # questions means the speaker's justification GROUNDED against my KB — novel-valid-
+        # bridging, literally through conversation. Epistemics stay pure: this is bookkeeping
+        # ABOUT the verdict, computed after it. WHOLE-ITEM on both routes (the AND-split fans
+        # SPEECH, not the ledger: one conversation turn moves trust once, however many claims
+        # it carried — the folded verdict is the honest summary of the turn).
+        if not corrected and token:
+            trust_trigger, trust_answer = _trust_echo(token, item, result)
+            if trust_trigger is not None:
+                behavior.spawn_ideas_for(
+                    trust_trigger, payload=item.zip, source=str(item.id),
+                    answer=trust_answer, target=item.sourceId,
+                )
 
         # THE ANECDOTE (slice 5, case 3): only on the QUIET verdicts — a TRUE (silence-is-consent)
         # or no strong conclusion. Every other verdict already speaks (speakup/why/clarify) or

@@ -61,27 +61,26 @@ status detail — it references, it does not duplicate (invariant #2).
 
 ## 🔭 Next (ordered) — reprioritized 2026-07-24
 
-**The through-line: THE VOICE IS WHOLE (compose 2.0 complete, 2026-07-24 — §1 closed and removed).**
-The road: the AND-split (§0, queued next), the fresh microscope analysis pass (§2 — now fed by a
-full day of new instruments), the translator remainder (§3), the strengthening tail (§4).
+**The through-line: THE VOICE IS WHOLE and THE EARS ARE WALLED (2026-07-24 — compose 2.0 complete,
+§1 closed; the day's live-found chain closed with it).** The road: §0's two residuals, then the
+fresh microscope analysis pass (§2 — now fed by a full day of new instruments), the translator
+remainder (§3), the strengthening tail (§4).
 
-### 0. The ears' hallucination chain (2026-07-24 — A LANDED, see `landed.md`) 🔄
+### 0. Residuals of the 2026-07-24 arc (the day's builds all LANDED → `landed.md`) 🔄
 
-- 🔭 **A residuals (officer-reported, awaiting the Captain's ruling)** — subject-gap («who is
+- 🔭 **The ears' residuals (officer-reported, awaiting the Captain's ruling)** — subject-gap («who is
   happy?») and copula-predicate («where is Rome?») wh-questions still escalate (SAFE behind the
   wall now — an economy question: a broader wh exemption in `_leaf_sound` would close both) ·
   the additive centroid is weak on small invention-within-balloon (guarded by the balloon cap +
   key-match; a per-added-leaf semantic check would be the cut if it ever bites live).
 - *(B — pronoun momentum: LANDED 2026-07-24 → `landed.md`.)*
-- 🔭 **The AND-split — per-conjunct reactions** (author-designed 2026-07-24; NEXT in the queue —
-  the day's order fulfilled up to here): a root-level PLAIN AND over clauses with DISTINCT subject atoms is
-  reacted to per-conjunct (fork b — split at EVALUATION, the memory item stays whole): thinking
-  fans per-conjunct verdicts into per-conjunct ideas («the cat is a mammal and pigs fly because
-  Z» → agree/learn on 1, speakup naming conjunct 2). Same-subject coordination NEVER splits (the
-  dead-and-alive X∧¬X kernel needs the whole form); contrast/cause-annotated ANDs excluded;
-  «because Z» distributes over the conjuncts (`_inherit_shared`'s cousin — the author's own early
-  legacy machinery). Also closes the invention-within-balloon residual as a side effect. Brief:
-  `.claude/briefs/2026-07-24-and-split.md`.
+- *(The AND-split — per-conjunct reactions: LANDED 2026-07-24 → `landed.md`.)*
+- 🔭 **Per-conjunct KNOWLEDGE (the AND-split's deferred half)** — the teach path, theorem
+  materialization and the observation record still mint from `item.original` (the WHOLE sentence),
+  so a conjunct cannot be learned on its own: it needs that conjunct's own surface text, i.e. a
+  **zip-native renderer** in the parser-free brain (pairs with the strengthening tail's TKZip
+  compaction / zip-native derivation). Splitting speech is safe; splitting knowledge on a guessed
+  string is not — promote when the renderer exists.
 
 ### 2. The fresh microscope analysis pass 🔭
 

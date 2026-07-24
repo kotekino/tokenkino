@@ -1994,3 +1994,33 @@ SURVEY ARC IS COMPLETE)**
   lives in the compiler-path tests, as with `_voice_out`). Full gate **650 passed, 1 xfailed**.
   One flag for the record: a fully-rejected polish is byte-close to the raw render in BODY;
   title/excerpt still come from the polisher (the presentation ruling, by design).
+
+**The AND-split — per-conjunct reactions (2026-07-24 — the author's design, fork b; QM inline after the officer was lost to a session limit)**
+- The author's design: «the cat is a mammal and pigs fly because Z» is TWO claims in ONE
+  interaction — «1 → I agree», «2 → WTF → speakup NAMING it». Today the evaluator grounds each
+  clause then FOLDS the truths (fuzzy AND = min), so the absurd conjunct drags the true one down
+  and the reaction cannot say which half offends. Fork b (ruled): split at REACTION, never at
+  ingestion — the memory item stays WHOLE (true history be it).
+- **The mechanism discovery (measured, not assumed — the brief's assumption was wrong):** the
+  compiler emits a FLAT sibling list under the root AND, and `contrast`/`cause` are LEAF FLAGS,
+  not operator annotations. So the split is a GROUPING, not a tree cut: claim leaves group BY
+  SUBJECT ATOM (`role_key`), cause-leaves DISTRIBUTE to every group (the author's ruling — the
+  reason belongs to the interaction, not the last conjunct). The elegant consequence: the
+  load-bearing carve-out needs NO special case — «the cat is dead and alive» has one subject atom
+  → one group → no split, so the X∧¬X kernel keeps the whole form it needs, structurally.
+  Conservative refusals: any contrast flag (the M1 pair is bound), any non-AND operator, any
+  attitude wrapper, any interrogative leaf, any claim leaf with no readable subject atom.
+- `split_conjuncts` (`lib/core/evaluation_harness.py`, parser-free, sub-zips are a READING of the
+  stored zip — never a rewrite) + `_react_conjuncts` (`brain/thinking.py`): each group is grounded
+  on its own and gets its OWN eval:* reflex with its own confidence, the FALSE naming its refuting
+  belief and the UNKNOWN its conjunct. The `{topic}` slice degrades to the bare shelf when the
+  surface segments don't align with the groups — a naming nicety never guesses.
+- **v1 is reaction-only, deliberately** (a deviation from the brief's item 3, reported): the teach
+  path, theorem materialization and the observation record all mint from `item.original` — the
+  WHOLE sentence — so splitting them would write a conjunct's lesson as the whole utterance;
+  honest per-conjunct text needs a zip-native renderer the parser-free brain does not have.
+  Splitting speech is safe; splitting knowledge on a guessed string is not. The trust ledger
+  likewise stays whole-item (one conversation turn moves it once, however many claims it carried
+  — the trust echo was lifted out of the verdict branch so it fires once on either route).
+- +8 tests (`test_and_split.py`, on real compiled zips — the split table AND every carve-out).
+  Full gate **658 passed, 1 xfailed**.

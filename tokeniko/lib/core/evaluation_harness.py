@@ -547,6 +547,64 @@ def _clauses_contradict(clauses: list) -> Optional[str]:
     return form.detail if form.contradiction else None
 
 
+# ================================================================================================
+# THE AND-SPLIT (the author's design, 2026-07-24 — fork b: split at REACTION, never at ingestion).
+# «the cat is a mammal and pigs fly because Z» is TWO independent claims sharing one interaction:
+# he agrees with the first and speaks up about the second, NAMING it. Today the evaluator grounds
+# each clause but FOLDS the truths into ONE verdict (fuzzy AND = min → the absurd conjunct drags the
+# true one down and the reaction cannot say which half offends). This splitter exposes what the
+# grounding already knows. The MEMORY ITEM STAYS WHOLE — true history be it; only the reaction fans.
+#
+# THE SHAPE (measured 2026-07-24, not assumed): the compiler emits a FLAT sibling list under the
+# root AND — conjuncts and their subordinates are all leaves side by side, and `contrast`/`cause`
+# are LEAF FLAGS, not operator annotations. So the split is a GROUPING, not a tree cut:
+#   claims  = leaves with no cause and no contrast   -> grouped BY SUBJECT ATOM (role_key)
+#   sharers = leaves carrying cause (because/so)     -> DISTRIBUTED to every group (the author's
+#             ruling: «pigs fly because Z» AND «the cat is a mammal because Z» — both inherit it)
+# Grouping by subject (rather than one group per leaf) is what keeps the carve-out intact WITHOUT a
+# special case: «the cat is dead and alive» has ONE subject atom -> ONE group -> no split, so the
+# X∧¬X kernel still sees the whole form it needs. The conservative refusals: a contrast flag
+# anywhere (the M1 pair is semantically bound — «X but Y» is one thought), any non-AND operator, any
+# attitude wrapper (a proposition under THAT is not two claims), any interrogative leaf (questions
+# are out of scope), any claim leaf with no readable subject atom (nothing honest to group on).
+# Returns None whenever the statement must stay whole — the caller then behaves exactly as before.
+def split_conjuncts(statement: TKZip) -> Optional[list[TKZip]]:
+    root = getattr(statement, "items", None)
+    if root is None or isinstance(root.content, TKZipContent):
+        return None                                   # a single-leaf statement never splits
+    leaf_items = _zip_leaf_items(root)
+    if len(leaf_items) < 2:
+        return None
+
+    claims, sharers = [], []
+    for leaf_item in leaf_items:
+        leaf = leaf_item.content
+        if leaf_item.op is not TKOperator.AND or leaf_item.attitude is not None:
+            return None                               # plain AND only; an attitude wraps ONE thought
+        if getattr(leaf, "contrast", False):
+            return None                               # «X but Y» — the contrast BINDS the pair
+        if getattr(leaf, "dubitative", 0.5) >= 0.999 or getattr(leaf, "wh_role", None) is not None:
+            return None                               # a question is answered, never split
+        (sharers if getattr(leaf, "cause", None) else claims).append(leaf_item)
+
+    groups: dict[str, list] = {}
+    for claim in claims:
+        atom = role_key(claim.content, "subject")
+        if atom is None:
+            return None                               # an ungroundable subject — refuse to guess
+        groups.setdefault(atom, []).append(claim)
+    if len(groups) < 2:
+        return None                                   # one subject (or none) — the statement is whole
+
+    # one sub-zip per subject group, each carrying EVERY sharer (the distribution). The leaf items
+    # are re-used by reference: the sub-zips are a READING of the stored zip, never a rewrite of it.
+    return [
+        TKZip(map=list(statement.map),
+              items=TKZipItem(op=TKOperator.AND, content=list(members) + list(sharers)))
+        for members in groups.values()
+    ]
+
+
 # the CROSS-ITEM consistency engine (parser-free). Compare two memory items' clause-sets (e.g. the
 # same speaker's prior vs new claim) and detect a contradiction that EMERGES from combining them. A
 # genuine cross-item conflict means the UNION is contradictory YET NEITHER item is self-contradictory
