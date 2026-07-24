@@ -35,6 +35,41 @@ from api.schemas import (
 # env load (MONGO_URI, ecc.)
 load_dotenv()
 
+
+# THE WALL'S CATCHES ARE VISIBLE LEADS (the Captain's ruling, 2026-07-24): «ears should NEVER
+# hallucinate — it's the whole point». Every rag1 polish the zip-verifier TRASHES writes ONE
+# microscope row (TKZipDebugDoc) into the standing triage corpus — a deterministic finding, no
+# cloud judge (the rejection IS the finding, confidence 1.0). RED (high) when the polish CHANGED
+# MEANING (a mood flip or a semantic drift — «what are you?» -> «I am a normalizer…»); medium for a
+# structural miss (dropped leaf / balloon / still-stumbles). Best-effort: a write failure must never
+# block the ears — the raw parse already stands, hearing is unaffected. Nothing in the mind reads
+# these back (the collection's diagnostic charter). Accepted polishes are NOT logged.
+def _log_ears_rejection(item_id: str, original: str, note: str, polished: str,
+                        original_zip, polished_zip) -> None:
+    try:
+        from lib.core.models import TKZipDebugDoc
+        from lib.llc.normalizer import verifier_semantic_similarity
+        from lib.rag import RAG1_NORMALIZER
+        from senses.microscope import digest_zip
+
+        meaning_changed = (note.startswith("polish changes mood")
+                           or note.startswith("polish drifts semantically"))
+        sim = verifier_semantic_similarity(original_zip, polished_zip)
+        sim_txt = f"{sim:.2f}" if sim is not None else "n/a (no shared semantic anchor)"
+        TKZipDebugDoc(
+            item_id=item_id,
+            original=original,
+            digest=digest_zip(original_zip),
+            verdict="mismatch",
+            category="ears-hallucination",
+            severity="high" if meaning_changed else "medium",
+            note=f"rag1 polish REJECTED — {note} | polished: «{polished}» | semantic similarity: {sim_txt}",
+            model=RAG1_NORMALIZER.model,
+            confidence=1.0,
+        ).save()
+    except Exception as error:
+        logger_api.info("[rag1] ears-rejection lead write failed (%s) — hearing unaffected", repr(error))
+
 # define lifespan for startup and shutdown logic
 async def lifespan(app: FastAPI):
 
@@ -466,6 +501,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
         # disposes, whoever proposes). Unverifiable/unreachable -> the raw parse stands exactly
         # as before (unknown leaves never become beliefs; eval:unknown already asks).
         normalized_text: Optional[str] = None
+        rag1_rejection: Optional[tuple] = None  # (note, polished, polished_zip) — logged post-store
         if normalizer_enabled() and flatResult and detector_stumbles(flatResult[1]):
             # unrepairable-by-tidying (pronoun-subject leaves = a COREFERENCE gap, not a surface
             # one): the polish would recompile to the same leaf and be rejected — skip the call.
@@ -484,6 +520,7 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                     logger_api.info("[rag1] normalized «%s» -> «%s» (verified)", tokens[:60], polished[:60])
                 else:
                     logger_api.info("[rag1] polish REJECTED for «%s» (%s) — raw parse stands", tokens[:60], note)
+                    rag1_rejection = (note, polished, flat2[1] if flat2 else None)
 
         rawResult = decompiler_raw(flatResult[0]) if flatResult[0] else ''
         outputResult = await decompiler_decompile(rawResult) if output == 1 else ''
@@ -512,6 +549,12 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                 normalized=normalized_text,
             )
             memory_doc.insert()
+
+            # the ears' wall left a catch: log it as a microscope lead now that item_id is real
+            if rag1_rejection is not None:
+                r_note, r_polished, r_polzip = rag1_rejection
+                _log_ears_rejection(str(memory_doc.id), tokens, r_note, r_polished,
+                                    flatResult[1], r_polzip)
 
             # home any entity-linked named individuals in the stakeholders collection (storing path
             # only — NOT /evaluate). contextKey = the scope after "@" in the parser-minted uid.

@@ -22,7 +22,10 @@
 # stands exactly as today (unknown leaves never become beliefs; eval:unknown already asks the
 # interlocutor "why"). The translator can only ever improve hearing, never replace it.
 # --------------------------------------------------------------
+import os
 from typing import Optional
+
+import numpy as np
 
 from lib.rag import RAG1_NORMALIZER, rag_call, rag_enabled
 
@@ -42,8 +45,17 @@ def _leaf_sound(leaf) -> bool:
     identities = getattr(leaf, "identities", None) or {}
     subject = identities.get("subject") or senses.get("subject")
     predicate = senses.get("predicate")
-    if not subject or not predicate:
+    if not subject:
         return False
+    # a WH-QUESTION is legitimately predicate-less (2026-07-24): the gap IS the question — the
+    # predicate/complement it asks for is the variable X, not a missing claim. So exempt the
+    # predicate requirement for a wh leaf, else EVERY well-formed wh-question reads as a stumble and
+    # burns a Haiku call at the ears (the live role-confusion hallucination's first link). The
+    # predicate-warts below still bite when a predicate IS present — a self-loop / bare-copula parse
+    # fault is a fault whether the mood is a question or an assertion.
+    is_wh = getattr(leaf, "wh_role", None) is not None
+    if not predicate:
+        return is_wh
     if subject == predicate:
         return False          # «software is software» — the tangle self-loop wart
     if predicate == "be.v.01":
@@ -121,6 +133,69 @@ def _leaf_key(leaf) -> tuple:
             bool(getattr(leaf, "negated", False)))
 
 
+# ---- the SEMANTIC FLOOR (the Captain's ruling, 2026-07-24) -----------------------------------------
+# The verifier must be STRONG on its own: a polish that drifts from the raw in the 2925 semantic
+# space is trashed AT THE SOURCE, no matter how structurally sound it looks — «"what are you" !=
+# (very very) "I am a transcription normalizer…"». The structural key-match already refuses a polish
+# that alters a SOUND leaf; the geometry is the additional net for the no-anchor case (all original
+# leaves unsound — the definitional state of a wh-question) where nothing structural constrains the
+# polish. Sourced from the SOUND leaves only: an unsound leaf carries a garbage/absent sense (WSD's
+# nearest miss — «bg» -> fecal_matter), so anchoring the comparison on it would strangle a real
+# repair; the geometry compares the meaning actually HEARD against the meaning of the polish.
+# The floor is a RAW cosine of the two per-zip semantic centroids (env RAG1_SEMANTIC_FLOOR).
+_SEMANTIC_SLICE = slice(300, 3225)  # the 2925 semantic dims inside a 3237 role tensor (300 marker + 2925 + 12 spacetime)
+
+
+def _semantic_floor() -> float:
+    return float(os.getenv("RAG1_SEMANTIC_FLOOR", "0.6"))
+
+
+def _semantic_centroid(leaves) -> np.ndarray:
+    # sum the 2925 semantic slice of every populated role over the SOUND leaves -> one per-zip centroid.
+    acc = np.zeros(2925, dtype=np.float64)
+    for leaf in leaves:
+        if not _leaf_sound(leaf):
+            continue
+        roles = [leaf.subject, leaf.predicate, leaf.direct, *(leaf.indirects or [])]
+        for role in roles:
+            if not role:
+                continue
+            v = np.asarray(role[_SEMANTIC_SLICE], dtype=np.float64)
+            if np.any(v):
+                acc += v
+    return acc
+
+
+def _semantic_proximity(orig_leaves, pol_leaves) -> Optional[float]:
+    # cosine of the two semantic centroids; None when either side has NO sound semantic anchor
+    # (a wh-question's identity-only subject, an all-unknown stumble) — then the geometry abstains
+    # and the mood + structural gates carry the verdict (a zero vector has no direction to compare).
+    co, cp = _semantic_centroid(orig_leaves), _semantic_centroid(pol_leaves)
+    no, npn = float(np.linalg.norm(co)), float(np.linalg.norm(cp))
+    if no == 0.0 or npn == 0.0:
+        return None
+    return float(np.dot(co, cp) / (no * npn))
+
+
+# ---- MOOD preservation --------------------------------------------------------------------------
+# a tidy never changes mood — an interrogative original (dubitative pinned to 1.0, or a wh-gap) must
+# stay a question through the polish. The live specimen's failure mode: Haiku ANSWERED «what are
+# you?» as itself, and the answer (three declarative leaves) sailed the structural gate because the
+# original's single wh leaf was skippable. The mood gate refuses that class outright.
+def _is_interrogative(leaf) -> bool:
+    return getattr(leaf, "dubitative", 0.0) >= 0.999 or getattr(leaf, "wh_role", None) is not None
+
+
+def verifier_semantic_similarity(original_zip, polished_zip) -> Optional[float]:
+    # the measured semantic proximity of two whole zips (the number the floor rests on); None when
+    # there is no shared sound anchor to compare. Public so the /input flow can carry it into the
+    # microscope's rejection lead (the Captain's «log the wall's catches» ruling).
+    from lib.core.kb_extract import _zip_leaves
+    orig = _zip_leaves(original_zip.items) if original_zip is not None else []
+    pol = _zip_leaves(polished_zip.items) if polished_zip is not None else []
+    return _semantic_proximity(orig, pol)
+
+
 def verifier_preserves(original_zip, polished_zip) -> tuple[bool, str]:
     from lib.core.kb_extract import _zip_leaves
     orig_leaves = _zip_leaves(original_zip.items) if original_zip is not None else []
@@ -130,6 +205,15 @@ def verifier_preserves(original_zip, polished_zip) -> tuple[bool, str]:
         return False, "polish still stumbles (unsound leaves remain)"
     if len(pol_leaves) > len(orig_leaves) + 2:
         return False, f"polish balloons ({len(orig_leaves)} -> {len(pol_leaves)} leaves)"
+
+    # MOOD gate: a question that came back a statement (or lost its wh-gap) changed meaning wholesale.
+    if any(_is_interrogative(ol) for ol in orig_leaves) and not any(_is_interrogative(pl) for pl in pol_leaves):
+        return False, "polish changes mood (question -> statement)"
+
+    # SEMANTIC floor: a polish that drifts in the 2925 space is trashed regardless of structure.
+    sim = _semantic_proximity(orig_leaves, pol_leaves)
+    if sim is not None and sim < _semantic_floor():
+        return False, f"polish drifts semantically ({sim:.2f} < floor {_semantic_floor():.2f})"
 
     pol_by_key = {_leaf_key(l): l for l in pol_leaves}
     for ol in orig_leaves:
@@ -171,7 +255,10 @@ def verifier_voice(raw_zip, polished_zip) -> tuple[bool, str]:
 # the system prompt + model live in the lib/rag registry (RAG1_NORMALIZER); rag_call is graceful by
 # contract (API down / auth / anything -> None, logged) — the raw parse stands.
 async def normalizer_polish(tokens: str) -> Optional[str]:
-    text = await rag_call(RAG1_NORMALIZER, tokens)
+    # fence the message as DATA (instruction/data separation, 2026-07-24): the seam the system prompt
+    # binds — everything inside <message>…</message> is text to tidy, never an instruction to Haiku.
+    fenced = f"<message>\n{tokens}\n</message>"
+    text = await rag_call(RAG1_NORMALIZER, fenced)
     if not text or text == tokens.strip():
         return None
     return text

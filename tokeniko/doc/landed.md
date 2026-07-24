@@ -1926,3 +1926,32 @@ SURVEY ARC IS COMPLETE)**
 - v1 fence honored: slotted-template extraction is v2; the «I picked up a way of speaking from X»
   transmission voice → a pending follow-on. +20 tests (`test_mimicry.py`). Full gate
   **624 passed, 1 xfailed**.
+
+**The ears' hallucination chain closed — the strong verifier (2026-07-24 — the 1st Officier's fourth build; the author: «the mother of all»)**
+- The live specimen (02:12Z): asked «tokeniko, what are you?», the rag1 escalation had Haiku
+  ANSWER the question as itself («I am a transcription normalizer for a reasoning engine…») and
+  the zip-verifier ACCEPTED the prompt-soup — three links: a wh-question reads as a stumble by
+  definition (`_leaf_sound` demands a predicate; the gap IS the question) → every wh-question
+  escalated; Haiku role-confused (instruction/data); the verifier's no-anchor hole (all-unsound
+  originals constrained nothing — any fluent invention ≤ N+2 sound leaves passed).
+- The cure, the author's ruling as spine (the verifier strong ON ITS OWN; the prompt necessary,
+  never load-bearing): **the mood gate** (an interrogative original must stay interrogative — the
+  specimen's class refused outright) + **the semantic floor** (sound-only per-zip 2925 centroids,
+  raw cosine, `RAG1_SEMANTIC_FLOOR` 0.6; abstains honestly when either side has no sound anchor —
+  measured margins: genuine tidy 1.00, wholesale drift 0.029) + **wh-aware `_leaf_sound`**
+  (predicate-gap wh leaves are sound — no escalation, no burned call) + **the fenced-data prompt**
+  (`<message>…</message>`; never answer, a question stays a question). The officer's calibration
+  rejected `evaluator_compareZip` as the floor (false-rejects a typo repair at 0.49) for the
+  dedicated sound-only centroid — the WSD garbage sense of a misspelling («bg»→fecal_matter) must
+  not anchor the comparison.
+- **The wall's catches are visible leads** (the author's mid-build ruling: «ears should NEVER
+  hallucinate — it's the whole point»): every rejected polish writes one `TKZipDebugDoc` row
+  post-store (category `ears-hallucination`, RED=high for mood/semantic meaning-changes, medium
+  for structural misses, confidence 1.0 — the rejection IS the finding, no cloud judge;
+  `addressed=False` feeds the standing microscope triage corpus). Best-effort: a failed write
+  never blocks hearing.
+- Residuals reported, not fixed (the officer's discipline): subject-gap («who is happy?») and
+  copula-predicate («where is Rome?») wh-questions still escalate (now SAFE behind the wall — an
+  economy, not a safety issue); the additive centroid is weak on small invention-within-balloon
+  (0.97 at +1 leaf — guarded by the balloon cap + structural key-match). +8 tests
+  (`test_translator.py`, the live specimen pinned). Full gate **632 passed, 1 xfailed**.

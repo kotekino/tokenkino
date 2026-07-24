@@ -64,6 +64,19 @@ status detail — it references, it does not duplicate (invariant #2).
 last item (blog consensus — designed and briefed); when it lands, compose 2.0 is whole. Then the
 fresh microscope analysis pass (§2), the translator remainder (§3), and the strengthening tail (§4).
 
+### 0. The ears' hallucination chain (2026-07-24 — A LANDED, see `landed.md`) 🔄
+
+- 🔭 **A residuals (officer-reported, awaiting the Captain's ruling)** — subject-gap («who is
+  happy?») and copula-predicate («where is Rome?») wh-questions still escalate (SAFE behind the
+  wall now — an economy question: a broader wh exemption in `_leaf_sound` would close both) ·
+  the additive centroid is weak on small invention-within-balloon (guarded by the balloon cap +
+  key-match; a per-added-leaf semantic check would be the cut if it ever bites live).
+- 🔭 **B — pronoun momentum (after A, author-ordered)** — momentum-graded directedness (an
+  ambient follow-up inherits the open exchange, 0.85) + the bind bar (`addressed` at ≥0.75):
+  «you» resolves where directedness points; misunderstanding is mimicked, not prevented (the
+  fragolina ruling). Promotes the parked «conversation momentum» item. Brief:
+  `.claude/briefs/2026-07-24-pronoun-momentum.md` — designed, awaiting dispatch.
+
 ### 1. Compose 2.0 — the tail (the core + the survey arc + digests + learned scaffolds are landed → `landed.md`) 🔄
 
 - 🔭 **Blog consensus-over-the-polisher** — the line-aligned polish held to the rag2-out contract

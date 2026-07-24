@@ -153,3 +153,115 @@ def test_resolved_first_person_never_trips_the_gate(compile_both):
     llc, zp = compile_both("I value logic")
     assert detector_stumbles(zp) is False
     assert detector_unrepairable(llc, zp) is False
+
+
+# ---- the ears' hallucination chain — the strong verifier (2026-07-24) --------------------------------
+# The live specimen (02:12Z): kotekino asked «tokeniko, what are you?»; Haiku ANSWERED as itself
+# («I am a transcription normalizer…») and the prompt-soup sailed the structural gate (the wh
+# original's only leaf was skippable — nothing constrained the polish). Three cuts: wh-aware
+# soundness (a well-formed wh-question no longer stumbles → no escalation), the MOOD gate (a question
+# that comes back a statement is trashed), and the SEMANTIC FLOOR (a polish that drifts in the 2925
+# space is trashed regardless of structure). The specimen is the regression's ground truth.
+
+_SPECIMEN_ORIGINAL = "tokeniko, what are you?"
+_SPECIMEN_POLISH = ("I am a transcription normalizer for a reasoning engine. "
+                    "I tidy the surface of messages without changing their meaning.")
+
+
+def test_wh_question_does_not_escalate(compile_zip):
+    # cut 2: a well-formed wh-question's gap IS the question, not a stumble — no burned Haiku call,
+    # no exposure to the role-confusion hallucination
+    assert detector_stumbles(compile_zip("what are you?")) is False
+    assert detector_stumbles(compile_zip("what is a cat?")) is False
+
+
+def test_live_specimen_rejected(compile_zip):
+    # the mother-of-all: the prompt-soup answer must be trashed at the source (mood and/or semantic)
+    ok, note = verifier_preserves(compile_zip(_SPECIMEN_ORIGINAL), compile_zip(_SPECIMEN_POLISH))
+    assert not ok, note
+
+
+def test_mood_flip_rejected(compile_zip):
+    # cut 1: an interrogative original that comes back a bare statement changed meaning wholesale
+    ok, note = verifier_preserves(compile_zip("what is a cat?"), compile_zip("a cat is a mammal"))
+    assert not ok and "mood" in note
+
+
+def test_genuine_tidy_survives_the_floor(compile_zip):
+    # the floor must NOT strangle the instrument: a real segmentation (semantic proximity ~1.0)
+    # still ACCEPTS — see test_semantic_floor_measured_margins for the numbers
+    ok, note = verifier_preserves(
+        compile_zip("a cat is a mammal and a dog is an animal"),
+        compile_zip("a cat is a mammal. a dog is an animal."))
+    assert ok, note
+
+
+def test_semantic_floor_measured_margins(compile_zip):
+    # pin the calibration the floor rests on (RAG1_SEMANTIC_FLOOR default 0.6). measured 2026-07-24:
+    #   genuine segmentation ~1.00  |  wholesale drift ~0.03  |  wh/no-anchor -> abstain (None)
+    from lib.llc.normalizer import _semantic_proximity, _semantic_floor
+    def prox(a, b):
+        return _semantic_proximity(_zip_leaves(compile_zip(a).items), _zip_leaves(compile_zip(b).items))
+    floor = _semantic_floor()
+    # a genuine tidy sits far ABOVE the floor
+    assert prox("a cat is a mammal. a dog is an animal.",
+                "a cat is a mammal and a dog is an animal") > floor
+    # wholesale semantic drift sits far BELOW it (both sides have a sound anchor)
+    drift = prox("a cat is a mammal", "a rock is a mineral")
+    assert drift is not None and drift < floor
+    # the no-anchor case (the wh original carries no sound semantic anchor) ABSTAINS — the mood +
+    # structural gates carry that verdict, not the geometry
+    assert prox(_SPECIMEN_ORIGINAL, _SPECIMEN_POLISH) is None
+
+
+# ---- the wall's catches are visible leads (the addendum, 2026-07-24) --------------------------------
+# Every verifier REJECTION writes ONE microscope row (TKZipDebugDoc) into the standing triage corpus:
+# RED (high) when the polish CHANGED MEANING (mood/semantic), medium for a structural miss. A
+# deterministic finding (confidence 1.0, no cloud judge). The write is best-effort — it must never
+# block the ears from hearing.
+
+def test_ears_rejection_logs_high_severity_lead(compile_zip, _io):
+    # the live specimen: a meaning-changing rejection -> a RED lead in the corpus
+    from api.main import _log_ears_rejection
+    from lib.core.models import TKZipDebugDoc
+    orig, pol = compile_zip(_SPECIMEN_ORIGINAL), compile_zip(_SPECIMEN_POLISH)
+    ok, note = verifier_preserves(orig, pol)
+    assert not ok
+    item_id = "ears-test-high-0001"
+    try:
+        _log_ears_rejection(item_id, _SPECIMEN_ORIGINAL, note, _SPECIMEN_POLISH, orig, pol)
+        row = TKZipDebugDoc.find_one({"item_id": item_id}).run()
+        assert row is not None
+        assert row.verdict == "mismatch" and row.category == "ears-hallucination"
+        assert row.severity == "high"          # a mood/semantic rejection = meaning changed
+        assert row.confidence == 1.0 and row.addressed is False
+        assert "transcription normalizer" in row.note   # the polished text rides in the note
+    finally:
+        TKZipDebugDoc.find({"item_id": item_id}).delete().run()
+
+
+def test_ears_rejection_logs_medium_severity_lead(compile_zip, _io):
+    # a structural miss (a dropped sound leaf) is a bad polish, not necessarily a hallucination -> medium
+    from api.main import _log_ears_rejection
+    from lib.core.models import TKZipDebugDoc
+    orig = compile_zip("a cat is a mammal and a dog is an animal")
+    pol = compile_zip("a cat is a mammal")
+    ok, note = verifier_preserves(orig, pol)
+    assert not ok and "dropped" in note
+    item_id = "ears-test-medium-0001"
+    try:
+        _log_ears_rejection(item_id, "a cat is a mammal and a dog is an animal", note,
+                            "a cat is a mammal", orig, pol)
+        row = TKZipDebugDoc.find_one({"item_id": item_id}).run()
+        assert row is not None and row.severity == "medium"
+        assert row.category == "ears-hallucination"
+    finally:
+        TKZipDebugDoc.find({"item_id": item_id}).delete().run()
+
+
+def test_ears_rejection_write_failure_never_blocks(_io):
+    # the ears keep hearing even if the notebook is full: a broken zip makes the write throw INSIDE
+    # the helper, which must SWALLOW it (never propagate to /input)
+    from api.main import _log_ears_rejection
+    _log_ears_rejection("ears-test-bad", "x", "polish drifts semantically (0.10 < floor 0.60)",
+                        "y", None, None)  # must not raise

@@ -103,7 +103,9 @@ class MEMZipDebug(BaseModel):
     severity: Optional[str] = None             # "low" | "medium" | "high" (mismatch only)
     category: Optional[str] = None             # wrong-sense | wrong-structure | missed-negation |
                                                # missed-quantifier | missed-mood | dropped-content |
-                                               # operator-flattening | other
+                                               # operator-flattening | other | ears-hallucination
+                                               # (2026-07-24: a rag1 polish the zip-verifier trashed
+                                               # — a deterministic finding, not a cloud verdict)
     note: Optional[str] = None                 # the judge's one-paragraph why
     model: Optional[str] = None                # which judge (model id) produced this
     timestamp: int = Field(default_factory=lambda: int(time.time()))
