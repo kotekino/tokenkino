@@ -71,11 +71,16 @@ fresh microscope analysis pass (§2), the translator remainder (§3), and the st
   wall now — an economy question: a broader wh exemption in `_leaf_sound` would close both) ·
   the additive centroid is weak on small invention-within-balloon (guarded by the balloon cap +
   key-match; a per-added-leaf semantic check would be the cut if it ever bites live).
-- 🔭 **B — pronoun momentum (after A, author-ordered)** — momentum-graded directedness (an
-  ambient follow-up inherits the open exchange, 0.85) + the bind bar (`addressed` at ≥0.75):
-  «you» resolves where directedness points; misunderstanding is mimicked, not prevented (the
-  fragolina ruling). Promotes the parked «conversation momentum» item. Brief:
-  `.claude/briefs/2026-07-24-pronoun-momentum.md` — designed, awaiting dispatch.
+- *(B — pronoun momentum: LANDED 2026-07-24 → `landed.md`.)*
+- 🔭 **The AND-split — per-conjunct reactions** (author-designed 2026-07-24; QUEUED THIRD — after
+  §1's blog consensus): a root-level PLAIN AND over clauses with DISTINCT subject atoms is
+  reacted to per-conjunct (fork b — split at EVALUATION, the memory item stays whole): thinking
+  fans per-conjunct verdicts into per-conjunct ideas («the cat is a mammal and pigs fly because
+  Z» → agree/learn on 1, speakup naming conjunct 2). Same-subject coordination NEVER splits (the
+  dead-and-alive X∧¬X kernel needs the whole form); contrast/cause-annotated ANDs excluded;
+  «because Z» distributes over the conjuncts (`_inherit_shared`'s cousin — the author's own early
+  legacy machinery). Also closes the invention-within-balloon residual as a side effect. Brief:
+  `.claude/briefs/2026-07-24-and-split.md`.
 
 ### 1. Compose 2.0 — the tail (the core + the survey arc + digests + learned scaffolds are landed → `landed.md`) 🔄
 

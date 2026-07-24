@@ -6,12 +6,10 @@
 
 ---
 
-**Conversation momentum (senses C follow-on)** — after tokeniko speaks in a channel he is IN the
-conversation for a while, so the next ambient messages there deserve more than 0.6 (the author's
-instinct: a multiplier lifting polite-guest toward engaged-participant ~0.75). The clean design is
-already agreed: DERIVE it from the memory timeseries (his own recent self-speech in that
-`channel_id` within a window), never stored state — the same principle as the open-why derivation.
-Parked to watch plain C live first; promote when the missing lift is actually felt.
+*(Conversation momentum — PROMOTED and LANDED 2026-07-24 with the pronoun-momentum build: the
+missing lift was felt as the bare-«you» pronoun defect; the landed design subsumes this entry —
+ambient lifts to 0.85 inside an open exchange, derived from the timeseries as agreed here. See
+`landed.md`.)*
 
 **ATProto / Bluesky — a `senses` I/O channel (inbound carrier AND outbound)** — the account exists
 (**@tokeniko.online**; app password to come) so wiring is quick later. Its original condition

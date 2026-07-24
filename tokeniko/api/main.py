@@ -36,6 +36,14 @@ from api.schemas import (
 load_dotenv()
 
 
+# THE ADDRESSED BAR (B, 2026-07-24): «you»→tokeniko binds when directedness clears this bar. The bar
+# is deliberately BELOW momentum (0.85) and ABOVE ambient (0.6): an open-exchange follow-up («so,
+# what are you?» mid-dialogue) binds, a cold ambient line does not. Momentum (0.85) and explicit
+# addressing (0.9 / 1.0) clear it; ambient (0.6) and someone-else's-thread (0.15) do not.
+def _is_addressed(directedness: float) -> bool:
+    return directedness >= float(os.getenv("ADDRESSED_BAR", "0.75"))
+
+
 # THE WALL'S CATCHES ARE VISIBLE LEADS (the Captain's ruling, 2026-07-24): «ears should NEVER
 # hallucinate — it's the whole point». Every rag1 polish the zip-verifier TRASHES writes ONE
 # microscope row (TKZipDebugDoc) into the standing triage corpus — a deterministic finding, no
@@ -486,10 +494,11 @@ async def process(tokens: str = Query(..., min_length=3, description="Sentence t
                     "data": {"original": tokens, "social": social.kind, "social_at": social.at}}
         if social is not None:
             preparsedTokens = social.remainder
-        # the COREFERENCE GATE (the mammal incident, 2026-07-18): «you»→tokeniko only when the
-        # utterance is actually ADDRESSED to him (DM/mention/reply-to-him ≥ 0.9); in ambient or
+        # the COREFERENCE GATE (the mammal incident, 2026-07-18; the bar softened by momentum, B
+        # 2026-07-24): «you»→tokeniko only when the utterance is actually ADDRESSED to him — now the
+        # ADDRESSED_BAR (default 0.75, below momentum's 0.85, above ambient's 0.6); in cold-ambient or
         # someone-else's-thread talk the addressee is unknowable and «you» stays unresolved.
-        addressed = directedness >= 0.9
+        addressed = _is_addressed(directedness)
         recursiveResult = parser(preparsedTokens, talkerEntity, app.state.tokeniko, app.state.ai_client, addressed=addressed)
         recursiveResultCopy: TKStatements = copy.deepcopy(recursiveResult)
         flatResult: tuple[TKLLC, TKZip] = compiler_compile(recursiveResultCopy)

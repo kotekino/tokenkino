@@ -1955,3 +1955,23 @@ SURVEY ARC IS COMPLETE)**
   economy, not a safety issue); the additive centroid is weak on small invention-within-balloon
   (0.97 at +1 leaf — guarded by the balloon cap + structural key-match). +8 tests
   (`test_translator.py`, the live specimen pinned). Full gate **632 passed, 1 xfailed**.
+
+**Pronoun momentum — «you» resolves where directedness points (2026-07-24 — the 1st Officier's fifth build; the fragolina ruling)**
+- The live defect: «so, what are you?» mid-dialogue graded ambient 0.6 → below the 0.9 addressed
+  bar → the listener gate left «you» an uid-less stub → the wh-solver honestly IDK'd about what he
+  is, with «I am a software» active in the KB. The vocative had been masking the gap all along.
+- The author's ruling: directedness VARIES with conversational momentum, and pronouns resolve
+  wherever it points — misunderstanding is not prevented, it is faithfully MIMICKED (his fragolina
+  example: binding a «you» the speaker aimed elsewhere is correct human behavior; the speaker
+  caused it, the correction is just more conversation).
+- The build: `_DIR_MOMENTUM = 0.85` — an ambient channel message inside an OPEN exchange (this
+  author addressed tokeniko ≥0.9, or tokeniko spoke to him, same channel_id, within
+  `MOMENTUM_WINDOW_S` 600s) lifts 0.6→0.85, derived from the memory timeseries, never stored
+  state; explicit signals beat momentum (someone-else's-thread stays 0.15; DM 1.0; addressed 0.9).
+  The bind bar: `ADDRESSED_BAR` (0.75, env) replaces the hardwired 0.9 at `/input` — momentum and
+  explicit addressing bind «you»→tokeniko; cold ambient keeps the honest stub. This PROMOTES the
+  parked «conversation momentum» item (its "promote when the lift is felt" condition = this very
+  defect); the lift also multiplies Priorities urges — the engaged-participant behavior that
+  entry wanted, by the same one scalar.
+- +12 tests (`test_pronoun_momentum.py`, incl. the parser-level specimen: «so, what are you?»
+  addressed → `identities.subject = tokeniko`). Full gate **642 passed, 1 xfailed**.
